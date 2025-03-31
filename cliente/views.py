@@ -1,209 +1,265 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
 from django.contrib import messages
-from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_exempt
-import json
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
-# Importe os modelos do core
-from core.models import Empresa, EmpresaUsuario, Projeto, Briefing, ArquivoProjeto
+from core.models import Usuario, Empresa
+from projetos.models import Projeto
+from projetos.forms import ProjetoForm
 
-@login_required
+from django.contrib.auth.views import LoginView
+from django.urls import reverse_lazy
+
+class ClienteLoginView(LoginView):
+    template_name = 'cliente/login.html'
+    
+    def form_valid(self, form):
+        print("Login bem-sucedido para:", form.get_user())
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        print("Redirecionando para:", reverse_lazy('cliente:dashboard'))
+        return reverse_lazy('cliente:dashboard')
+ 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['app_name'] = 'Portal do Cliente'
+        return context
+
+# Middleware para verificar se o usuário é cliente
+def cliente_required(view_func):
+    def wrapper(request, *args, **kwargs):
+        if not hasattr(request.user, 'nivel') or request.user.nivel != 'cliente':
+            messages.error(request, 'Acesso negado. Você não tem permissão de cliente.')
+            return redirect('login')
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+# PÁGINAS PRINCIPAIS
+
 def home(request):
-    """Vista principal do portal do cliente"""
-    context = {
-        'use_content_box': True,
-    }
-    return render(request, 'cliente/home.html', context)
+    """
+    Página inicial do Portal do Cliente
+    """
+    return render(request, 'cliente/home.html')
 
 @login_required
-def meus_projetos(request):
-    """Lista os projetos do cliente logado"""
-    projetos = Projeto.objects.filter(cliente=request.user).order_by('-data_criacao')
+@cliente_required
+def dashboard(request):
+    """
+    Dashboard do Portal do Cliente
+    """
+    # Obtém a empresa do usuário logado
+    empresa = request.user.empresa
     
-    context = {
-        'projetos': projetos
-    }
-    return render(request, 'cliente/meus_projetos.html', context)
-
-@login_required
-def novo_projeto(request):
-    """Criação de novo projeto"""
-    if request.method == 'POST':
-        titulo = request.POST.get('titulo')
-        descricao = request.POST.get('descricao')
-        empresa_id = request.POST.get('empresa_id')
-        
-        if not titulo:
-            messages.error(request, 'O título do projeto é obrigatório.')
-            return redirect('cliente:novo_projeto')
-        
-        # Verificar empresa
-        if empresa_id:
-            empresa = get_object_or_404(Empresa, id=empresa_id)
-            # Verificar se o usuário tem vínculo com esta empresa
-            if not EmpresaUsuario.objects.filter(usuario=request.user, empresa=empresa).exists():
-                messages.error(request, 'Você não tem permissão para esta empresa.')
-                return redirect('cliente:novo_projeto')
-        else:
-            # Obter a empresa principal do usuário
-            empresa_usuario = EmpresaUsuario.objects.filter(usuario=request.user, principal=True).first()
-            
-            if not empresa_usuario:
-                # Se não tem principal, pegar a primeira
-                empresa_usuario = EmpresaUsuario.objects.filter(usuario=request.user).first()
-                
-            if not empresa_usuario:
-                messages.error(request, 'Você não tem uma empresa associada.')
-                return redirect('cliente:novo_projeto')
-                
-            empresa = empresa_usuario.empresa
-        
-        # Criar o projeto
-        projeto = Projeto.objects.create(
-            cliente=request.user,
-            empresa=empresa,
-            titulo=titulo,
-            descricao=descricao,
-            status='novo'
-        )
-        
-        # Criar briefing vazio
-        Briefing.objects.create(projeto=projeto)
-        
-        messages.success(request, 'Projeto criado com sucesso!')
-        return redirect('cliente:briefing', projeto_id=projeto.id)
-    
-    # Obter empresas do usuário
-    vinculos = EmpresaUsuario.objects.filter(usuario=request.user)
-    empresas = [v.empresa for v in vinculos]
+    # Obtém as estatísticas de projetos do cliente
+    total_projetos = Projeto.objects.filter(empresa=empresa).count()
+    projetos_ativos = Projeto.objects.filter(empresa=empresa, status='ativo').count()
     
     context = {
-        'empresas': empresas
+        'empresa': empresa,
+        'total_projetos': total_projetos,
+        'projetos_ativos': projetos_ativos,
     }
-    return render(request, 'cliente/novo_projeto.html', context)
+    return render(request, 'cliente/dashboard.html', context)
+
+# VISUALIZAÇÃO DE USUÁRIOS DA EMPRESA
 
 @login_required
-def briefing(request, projeto_id):
-    """Gerenciamento do briefing de um projeto"""
-    projeto = get_object_or_404(Projeto, id=projeto_id, cliente=request.user)
-    briefing, created = Briefing.objects.get_or_create(projeto=projeto)
-    arquivos = ArquivoProjeto.objects.filter(projeto=projeto).order_by('-data_upload')
+@cliente_required
+def usuario_list(request):
+    """
+    Lista de usuários da mesma empresa do cliente
+    """
+    # Obtém a empresa do usuário logado
+    empresa = request.user.empresa
     
-    # Verificação básica de campos
-    validacao = {
-        'feira': None if not briefing.feira else True,
-        'posicao': None if not briefing.posicao else True,
-        'orcamento': None if not briefing.orcamento else True
-    }
+    # Obtém usuários da mesma empresa
+    usuarios_list = Usuario.objects.filter(empresa=empresa).order_by('username')
     
-    if request.method == 'POST':
-        # Atualizar briefing
-        briefing.feira = request.POST.get('feira')
-        briefing.posicao = request.POST.get('posicao')
-        briefing.orcamento = request.POST.get('orcamento') if request.POST.get('orcamento') else None
-        briefing.observacoes = request.POST.get('observacoes')
-        briefing.save()
-        
-        messages.success(request, 'Briefing atualizado com sucesso!')
-        return redirect('cliente:briefing', projeto_id=projeto.id)
-    
-    context = {
-        'projeto': projeto,
-        'briefing': briefing,
-        'arquivos': arquivos,
-        'validacao': validacao,
-    }
-    return render(request, 'cliente/briefing.html', context)
-
-@login_required
-@require_POST
-def validar_briefing(request, projeto_id):
-    """Endpoint para validação do briefing pela IA"""
-    projeto = get_object_or_404(Projeto, id=projeto_id, cliente=request.user)
-    briefing = get_object_or_404(Briefing, projeto=projeto)
-    
-    # Atualizar dados do briefing
-    briefing.feira = request.POST.get('feira')
-    briefing.posicao = request.POST.get('posicao')
-    briefing.orcamento = request.POST.get('orcamento') if request.POST.get('orcamento') else None
-    briefing.observacoes = request.POST.get('observacoes')
-    briefing.save()
-    
-    # Validação simulada (substituir por chamada à IA)
-    validacao = {
-        'feira': bool(briefing.feira),
-        'posicao': bool(briefing.posicao),
-        'orcamento': bool(briefing.orcamento) and float(briefing.orcamento) > 0 if briefing.orcamento else False
-    }
-    
-    todos_validos = all(validacao.values())
-    
-    # Feedback de validação
-    if todos_validos:
-        feedback = "Seu briefing está completo e foi validado com sucesso! Os dados fornecidos são suficientes para iniciarmos o projeto. Se precisar de ajuda adicional, estou à disposição."
-        briefing.validado_ia = True
-    else:
-        feedback = "Identifiquei alguns pontos que precisam ser completados:\n\n"
-        if not validacao['feira']:
-            feedback += "• A feira ou evento onde será montado o estande não foi informada. Esta informação é crucial para entendermos o contexto e público-alvo.\n\n"
-        if not validacao['posicao']:
-            feedback += "• A posição/localização no evento não foi especificada. Isso influencia diretamente no design e visibilidade do estande.\n\n"
-        if not validacao['orcamento']:
-            feedback += "• O orçamento disponível não foi definido ou tem valor inválido. Precisamos desta informação para dimensionar adequadamente o projeto.\n\n"
-        
-        feedback += "Por favor, complete as informações destacadas para prosseguirmos com a validação."
-        briefing.validado_ia = False
-    
-    briefing.feedback_ia = feedback
-    briefing.save()
-    
-    # Atualizar status do projeto se validado
-    if briefing.validado_ia and projeto.status == 'novo':
-        projeto.status = 'validado'
-        projeto.save()
-    
-    return JsonResponse({
-        'validado': briefing.validado_ia,
-        'feedback': feedback,
-        'validacao': validacao
-    })
-
-@login_required
-@csrf_exempt
-def chat_ia(request, projeto_id):
-    """Endpoint para interação com a IA via chat"""
-    if request.method != 'POST':
-        return JsonResponse({'erro': 'Método não permitido'}, status=405)
-    
-    projeto = get_object_or_404(Projeto, id=projeto_id, cliente=request.user)
+    # Configurar paginação (10 itens por página)
+    paginator = Paginator(usuarios_list, 10)
+    page = request.GET.get('page', 1)
     
     try:
-        data = json.loads(request.body)
-        mensagem = data.get('mensagem', '')
-        
-        # Aqui você implementaria a chamada real à API de IA
-        # Esta é apenas uma simulação básica de respostas
-        
-        resposta = "Desculpe, ainda não entendi completamente sua pergunta. Pode reformular?"
-        
-        # Respostas simuladas baseadas em palavras-chave
-        palavras_chave = mensagem.lower()
-        
-        if 'orçamento' in palavras_chave or 'orcamento' in palavras_chave or 'custo' in palavras_chave:
-            resposta = "O orçamento para projetos cenográficos varia de acordo com vários fatores como tamanho, complexidade e materiais. Para estandes em feiras, os valores geralmente começam em R$ 30.000,00 para estruturas pequenas e podem chegar a R$ 200.000,00 ou mais para projetos elaborados. Posso ajudar a adequar seu projeto às suas possibilidades de investimento."
-        
-        elif 'prazo' in palavras_chave or 'tempo' in palavras_chave:
-            resposta = "O tempo de produção de um projeto cenográfico geralmente leva de 30 a 60 dias, dependendo da complexidade. Para feiras, recomendamos iniciar o processo com pelo menos 3 meses de antecedência, considerando o tempo de planejamento, aprovações, produção e montagem. Prazos mais curtos são possíveis, mas podem implicar em custos adicionais."
-        
-        elif 'material' in palavras_chave or 'materiais' in palavras_chave:
-            resposta = "Trabalhamos com diversos materiais para cenografia, incluindo: MDF, madeira, acrílico, vidro, metal, tecidos, impressões em lona e vinil, iluminação LED, painéis interativos, entre outros. A escolha dos materiais depende do conceito visual, durabilidade necessária e orçamento disponível."
-        
-        elif 'feira' in palavras_chave or 'evento' in palavras_chave:
-            resposta = "Temos experiência em diversas feiras e eventos como Expoagas, ExpoFood, Feicon, Hospitalar, entre outras. Cada feira tem características específicas que influenciam o projeto cenográfico. Qual feira específica você está planejando participar?"
-        
-        return JsonResponse({'resposta': resposta})
-        
-    except Exception as e:
-        return JsonResponse({'erro': str(e)}, status=400)
+        usuarios = paginator.page(page)
+    except PageNotAnInteger:
+        # Se a página não for um inteiro, exibe a primeira página
+        usuarios = paginator.page(1)
+    except EmptyPage:
+        # Se a página estiver fora do intervalo, exibe a última página
+        usuarios = paginator.page(paginator.num_pages)
+    
+    context = {
+        'empresa': empresa,
+        'usuarios': usuarios,
+    }
+    return render(request, 'cliente/usuario_list.html', context)
+
+@login_required
+@cliente_required
+def usuario_detail(request, pk):
+    """
+    Detalhes de um usuário específico da mesma empresa
+    """
+    # Obtém a empresa do usuário logado
+    empresa = request.user.empresa
+    
+    # Obtém o usuário específico (verificando se pertence à mesma empresa)
+    usuario = get_object_or_404(Usuario, pk=pk, empresa=empresa)
+    
+    context = {
+        'empresa': empresa,
+        'usuario': usuario,
+    }
+    return render(request, 'cliente/usuario_detail.html', context)
+
+# VISUALIZAÇÃO DA EMPRESA (APENAS PARA CONSULTA)
+
+@login_required
+@cliente_required
+def empresa_detail(request):
+    """
+    Detalhes da empresa do cliente (apenas para visualização)
+    """
+    # Obtém a empresa do usuário logado
+    empresa = request.user.empresa
+    
+    context = {
+        'empresa': empresa,
+    }
+    return render(request, 'cliente/empresa_detail.html', context)
+
+# CRUD PROJETOS
+
+@login_required
+@cliente_required
+def projeto_list(request):
+    """
+    Lista de projetos da empresa do cliente
+    """
+    # Obtém a empresa do usuário logado
+    empresa = request.user.empresa
+    
+    # Obtém projetos da empresa
+    projetos_list = Projeto.objects.filter(empresa=empresa).order_by('-created_at')
+    
+    # Configurar paginação (10 itens por página)
+    paginator = Paginator(projetos_list, 10)
+    page = request.GET.get('page', 1)
+    
+    try:
+        projetos = paginator.page(page)
+    except PageNotAnInteger:
+        # Se a página não for um inteiro, exibe a primeira página
+        projetos = paginator.page(1)
+    except EmptyPage:
+        # Se a página estiver fora do intervalo, exibe a última página
+        projetos = paginator.page(paginator.num_pages)
+    
+    context = {
+        'empresa': empresa,
+        'projetos': projetos,
+    }
+    return render(request, 'cliente/projeto_list.html', context)
+
+
+@login_required
+@cliente_required
+def projeto_detail(request, pk):
+    """
+    Detalhes de um projeto específico
+    """
+    # Obtém a empresa do usuário logado
+    empresa = request.user.empresa
+    
+    # Obtém o projeto específico (verificando se pertence à mesma empresa)
+    projeto = get_object_or_404(Projeto, pk=pk, empresa=empresa)
+    
+    context = {
+        'empresa': empresa,
+        'projeto': projeto,
+    }
+    return render(request, 'cliente/projeto_detail.html', context)
+
+@login_required
+@cliente_required
+def projeto_create(request):
+    # Obtém a empresa do usuário logado
+    empresa = request.user.empresa
+    
+    if request.method == 'POST':
+        form = ProjetoForm(request.POST, request.FILES)  # Importante: inclua request.FILES
+        if form.is_valid():
+            projeto = form.save(commit=False)
+            projeto.empresa = empresa
+            projeto.cliente = request.user
+            projeto.save()
+            form.save()  # Isso processará os arquivos usando o método save() do formulário
+            messages.success(request, 'Projeto criado com sucesso.')
+            # Limpa todas as mensagens após adicionar para evitar duplicação
+            storage = messages.get_messages(request)
+            storage.used = True
+            return redirect('cliente:projeto_list')
+    else:
+        form = ProjetoForm()
+    
+    context = {
+        'empresa': empresa,
+        'form': form,
+    }
+    return render(request, 'cliente/projeto_form.html', context)
+
+@login_required
+@cliente_required
+def projeto_update(request, pk):
+    # Obtém a empresa do usuário logado
+    empresa = request.user.empresa
+    
+    # Obtém o projeto específico (verificando se pertence à mesma empresa)
+    projeto = get_object_or_404(Projeto, pk=pk, empresa=empresa)
+    
+    if request.method == 'POST':
+        form = ProjetoForm(request.POST, request.FILES, instance=projeto)  # Importante: inclua request.FILES
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Projeto atualizado com sucesso.')
+            # Limpa todas as mensagens após adicionar para evitar duplicação
+            storage = messages.get_messages(request)
+            storage.used = True
+            return redirect('cliente:projeto_detail', pk=projeto.pk)
+    else:
+        form = ProjetoForm(instance=projeto)
+    
+    context = {
+        'empresa': empresa,
+        'projeto': projeto,
+        'form': form,
+    }
+    return render(request, 'cliente/projeto_form.html', context)
+
+@login_required
+@cliente_required
+def projeto_delete(request, pk):
+    """
+    Exclusão de um projeto existente
+    """
+    # Obtém a empresa do usuário logado
+    empresa = request.user.empresa
+    
+    # Obtém o projeto específico (verificando se pertence à mesma empresa)
+    projeto = get_object_or_404(Projeto, pk=pk, empresa=empresa)
+    
+    if request.method == 'POST':
+        projeto.delete()
+        messages.success(request, 'Projeto excluído com sucesso.')
+        # Limpa todas as mensagens após adicionar para evitar duplicação
+        storage = messages.get_messages(request)
+        storage.used = True
+        return redirect('cliente:projeto_list')
+    
+    context = {
+        'empresa': empresa,
+        'projeto': projeto,
+    }
+    return render(request, 'cliente/projeto_confirm_delete.html', context)

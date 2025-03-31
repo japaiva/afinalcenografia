@@ -1,15 +1,15 @@
 {% extends 'gestor/base_gestor.html' %}
 
-{% block title %}Usuários | Portal do Gestor | Afinal Cenografia{% endblock %}
+{% block title %}Empresas | Portal do Gestor | Afinal Cenografia{% endblock %}
 
 {% block content %}
 <div class="card shadow">
   <div class="card-header bg-light d-flex justify-content-between align-items-center">
     <h5 class="card-title mb-0">
-      Usuários
+      Empresas
     </h5>
-    <a href="{% url 'gestor:usuario_create' %}" class="btn btn-primary btn-sm">
-      Novo Usuário
+    <a href="{% url 'gestor:empresa_create' %}" class="btn btn-primary btn-sm">
+      Nova Empresa
     </a>
   </div>
   
@@ -18,55 +18,45 @@
       <table class="table table-hover align-middle">
         <thead class="table-light">
           <tr>
-            <th>Usuário</th>
-            <th>Nome</th>
-            <th>Email</th>
-            <th>Nível</th>
             <th>Empresa</th>
+            <th>CNPJ</th>
+            <th>Telefone</th>
+            <th>Email</th>
             <th class="text-center">Status</th>
             <th class="text-end">Ações</th>
           </tr>
         </thead>
         <tbody>
-          {% for usuario in usuarios %}
+          {% for empresa in empresas %}
             <tr>
               <td>
-                {% if usuario.foto_perfil %}
-                  <img src="{{ usuario.foto_perfil.url }}" alt="{{ usuario.username }}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                {% if empresa.logo %}
+                  <img src="{{ empresa.logo.url }}" alt="{{ empresa.nome }}" class="rounded me-2" style="width: 30px; height: 30px; object-fit: cover;">
                 {% endif %}
-                {{ usuario.username }}
+                {{ empresa.nome }}
               </td>
-              <td>{{ usuario.get_full_name|default:"-" }}</td>
-              <td>{{ usuario.email }}</td>
-              <td>
-                <span class="badge 
-                  {% if usuario.nivel == 'admin' %}bg-danger
-                  {% elif usuario.nivel == 'gestor' %}bg-primary
-                  {% elif usuario.nivel == 'projetista' %}bg-success
-                  {% else %}bg-secondary{% endif %}">
-                  {{ usuario.get_nivel_display }}
-                </span>
-              </td>
-              <td>{{ usuario.empresa.nome|default:"-" }}</td>
+              <td>{{ empresa.cnpj }}</td>
+              <td>{{ empresa.telefone|default:"-" }}</td>
+              <td>{{ empresa.email|default:"-" }}</td>
               <td class="text-center">
-                <span class="badge {% if usuario.is_active %}bg-success{% else %}bg-danger{% endif %}">
-                  {% if usuario.is_active %}Ativo{% else %}Inativo{% endif %}
+                <span class="badge {% if empresa.ativa %}bg-success{% else %}bg-danger{% endif %}">
+                  {% if empresa.ativa %}Ativa{% else %}Inativa{% endif %}
                 </span>
               </td>
               <td class="text-end">
-                <a href="{% url 'gestor:usuario_update' usuario.id %}" class="btn btn-sm btn-outline-primary me-1" title="Editar">
+                <a href="{% url 'gestor:empresa_update' empresa.id %}" class="btn btn-sm btn-outline-primary me-1" title="Editar">
                   <i class="fas fa-edit"></i>
                 </a>
-                <a href="{% url 'gestor:usuario_toggle_status' usuario.id %}" class="btn btn-sm {% if usuario.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}" 
-                   title="{% if usuario.is_active %}Desativar{% else %}Ativar{% endif %}">
-                  <i class="fas {% if usuario.is_active %}fa-ban{% else %}fa-check-circle{% endif %}"></i>
+                <a href="{% url 'gestor:empresa_toggle_status' empresa.id %}" class="btn btn-sm {% if empresa.ativa %}btn-outline-danger{% else %}btn-outline-success{% endif %}" 
+                   title="{% if empresa.ativa %}Desativar{% else %}Ativar{% endif %}">
+                  <i class="fas {% if empresa.ativa %}fa-ban{% else %}fa-check-circle{% endif %}"></i>
                 </a>
               </td>
             </tr>
           {% empty %}
             <tr>
-              <td colspan="7" class="text-center py-3 text-muted">
-                Nenhum usuário cadastrado.
+              <td colspan="6" class="text-center py-3 text-muted">
+                Nenhuma empresa cadastrada.
               </td>
             </tr>
           {% endfor %}
@@ -75,18 +65,18 @@
     </div>
   </div>
   
-  {% if usuarios.paginator.num_pages > 1 %}
+  {% if empresas.paginator.num_pages > 1 %}
   <div class="card-footer bg-white">
     <nav aria-label="Navegação de página">
       <ul class="pagination pagination-sm justify-content-center mb-0">
-        {% if usuarios.has_previous %}
+        {% if empresas.has_previous %}
           <li class="page-item">
             <a class="page-link" href="?page=1" aria-label="Primeiro">
               <span aria-hidden="true">&laquo;&laquo;</span>
             </a>
           </li>
           <li class="page-item">
-            <a class="page-link" href="?page={{ usuarios.previous_page_number }}" aria-label="Anterior">
+            <a class="page-link" href="?page={{ empresas.previous_page_number }}" aria-label="Anterior">
               <span aria-hidden="true">&laquo;</span>
             </a>
           </li>
@@ -99,22 +89,22 @@
           </li>
         {% endif %}
         
-        {% for i in usuarios.paginator.page_range %}
-          {% if usuarios.number == i %}
+        {% for i in empresas.paginator.page_range %}
+          {% if empresas.number == i %}
             <li class="page-item active"><span class="page-link">{{ i }}</span></li>
-          {% elif i > usuarios.number|add:'-3' and i < usuarios.number|add:'3' %}
+          {% elif i > empresas.number|add:'-3' and i < empresas.number|add:'3' %}
             <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
           {% endif %}
         {% endfor %}
         
-        {% if usuarios.has_next %}
+        {% if empresas.has_next %}
           <li class="page-item">
-            <a class="page-link" href="?page={{ usuarios.next_page_number }}" aria-label="Próximo">
+            <a class="page-link" href="?page={{ empresas.next_page_number }}" aria-label="Próximo">
               <span aria-hidden="true">&raquo;</span>
             </a>
           </li>
           <li class="page-item">
-            <a class="page-link" href="?page={{ usuarios.paginator.num_pages }}" aria-label="Último">
+            <a class="page-link" href="?page={{ empresas.paginator.num_pages }}" aria-label="Último">
               <span aria-hidden="true">&raquo;&raquo;</span>
             </a>
           </li>

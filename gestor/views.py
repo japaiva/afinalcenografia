@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
@@ -25,13 +25,6 @@ class GestorLoginView(LoginView):
         context['app_name'] = 'Portal do Gestor'
         return context
 
-# Funções auxiliares para verificação de permissões
-def is_admin(user):
-    return user.nivel == 'admin'
-
-def is_gestor(user):
-    return user.nivel in ['admin', 'gestor']
-
 # PÁGINAS PRINCIPAIS
 
 def home(request):
@@ -41,12 +34,9 @@ def home(request):
     return render(request, 'gestor/home.html')
 
 
-
-
 # CRUD EMPRESA
 
 @login_required
-@user_passes_test(is_gestor)
 def empresa_list(request):
     # Ordena por nome para garantir consistência na paginação
     empresas_list = Empresa.objects.all().order_by('nome')
@@ -67,7 +57,6 @@ def empresa_list(request):
     return render(request, 'gestor/empresa_list.html', {'empresas': empresas})
 
 @login_required
-@user_passes_test(is_gestor)
 def empresa_create(request):
     if request.method == 'POST':
         form = EmpresaForm(request.POST, request.FILES)
@@ -83,7 +72,6 @@ def empresa_create(request):
     return render(request, 'gestor/empresa_form.html', {'form': form})
 
 @login_required
-@user_passes_test(is_gestor)
 def empresa_update(request, pk):
     empresa = get_object_or_404(Empresa, pk=pk)
     if request.method == 'POST':
@@ -100,7 +88,6 @@ def empresa_update(request, pk):
     return render(request, 'gestor/empresa_form.html', {'form': form})
 
 @login_required
-@user_passes_test(is_gestor)
 def empresa_toggle_status(request, pk):
     empresa = get_object_or_404(Empresa, pk=pk)
     empresa.ativa = not empresa.ativa
@@ -114,7 +101,6 @@ def empresa_toggle_status(request, pk):
 # CRUD USUÁRIO
 
 @login_required
-@user_passes_test(is_gestor)
 def usuario_list(request):
     # Ordena por username para garantir consistência na paginação
     usuarios_list = Usuario.objects.all().order_by('username')
@@ -135,7 +121,6 @@ def usuario_list(request):
     return render(request, 'gestor/usuario_list.html', {'usuarios': usuarios})
 
 @login_required
-@user_passes_test(is_gestor)
 def usuario_create(request):
     if request.method == 'POST':
         form = UsuarioForm(request.POST, request.FILES)
@@ -151,7 +136,6 @@ def usuario_create(request):
     return render(request, 'gestor/usuario_form.html', {'form': form})
 
 @login_required
-@user_passes_test(is_gestor)
 def usuario_update(request, pk):
     usuario = get_object_or_404(Usuario, pk=pk)
     if request.method == 'POST':
@@ -168,7 +152,6 @@ def usuario_update(request, pk):
     return render(request, 'gestor/usuario_form.html', {'form': form})
 
 @login_required
-@user_passes_test(is_gestor)
 def usuario_toggle_status(request, pk):
     usuario = get_object_or_404(Usuario, pk=pk)
     usuario.is_active = not usuario.is_active
@@ -182,7 +165,6 @@ def usuario_toggle_status(request, pk):
 # CRUD PARÂMETROS
 
 @login_required
-@user_passes_test(is_admin)
 def parametro_list(request):
     # Buscar todos os parâmetros, ordenados por nome do parâmetro
     parametros_list = Parametro.objects.all().order_by('parametro')
@@ -203,7 +185,6 @@ def parametro_list(request):
     return render(request, 'gestor/parametro_list.html', {'parametros': parametros})
 
 @login_required
-@user_passes_test(is_admin)
 def parametro_create(request):
     if request.method == 'POST':
         form = ParametroForm(request.POST)
@@ -219,7 +200,6 @@ def parametro_create(request):
     return render(request, 'gestor/parametro_form.html', {'form': form})
 
 @login_required
-@user_passes_test(is_admin)
 def parametro_update(request, pk):
     parametro = get_object_or_404(Parametro, pk=pk)
     if request.method == 'POST':
@@ -236,7 +216,6 @@ def parametro_update(request, pk):
     return render(request, 'gestor/parametro_form.html', {'form': form})
 
 @login_required
-@user_passes_test(is_admin)
 def parametro_delete(request, pk):
     parametro = get_object_or_404(Parametro, pk=pk)
     if request.method == 'POST':
@@ -247,8 +226,6 @@ def parametro_delete(request, pk):
         storage.used = True
         return redirect('gestor:parametro_list')
     return render(request, 'gestor/parametro_confirm_delete.html', {'parametro': parametro})
-
-
 
 @login_required
 def dashboard(request):
