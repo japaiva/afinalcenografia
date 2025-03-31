@@ -6,6 +6,25 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from core.models import Usuario, Parametro, Empresa
 from core.forms import UsuarioForm, ParametroForm, EmpresaForm
 
+from django.contrib.auth.views import LoginView
+from django.urls import reverse_lazy
+
+class GestorLoginView(LoginView):
+    template_name = 'gestor/login.html'
+    
+    def form_valid(self, form):
+        print("Login bem-sucedido para:", form.get_user())
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        print("Redirecionando para:", reverse_lazy('gestor:dashboard'))
+        return reverse_lazy('gestor:dashboard')
+ 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['app_name'] = 'Portal do Gestor'
+        return context
+
 # Funções auxiliares para verificação de permissões
 def is_admin(user):
     return user.nivel == 'admin'
@@ -21,17 +40,8 @@ def home(request):
     """
     return render(request, 'gestor/home.html')
 
-@login_required
-@user_passes_test(is_gestor)
-def dashboard(request):
-    """
-    Dashboard do Portal do Gestor com estatísticas e ações rápidas
-    """
-    context = {
-        'total_empresas': Empresa.objects.filter(ativa=True).count(),
-        'total_usuarios': Usuario.objects.filter(is_active=True).count(),
-    }
-    return render(request, 'gestor/dashboard.html', context)
+
+
 
 # CRUD EMPRESA
 
@@ -237,3 +247,14 @@ def parametro_delete(request, pk):
         storage.used = True
         return redirect('gestor:parametro_list')
     return render(request, 'gestor/parametro_confirm_delete.html', {'parametro': parametro})
+
+
+
+@login_required
+def dashboard(request):
+    print("Usuário acessando o dashboard:", request.user)
+    context = {
+        'total_empresas': Empresa.objects.filter(ativa=True).count(),
+        'total_usuarios': Usuario.objects.filter(is_active=True).count(),
+    }
+    return render(request, 'gestor/dashboard.html', context)

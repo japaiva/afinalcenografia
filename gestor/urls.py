@@ -4,6 +4,9 @@ from . import views
 app_name = 'gestor'
 
 urlpatterns = [
+    # Nova URL para login
+    path('login/', views.GestorLoginView.as_view(), name='login'),
+
     # Páginas principais
     path('', views.home, name='home'),
     path('dashboard/', views.dashboard, name='dashboard'),
