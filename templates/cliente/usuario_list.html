@@ -1,16 +1,13 @@
-{% extends 'gestor/base_gestor.html' %}
+{% extends 'cliente/base_cliente.html' %}
 
-{% block title %}Usuários | Portal do Gestor | Afinal Cenografia{% endblock %}
+{% block title %}Usuários da Empresa | Portal do Cliente | Afinal Cenografia{% endblock %}
 
 {% block content %}
 <div class="card shadow">
   <div class="card-header bg-light d-flex justify-content-between align-items-center">
     <h5 class="card-title mb-0">
-      Usuários
+      Usuários da Empresa
     </h5>
-    <a href="{% url 'gestor:usuario_create' %}" class="btn btn-primary btn-sm">
-      Novo Usuário
-    </a>
   </div>
   
   <div class="card-body">
@@ -22,7 +19,6 @@
             <th>Nome</th>
             <th>Email</th>
             <th>Nível</th>
-            <th>Empresa</th>
             <th class="text-center">Status</th>
             <th class="text-end">Ações</th>
           </tr>
@@ -47,30 +43,50 @@
                   {{ usuario.get_nivel_display }}
                 </span>
               </td>
-              <td>{{ usuario.empresa.nome|default:"-" }}</td>
               <td class="text-center">
                 <span class="badge {% if usuario.is_active %}bg-success{% else %}bg-danger{% endif %}">
                   {% if usuario.is_active %}Ativo{% else %}Inativo{% endif %}
                 </span>
               </td>
               <td class="text-end">
-                <a href="{% url 'gestor:usuario_update' usuario.id %}" class="btn btn-sm btn-outline-primary me-1" title="Editar">
-                  <i class="fas fa-edit"></i>
-                </a>
-                <a href="{% url 'gestor:usuario_toggle_status' usuario.id %}" class="btn btn-sm {% if usuario.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}" 
-                   title="{% if usuario.is_active %}Desativar{% else %}Ativar{% endif %}">
-                  <i class="fas {% if usuario.is_active %}fa-ban{% else %}fa-check-circle{% endif %}"></i>
+                <a href="{% url 'cliente:usuario_detail' usuario.id %}" class="btn btn-sm btn-outline-primary" title="Ver Detalhes">
+                  <i class="fas fa-eye"></i>
                 </a>
               </td>
             </tr>
           {% empty %}
             <tr>
-              <td colspan="7" class="text-center py-3 text-muted">
+              <td colspan="6" class="text-center py-3 text-muted">
                 Nenhum usuário cadastrado.
               </td>
             </tr>
           {% endfor %}
-        </tbody>
+        
+        {% if usuarios.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ usuarios.next_page_number }}" aria-label="Próximo">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ usuarios.paginator.num_pages }}" aria-label="Último">
+              <span aria-hidden="true">&raquo;&raquo;</span>
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">&raquo;</span>
+          </li>
+          <li class="page-item disabled">
+            <span class="page-link">&raquo;&raquo;</span>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}</tbody>
       </table>
     </div>
   </div>
@@ -106,29 +122,3 @@
             <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
           {% endif %}
         {% endfor %}
-        
-        {% if usuarios.has_next %}
-          <li class="page-item">
-            <a class="page-link" href="?page={{ usuarios.next_page_number }}" aria-label="Próximo">
-              <span aria-hidden="true">&raquo;</span>
-            </a>
-          </li>
-          <li class="page-item">
-            <a class="page-link" href="?page={{ usuarios.paginator.num_pages }}" aria-label="Último">
-              <span aria-hidden="true">&raquo;&raquo;</span>
-            </a>
-          </li>
-        {% else %}
-          <li class="page-item disabled">
-            <span class="page-link">&raquo;</span>
-          </li>
-          <li class="page-item disabled">
-            <span class="page-link">&raquo;&raquo;</span>
-          </li>
-        {% endif %}
-      </ul>
-    </nav>
-  </div>
-  {% endif %}
-</div>
-{% endblock %}

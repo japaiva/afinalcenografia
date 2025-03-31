@@ -1,0 +1,154 @@
+{% extends 'cliente/base_cliente.html' %}
+
+{% block title %}{% if form.instance.pk %}Editar{% else %}Novo{% endif %} Projeto | Portal do Cliente | Afinal Cenografia{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-light">
+    <h5 class="card-title mb-0">
+      <i class="fas {% if form.instance.pk %}fa-edit{% else %}fa-plus-circle{% endif %} me-2"></i>
+      {% if form.instance.pk %}Editar{% else %}Novo{% endif %} Projeto
+    </h5>
+  </div>
+  
+  <div class="card-body">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+          {% for error in form.non_field_errors %}
+            <p class="mb-0">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+      
+      <div class="row g-3">
+        <!-- Nome e Status -->
+        <div class="col-md-8">
+          <label for="{{ form.nome.id_for_label }}" class="form-label">Nome do Projeto*</label>
+          {{ form.nome }}
+          {% if form.nome.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.nome.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <div class="col-md-4">
+          <label for="{{ form.status.id_for_label }}" class="form-label">Status*</label>
+          {{ form.status }}
+          {% if form.status.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.status.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Descrição -->
+        <div class="col-12">
+          <label for="{{ form.descricao.id_for_label }}" class="form-label">Descrição</label>
+          {{ form.descricao }}
+          {% if form.descricao.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.descricao.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Data de Início e Prazo -->
+        <div class="col-md-6">
+          <label for="{{ form.data_inicio.id_for_label }}" class="form-label">Data de Início</label>
+          {{ form.data_inicio }}
+          {% if form.data_inicio.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.data_inicio.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <div class="col-md-6">
+          <label for="{{ form.prazo_entrega.id_for_label }}" class="form-label">Prazo de Entrega</label>
+          {{ form.prazo_entrega }}
+          {% if form.prazo_entrega.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.prazo_entrega.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Orçamento e Progresso -->
+        <div class="col-md-6">
+          <label for="{{ form.orcamento.id_for_label }}" class="form-label">Orçamento (R$)</label>
+          {{ form.orcamento }}
+          {% if form.orcamento.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.orcamento.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <div class="col-md-6">
+          <label for="{{ form.progresso.id_for_label }}" class="form-label">Progresso (%)</label>
+          {{ form.progresso }}
+          {% if form.progresso.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.progresso.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Requisitos Específicos -->
+        <div class="col-12">
+          <label for="{{ form.requisitos.id_for_label }}" class="form-label">Requisitos Específicos</label>
+          {{ form.requisitos }}
+          {% if form.requisitos.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.requisitos.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Arquivos de Referência -->
+        <div class="col-12">
+          <label for="{{ form.arquivos_referencia.id_for_label }}" class="form-label">Arquivos de Referência</label>
+          {{ form.arquivos_referencia }}
+          {% if form.arquivos_referencia.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.arquivos_referencia.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+          <div class="form-text small">{{ form.arquivos_referencia.help_text }}</div>
+        </div>
+      </div>
+      
+      <div class="d-flex justify-content-between mt-4">
+        <a href="{% url 'cliente:projeto_list' %}" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-1"></i> Voltar
+        </a>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save me-1"></i> Salvar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

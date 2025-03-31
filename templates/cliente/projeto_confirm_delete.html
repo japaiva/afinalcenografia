@@ -1,0 +1,77 @@
+{% extends 'cliente/base_cliente.html' %}
+
+{% block title %}Excluir Projeto | Portal do Cliente | Afinal Cenografia{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-danger text-white">
+    <h5 class="card-title mb-0">
+      <i class="fas fa-exclamation-triangle me-2"></i> Confirmar Exclusão
+    </h5>
+  </div>
+  
+  <div class="card-body">
+    <div class="alert alert-warning">
+      <p class="mb-0">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        Tem certeza que deseja excluir o projeto <strong>{{ projeto.nome }}</strong>?
+      </p>
+    </div>
+    
+    <div class="mb-4">
+      <h6>Detalhes do projeto:</h6>
+      <ul class="list-group">
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span><strong>Nome:</strong></span>
+          <span>{{ projeto.nome }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span><strong>Status:</strong></span>
+          <span>
+            <span class="badge 
+              {% if projeto.status == 'ativo' %}bg-success
+              {% elif projeto.status == 'pendente' %}bg-warning
+              {% elif projeto.status == 'concluido' %}bg-info
+              {% else %}bg-secondary{% endif %}">
+              {{ projeto.get_status_display }}
+            </span>
+          </span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span><strong>Data de Criação:</strong></span>
+          <span>{{ projeto.created_at|date:"d/m/Y" }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span><strong>Progresso:</strong></span>
+          <span>{{ projeto.progresso }}%</span>
+        </li>
+        {% if projeto.prazo_entrega %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span><strong>Prazo de Entrega:</strong></span>
+          <span>{{ projeto.prazo_entrega|date:"d/m/Y" }}</span>
+        </li>
+        {% endif %}
+      </ul>
+    </div>
+    
+    <div class="alert alert-danger">
+      <p class="mb-0">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        Esta ação <strong>não pode ser desfeita</strong>. Todos os dados relacionados a este projeto serão removidos permanentemente.
+      </p>
+    </div>
+    
+    <form method="post">
+      {% csrf_token %}
+      <div class="d-flex justify-content-between mt-4">
+        <a href="{% url 'cliente:projeto_detail' projeto.id %}" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-1"></i> Cancelar
+        </a>
+        <button type="submit" class="btn btn-danger">
+          <i class="fas fa-trash me-1"></i> Confirmar Exclusão
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

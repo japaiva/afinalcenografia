@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}Login - Portal do Cliente | Afinal Cenografia{% endblock %}
+
+{% block navbar_title %}
+<span style="font-weight: 600; letter-spacing: 1px; color: #e0f2fe; text-transform: uppercase; margin-left: 12px; font-size: 1.05rem; text-shadow: 0 1px 2px rgba(0,0,0,0.2); border-left: 2px solid #60a5fa; padding-left: 10px;">Portal do Cliente</span>
+{% endblock %}
+
+{% block content %}
+<div class="modern-login-box">
+    <div class="login-header text-center">
+        <div class="login-icon">
+            <i class="fas fa-building"></i>
+        </div>
+        <h2>Portal do Cliente</h2>
+        <p class="text-light-emphasis">Acesse sua conta para gerenciar seus projetos</p>
+    </div>
+
+    <form method="post" class="modern-form">
+        {% csrf_token %}
+        
+        <div class="form-fields">
+            {% for field in form %}
+            <div class="modern-form-group">
+                <label for="{{ field.id_for_label }}" class="modern-label">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                <div class="text-danger small mt-1">
+                    {% for error in field.errors %}
+                    {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn modern-button login-button">
+                <i class="fas fa-sign-in-alt me-2"></i> Entrar
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}Portal do Cliente | Afinal Cenografia{% endblock %}
+
+{% block navbar_title %}
+{% if user.is_authenticated and user.empresa %}
+<span style="font-weight: 600; letter-spacing: 1px; color: #e0f2fe; text-transform: uppercase; margin-left: 12px; font-size: 1.05rem; text-shadow: 0 1px 2px rgba(0,0,0,0.2); border-left: 2px solid #60a5fa; padding-left: 10px;">{{ user.empresa.nome }}</span>
+{% else %}
+<span style="font-weight: 600; letter-spacing: 1px; color: #e0f2fe; text-transform: uppercase; margin-left: 12px; font-size: 1.05rem; text-shadow: 0 1px 2px rgba(0,0,0,0.2); border-left: 2px solid #60a5fa; padding-left: 10px;">Portal do Cliente</span>
+{% endif %}
+{% endblock %}
+
+{% block nav_items %}
+<li class="nav-item">
+  <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'cliente:dashboard' %}">
+    Dashboard
+  </a>
+</li>
+
+<!-- Divisor vertical -->
+<li class="nav-item">
+  <span class="nav-link" style="border-left: 2px solid #60a5fa; height: 24px; margin: 8px 15px;"></span>
+</li>
+
+<!-- Novo Projeto (em destaque) -->
+<li class="nav-item">
+  <a class="nav-link {% if request.resolver_match.url_name == 'projeto_create' %}active{% endif %}" href="{% url 'cliente:projeto_create' %}">
+    <i class="fas fa-plus-circle me-1"></i> Novo Projeto
+  </a>
+</li>
+
+<!-- Divisor vertical -->
+<li class="nav-item">
+  <span class="nav-link" style="border-left: 2px solid #60a5fa; height: 24px; margin: 8px 15px;"></span>
+</li>
+
+<!-- Menu suspenso -->
+<li class="nav-item dropdown">
+  <a class="nav-link dropdown-toggle {% if 'usuario' in request.resolver_match.url_name or 'empresa' in request.resolver_match.url_name or 'projeto_list' in request.resolver_match.url_name %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    Gerenciar
+  </a>
+  <ul class="dropdown-menu dropdown-menu-dark">
+    <!-- Seção de Usuários -->
+    <li><h6 class="dropdown-header">Usuários</h6></li>
+    <li><a class="dropdown-item" href="{% url 'cliente:usuario_list' %}">
+      Usuários da Empresa
+    </a></li>
+    
+    <li><hr class="dropdown-divider"></li>
+    
+    <!-- Seção da Empresa -->
+    <li><h6 class="dropdown-header">Empresa</h6></li>
+    <li><a class="dropdown-item" href="{% url 'cliente:empresa_detail' %}">
+      Detalhes da Empresa
+    </a></li>
+    
+    <li><hr class="dropdown-divider"></li>
+    
+    <!-- Seção de Projetos -->
+    <li><h6 class="dropdown-header">Projetos</h6></li>
+    <li><a class="dropdown-item" href="{% url 'cliente:projeto_list' %}">
+      Meus Projetos
+    </a></li>
+  </ul>
+</li>
+{% endblock %}
