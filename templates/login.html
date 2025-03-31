@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Login - Afinal Cenografia{% endblock %}
+
+{% block content_class %}login-page{% endblock %}
+
+{% block content %}
+<div class="modern-login-box">
+    <div class="login-header text-center">
+        <h2>Acesso ao Sistema</h2>
+    </div>
+
+    <form method="post" class="modern-form">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="text-center">
+            <button type="submit" class="btn modern-button mt-3">
+                <i class="fas fa-sign-in-alt me-2"></i> Entrar
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

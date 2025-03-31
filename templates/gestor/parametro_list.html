@@ -1,0 +1,138 @@
+{% extends 'gestor/base.html' %}
+
+{% block title %}{% if form.instance.pk %}Editar{% else %}Nova{% endif %} Empresa | Portal do Gestor | Afinal Cenografia{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-light">
+    <h5 class="card-title mb-0">
+      <i class="fas {% if form.instance.pk %}fa-edit{% else %}fa-plus-circle{% endif %} me-2"></i>
+      {% if form.instance.pk %}Editar{% else %}Nova{% endif %} Empresa
+    </h5>
+  </div>
+  
+  <div class="card-body">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+          {% for error in form.non_field_errors %}
+            <p class="mb-0">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+      
+      <div class="row g-3">
+        <!-- Nome da Empresa -->
+        <div class="col-md-6">
+          <label for="{{ form.nome.id_for_label }}" class="form-label">Nome da Empresa*</label>
+          {{ form.nome }}
+          {% if form.nome.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.nome.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- CNPJ -->
+        <div class="col-md-6">
+          <label for="{{ form.cnpj.id_for_label }}" class="form-label">CNPJ*</label>
+          {{ form.cnpj }}
+          {% if form.cnpj.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.cnpj.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Endereço -->
+        <div class="col-12">
+          <label for="{{ form.endereco.id_for_label }}" class="form-label">Endereço</label>
+          {{ form.endereco }}
+          {% if form.endereco.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.endereco.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Telefone -->
+        <div class="col-md-6">
+          <label for="{{ form.telefone.id_for_label }}" class="form-label">Telefone</label>
+          {{ form.telefone }}
+          {% if form.telefone.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.telefone.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Email -->
+        <div class="col-md-6">
+          <label for="{{ form.email.id_for_label }}" class="form-label">E-mail</label>
+          {{ form.email }}
+          {% if form.email.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.email.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Logo -->
+        <div class="col-md-6">
+          <label for="{{ form.logo.id_for_label }}" class="form-label">Logo</label>
+          {{ form.logo }}
+          {% if form.logo.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.logo.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% if form.instance.logo %}
+            <div class="mt-2">
+              <p class="mb-1 small">Logo atual:</p>
+              <img src="{{ form.instance.logo.url }}" alt="{{ form.instance.nome }}" class="img-thumbnail" style="max-height: 100px;">
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Status -->
+        <div class="col-md-6">
+          <div class="form-check form-switch mt-4">
+            {{ form.ativa }}
+            <label class="form-check-label" for="{{ form.ativa.id_for_label }}">Empresa Ativa</label>
+          </div>
+          {% if form.ativa.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.ativa.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      
+      <div class="d-flex justify-content-between mt-4">
+        <a href="{% url 'gestor:empresa_list' %}" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-1"></i> Voltar
+        </a>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save me-1"></i> Salvar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

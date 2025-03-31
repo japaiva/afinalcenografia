@@ -1,0 +1,181 @@
+{% extends 'gestor/base.html' %}
+
+{% block title %}{% if form.instance.pk %}Editar{% else %}Novo{% endif %} Usuário | Portal do Gestor | Afinal Cenografia{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-light">
+    <h5 class="card-title mb-0">
+      <i class="fas {% if form.instance.pk %}fa-edit{% else %}fa-user-plus{% endif %} me-2"></i>
+      {% if form.instance.pk %}Editar{% else %}Novo{% endif %} Usuário
+    </h5>
+  </div>
+  
+  <div class="card-body">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+          {% for error in form.non_field_errors %}
+            <p class="mb-0">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+      
+      <div class="row g-3">
+        <!-- Nome de Usuário e Email -->
+        <div class="col-md-6">
+          <label for="{{ form.username.id_for_label }}" class="form-label">Nome de Usuário*</label>
+          {{ form.username }}
+          {% if form.username.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.username.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <div class="col-md-6">
+          <label for="{{ form.email.id_for_label }}" class="form-label">E-mail*</label>
+          {{ form.email }}
+          {% if form.email.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.email.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Nome e Sobrenome -->
+        <div class="col-md-6">
+          <label for="{{ form.first_name.id_for_label }}" class="form-label">Nome</label>
+          {{ form.first_name }}
+          {% if form.first_name.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.first_name.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <div class="col-md-6">
+          <label for="{{ form.last_name.id_for_label }}" class="form-label">Sobrenome</label>
+          {{ form.last_name }}
+          {% if form.last_name.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.last_name.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Senha -->
+        <div class="col-md-6">
+          <label for="{{ form.password.id_for_label }}" class="form-label">Senha{% if not form.instance.pk %}*{% endif %}</label>
+          {{ form.password }}
+          <div class="form-text small">
+            {% if form.instance.pk %}
+            Deixe em branco para manter a senha atual.
+            {% else %}
+            Digite uma senha segura para o usuário.
+            {% endif %}
+          </div>
+          {% if form.password.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.password.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Telefone -->
+        <div class="col-md-6">
+          <label for="{{ form.telefone.id_for_label }}" class="form-label">Telefone</label>
+          {{ form.telefone }}
+          {% if form.telefone.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.telefone.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Nível e Empresa -->
+        <div class="col-md-6">
+          <label for="{{ form.nivel.id_for_label }}" class="form-label">Nível de Acesso*</label>
+          {{ form.nivel }}
+          {% if form.nivel.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.nivel.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <div class="col-md-6">
+          <label for="{{ form.empresa.id_for_label }}" class="form-label">Empresa</label>
+          {{ form.empresa }}
+          {% if form.empresa.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.empresa.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Foto de Perfil -->
+        <div class="col-md-6">
+          <label for="{{ form.foto_perfil.id_for_label }}" class="form-label">Foto de Perfil</label>
+          {{ form.foto_perfil }}
+          {% if form.foto_perfil.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.foto_perfil.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% if form.instance.foto_perfil %}
+            <div class="mt-2">
+              <p class="mb-1 small">Foto atual:</p>
+              <img src="{{ form.instance.foto_perfil.url }}" alt="{{ form.instance.username }}" class="img-thumbnail rounded-circle" style="width: 100px; height: 100px; object-fit: cover;">
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Status -->
+        <div class="col-md-6">
+          <div class="form-check form-switch mt-4">
+            {{ form.is_active }}
+            <label class="form-check-label" for="{{ form.is_active.id_for_label }}">Usuário Ativo</label>
+          </div>
+          {% if form.is_active.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.is_active.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      
+      <div class="d-flex justify-content-between mt-4">
+        <a href="{% url 'gestor:usuario_list' %}" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-1"></i> Voltar
+        </a>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save me-1"></i> Salvar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

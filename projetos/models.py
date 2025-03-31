@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.conf import settings  # Importe settings em vez de User diretamente
 
 class Projeto(models.Model):
     STATUS_CHOICES = [
@@ -13,20 +13,20 @@ class Projeto(models.Model):
     
     titulo = models.CharField(max_length=200)
     descricao = models.TextField(blank=True, null=True)
-    cliente = models.ForeignKey(User, on_delete=models.CASCADE, related_name='projetos_cliente')
+    cliente = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='projetos_cliente')
     empresa = models.ForeignKey('core.Empresa', on_delete=models.CASCADE)
     data_criacao = models.DateTimeField(auto_now_add=True)
     data_modificacao = models.DateTimeField(auto_now=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='novo')
     projetista = models.ForeignKey(
-        User, 
+        settings.AUTH_USER_MODEL, 
         on_delete=models.SET_NULL, 
         null=True, 
         blank=True, 
         related_name='projetos_projetista'
     )
     gestor = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -72,7 +72,7 @@ class ArquivoProjeto(models.Model):
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES)
     descricao = models.TextField(blank=True, null=True)
     arquivo_path = models.CharField(max_length=500)  # Caminho no Minio
-    upload_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    upload_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     data_upload = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
