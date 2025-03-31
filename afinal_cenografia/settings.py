@@ -32,13 +32,11 @@ INSTALLED_APPS = [
     
     # Apps do projeto
     'core',
-    'accounts',
     'projetos',
     'storage',
     'cliente',
     'projetista',
     'gestor',
-    'admin_portal',
     'api',
 ]
 
@@ -112,13 +110,23 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # Configuração do WhiteNoise para arquivos estáticos
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+# Media files (Uploaded files)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Modelo de usuário personalizado
+AUTH_USER_MODEL = 'core.Usuario'
 
 # Auth settings
 LOGIN_REDIRECT_URL = '/'
 LOGIN_URL = '/login/'
 LOGOUT_REDIRECT_URL = '/login/'
+
+# Configurações de mensagens
+MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
 
 # Configurações do Minio
 MINIO_ENDPOINT = os.getenv('MINIO_ENDPOINT', 'minio:9000')

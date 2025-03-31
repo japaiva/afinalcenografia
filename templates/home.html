@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Plataforma de Projetos{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card bg-light bg-opacity-90 shadow">
+      <div class="card-body text-center p-5">
+        <img src="{% static 'img/logo-afinal-cenografia.png' %}" alt="Afinal Cenografia" class="img-fluid mb-4" style="max-height: 120px;">
+        <h1 class="display-5 fw-bold mb-4">Afinal Cenografia</h1>
+        <p class="lead mb-4">Plataforma de gerenciamento de projetos de cenografia.</p>
+        
+        {% if user.is_authenticated %}
+          <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+            <p class="lead">Bem-vindo(a), {{ user.first_name|default:user.username }}!</p>
+          </div>
+        {% else %}
+          <div class="row mt-4 justify-content-center">
+            <div class="col-md-10">
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <div class="card h-100 bg-primary bg-opacity-10 border-primary">
+                    <div class="card-body text-center p-4">
+                      <i class="fas fa-user-tie fa-3x text-primary mb-3"></i>
+                      <h5>Portal do Gestor</h5>
+                      <p class="small text-muted">Para administradores e gerentes de projeto</p>
+                      <a href="{% url 'gestor:home' %}" class="btn btn-primary mt-2">Acessar</a>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="col-md-4">
+                  <div class="card h-100 bg-success bg-opacity-10 border-success">
+                    <div class="card-body text-center p-4">
+                      <i class="fas fa-drafting-compass fa-3x text-success mb-3"></i>
+                      <h5>Portal do Projetista</h5>
+                      <p class="small text-muted">Para designers e projetistas</p>
+                      <a href="{% url 'projetista:home' %}" class="btn btn-success mt-2">Acessar</a>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="col-md-4">
+                  <div class="card h-100 bg-info bg-opacity-10 border-info">
+                    <div class="card-body text-center p-4">
+                      <i class="fas fa-building fa-3x text-info mb-3"></i>
+                      <h5>Portal do Cliente</h5>
+                      <p class="small text-muted">Para acompanhamento de projetos</p>
+                      <a href="{% url 'cliente:home' %}" class="btn btn-info mt-2">Acessar</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

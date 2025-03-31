@@ -1,0 +1,56 @@
+
+{% extends 'gestor/base.html' %}
+
+{% block title %}Excluir Parâmetro | Portal do Gestor | Afinal Cenografia{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-danger text-white">
+    <h5 class="card-title mb-0">
+      <i class="fas fa-exclamation-triangle me-2"></i> Confirmar Exclusão
+    </h5>
+  </div>
+  
+  <div class="card-body">
+    <div class="alert alert-warning">
+      <p class="mb-0">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        Tem certeza que deseja excluir o parâmetro <strong>{{ parametro.parametro }}</strong>?
+      </p>
+    </div>
+    
+    <div class="mb-4">
+      <h6>Detalhes do parâmetro:</h6>
+      <ul class="list-group">
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span><strong>Nome:</strong></span>
+          <span>{{ parametro.parametro }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span><strong>Valor:</strong></span>
+          <span>{{ parametro.valor }}</span>
+        </li>
+      </ul>
+    </div>
+    
+    <div class="alert alert-danger">
+      <p class="mb-0">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        Esta ação não pode ser desfeita!
+      </p>
+    </div>
+    
+    <form method="post">
+      {% csrf_token %}
+      <div class="d-flex justify-content-between mt-4">
+        <a href="{% url 'gestor:parametro_list' %}" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-1"></i> Cancelar
+        </a>
+        <button type="submit" class="btn btn-danger">
+          <i class="fas fa-trash me-1"></i> Confirmar Exclusão
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
