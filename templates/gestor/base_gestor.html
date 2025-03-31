@@ -6,37 +6,55 @@
 
 {% block nav_items %}
 <li class="nav-item">
-  <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'gestor:dashboard' %}">
-    <i class="fas fa-tachometer-alt me-1"></i> Dashboard
-  </a>
+    <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'gestor:dashboard' %}">
+      Dashboard
+    </a>
+  </li>
+  
+
+<!-- Divisor vertical -->
+<li class="nav-item">
+  <span class="nav-link" style="border-left: 2px solid #60a5fa; height: 24px; margin: 8px 15px;"></span>
 </li>
+
+<!-- Menu de Configurações -->
 <li class="nav-item dropdown">
-  <a class="nav-link dropdown-toggle {% if 'empresa' in request.resolver_match.url_name %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-    <i class="fas fa-building me-1"></i> Empresas
-  </a>
-  <ul class="dropdown-menu dropdown-menu-dark">
-    <li><a class="dropdown-item" href="{% url 'gestor:empresa_list' %}">Listar Empresas</a></li>
-    <li><a class="dropdown-item" href="{% url 'gestor:empresa_create' %}">Nova Empresa</a></li>
-  </ul>
-</li>
-<li class="nav-item dropdown">
-  <a class="nav-link dropdown-toggle {% if 'usuario' in request.resolver_match.url_name %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-    <i class="fas fa-users me-1"></i> Usuários
-  </a>
-  <ul class="dropdown-menu dropdown-menu-dark">
-    <li><a class="dropdown-item" href="{% url 'gestor:usuario_list' %}">Listar Usuários</a></li>
-    <li><a class="dropdown-item" href="{% url 'gestor:usuario_create' %}">Novo Usuário</a></li>
-  </ul>
-</li>
-{% if user.nivel == 'admin' %}
-<li class="nav-item dropdown">
-  <a class="nav-link dropdown-toggle {% if 'parametro' in request.resolver_match.url_name %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-    <i class="fas fa-cogs me-1"></i> Parâmetros
-  </a>
-  <ul class="dropdown-menu dropdown-menu-dark">
-    <li><a class="dropdown-item" href="{% url 'gestor:parametro_list' %}">Listar Parâmetros</a></li>
-    <li><a class="dropdown-item" href="{% url 'gestor:parametro_create' %}">Novo Parâmetro</a></li>
-  </ul>
-</li>
-{% endif %}
+    <a class="nav-link dropdown-toggle {% if 'empresa' in request.resolver_match.url_name or 'usuario' in request.resolver_match.url_name or 'parametro' in request.resolver_match.url_name %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+      Configurações
+    </a>
+    <ul class="dropdown-menu dropdown-menu-dark">
+      <!-- Seção de Empresas -->
+      <li><h6 class="dropdown-header">Empresas</h6></li>
+      <li><a class="dropdown-item" href="{% url 'gestor:empresa_list' %}">
+        Listar Empresas
+      </a></li>
+      <li><a class="dropdown-item" href="{% url 'gestor:empresa_create' %}">
+        Nova Empresa
+      </a></li>
+      
+      <li><hr class="dropdown-divider"></li>
+      
+      <!-- Seção de Usuários -->
+      <li><h6 class="dropdown-header">Usuários</h6></li>
+      <li><a class="dropdown-item" href="{% url 'gestor:usuario_list' %}">
+        Listar Usuários
+      </a></li>
+      <li><a class="dropdown-item" href="{% url 'gestor:usuario_create' %}">
+        Novo Usuário
+      </a></li>
+      
+      {% if user.nivel == 'admin' %}
+      <li><hr class="dropdown-divider"></li>
+      
+      <!-- Seção de Parâmetros (apenas para admin) -->
+      <li><h6 class="dropdown-header">Parâmetros</h6></li>
+      <li><a class="dropdown-item" href="{% url 'gestor:parametro_list' %}">
+        Listar Parâmetros
+      </a></li>
+      <li><a class="dropdown-item" href="{% url 'gestor:parametro_create' %}">
+        Novo Parâmetro
+      </a></li>
+      {% endif %}
+    </ul>
+  </li>
 {% endblock %}
