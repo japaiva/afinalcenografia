@@ -1,0 +1,382 @@
+{% extends 'gestor/base_gestor.html' %}
+{% load static %}
+
+{% block title %}Detalhes do Projeto | Portal do Gestor{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <div>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+          <li class="breadcrumb-item"><a href="{% url 'gestor:dashboard' %}">Dashboard</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'gestor:projeto_list' %}">Projetos</a></li>
+          <li class="breadcrumb-item active">Stand Expo 2025</li>
+        </ol>
+      </nav>
+    </div>
+    <div>
+      <a href="{% url 'gestor:mensagens' %}" class="btn btn-outline-success btn-sm me-1">
+        <i class="fas fa-comment me-1"></i> Mensagens
+        <span class="badge bg-danger">3</span>
+      </a>
+      <div class="btn-group">
+        <button class="btn btn-outline-primary btn-sm">
+          <i class="fas fa-edit me-1"></i> Editar
+        </button>
+        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="fas fa-ellipsis-v"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="#"><i class="fas fa-file-export me-2"></i> Exportar</a></li>
+          <li><a class="dropdown-item" href="#"><i class="fas fa-clone me-2"></i> Duplicar</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item text-danger" href="#"><i class="fas fa-trash me-2"></i> Excluir</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  
+  <div class="card-body">
+    <div class="row">
+      <!-- Resumo do Projeto -->
+      <div class="col-lg-8">
+        <div class="d-flex align-items-center mb-4">
+          <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white me-3" style="width: 60px; height: 60px; font-size: 1.5rem;">
+            <i class="fas fa-building"></i>
+          </div>
+          <div>
+            <h3 class="mb-0">Stand Expo 2025</h3>
+            <p class="text-muted mb-0">Evento Corporativo</p>
+          </div>
+          <span class="badge bg-success ms-3 p-2">Aprovado</span>
+        </div>
+        
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <div class="card mb-3">
+              <div class="card-header bg-light py-2">
+                <h6 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i> Informações Básicas</h6>
+              </div>
+              <div class="card-body">
+                <dl class="row mb-0">
+                  <dt class="col-sm-4">Cliente:</dt>
+                  <dd class="col-sm-8">StartupXYZ Eventos</dd>
+                  
+                  <dt class="col-sm-4">Data Criação:</dt>
+                  <dd class="col-sm-8">01/04/2025</dd>
+                  
+                  <dt class="col-sm-4">Prazo Final:</dt>
+                  <dd class="col-sm-8">15/05/2025</dd>
+                  
+                  <dt class="col-sm-4">Projetista:</dt>
+                  <dd class="col-sm-8">Ana Silva</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-md-6">
+            <div class="card mb-3">
+              <div class="card-header bg-light py-2">
+                <h6 class="card-title mb-0"><i class="fas fa-dollar-sign me-2"></i> Informações Financeiras</h6>
+              </div>
+              <div class="card-body">
+                <dl class="row mb-0">
+                  <dt class="col-sm-6">Orçamento:</dt>
+                  <dd class="col-sm-6">R$ 85.000,00</dd>
+                  
+                  <dt class="col-sm-6">Valor Aprovado:</dt>
+                  <dd class="col-sm-6">R$ 82.500,00</dd>
+                  
+                  <dt class="col-sm-6">Status Pagamento:</dt>
+                  <dd class="col-sm-6"><span class="badge bg-warning text-dark">Parcial</span></dd>
+                  
+                  <dt class="col-sm-6">Valor Pago:</dt>
+                  <dd class="col-sm-6">R$ 41.250,00 (50%)</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Descrição -->
+        <div class="card mb-4">
+          <div class="card-header bg-light py-2">
+            <h6 class="card-title mb-0"><i class="fas fa-align-left me-2"></i> Descrição do Projeto</h6>
+          </div>
+          <div class="card-body">
+            <p>Stand para a empresa StartupXYZ na Expo Tecnologia 2025. O cliente deseja um espaço moderno e inovador com área de demonstração de produtos, recepção e espaço para reuniões.</p>
+            <p>A estrutura deve ser modular, com fácil montagem e desmontagem. Iluminação LED com controle de cores e intensidade. Sistema de som ambiente integrado. A paleta de cores deve seguir a identidade visual da empresa (azul, branco e cinza).</p>
+            <p>O stand terá 50m² e deve comportar até 15 pessoas simultaneamente. Localização: Pavilhão Norte, Setor A, posição 12.</p>
+          </div>
+        </div>
+        
+        <!-- Timeline -->
+        <div class="card mb-4">
+          <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+            <h6 class="card-title mb-0"><i class="fas fa-history me-2"></i> Histórico do Projeto</h6>
+            <button class="btn btn-sm btn-link p-0">Ver completo</button>
+          </div>
+          <div class="card-body p-0">
+            <div class="timeline p-3">
+              <div class="timeline-item">
+                <div class="timeline-marker bg-success"></div>
+                <div class="timeline-content">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Projeto Aprovado</h6>
+                    <small class="text-muted">01/04/2025 14:35</small>
+                  </div>
+                  <p class="text-muted mb-0">Cliente aprovou o projeto e o orçamento final.</p>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-marker bg-primary"></div>
+                <div class="timeline-content">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Orçamento Enviado</h6>
+                    <small class="text-muted">01/04/2025 10:20</small>
+                  </div>
+                  <p class="text-muted mb-0">Orçamento final enviado ao cliente para aprovação.</p>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-marker bg-info"></div>
+                <div class="timeline-content">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Briefing Validado</h6>
+                    <small class="text-muted">31/03/2025 16:45</small>
+                  </div>
+                  <p class="text-muted mb-0">Briefing validado pela equipe de projeto.</p>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-marker bg-light"></div>
+                <div class="timeline-content">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Projeto Iniciado</h6>
+                    <small class="text-muted">30/03/2025 09:15</small>
+                  </div>
+                  <p class="text-muted mb-0">Cliente preencheu o briefing inicial.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Sidebar do Projeto -->
+      <div class="col-lg-4">
+        <!-- Status do Projeto -->
+        <div class="card mb-4">
+          <div class="card-header bg-light py-2">
+            <h6 class="card-title mb-0"><i class="fas fa-tasks me-2"></i> Status do Projeto</h6>
+          </div>
+          <div class="card-body">
+            <div class="progress mb-3" style="height: 25px;">
+              <div class="progress-bar bg-success" role="progressbar" style="width: 50%;" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100">50%</div>
+            </div>
+            
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                <span>
+                  <i class="fas fa-check-circle text-success me-2"></i> Briefing
+                </span>
+                <span class="badge bg-success">Concluído</span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                <span>
+                  <i class="fas fa-check-circle text-success me-2"></i> Orçamento
+                </span>
+                <span class="badge bg-success">Aprovado</span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                <span>
+                  <i class="fas fa-circle-notch text-primary me-2 fa-spin"></i> Projeto Executivo
+                </span>
+                <span class="badge bg-primary">Em andamento</span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                <span>
+                  <i class="far fa-circle text-muted me-2"></i> Produção
+                </span>
+                <span class="badge bg-secondary">Pendente</span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                <span>
+                  <i class="far fa-circle text-muted me-2"></i> Montagem
+                </span>
+                <span class="badge bg-secondary">Pendente</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+        
+        <!-- Arquivos -->
+        <div class="card mb-4">
+          <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+            <h6 class="card-title mb-0"><i class="fas fa-file me-2"></i> Arquivos</h6>
+            <button class="btn btn-sm btn-outline-primary">
+              <i class="fas fa-upload me-1"></i> Upload
+            </button>
+          </div>
+          <div class="card-body p-0">
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-file-pdf text-danger me-2" style="font-size: 1.2rem;"></i>
+                  <div>
+                    <div class="fw-bold">briefing_completo.pdf</div>
+                    <small class="text-muted">Briefing</small>
+                  </div>
+                </div>
+                <div>
+                  <button class="btn btn-sm btn-link">
+                    <i class="fas fa-download"></i>
+                  </button>
+                </div>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-file-image text-primary me-2" style="font-size: 1.2rem;"></i>
+                  <div>
+                    <div class="fw-bold">render_perspectiva_01.jpg</div>
+                    <small class="text-muted">Render</small>
+                  </div>
+                </div>
+                <div>
+                  <button class="btn btn-sm btn-link">
+                    <i class="fas fa-download"></i>
+                  </button>
+                </div>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-file-image text-primary me-2" style="font-size: 1.2rem;"></i>
+                  <div>
+                    <div class="fw-bold">render_perspectiva_02.jpg</div>
+                    <small class="text-muted">Render</small>
+                  </div>
+                </div>
+                <div>
+                  <button class="btn btn-sm btn-link">
+                    <i class="fas fa-download"></i>
+                  </button>
+                </div>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-file-excel text-success me-2" style="font-size: 1.2rem;"></i>
+                  <div>
+                    <div class="fw-bold">orcamento_final.xlsx</div>
+                    <small class="text-muted">Orçamento</small>
+                  </div>
+                </div>
+                <div>
+                  <button class="btn btn-sm btn-link">
+                    <i class="fas fa-download"></i>
+                  </button>
+                </div>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-file-pdf text-danger me-2" style="font-size: 1.2rem;"></i>
+                  <div>
+                    <div class="fw-bold">especificacoes_tecnicas.pdf</div>
+                    <small class="text-muted">Especificações</small>
+                  </div>
+                </div>
+                <div>
+                  <button class="btn btn-sm btn-link">
+                    <i class="fas fa-download"></i>
+                  </button>
+                </div>
+              </li>
+            </ul>
+            <div class="p-3 text-center">
+              <a href="#" class="btn btn-sm btn-link">Ver todos os arquivos (12)</a>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Equipe -->
+        <div class="card mb-4">
+          <div class="card-header bg-light py-2">
+            <h6 class="card-title mb-0"><i class="fas fa-users me-2"></i> Equipe do Projeto</h6>
+          </div>
+          <div class="card-body p-0">
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item d-flex align-items-center">
+                <div class="flex-shrink-0">
+                  <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <span class="text-white">AS</span>
+                  </div>
+                </div>
+                <div class="ms-3">
+                  <div class="fw-bold">Ana Silva</div>
+                  <small class="text-muted">Projetista Responsável</small>
+                </div>
+              </li>
+              <li class="list-group-item d-flex align-items-center">
+                <div class="flex-shrink-0">
+                  <div class="bg-success rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <span class="text-white">CM</span>
+                  </div>
+                </div>
+                <div class="ms-3">
+                  <div class="fw-bold">Carlos Mendes</div>
+                  <small class="text-muted">Gestor do Projeto</small>
+                </div>
+              </li>
+              <li class="list-group-item d-flex align-items-center">
+                <div class="flex-shrink-0">
+                  <div class="bg-info rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <span class="text-white">RL</span>
+                  </div>
+                </div>
+                <div class="ms-3">
+                  <div class="fw-bold">Ricardo Lima</div>
+                  <small class="text-muted">Designer</small>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Estilos específicos para a timeline -->
+<style>
+.timeline {
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+.timeline-item {
+  position: relative;
+  padding-bottom: 1.5rem;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: -1.5rem;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+.timeline-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: -1.5rem;
+  bottom: 0;
+  width: 2px;
+  height: calc(100% - 15px);
+  background-color: #e9ecef;
+  transform: translateX(6.5px);
+}
+</style>
+{% endblock %}

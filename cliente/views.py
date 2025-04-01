@@ -263,3 +263,136 @@ def projeto_delete(request, pk):
         'projeto': projeto,
     }
     return render(request, 'cliente/projeto_confirm_delete.html', context)
+
+# Adicione estas funções ao views.py do app cliente
+
+@login_required
+@cliente_required
+def briefing(request):
+    """
+    Briefing assistido por IA para criação de novo projeto
+    """
+    # Obtém a empresa do usuário logado
+    empresa = request.user.empresa
+    
+    if request.method == 'POST':
+        # Aqui você processaria os dados do formulário
+        # Para simplificar, vamos apenas criar um projeto básico
+        projeto = Projeto(
+            nome=request.POST.get('nomeProjeto', 'Novo Projeto'),
+            empresa=empresa,
+            cliente=request.user,
+            descricao=request.POST.get('descricaoProjeto', ''),
+            requisitos=request.POST.get('objetivoProjeto', ''),
+            data_inicio=request.POST.get('dataInicio'),
+            prazo_entrega=request.POST.get('dataFim'),
+            orcamento=request.POST.get('orcamento', 0),
+            status='pendente'
+        )
+        projeto.save()
+        
+        # Processa uploads de arquivos
+        if 'referencias' in request.FILES:
+            for arquivo in request.FILES.getlist('referencias'):
+                ArquivoReferencia.objects.create(
+                    projeto=projeto,
+                    nome=arquivo.name,
+                    arquivo=arquivo,
+                    tamanho=arquivo.size
+                )
+        
+        messages.success(request, 'Projeto criado com sucesso! Aguarde análise da equipe.')
+        return redirect('cliente:projeto_detail', pk=projeto.pk)
+    
+    context = {
+        'empresa': empresa,
+    }
+    return render(request, 'cliente/briefing.html', context)
+
+@login_required
+@cliente_required
+def mensagens(request):
+    """
+    Central de mensagens do cliente
+    """
+    # Obtém a empresa do usuário logado
+    empresa = request.user.empresa
+    
+    # Obtém projetos do cliente para listar nas conversas
+    projetos = Projeto.objects.filter(empresa=empresa)
+    
+    # Para demonstração, podemos criar uma lista de conversas fictícias
+    conversas = [
+        {
+            'projeto': projeto,
+            'ultima_mensagem': f"Últimas atualizações sobre {projeto.nome}",
+            'data': projeto.updated_at,
+            'nao_lidas': 0
+        } for projeto in projetos
+    ]
+    
+    context = {
+        'empresa': empresa,
+        'conversas': conversas,
+        'projetos': projetos,
+    }
+    return render(request, 'cliente/central_mensagens.html', context)
+
+@login_required
+@cliente_required
+def nova_mensagem(request):
+    """
+    Criação de nova mensagem
+    """
+    # Obtém a empresa do usuário logado
+    empresa = request.user.empresa
+    
+    # Obtém projetos do cliente para selecionar
+    projetos = Projeto.objects.filter(empresa=empresa)
+    
+    if request.method == 'POST':
+        # Aqui você processaria a mensagem
+        # Para demonstração, vamos apenas redirecionar
+        messages.success(request, 'Mensagem enviada com sucesso!')
+        return redirect('cliente:mensagens')
+    
+    context = {
+        'empresa': empresa,
+        'projetos': projetos,
+    }
+    return render(request, 'cliente/nova_mensagem.html', context)
+
+@login_required
+@cliente_required
+def mensagens_projeto(request, projeto_id):
+    """
+    Mensagens de um projeto específico
+    """
+    # Obtém a empresa do usuário logado
+    empresa = request.user.empresa
+    
+    # Obtém o projeto específico
+    projeto = get_object_or_404(Projeto, pk=projeto_id, empresa=empresa)
+    
+    # Para demonstração, podemos criar uma lista de mensagens fictícias
+    mensagens_lista = [
+        {
+            'remetente': 'Você',
+            'conteudo': 'Precisamos de ajustes no projeto.',
+            'data': projeto.updated_at,
+            'is_cliente': True
+        },
+        {
+            'remetente': 'Afinal Cenografia',
+            'conteudo': 'Claro, vamos analisar e retornar em breve.',
+            'data': projeto.updated_at,
+            'is_cliente': False
+        }
+    ]
+    
+    context = {
+        'empresa': empresa,
+        'projeto': projeto,
+        'mensagens': mensagens_lista,
+    }
+    return render(request, 'cliente/mensagens_projeto.html', context)
