@@ -1,0 +1,284 @@
+{% extends 'gestor/base_gestor.html' %}
+{% load static %}
+
+{% block title %}Central de Mensagens | Portal do Gestor{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">
+      <i class="fas fa-comments me-2"></i> Central de Mensagens
+    </h5>
+    <div>
+      <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#novaMensagemModal">
+        <i class="fas fa-plus me-1"></i> Nova Mensagem
+      </button>
+      <div class="btn-group ms-2">
+        <button class="btn btn-sm btn-outline-light active">Todas</button>
+        <button class="btn btn-sm btn-outline-light">Não lidas</button>
+        <button class="btn btn-sm btn-outline-light">Importantes</button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="card-body p-0">
+    <div class="row g-0" style="min-height: 70vh;">
+      <!-- Lista de Conversas -->
+      <div class="col-md-4 border-end">
+        <div class="list-group list-group-flush border-bottom">
+          <!-- Barra de pesquisa -->
+          <div class="p-3 border-bottom">
+            <div class="input-group">
+              <input type="text" class="form-control" placeholder="Buscar mensagens...">
+              <button class="btn btn-outline-secondary" type="button">
+                <i class="fas fa-search"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Conversa ativa -->
+          <a href="#" class="list-group-item list-group-item-action active py-3">
+            <div class="d-flex w-100 align-items-center">
+              <div class="flex-shrink-0">
+                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                  <span class="text-white">PR</span>
+                </div>
+              </div>
+              <div class="ms-3 flex-grow-1">
+                <div class="d-flex w-100 justify-content-between">
+                  <h6 class="mb-1">Stand Expo 2025</h6>
+                  <small>10:30</small>
+                </div>
+                <div class="d-flex justify-content-between">
+                  <span class="text-truncate" style="max-width: 150px;">StartupXYZ: Precisamos ajustar...</span>
+                  <span class="badge rounded-pill bg-danger">3</span>
+                </div>
+              </div>
+            </div>
+          </a>
+          
+          <!-- Outras conversas -->
+          <a href="#" class="list-group-item list-group-item-action py-3">
+            <div class="d-flex w-100 align-items-center">
+              <div class="flex-shrink-0">
+                <div class="bg-success rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                  <span class="text-white">TV</span>
+                </div>
+              </div>
+              <div class="ms-3 flex-grow-1">
+                <div class="d-flex w-100 justify-content-between">
+                  <h6 class="mb-1">Cenário Programa TV</h6>
+                  <small>Ontem</small>
+                </div>
+                <div class="text-muted text-truncate" style="max-width: 200px;">Você: Enviamos o material conforme...</div>
+              </div>
+            </div>
+          </a>
+          
+          <a href="#" class="list-group-item list-group-item-action py-3">
+            <div class="d-flex w-100 align-items-center">
+              <div class="flex-shrink-0">
+                <div class="bg-danger rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                  <span class="text-white">VT</span>
+                </div>
+              </div>
+              <div class="ms-3 flex-grow-1">
+                <div class="d-flex w-100 justify-content-between">
+                  <h6 class="mb-1">Vitrine Temporada</h6>
+                  <small>25/03</small>
+                </div>
+                <div class="text-muted text-truncate" style="max-width: 200px;">Moda Fashion: Os materiais chegaram...</div>
+              </div>
+            </div>
+          </a>
+          
+          <a href="#" class="list-group-item list-group-item-action py-3">
+            <div class="d-flex w-100 align-items-center">
+              <div class="flex-shrink-0">
+                <div class="bg-purple rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 45px; height: 45px; background-color: #8557e6;">
+                  <span class="text-white">CS</span>
+                </div>
+              </div>
+              <div class="ms-3 flex-grow-1">
+                <div class="d-flex w-100 justify-content-between">
+                  <h6 class="mb-1">Casamento Silva</h6>
+                  <small>24/03</small>
+                </div>
+                <div class="text-muted text-truncate" style="max-width: 200px;">Festas Exclusivas: Podemos revisar...</div>
+              </div>
+            </div>
+          </a>
+        </div>
+      </div>
+      
+      <!-- Área de Mensagens -->
+      <div class="col-md-8">
+        <div class="d-flex flex-column h-100">
+          <!-- Cabeçalho da conversa -->
+          <div class="p-3 border-bottom bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+              <div class="d-flex align-items-center">
+                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                  <span class="text-white">PR</span>
+                </div>
+                <div class="ms-3">
+                  <h5 class="mb-0">Stand Expo 2025</h5>
+                  <div class="text-muted small">
+                    <span class="badge bg-info me-1">StartupXYZ Eventos</span>
+                    <span class="badge bg-success me-1">Ativo</span>
+                    <span>Última atualização: Hoje, 10:30</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <button class="btn btn-outline-secondary btn-sm">
+                  <i class="fas fa-file-alt me-1"></i> Ver Projeto
+                </button>
+                <button class="btn btn-outline-secondary btn-sm ms-1" data-bs-toggle="dropdown">
+                  <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end">
+                  <a class="dropdown-item" href="#"><i class="fas fa-paperclip me-2"></i> Ver Arquivos</a>
+                  <a class="dropdown-item" href="#"><i class="fas fa-star me-2"></i> Marcar como Importante</a>
+                  <a class="dropdown-item" href="#"><i class="fas fa-archive me-2"></i> Arquivar Conversa</a>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Mensagens -->
+          <div class="flex-grow-1 p-3 overflow-auto" style="max-height: 55vh;">
+            <!-- Data -->
+            <div class="text-center my-3">
+              <span class="badge bg-secondary text-white">Hoje, 01 de Abril, 2025</span>
+            </div>
+            
+            <!-- Mensagem recebida -->
+            <div class="d-flex mb-3">
+              <div class="flex-shrink-0">
+                <div class="bg-info rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                  <span class="text-white">SE</span>
+                </div>
+              </div>
+              <div class="ms-2">
+                <div class="bg-light rounded p-3" style="max-width: 80%;">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold">StartupXYZ Eventos</span>
+                    <small class="text-muted">10:15</small>
+                  </div>
+                  <p class="mb-0">Bom dia! Precisamos ajustar alguns detalhes no projeto do stand. Principalmente na questão da iluminação e dos materiais a serem utilizados.</p>
+                </div>
+                <div class="bg-light rounded p-3 mt-2" style="max-width: 80%;">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold">StartupXYZ Eventos</span>
+                    <small class="text-muted">10:16</small>
+                  </div>
+                  <p class="mb-0">O cliente solicitou uma mudança na paleta de cores. Segue em anexo as novas especificações.</p>
+                  <div class="mt-2 bg-white rounded p-2 border">
+                    <i class="fas fa-file-pdf text-danger me-2"></i>
+                    <span>novas_especificacoes_stand.pdf</span>
+                    <button class="btn btn-sm btn-link p-0 ms-2">
+                      <i class="fas fa-download"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Mensagem enviada -->
+            <div class="d-flex justify-content-end mb-3">
+              <div class="me-2">
+                <div class="bg-primary text-white rounded p-3" style="max-width: 80%;">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold">Você</span>
+                    <small class="text-white-50">10:20</small>
+                  </div>
+                  <p class="mb-0">Bom dia! Recebido o material. Vamos analisar as mudanças solicitadas e retornamos em breve com um parecer técnico sobre as alterações.</p>
+                </div>
+              </div>
+              <div class="flex-shrink-0">
+                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                  <span class="text-white">EU</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Mensagem recebida -->
+            <div class="d-flex mb-3">
+              <div class="flex-shrink-0">
+                <div class="bg-info rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                  <span class="text-white">SE</span>
+                </div>
+              </div>
+              <div class="ms-2">
+                <div class="bg-light rounded p-3" style="max-width: 80%;">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold">StartupXYZ Eventos</span>
+                    <small class="text-muted">10:30</small>
+                  </div>
+                  <p class="mb-0">Perfeito! O cliente está com certa urgência, se possível precisamos dessas informações até amanhã. Podemos agendar uma chamada para discutir os detalhes às 15h?</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Área de input -->
+          <div class="p-3 border-top">
+            <form>
+              <div class="input-group">
+                <button class="btn btn-outline-secondary" type="button" data-bs-toggle="tooltip" title="Anexar arquivo">
+                  <i class="fas fa-paperclip"></i>
+                </button>
+                <input type="text" class="form-control" placeholder="Digite sua mensagem...">
+                <button class="btn btn-primary" type="button">
+                  <i class="fas fa-paper-plane"></i>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Nova Mensagem -->
+<div class="modal fade" id="novaMensagemModal" tabindex="-1" aria-labelledby="novaMensagemModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="novaMensagemModalLabel"><i class="fas fa-paper-plane me-2"></i> Nova Mensagem</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="projetoSelect" class="form-label">Projeto</label>
+          <select class="form-select" id="projetoSelect" required>
+            <option value="" selected disabled>Selecione um projeto...</option>
+            <option value="1">Stand Expo 2025 - StartupXYZ Eventos</option>
+            <option value="2">Cenário Programa TV - TV Brasil Produções</option>
+            <option value="3">Vitrine Temporada - Moda Fashion LTDA</option>
+            <option value="4">Casamento Silva - Festas Exclusivas</option>
+            <option value="5">Quiosque Shopping - Café Delícia</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="mensagemTextarea" class="form-label">Mensagem</label>
+          <textarea class="form-control" id="mensagemTextarea" rows="5" placeholder="Digite sua mensagem..." required></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Anexos</label>
+          <div class="input-group mb-3">
+            <input type="file" class="form-control" id="anexoInput">
+            <label class="input-group-text" for="anexoInput">Selecionar</label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary">Enviar Mensagem</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

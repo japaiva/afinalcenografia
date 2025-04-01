@@ -1,3 +1,5 @@
+# cliente/urls.py
+
 from django.urls import path
 from . import views
 
@@ -21,7 +23,13 @@ urlpatterns = [
     # CRUD Projetos
     path('projetos/', views.projeto_list, name='projeto_list'),
     path('projetos/novo/', views.projeto_create, name='projeto_create'),
+    path('projetos/briefing/', views.briefing, name='briefing'),  # Nova URL para o briefing com IA
     path('projetos/<int:pk>/', views.projeto_detail, name='projeto_detail'),
     path('projetos/<int:pk>/editar/', views.projeto_update, name='projeto_update'),
     path('projetos/<int:pk>/excluir/', views.projeto_delete, name='projeto_delete'),
+    
+    # Sistema de Mensagens
+    path('mensagens/', views.mensagens, name='mensagens'),  # Central de mensagens
+    path('mensagens/nova/', views.nova_mensagem, name='nova_mensagem'),  # Nova mensagem
+    path('mensagens/projeto/<int:projeto_id>/', views.mensagens_projeto, name='mensagens_projeto'),  # Mensagens de um projeto específico
 ]

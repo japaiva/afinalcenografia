@@ -1,3 +1,5 @@
+# gestor/urls.py
+
 from django.urls import path
 from . import views
 
@@ -28,4 +30,15 @@ urlpatterns = [
     path('parametros/novo/', views.parametro_create, name='parametro_create'),
     path('parametros/<int:pk>/editar/', views.parametro_update, name='parametro_update'),
     path('parametros/<int:pk>/excluir/', views.parametro_delete, name='parametro_delete'),
+    
+    # Gestão de Projetos
+    path('projetos/', views.projeto_list, name='projeto_list'),
+    path('projetos/<int:pk>/', views.projeto_detail, name='projeto_detail'),
+    path('projetos/<int:pk>/atribuir/<int:usuario_id>/', views.projeto_atribuir, name='projeto_atribuir'),
+    path('projetos/<int:pk>/alterar-status/', views.projeto_alterar_status, name='projeto_alterar_status'),
+    
+    # Sistema de Mensagens
+    path('mensagens/', views.mensagens, name='mensagens'),  # Central de mensagens
+    path('mensagens/nova/', views.nova_mensagem, name='nova_mensagem'),  # Nova mensagem
+    path('mensagens/projeto/<int:projeto_id>/', views.mensagens_projeto, name='mensagens_projeto'),  # Mensagens de um projeto específico
 ]

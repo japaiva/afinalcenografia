@@ -38,22 +38,20 @@
     </div>
   </div>
 
-  <!-- Projetos (placeholder) -->
   <div class="col-md-6 col-lg-4 mb-4">
     <div class="card shadow h-100">
       <div class="card-body">
         <h5 class="card-title text-warning">
           <i class="fas fa-project-diagram me-2"></i> Projetos
         </h5>
-        <div class="display-4 fw-bold my-3">0</div>
-        <p class="card-text text-muted">Projetos de cenografia (funcionalidade em desenvolvimento).</p>
+        <div class="display-4 fw-bold my-3">{{ total_projetos }}</div>
+        <p class="card-text text-muted">Projetos de cenografia no sistema.</p>
       </div>
       <div class="card-footer bg-transparent">
-        <button class="btn btn-sm btn-outline-warning" disabled>Em breve</button>
+        <a href="{% url 'gestor:projeto_list' %}" class="btn btn-sm btn-outline-warning">Ver projetos</a>
       </div>
     </div>
   </div>
-</div>
 
 <!-- Ações rápidas -->
 <div class="row">
