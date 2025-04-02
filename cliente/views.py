@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from core.models import Usuario, Empresa
+from core.forms import EmpresaForm  # Importe o formulário da empresa
 from projetos.models import Projeto
 from projetos.forms import ProjetoForm
 
@@ -114,19 +115,32 @@ def usuario_detail(request, pk):
     }
     return render(request, 'cliente/usuario_detail.html', context)
 
-# VISUALIZAÇÃO DA EMPRESA (APENAS PARA CONSULTA)
-
 @login_required
 @cliente_required
 def empresa_detail(request):
     """
-    Detalhes da empresa do cliente (apenas para visualização)
+    Detalhes da empresa do cliente com possibilidade de edição
     """
     # Obtém a empresa do usuário logado
     empresa = request.user.empresa
     
+    if request.method == 'POST':
+        form = EmpresaForm(request.POST, request.FILES, instance=empresa)
+        # Se o cliente está editando, não permitimos alterar o status ativo/inativo
+        if form.is_valid():
+            # Preservar o status original (ativa/inativa)
+            status_original = empresa.ativa
+            empresa_atualizada = form.save(commit=False)
+            empresa_atualizada.ativa = status_original  # Garantir que o status não mude
+            empresa_atualizada.save()
+            messages.success(request, 'Empresa atualizada com sucesso.')
+            return redirect('cliente:empresa_detail')
+    else:
+        form = EmpresaForm(instance=empresa)
+    
     context = {
         'empresa': empresa,
+        'form': form,
     }
     return render(request, 'cliente/empresa_detail.html', context)
 

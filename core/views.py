@@ -68,3 +68,11 @@ def logout_view(request):
     logout(request)
     messages.success(request, 'Você foi desconectado com sucesso.')
     return redirect('home')
+
+def logout_view(request):
+    """
+    View para realizar o logout do usuário.
+    """
+    logout(request)
+    messages.success(request, 'Você foi desconectado com sucesso.')
+    return redirect('home')
