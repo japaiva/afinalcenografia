@@ -9,10 +9,26 @@
     <h5 class="card-title mb-0">
       <i class="fas fa-clipboard-list me-2"></i> Briefing de Projeto: {{ projeto.nome }}
     </h5>
-    <div>
-      <button id="salvarRascunho" class="btn btn-outline-secondary btn-sm me-1" data-url="{% url 'cliente:salvar_rascunho_briefing' projeto_id=projeto.id %}">
-        <i class="fas fa-save me-1"></i> Salvar Rascunho
-      </button>
+    <div class="d-flex align-items-center">
+      <!-- Status de Validação condensado no header -->
+      <div class="me-3">
+        <div class="d-flex align-items-center">
+          {% for validacao in validacoes %}
+            <div class="me-1" title="{{ validacao.secao|title }}: {{ validacao.status|title }}">
+              <i class="fas 
+                {% if validacao.status == 'aprovado' %}fa-check-circle text-success
+                {% elif validacao.status == 'atencao' %}fa-exclamation-circle text-warning
+                {% elif validacao.status == 'reprovado' %}fa-times-circle text-danger
+                {% else %}fa-times-circle text-muted{% endif %} me-1"></i>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+      
+      <!-- Botões de ação -->
+      <a href="{% url 'cliente:projeto_detail' pk=projeto.id %}" class="btn btn-outline-secondary btn-sm me-1">
+        <i class="fas fa-project-diagram me-1"></i> Acessar Projeto
+      </a>
       {% if todas_aprovadas %}
       <a href="{% url 'cliente:concluir_briefing' projeto_id=projeto.id %}" class="btn btn-primary btn-sm">
         <i class="fas fa-paper-plane me-1"></i> Enviar Briefing
@@ -163,8 +179,20 @@
             </div>
           </div>
           
-          <!-- Chat da IA -->
-          <div class="chat-container bg-light rounded p-3 flex-grow-1 overflow-auto mb-3" style="height: 300px;" id="chatContainer">
+          <!-- Input do chat (no topo) -->
+          <div class="chat-input mb-3">
+            <form id="chatForm" data-url="{% url 'cliente:enviar_mensagem_ia' projeto_id=projeto.id %}">
+              <div class="input-group">
+                <input type="text" class="form-control" id="mensagemInput" name="mensagem" placeholder="Faça uma pergunta ao assistente...">
+                <button class="btn btn-primary" type="submit" id="enviarMensagem">
+                  <i class="fas fa-paper-plane"></i>
+                </button>
+              </div>
+            </form>
+          </div>
+          
+          <!-- Chat da IA (abaixo do input) -->
+          <div class="chat-container bg-light rounded p-3 flex-grow-1 overflow-auto" style="height: 400px;" id="chatContainer">
             {% for conversa in conversas %}
               <div class="chat-message {{ conversa.origem }}-message mb-3">
                 <div class="chat-bubble">
@@ -181,49 +209,6 @@
                 <small class="text-muted">Agora</small>
               </div>
             {% endfor %}
-          </div>
-          
-          <!-- Input do chat -->
-          <div class="chat-input">
-            <form id="chatForm" data-url="{% url 'cliente:enviar_mensagem_ia' projeto_id=projeto.id %}">
-              <div class="input-group">
-                <input type="text" class="form-control" id="mensagemInput" name="mensagem" placeholder="Faça uma pergunta ao assistente...">
-                <button class="btn btn-primary" type="submit" id="enviarMensagem">
-                  <i class="fas fa-paper-plane"></i>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-        
-        <!-- Status de Validação -->
-        <div class="validation-status p-3 border-top">
-          <h6 class="mb-3">Status de Validação</h6>
-          <ul class="list-group list-group-flush">
-            {% for validacao in validacoes %}
-            <li class="list-group-item d-flex justify-content-between align-items-center px-0 border-0">
-              <span>
-                <i class="fas 
-                  {% if validacao.status == 'aprovado' %}fa-check-circle text-success
-                  {% elif validacao.status == 'atencao' %}fa-exclamation-circle text-warning
-                  {% elif validacao.status == 'reprovado' %}fa-times-circle text-danger
-                  {% else %}fa-times-circle text-muted{% endif %} me-2"></i>
-                {{ validacao.secao|title }}
-              </span>
-              <span class="badge 
-                {% if validacao.status == 'aprovado' %}bg-success
-                {% elif validacao.status == 'atencao' %}bg-warning text-dark
-                {% elif validacao.status == 'reprovado' %}bg-danger
-                {% else %}bg-secondary{% endif %}">
-                {{ validacao.status|title }}
-              </span>
-            </li>
-            {% endfor %}
-          </ul>
-          <div class="text-center mt-3">
-            <button class="btn btn-outline-primary btn-sm" id="revalidarButton" data-url="{% url 'cliente:validar_briefing' projeto_id=projeto.id %}">
-              <i class="fas fa-sync-alt me-1"></i> Revalidar Briefing
-            </button>
           </div>
         </div>
       </div>
@@ -284,13 +269,48 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-  // Scroll to bottom of chat
-  const scrollChatToBottom = () => {
-    const chatContainer = document.getElementById('chatContainer');
-    chatContainer.scrollTop = chatContainer.scrollHeight;
-  };
+  // Auto-salvar o formulário quando houver mudanças
+  let formChanged = false;
   
-  scrollChatToBottom();
+  $('#briefingForm input, #briefingForm textarea, #briefingForm select').on('change', function() {
+    formChanged = true;
+  });
+  
+  function autosave() {
+    if (formChanged) {
+      const formData = new FormData($('#briefingForm')[0]);
+      
+      $.ajax({
+        url: "{% url 'cliente:salvar_rascunho_briefing' projeto_id=projeto.id %}",
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function() {
+          // Salvamento silencioso, sem notificação para o usuário
+          formChanged = false;
+        }
+      });
+    }
+  }
+  
+  // Salvar a cada 30 segundos se houver mudanças
+  setInterval(autosave, 30000);
+  
+  // Salvar ao sair da página
+  $(window).on('beforeunload', function() {
+    if (formChanged) {
+      autosave();
+    }
+  });
+  
+  // Scroll para colocar as mensagens mais recentes no topo do chat
+  const scrollChatToTop = () => {
+    const chatContainer = document.getElementById('chatContainer');
+    chatContainer.scrollTop = 0;
+  };
+
+  scrollChatToTop();
   
   // Submit chat message
   $('#chatForm').on('submit', function(e) {
@@ -308,7 +328,8 @@ $(document).ready(function() {
     // Add message to chat immediately
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     
-    $('#chatContainer').append(`
+    // Prepend message (add at the top) instead of append
+    $('#chatContainer').prepend(`
       <div class="chat-message cliente-message mb-3">
         <div class="chat-bubble">
           <p>${mensagem}</p>
@@ -317,7 +338,7 @@ $(document).ready(function() {
       </div>
     `);
     
-    scrollChatToBottom();
+    scrollChatToTop();
     
     // Send to server
     $.ajax({
@@ -328,8 +349,8 @@ $(document).ready(function() {
         csrfmiddlewaretoken: '{{ csrf_token }}'
       },
       success: function(response) {
-        // Add AI response
-        $('#chatContainer').append(`
+        // Prepend AI response at the top
+        $('#chatContainer').prepend(`
           <div class="chat-message ai-message mb-3">
             <div class="chat-bubble">
               <p>${response.mensagem_ia.texto.replace(/\n/g, '<br>')}</p>
@@ -338,7 +359,7 @@ $(document).ready(function() {
           </div>
         `);
         
-        scrollChatToBottom();
+        scrollChatToTop();
       },
       error: function(xhr, status, error) {
         alert('Erro ao enviar mensagem: ' + error);
@@ -347,44 +368,6 @@ $(document).ready(function() {
         // Clear and re-enable input
         $('#mensagemInput').val('').prop('disabled', false).focus();
         $('#enviarMensagem').prop('disabled', false);
-      }
-    });
-  });
-  
-  // Save draft
-  $('#salvarRascunho').on('click', function() {
-    const url = $(this).data('url');
-    
-    // Automatically save form data
-    const formData = new FormData($('#briefingForm')[0]);
-    
-    $.ajax({
-      url: url,
-      type: 'POST',
-      data: formData,
-      processData: false,
-      contentType: false,
-      success: function(response) {
-        // Show toast notification
-        const toast = `
-          <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000">
-            <div class="toast-header bg-success bg-opacity-25">
-              <strong class="me-auto text-success">Sucesso</strong>
-              <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
-            </div>
-            <div class="toast-body">Rascunho salvo com sucesso!</div>
-          </div>
-        `;
-        
-        $('.toast-container').append(toast);
-        
-        // Initialize toast
-        var toastEl = document.querySelector('.toast:last-child');
-        var toastInstance = new bootstrap.Toast(toastEl);
-        toastInstance.show();
-      },
-      error: function(xhr, status, error) {
-        alert('Erro ao salvar rascunho: ' + error);
       }
     });
   });
@@ -473,11 +456,11 @@ $(document).ready(function() {
   });
   
   // Validate briefing
-  $('#revalidarButton, #validarBriefing').on('click', function() {
+  $('#validarBriefing').on('click', function() {
     const url = $(this).data('url');
     
     // Save form first
-    $('#briefingForm').submit();
+    autosave();
     
     $.ajax({
       url: url,
@@ -494,11 +477,6 @@ $(document).ready(function() {
       }
     });
   });
-  
-  // Set up autosave every 2 minutes
-  setInterval(function() {
-    $('#salvarRascunho').click();
-  }, 120000); // 2 minutes
 });
 </script>
 {% endblock %}

@@ -13,6 +13,25 @@ from projetos.forms.briefing import (
     BriefingArquivoReferenciaForm, BriefingMensagemForm
 )
 
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.utils import timezone
+from openai import OpenAI  # Versão moderna da API
+import os
+from dotenv import load_dotenv
+
+from django.db import models
+
+# Carrega variáveis de ambiente
+load_dotenv()
+
+# Adicione logo após o load_dotenv()
+api_key = os.getenv('OPENAI_API_KEY')
+if api_key:
+    print(f"API Key carregada (primeiros 10 caracteres): {api_key[:10]}...")
+else:
+    print("AVISO: API Key não encontrada!")
+
 @login_required
 @cliente_required
 def iniciar_briefing(request, projeto_id):
@@ -441,3 +460,112 @@ def validar_secao_briefing(briefing, secao):
         )
     
     return validacao
+
+@require_POST
+def enviar_mensagem_ia(request, projeto_id):
+    """
+    Processa mensagens enviadas para a IA e retorna uma resposta (usando OpenAI)
+    """
+    # Obter a mensagem do usuário
+    mensagem = request.POST.get('mensagem', '')
+    
+    # Obter contexto do projeto
+    projeto = Projeto.objects.get(id=projeto_id)
+    
+    # Obter histórico de conversa (opcional - para manter contexto)
+    # Limitando a últimas 5 mensagens para não exceder o limite de tokens
+    conversas_anteriores = Conversa.objects.filter(
+        projeto_id=projeto_id
+    ).order_by('-created_at')[:5]
+    
+    # Construir o contexto da conversa
+    contexto = f"Você é um assistente especializado em projetos cenográficos da Afinal Cenografia. "
+    contexto += f"Você está ajudando o cliente a preencher um briefing para o projeto '{projeto.nome}'. "
+    contexto += f"O projeto tem orçamento de R$ {projeto.orcamento} e prazo de entrega {projeto.prazo_entrega}. "
+    
+    # Adiciona instruções sobre como ajudar
+    contexto += "Sua função é auxiliar o cliente a fornecer informações claras e completas para o briefing. "
+    contexto += "Responda perguntas sobre o processo, sugira ideias quando solicitado e ajude a esclarecer dúvidas. "
+    contexto += "Seja amigável, profissional e focado em ajudar o cliente a ter sucesso em seu projeto cenográfico."
+    
+    # Configurar o cliente da API de IA
+    try:
+        # OpenAI
+        API_KEY = os.getenv('OPENAI_API_KEY')
+        if API_KEY:
+            # Inicialize o cliente com a nova API
+            client = OpenAI(api_key=API_KEY)
+            
+            # Montar a lista de mensagens com histórico
+            messages = [{"role": "system", "content": contexto}]
+            
+            # Adicionar histórico de conversa (opcional)
+            for conv in reversed(list(conversas_anteriores)):
+                role = "user" if conv.origem == "cliente" else "assistant"
+                messages.append({"role": role, "content": conv.mensagem})
+            
+            # Adicionar a mensagem atual
+            messages.append({"role": "user", "content": mensagem})
+            
+            resposta = client.chat.completions.create(
+                model="gpt-4o-mini",  # Versão mais leve do GPT-4 Omni
+                messages=messages,
+                max_tokens=1000,
+                temperature=0.7
+            )
+        
+            
+            # Extrair o texto da resposta
+            texto_resposta = resposta.choices[0].message.content
+        else:
+            # Fallback para caso a API key não esteja configurada
+            texto_resposta = "Olá! Sou o assistente de briefing. Estou aqui para ajudar, mas parece que estou em modo de manutenção no momento. Por favor, continue preenchendo o formulário e, se tiver dúvidas específicas, você pode contatar a equipe da Afinal Cenografia diretamente."
+    
+    except Exception as e:
+        # Em caso de erro, fornecer uma resposta genérica
+        texto_resposta = f"Desculpe, não consegui processar sua pergunta no momento. Por favor, tente novamente mais tarde ou entre em contato com nossa equipe para assistência. (Erro: {str(e)})"
+    
+    # Salvar a conversa no banco de dados
+    Conversa.objects.create(
+        projeto_id=projeto_id,
+        origem='cliente',
+        mensagem=mensagem,
+        timestamp=timezone.now()
+    )
+    
+    Conversa.objects.create(
+        projeto_id=projeto_id,
+        origem='ai',
+        mensagem=texto_resposta,
+        timestamp=timezone.now()
+    )
+    
+    # Retornar a resposta para o frontend
+    return JsonResponse({
+        'mensagem_ia': {
+            'texto': texto_resposta,
+            'timestamp': timezone.now().strftime('%H:%M')
+        }
+    })
+
+class Conversa(models.Model):
+    """
+    Modelo para armazenar conversas entre cliente e IA no contexto de um projeto
+    """
+    projeto = models.ForeignKey('Projeto', on_delete=models.CASCADE, related_name='conversas')
+    origem = models.CharField(max_length=10, choices=[
+        ('cliente', 'Cliente'),
+        ('ai', 'Assistente IA'),
+    ])
+    mensagem = models.TextField()
+    timestamp = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = 'Conversa'
+        verbose_name_plural = 'Conversas'
+    
+    def __str__(self):
+        return f"{self.origem} em {self.timestamp.strftime('%d/%m/%Y %H:%M')}"
