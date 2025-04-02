@@ -7,6 +7,9 @@ staticfiles/rest_framework/
 venv/
 ENV/
 
+# Backlog
+z_backlog/
+
 # Python bytecode
 __pycache__/
 *.py[cod]
