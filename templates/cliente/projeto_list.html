@@ -40,8 +40,8 @@
             <th scope="col" style="width: 50px;">#</th>
             <th scope="col">Projeto</th>
             <th scope="col">Status</th>
+            <th scope="col">Briefing</th>
             <th scope="col">Data Criação</th>
-            <th scope="col">Projetista</th>
             <th scope="col" style="width: 150px;">Ações</th>
           </tr>
         </thead>
@@ -72,26 +72,77 @@
                 {{ projeto.get_status_display }}
               </span>
             </td>
+            <td>
+              {% if projeto.has_briefing or projeto.tem_briefing %}
+                {% if projeto.briefing_status == 'em_andamento' %}
+                  <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=projeto.briefing.etapa_atual %}" class="badge bg-primary text-decoration-none">
+                    <i class="fas fa-edit me-1"></i> Em Andamento
+                  </a>
+                {% elif projeto.briefing_status == 'enviado' %}
+                  <span class="badge bg-info">
+                    <i class="fas fa-paper-plane me-1"></i> Enviado
+                  </span>
+                {% elif projeto.briefing_status == 'aprovado' %}
+                  <span class="badge bg-success">
+                    <i class="fas fa-check-circle me-1"></i> Aprovado
+                  </span>
+                {% elif projeto.briefing_status == 'reprovado' %}
+                  <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=1 %}" class="badge bg-danger text-decoration-none">
+                    <i class="fas fa-exclamation-circle me-1"></i> Revisão
+                  </a>
+                {% endif %}
+              {% else %}
+                <a href="{% url 'cliente:iniciar_briefing' projeto_id=projeto.id %}" class="badge bg-secondary text-decoration-none">
+                  <i class="fas fa-clipboard-list me-1"></i> Não Iniciado
+                </a>
+              {% endif %}
+            </td>
             <td>{{ projeto.created_at|date:"d/m/Y" }}</td>
-            <td>{{ projeto.projetista.get_full_name|default:"Não atribuído" }}</td>
             <td>
               <div class="btn-group">
                 <a href="{% url 'cliente:projeto_detail' pk=projeto.pk %}" class="btn btn-sm btn-outline-primary">
                   <i class="fas fa-eye"></i>
                 </a>
-                <a href="#" class="btn btn-sm btn-outline-success">
-                  <i class="fas fa-comment"></i>
-                  {% if projeto.mensagens_nao_lidas > 0 %}
-                  <span class="badge bg-danger position-absolute" style="top: -5px; right: -5px; font-size: 0.6rem;">{{ projeto.mensagens_nao_lidas }}</span>
-                  {% endif %}
-                </a>
+                {% if not projeto.tem_briefing and not projeto.has_briefing or projeto.briefing_status == 'em_andamento' %}
+                  <a href="{% url 'cliente:projeto_update' pk=projeto.pk %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                {% else %}
+                  <button class="btn btn-sm btn-outline-secondary" disabled>
+                    <i class="fas fa-edit"></i>
+                  </button>
+                {% endif %}
                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
                   <i class="fas fa-ellipsis-v"></i>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
-                  <li><a class="dropdown-item" href="{% url 'cliente:projeto_update' pk=projeto.pk %}"><i class="fas fa-edit me-2"></i> Editar</a></li>
+                  {% if projeto.has_briefing or projeto.tem_briefing %}
+                    <li>
+                      <a class="dropdown-item" href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=projeto.briefing.etapa_atual %}">
+                        <i class="fas fa-clipboard-list me-2"></i> Ver Briefing
+                      </a>
+                    </li>
+                  {% else %}
+                    <li>
+                      <a class="dropdown-item" href="{% url 'cliente:iniciar_briefing' projeto_id=projeto.id %}">
+                        <i class="fas fa-clipboard-list me-2"></i> Iniciar Briefing
+                      </a>
+                    </li>
+                  {% endif %}
                   <li><hr class="dropdown-divider"></li>
-                  <li><a class="dropdown-item text-danger" href="{% url 'cliente:projeto_delete' pk=projeto.pk %}"><i class="fas fa-trash me-2"></i> Excluir</a></li>
+                  {% if not projeto.tem_briefing and not projeto.has_briefing or projeto.briefing_status == 'em_andamento' %}
+                    <li>
+                      <a class="dropdown-item text-danger" href="{% url 'cliente:projeto_delete' pk=projeto.pk %}">
+                        <i class="fas fa-trash me-2"></i> Excluir
+                      </a>
+                    </li>
+                  {% else %}
+                    <li>
+                      <a class="dropdown-item text-secondary disabled">
+                        <i class="fas fa-trash me-2"></i> Excluir
+                      </a>
+                    </li>
+                  {% endif %}
                 </ul>
               </div>
             </td>

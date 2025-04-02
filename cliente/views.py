@@ -199,22 +199,34 @@ def projeto_detail(request, pk):
 @login_required
 @cliente_required
 def projeto_create(request):
+    """
+    View para criar um novo projeto e redirecionar diretamente para o briefing
+    """
     # Obtém a empresa do usuário logado
     empresa = request.user.empresa
     
     if request.method == 'POST':
-        form = ProjetoForm(request.POST, request.FILES)  # Importante: inclua request.FILES
+        form = ProjetoForm(request.POST, request.FILES)
         if form.is_valid():
             projeto = form.save(commit=False)
             projeto.empresa = empresa
             projeto.cliente = request.user
             projeto.save()
-            form.save()  # Isso processará os arquivos usando o método save() do formulário
-            messages.success(request, 'Projeto criado com sucesso.')
-            # Limpa todas as mensagens após adicionar para evitar duplicação
-            storage = messages.get_messages(request)
-            storage.used = True
-            return redirect('cliente:projeto_list')
+            
+            # Processar os arquivos de referência, se houver
+            if 'arquivos_referencia' in request.FILES:
+                for arquivo in request.FILES.getlist('arquivos_referencia'):
+                    ArquivoReferencia.objects.create(
+                        projeto=projeto,
+                        nome=arquivo.name,
+                        arquivo=arquivo,
+                        tipo=determinar_tipo_arquivo(arquivo.name)
+                    )
+            
+            messages.success(request, 'Projeto criado com sucesso!')
+            
+            # Redirecionar diretamente para iniciar o briefing
+            return redirect('cliente:iniciar_briefing', projeto_id=projeto.id)
     else:
         form = ProjetoForm()
     
@@ -223,6 +235,20 @@ def projeto_create(request):
         'form': form,
     }
     return render(request, 'cliente/projeto_form.html', context)
+
+def determinar_tipo_arquivo(nome_arquivo):
+    """
+    Determina o tipo de arquivo com base na extensão
+    """
+    nome_arquivo = nome_arquivo.lower()
+    if nome_arquivo.endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
+        return 'imagem'
+    elif nome_arquivo.endswith(('.pdf', '.doc', '.docx', '.txt')):
+        return 'documento'
+    elif nome_arquivo.endswith(('.dwg', '.dxf', '.skp')):
+        return 'planta'
+    else:
+        return 'outro'
 
 @login_required
 @cliente_required

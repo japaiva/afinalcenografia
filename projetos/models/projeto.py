@@ -23,28 +23,38 @@ class Projeto(models.Model):
     requisitos = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    # Campos relacionados ao briefing
+    tem_briefing = models.BooleanField(default=False)  # Restaurado para compatibilidade com templates
+    briefing_status = models.CharField(max_length=20, default='nao_iniciado', choices=(
+        ('nao_iniciado', 'Não Iniciado'),
+        ('em_andamento', 'Em Andamento'),
+        ('enviado', 'Enviado'),
+        ('aprovado', 'Aprovado'),
+        ('reprovado', 'Reprovado')
+    ))
 
     def __str__(self):
         return self.nome
+    
+    @property
+    def has_briefing(self):
+        """Verifica se o projeto tem um briefing associado."""
+        return hasattr(self, 'briefing')
+    
+    def save(self, *args, **kwargs):
+        # Garante que tem_briefing reflita a existência de um briefing associado
+        if self.pk:  # Se o projeto já existe no banco
+            self.tem_briefing = self.has_briefing
+            
+            # Atualiza o status do briefing se necessário
+            if self.tem_briefing and self.briefing_status == 'nao_iniciado':
+                self.briefing_status = 'em_andamento'
+        
+        super().save(*args, **kwargs)
     
     class Meta:
         db_table = 'projetos'
         verbose_name = 'Projeto'
         verbose_name_plural = 'Projetos'
         ordering = ['-created_at']
-
-class ArquivoReferencia(models.Model):
-    projeto = models.ForeignKey(Projeto, on_delete=models.CASCADE, related_name='arquivos')
-    nome = models.CharField(max_length=100)
-    arquivo = models.FileField(upload_to='referencias/')
-    tipo = models.CharField(max_length=50, blank=True, null=True)
-    tamanho = models.PositiveIntegerField(default=0)
-    uploaded_at = models.DateTimeField(auto_now_add=True)
-    
-    def __str__(self):
-        return self.nome
-    
-    class Meta:
-        db_table = 'arquivos_referencia'
-        verbose_name = 'Arquivo de Referência'
-        verbose_name_plural = 'Arquivos de Referência'

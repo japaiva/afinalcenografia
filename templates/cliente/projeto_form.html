@@ -1,154 +1,110 @@
 {% extends 'cliente/base_cliente.html' %}
 
-{% block title %}{% if form.instance.pk %}Editar{% else %}Novo{% endif %} Projeto | Portal do Cliente | Afinal Cenografia{% endblock %}
+{% block title %}{% if form.instance.pk %}Editar{% else %}Novo{% endif %} Projeto{% endblock %}
 
 {% block content %}
-<div class="card shadow">
-  <div class="card-header bg-light">
-    <h5 class="card-title mb-0">
-      <i class="fas {% if form.instance.pk %}fa-edit{% else %}fa-plus-circle{% endif %} me-2"></i>
-      {% if form.instance.pk %}Editar{% else %}Novo{% endif %} Projeto
-    </h5>
-  </div>
-  
-  <div class="card-body">
-    <form method="post" enctype="multipart/form-data">
-      {% csrf_token %}
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6">
+    <div class="card shadow">
+      <div class="card-header bg-light">
+        <h5 class="card-title mb-0">{% if form.instance.pk %}Editar{% else %}Novo{% endif %} Projeto</h5>
+      </div>
       
-      {% if form.non_field_errors %}
-        <div class="alert alert-danger">
-          {% for error in form.non_field_errors %}
-            <p class="mb-0">{{ error }}</p>
+      <div class="card-body">
+        <!-- Mantenha o enctype original caso a view esteja esperando isso -->
+        <form method="post" {% if form.is_multipart %}enctype="multipart/form-data"{% endif %} class="row g-3" id="projetoForm">
+          {% csrf_token %}
+          
+          <!-- Nome do Projeto -->
+          <div class="col-12">
+            <label for="{{ form.nome.id_for_label }}" class="form-label">Nome do Evento/Feira*</label>
+            {{ form.nome }}
+            {% if form.nome.errors %}
+              <div class="text-danger small">{{ form.nome.errors.0 }}</div>
+            {% endif %}
+          </div>
+          
+          <!-- Datas -->
+          <div class="col-md-6">
+            <label for="{{ form.data_inicio.id_for_label }}" class="form-label">Data de Início*</label>
+            {{ form.data_inicio }}
+            {% if form.data_inicio.errors %}
+              <div class="text-danger small">{{ form.data_inicio.errors.0 }}</div>
+            {% endif %}
+          </div>
+          
+          <div class="col-md-6">
+            <label for="{{ form.prazo_entrega.id_for_label }}" class="form-label">Data de Término*</label>
+            {{ form.prazo_entrega }}
+            {% if form.prazo_entrega.errors %}
+              <div class="text-danger small">{{ form.prazo_entrega.errors.0 }}</div>
+            {% endif %}
+          </div>
+          
+          <!-- Orçamento -->
+          <div class="col-12">
+            <label for="{{ form.orcamento.id_for_label }}" class="form-label">Orçamento (R$)*</label>
+            {{ form.orcamento }}
+            {% if form.orcamento.errors %}
+              <div class="text-danger small">{{ form.orcamento.errors.0 }}</div>
+            {% endif %}
+          </div>
+          
+          <!-- Status para edição -->
+          {% if form.instance.pk %}
+          <div class="col-12">
+            <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+            {{ form.status }}
+            {% if form.status.errors %}
+              <div class="text-danger small">{{ form.status.errors.0 }}</div>
+            {% endif %}
+          </div>
+          {% else %}
+          <!-- Use o próprio campo status mas escondido -->
+          <div style="display:none;">{{ form.status }}</div>
+          {% endif %}
+          
+          <!-- Campos não exibidos mas mantidos para evitar erros de validação -->
+          {% for field in form %}
+            {% if field.name != 'nome' and field.name != 'data_inicio' and field.name != 'prazo_entrega' and field.name != 'orcamento' and field.name != 'status' and field.name != 'arquivos_referencia' %}
+              <div style="display:none;">{{ field }}</div>
+            {% endif %}
           {% endfor %}
-        </div>
-      {% endif %}
-      
-      <div class="row g-3">
-        <!-- Nome e Status -->
-        <div class="col-md-8">
-          <label for="{{ form.nome.id_for_label }}" class="form-label">Nome do Projeto*</label>
-          {{ form.nome }}
-          {% if form.nome.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.nome.errors %}
-                {{ error }}
-              {% endfor %}
-            </div>
+          
+          <!-- Campo de upload escondido mas mantido para compatibilidade com a view -->
+          {% if form.arquivos_referencia %}
+          <div style="display:none;">{{ form.arquivos_referencia }}</div>
           {% endif %}
-        </div>
-        
-        <div class="col-md-4">
-          <label for="{{ form.status.id_for_label }}" class="form-label">Status*</label>
-          {{ form.status }}
-          {% if form.status.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.status.errors %}
-                {{ error }}
-              {% endfor %}
-            </div>
-          {% endif %}
-        </div>
-        
-        <!-- Descrição -->
-        <div class="col-12">
-          <label for="{{ form.descricao.id_for_label }}" class="form-label">Descrição</label>
-          {{ form.descricao }}
-          {% if form.descricao.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.descricao.errors %}
-                {{ error }}
-              {% endfor %}
-            </div>
-          {% endif %}
-        </div>
-        
-        <!-- Data de Início e Prazo -->
-        <div class="col-md-6">
-          <label for="{{ form.data_inicio.id_for_label }}" class="form-label">Data de Início</label>
-          {{ form.data_inicio }}
-          {% if form.data_inicio.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.data_inicio.errors %}
-                {{ error }}
-              {% endfor %}
-            </div>
-          {% endif %}
-        </div>
-        
-        <div class="col-md-6">
-          <label for="{{ form.prazo_entrega.id_for_label }}" class="form-label">Prazo de Entrega</label>
-          {{ form.prazo_entrega }}
-          {% if form.prazo_entrega.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.prazo_entrega.errors %}
-                {{ error }}
-              {% endfor %}
-            </div>
-          {% endif %}
-        </div>
-        
-        <!-- Orçamento e Progresso -->
-        <div class="col-md-6">
-          <label for="{{ form.orcamento.id_for_label }}" class="form-label">Orçamento (R$)</label>
-          {{ form.orcamento }}
-          {% if form.orcamento.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.orcamento.errors %}
-                {{ error }}
-              {% endfor %}
-            </div>
-          {% endif %}
-        </div>
-        
-        <div class="col-md-6">
-          <label for="{{ form.progresso.id_for_label }}" class="form-label">Progresso (%)</label>
-          {{ form.progresso }}
-          {% if form.progresso.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.progresso.errors %}
-                {{ error }}
-              {% endfor %}
-            </div>
-          {% endif %}
-        </div>
-        
-        <!-- Requisitos Específicos -->
-        <div class="col-12">
-          <label for="{{ form.requisitos.id_for_label }}" class="form-label">Requisitos Específicos</label>
-          {{ form.requisitos }}
-          {% if form.requisitos.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.requisitos.errors %}
-                {{ error }}
-              {% endfor %}
-            </div>
-          {% endif %}
-        </div>
-        
-        <!-- Arquivos de Referência -->
-        <div class="col-12">
-          <label for="{{ form.arquivos_referencia.id_for_label }}" class="form-label">Arquivos de Referência</label>
-          {{ form.arquivos_referencia }}
-          {% if form.arquivos_referencia.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.arquivos_referencia.errors %}
-                {{ error }}
-              {% endfor %}
-            </div>
-          {% endif %}
-          <div class="form-text small">{{ form.arquivos_referencia.help_text }}</div>
-        </div>
+          
+          <!-- Botões -->
+          <div class="col-12 d-flex justify-content-between mt-4">
+            <a href="{% url 'cliente:projeto_list' %}" class="btn btn-outline-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-primary">Continuar →</button>
+          </div>
+        </form>
       </div>
-      
-      <div class="d-flex justify-content-between mt-4">
-        <a href="{% url 'cliente:projeto_list' %}" class="btn btn-outline-secondary">
-          <i class="fas fa-arrow-left me-1"></i> Voltar
-        </a>
-        <button type="submit" class="btn btn-primary">
-          <i class="fas fa-save me-1"></i> Salvar
-        </button>
-      </div>
-    </form>
+    </div>
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('projetoForm');
+  
+  // Definir valor padrão para status se for um novo projeto
+  {% if not form.instance.pk %}
+  const statusField = form.querySelector('[name="status"]');
+  if (statusField) {
+    statusField.value = 'pendente';
+  }
+  {% endif %}
+  
+  // Previne múltiplos envios
+  form.addEventListener('submit', function(event) {
+    const submitButton = form.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    submitButton.innerHTML = 'Processando...';
+  });
+});
+</script>
 {% endblock %}

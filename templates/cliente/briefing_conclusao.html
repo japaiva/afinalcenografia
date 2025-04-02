@@ -1,0 +1,130 @@
+{% extends 'cliente/base_cliente.html' %}
+{% load static %}
+
+{% block title %}Concluir Briefing | {{ projeto.nome }} | Portal do Cliente{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-light">
+    <h5 class="card-title mb-0">
+      <i class="fas fa-clipboard-check me-2"></i> Conclusão do Briefing: {{ projeto.nome }}
+    </h5>
+  </div>
+  
+  <div class="card-body">
+    <div class="row">
+      <div class="col-lg-8 mx-auto">
+        {% if todas_aprovadas %}
+          <div class="text-center mb-4">
+            <div class="mb-3">
+              <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
+            </div>
+            <h4>Briefing Aprovado!</h4>
+            <p class="lead">Todas as seções do seu briefing foram aprovadas e estão prontas para envio.</p>
+          </div>
+          
+          <div class="alert alert-info">
+            <h6 class="alert-heading"><i class="fas fa-info-circle me-2"></i> O que acontece agora?</h6>
+            <p>Após o envio do briefing, a equipe da Afinal Cenografia irá analisar as informações fornecidas e entrará em contato para os próximos passos.</p>
+            <p class="mb-0">Você será notificado sobre o andamento do projeto e poderá acompanhar o status a qualquer momento.</p>
+          </div>
+          
+          <form method="post">
+            {% csrf_token %}
+            <div class="d-flex justify-content-between mt-4">
+              <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=4 %}" class="btn btn-outline-secondary">
+                <i class="fas fa-edit me-1"></i> Revisar Briefing
+              </a>
+              <button type="submit" class="btn btn-success">
+                <i class="fas fa-paper-plane me-1"></i> Enviar Briefing
+              </button>
+            </div>
+          </form>
+        {% else %}
+          <div class="text-center mb-4">
+            <div class="mb-3">
+              <i class="fas fa-exclamation-triangle text-warning" style="font-size: 4rem;"></i>
+            </div>
+            <h4>Atenção! Briefing Incompleto</h4>
+            <p class="lead">Algumas seções do seu briefing precisam de mais informações antes do envio.</p>
+          </div>
+          
+          <div class="card mb-4">
+            <div class="card-header bg-light">
+              <h6 class="mb-0">Status das Seções</h6>
+            </div>
+            <div class="card-body p-0">
+              <ul class="list-group list-group-flush">
+                {% for validacao in validacoes %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  <div>
+                    <i class="fas 
+                      {% if validacao.status == 'aprovado' %}fa-check-circle text-success
+                      {% elif validacao.status == 'atencao' %}fa-exclamation-circle text-warning
+                      {% elif validacao.status == 'reprovado' %}fa-times-circle text-danger
+                      {% else %}fa-times-circle text-muted{% endif %} me-2"></i>
+                    {{ validacao.secao|title }}
+                  </div>
+                  <div>
+                    <span class="badge 
+                      {% if validacao.status == 'aprovado' %}bg-success
+                      {% elif validacao.status == 'atencao' %}bg-warning text-dark
+                      {% elif validacao.status == 'reprovado' %}bg-danger
+                      {% else %}bg-secondary{% endif %}">
+                      {{ validacao.status|title }}
+                    </span>
+                    
+                    {% if validacao.secao == 'informacoes_basicas' %}
+                      <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=1 %}" class="btn btn-sm btn-outline-primary ms-2">
+                        <i class="fas fa-edit"></i>
+                      </a>
+                    {% elif validacao.secao == 'detalhes_tecnicos' %}
+                      <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=2 %}" class="btn btn-sm btn-outline-primary ms-2">
+                        <i class="fas fa-edit"></i>
+                      </a>
+                    {% elif validacao.secao == 'materiais_acabamentos' %}
+                      <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=3 %}" class="btn btn-sm btn-outline-primary ms-2">
+                        <i class="fas fa-edit"></i>
+                      </a>
+                    {% elif validacao.secao == 'requisitos_tecnicos' %}
+                      <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=4 %}" class="btn btn-sm btn-outline-primary ms-2">
+                        <i class="fas fa-edit"></i>
+                      </a>
+                    {% endif %}
+                  </div>
+                </li>
+                {% if validacao.mensagem and validacao.status != 'aprovado' %}
+                <li class="list-group-item bg-light">
+                  <small class="text-muted"><i class="fas fa-info-circle me-1"></i> {{ validacao.mensagem }}</small>
+                </li>
+                {% endif %}
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+          
+          <div class="alert alert-warning">
+            <h6 class="alert-heading"><i class="fas fa-lightbulb me-2"></i> Dicas para aprovação:</h6>
+            <ul class="mb-0">
+              <li>Forneça descrições detalhadas em todos os campos obrigatórios</li>
+              <li>Adicione referências visuais quando possível</li>
+              <li>Siga as recomendações do assistente IA</li>
+              <li>Verifique a consistência entre orçamento e complexidade do projeto</li>
+              <li>Inclua informações técnicas específicas quando solicitado</li>
+            </ul>
+          </div>
+          
+          <div class="d-flex justify-content-between mt-4">
+            <a href="{% url 'cliente:projeto_detail' pk=projeto.id %}" class="btn btn-outline-secondary">
+              <i class="fas fa-arrow-left me-1"></i> Voltar ao Projeto
+            </a>
+            <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=briefing.etapa_atual %}" class="btn btn-primary">
+              <i class="fas fa-edit me-1"></i> Continuar Editando
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

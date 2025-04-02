@@ -13,7 +13,7 @@
       </div>
       {% if user.is_authenticated %}
         <a href="{% url 'cliente:dashboard' %}" class="modern-button">
-          <i class="fas fa-tachometer-alt me-2"></i> Acessar Dashboard
+          Acessar Dashboard
         </a>
       {% else %}
         <a href="{% url 'cliente:login' %}" class="modern-button">
