@@ -37,12 +37,12 @@
       <table class="table table-hover align-middle">
         <thead class="table-light">
           <tr>
-            <th scope="col" style="width: 50px;">#</th>
+            <th scope="col" style="width: 40px;">#</th>
             <th scope="col">Projeto</th>
-            <th scope="col">Status</th>
-            <th scope="col">Briefing</th>
-            <th scope="col">Data Criação</th>
-            <th scope="col" style="width: 150px;">Ações</th>
+            <th scope="col" style="width: 100px;">Status</th>
+            <th scope="col" style="width: 110px;">Briefing</th>
+            <th scope="col" style="width: 100px;">Data Criação</th>
+            <th scope="col" style="width: 220px;">Ações</th> <!-- Largura aumentada significativamente -->
           </tr>
         </thead>
         <tbody>
@@ -99,51 +99,40 @@
             </td>
             <td>{{ projeto.created_at|date:"d/m/Y" }}</td>
             <td>
-              <div class="btn-group">
-                <a href="{% url 'cliente:projeto_detail' pk=projeto.pk %}" class="btn btn-sm btn-outline-primary">
+              <!-- Layout modificado para os botões de ação -->
+              <div class="d-flex">
+                <a href="{% url 'cliente:projeto_detail' pk=projeto.pk %}" class="btn btn-sm btn-outline-primary me-1" title="Visualizar">
                   <i class="fas fa-eye"></i>
                 </a>
                 {% if not projeto.tem_briefing and not projeto.has_briefing or projeto.briefing_status == 'em_andamento' %}
-                  <a href="{% url 'cliente:projeto_update' pk=projeto.pk %}" class="btn btn-sm btn-outline-secondary">
+                  <a href="{% url 'cliente:projeto_update' pk=projeto.pk %}" class="btn btn-sm btn-outline-secondary me-1" title="Editar">
                     <i class="fas fa-edit"></i>
                   </a>
                 {% else %}
-                  <button class="btn btn-sm btn-outline-secondary" disabled>
+                  <button class="btn btn-sm btn-outline-secondary me-1" disabled title="Editar">
                     <i class="fas fa-edit"></i>
                   </button>
                 {% endif %}
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-                  <i class="fas fa-ellipsis-v"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                  {% if projeto.has_briefing or projeto.tem_briefing %}
-                    <li>
-                      <a class="dropdown-item" href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=projeto.briefing.etapa_atual %}">
-                        <i class="fas fa-clipboard-list me-2"></i> Ver Briefing
-                      </a>
-                    </li>
-                  {% else %}
-                    <li>
-                      <a class="dropdown-item" href="{% url 'cliente:iniciar_briefing' projeto_id=projeto.id %}">
-                        <i class="fas fa-clipboard-list me-2"></i> Iniciar Briefing
-                      </a>
-                    </li>
-                  {% endif %}
-                  <li><hr class="dropdown-divider"></li>
-                  {% if not projeto.tem_briefing and not projeto.has_briefing or projeto.briefing_status == 'em_andamento' %}
-                    <li>
-                      <a class="dropdown-item text-danger" href="{% url 'cliente:projeto_delete' pk=projeto.pk %}">
-                        <i class="fas fa-trash me-2"></i> Excluir
-                      </a>
-                    </li>
-                  {% else %}
-                    <li>
-                      <a class="dropdown-item text-secondary disabled">
-                        <i class="fas fa-trash me-2"></i> Excluir
-                      </a>
-                    </li>
-                  {% endif %}
-                </ul>
+                
+                {% if projeto.has_briefing or projeto.tem_briefing %}
+                  <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=projeto.briefing.etapa_atual %}" class="btn btn-sm btn-outline-success me-1" title="Ver Briefing">
+                    <i class="fas fa-clipboard-list"></i>
+                  </a>
+                {% else %}
+                  <a href="{% url 'cliente:iniciar_briefing' projeto_id=projeto.id %}" class="btn btn-sm btn-outline-success me-1" title="Iniciar Briefing">
+                    <i class="fas fa-clipboard-list"></i>
+                  </a>
+                {% endif %}
+                
+                {% if not projeto.tem_briefing and not projeto.has_briefing or projeto.briefing_status == 'em_andamento' %}
+                  <a href="{% url 'cliente:projeto_delete' pk=projeto.pk %}" class="btn btn-sm btn-outline-danger" title="Excluir">
+                    <i class="fas fa-trash"></i>
+                  </a>
+                {% else %}
+                  <button class="btn btn-sm btn-outline-danger" disabled title="Excluir">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                {% endif %}
               </div>
             </td>
           </tr>

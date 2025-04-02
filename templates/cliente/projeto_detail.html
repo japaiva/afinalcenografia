@@ -95,14 +95,17 @@
         
         <!-- Arquivos de referência -->
         <div class="card mb-3">
-          <div class="card-header bg-light">
+          <div class="card-header bg-light d-flex justify-content-between align-items-center">
             <h6 class="card-title mb-0">Arquivos de Referência</h6>
+            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+              <i class="fas fa-upload me-1"></i> Adicionar Arquivo
+            </button>
           </div>
           <div class="card-body">
             {% if projeto.arquivos_referencia %}
               <div class="d-flex flex-wrap gap-2">
                 {% for arquivo in projeto.arquivos_referencia.all %}
-                  <div class="position-relative" style="width: 120px;">
+                  <div class="position-relative arquivo-item" data-id="{{ arquivo.id }}" style="width: 120px;">
                     {% if arquivo.tipo == 'imagem' %}
                       <a href="{{ arquivo.arquivo.url }}" target="_blank" class="d-block">
                         <img src="{{ arquivo.arquivo.url }}" alt="{{ arquivo.nome }}" class="img-thumbnail" style="width: 120px; height: 120px; object-fit: cover;">
@@ -118,11 +121,14 @@
                         </div>
                       </a>
                     {% endif %}
+                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 excluir-arquivo" style="font-size: 0.7rem; padding: 0.1rem 0.3rem;" data-url="{% url 'cliente:excluir_arquivo_referencia' arquivo_id=arquivo.id %}">
+                      <i class="fas fa-times"></i>
+                    </button>
                   </div>
                 {% endfor %}
               </div>
             {% else %}
-              <p class="text-muted">Nenhum arquivo de referência enviado.</p>
+              <p class="text-muted">Nenhum arquivo de referência enviado. Clique em "Adicionar Arquivo" para enviar.</p>
             {% endif %}
           </div>
         </div>
@@ -177,9 +183,11 @@
                 
                 <div class="d-grid">
                   {% if projeto.briefing_status == 'em_andamento' %}
+                    <!-- Desab
                     <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=projeto.briefing.etapa_atual %}" class="btn btn-primary">
                       <i class="fas fa-edit me-1"></i> Continuar Briefing
                     </a>
+                    -->
                   {% elif projeto.briefing_status == 'enviado' %}
                     <a href="#" class="btn btn-outline-info disabled">
                       <i class="fas fa-hourglass me-1"></i> Aguardando Análise
@@ -308,6 +316,9 @@
                   <i class="fas fa-clipboard-list text-success me-2"></i> Iniciar Briefing
                 </a>
               {% endif %}
+              <a href="#" class="list-group-item list-group-item-action" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                <i class="fas fa-upload text-info me-2"></i> Adicionar Arquivo
+              </a>
               <a href="#" class="list-group-item list-group-item-action">
                 <i class="fas fa-comment text-info me-2"></i> Enviar Mensagem
               </a>
@@ -321,4 +332,116 @@
     </div>
   </div>
 </div>
+
+<!-- Modal de Upload de Arquivo -->
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="uploadModalLabel"><i class="fas fa-upload me-2"></i> Adicionar Arquivo</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <form id="uploadForm">
+          <div class="mb-3">
+            <label for="arquivo" class="form-label">Selecione o arquivo</label>
+            <input type="file" class="form-control" id="arquivo" name="arquivo">
+          </div>
+          <div class="mb-3">
+            <label for="tipo" class="form-label">Tipo de arquivo</label>
+            <select class="form-select" id="tipo" name="tipo">
+              <option value="imagem">Imagem</option>
+              <option value="planta">Planta</option>
+              <option value="documento">Documento</option>
+              <option value="outro">Outro</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="descricao" class="form-label">Descrição (opcional)</label>
+            <textarea class="form-control" id="descricao" name="descricao" rows="2"></textarea>
+            <div class="form-text">Uma breve descrição do conteúdo do arquivo.</div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="uploadButton" data-url="{% url 'cliente:upload_arquivo_referencia' projeto_id=projeto.id %}">
+          <i class="fas fa-upload me-1"></i> Enviar Arquivo
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+  // Handle file upload
+  $('#uploadButton').on('click', function() {
+    const url = $(this).data('url');
+    const fileInput = $('#arquivo')[0];
+    const tipoInput = $('#tipo').val();
+    const descricaoInput = $('#descricao').val();
+    
+    if (fileInput.files.length === 0) {
+      alert('Selecione um arquivo para upload');
+      return;
+    }
+    
+    const formData = new FormData();
+    formData.append('arquivo', fileInput.files[0]);
+    formData.append('tipo', tipoInput);
+    formData.append('descricao', descricaoInput);
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    
+    $.ajax({
+      url: url,
+      type: 'POST',
+      data: formData,
+      processData: false,
+      contentType: false,
+      success: function(response) {
+        // Hide modal
+        $('#uploadModal').modal('hide');
+        
+        // Reload page to show the new file
+        location.reload();
+      },
+      error: function(xhr, status, error) {
+        alert('Erro ao fazer upload: ' + error);
+      }
+    });
+  });
+  
+  // Handle delete file
+  $('.excluir-arquivo').on('click', function(e) {
+    e.preventDefault();
+    
+    const url = $(this).data('url');
+    const arquivoItem = $(this).closest('.arquivo-item');
+    
+    if (confirm('Tem certeza que deseja excluir este arquivo?')) {
+      $.ajax({
+        url: url,
+        type: 'POST',
+        data: {
+          csrfmiddlewaretoken: '{{ csrf_token }}'
+        },
+        success: function(response) {
+          arquivoItem.remove();
+          
+          // If there are no more files, update the message
+          if ($('.arquivo-item').length === 0) {
+            $('.card-body:has(.d-flex.flex-wrap.gap-2)').html('<p class="text-muted">Nenhum arquivo de referência enviado. Clique em "Adicionar Arquivo" para enviar.</p>');
+          }
+        },
+        error: function(xhr, status, error) {
+          alert('Erro ao excluir arquivo: ' + error);
+        }
+      });
+    }
+  });
+});
+</script>
+{% endblock %}
 {% endblock %}
