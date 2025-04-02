@@ -1,3 +1,12 @@
+# Django específico para staticfiles
+staticfiles/admin/
+staticfiles/rest_framework/
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
 # Python bytecode
 __pycache__/
 *.py[cod]
