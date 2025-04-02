@@ -21,16 +21,14 @@
 
 <!-- Menu suspenso Configurações -->
 <li class="nav-item dropdown">
-  <a class="nav-link dropdown-toggle {% if 'usuario' in request.resolver_match.url_name or 'empresa' in request.resolver_match.url_name %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+  <a class="nav-link dropdown-toggle {% if 'empresa' in request.resolver_match.url_name %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
     Configurações
   </a>
   <ul class="dropdown-menu dropdown-menu-dark">
     <li><a class="dropdown-item" href="{% url 'cliente:empresa_detail' %}">
        Empresa
     </a></li>
-    <li><a class="dropdown-item" href="{% url 'cliente:usuario_list' %}">
-       Usuários
-    </a></li>
+    <!-- Item de Usuários removido -->
   </ul>
 </li>
 
