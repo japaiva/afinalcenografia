@@ -3,7 +3,7 @@
 {% block title %}Portal do Cliente | Afinal Cenografia{% endblock %}
 
 {% block navbar_title %}
-<span style="font-weight: 600; letter-spacing: 1px; color: #e0f2fe; text-transform: uppercase; margin-left: 12px; font-size: 1.05rem; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">Portal do Cliente{% if user.is_authenticated and user.empresa %} ({{ user.empresa.nome }}){% endif %}</span>
+<span class="app-title-text">Portal do Cliente{% if user.is_authenticated and user.empresa %} ({{ user.empresa.nome }}){% endif %}</span>
 {% endblock %}
 
 {% block nav_items %}
