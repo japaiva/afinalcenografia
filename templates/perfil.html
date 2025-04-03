@@ -3,7 +3,7 @@
 
 {% block title %}Meu Perfil | Plataforma de Gestão de Projetos de Cenografia{% endblock %}
 
-{% block navbar_title %}<span style="font-weight: 600; letter-spacing: 1px; color: #e0f2fe; text-transform: uppercase; margin-left: 12px; font-size: 1.05rem; text-shadow: 0 1px 2px rgba(0,0,0,0.2); border-left: 2px solid #60a5fa; padding-left: 10px;">Plataforma de Gestão de Projetos de Cenografia</span>{% endblock %}
+{% block navbar_title %}<span style="font-weight: 600; letter-spacing: 1px; color: #e0f2fe; text-transform: uppercase; margin-left: 12px; font-size: 1.05rem; text-shadow: 0 1px 2px rgba(0,0,0,0.2); border-left: 2px solid #60a5fa; padding-left: 10px;">Gestão de Projetos de Cenografia</span>{% endblock %}
 
 {% block content %}
 <div class="row">
@@ -17,8 +17,8 @@
       </div>
       <div class="card-body text-center">
         <div class="mb-4">
-          {% if usuario.foto_perfil %}
-            <img src="{{ usuario.foto_perfil.url }}" alt="{{ usuario.username }}" class="rounded-circle img-thumbnail" style="width: 150px; height: 150px; object-fit: cover;">
+          {% if usuario.perfil.foto %}
+            <img src="{{ usuario.perfil.foto.url }}" alt="{{ usuario.username }}" class="rounded-circle img-thumbnail" style="width: 150px; height: 150px; object-fit: cover;">
           {% else %}
             <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center" style="width: 150px; height: 150px; border: 1px solid #dee2e6;">
               <i class="fas fa-user-circle text-secondary" style="font-size: 80px;"></i>
@@ -98,8 +98,8 @@
             
             <!-- Foto de Perfil -->
             <div class="col-12">
-              <label for="foto_perfil" class="form-label">Alterar Foto de Perfil</label>
-              <input type="file" class="form-control" id="foto_perfil" name="foto_perfil">
+              <label for="foto" class="form-label">Alterar Foto de Perfil</label>
+              <input type="file" class="form-control" id="foto" name="foto" accept="image/*">
             </div>
           </div>
           

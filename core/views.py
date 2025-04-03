@@ -2,6 +2,52 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from django.contrib import messages
+from django.contrib.auth.hashers import make_password
+from .models import PerfilUsuario
+
+@login_required
+def perfil(request):
+    usuario = request.user
+    
+    # Obter ou criar perfil ao carregar a página
+    perfil, created = PerfilUsuario.objects.get_or_create(usuario=usuario)
+    
+    if request.method == 'POST':
+        # Atualizar informações básicas
+        usuario.first_name = request.POST.get('first_name', '')
+        usuario.last_name = request.POST.get('last_name', '')
+        usuario.email = request.POST.get('email', '')
+        
+        # Atualizar telefone no usuário e no perfil
+        telefone = request.POST.get('telefone', '')
+        usuario.telefone = telefone
+        perfil.telefone = telefone
+        
+        # Processar foto
+        if 'foto' in request.FILES:
+            # Código de debug para verificar o upload
+            arquivo = request.FILES['foto']
+            print(f"Iniciando upload do arquivo: {arquivo.name}")
+            
+            # Salvar a foto no perfil (que usará o MinioStorage)
+            perfil.foto = arquivo
+            
+            # Debug: verificar a URL gerada após salvar
+            print(f"URL do arquivo após salvar: {perfil.foto.url if perfil.foto else 'Nenhuma URL'}")
+        
+        # Processar senha
+        nova_senha = request.POST.get('nova_senha')
+        if nova_senha:
+            usuario.set_password(nova_senha)
+        
+        # Salvar alterações
+        usuario.save()
+        perfil.save()
+        
+        messages.success(request, 'Perfil atualizado com sucesso!')
+        return redirect('perfil')
+    
+    return render(request, 'perfil.html', {'usuario': usuario})
 
 def home_view(request):
     """
@@ -23,44 +69,7 @@ def home_view(request):
     else:
         # Usuário não autenticado, mostra a página inicial padrão
         return render(request, 'home.html')
-
-@login_required
-def perfil(request):
-    """
-    View para exibir e editar o perfil do usuário.
-    """
-    if request.method == 'POST':
-        # Campos limitados para o usuário editar seu próprio perfil
-        request.user.first_name = request.POST.get('first_name')
-        request.user.last_name = request.POST.get('last_name')
-        request.user.email = request.POST.get('email')
-        request.user.telefone = request.POST.get('telefone')
-        
-        # Atualização de senha
-        nova_senha = request.POST.get('nova_senha')
-        if nova_senha:
-            request.user.set_password(nova_senha)
-        
-        # Atualização da foto de perfil
-        if 'foto_perfil' in request.FILES:
-            request.user.foto_perfil = request.FILES['foto_perfil']
-            
-        request.user.save()
-        
-        from django.contrib import messages
-        messages.success(request, 'Perfil atualizado com sucesso.')
-        
-        # Se houve alteração de senha, o usuário precisa fazer login novamente
-        if nova_senha:
-            messages.info(request, 'Sua senha foi alterada. Por favor, faça login novamente.')
-            from django.contrib.auth import logout
-            logout(request)
-            return redirect('login')
-            
-        return redirect('perfil')
     
-    return render(request, 'perfil.html', {'usuario': request.user})
-
 def logout_view(request):
     """
     View para realizar o logout do usuário.
