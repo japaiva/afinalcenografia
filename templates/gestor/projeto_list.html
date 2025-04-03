@@ -22,16 +22,20 @@
     <!-- Resumo de filtros ativos -->
     <div class="d-flex flex-wrap gap-2 mb-3">
       <span class="badge bg-light text-dark p-2">
-        Status: <strong>Todos</strong>
-        <button class="btn-close btn-close-sm ms-1" style="font-size: 0.5rem;"></button>
+        Status: <strong>{% if status_escolhido %}{{ status_escolhido|title }}{% else %}Todos{% endif %}</strong>
+        {% if status_escolhido %}
+        <a href="{% url 'gestor:projeto_list' %}{% if empresa_escolhida %}?empresa={{ empresa_escolhida }}{% endif %}" class="text-decoration-none">
+          <button class="btn-close btn-close-sm ms-1" style="font-size: 0.5rem;"></button>
+        </a>
+        {% endif %}
       </span>
       <span class="badge bg-light text-dark p-2">
-        Cliente: <strong>Todos</strong>
-        <button class="btn-close btn-close-sm ms-1" style="font-size: 0.5rem;"></button>
-      </span>
-      <span class="badge bg-light text-dark p-2">
-        Período: <strong>Último mês</strong>
-        <button class="btn-close btn-close-sm ms-1" style="font-size: 0.5rem;"></button>
+        Empresa: <strong>{% if empresa_escolhida %}{{ empresas|dictsort:"id"|dictsortreversed:"-id"|first }}{% else %}Todas{% endif %}</strong>
+        {% if empresa_escolhida %}
+        <a href="{% url 'gestor:projeto_list' %}{% if status_escolhido %}?status={{ status_escolhido }}{% endif %}" class="text-decoration-none">
+          <button class="btn-close btn-close-sm ms-1" style="font-size: 0.5rem;"></button>
+        </a>
+        {% endif %}
       </span>
     </div>
 
@@ -50,255 +54,170 @@
           </tr>
         </thead>
         <tbody>
-          <!-- Projeto 1 -->
+          {% for projeto in projetos %}
           <tr>
-            <td>1</td>
+            <td>{{ forloop.counter }}</td>
             <td>
               <div class="d-flex align-items-center">
-                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 36px; height: 36px; font-size: 0.8rem;">
-                  <i class="fas fa-building"></i>
+                <div class="
+                  {% if 'corporativo' in projeto.requisitos|lower or 'corporativo' in projeto.nome|lower %}bg-primary
+                  {% elif 'social' in projeto.requisitos|lower or 'casamento' in projeto.nome|lower %}bg-purple
+                  {% elif 'tv' in projeto.requisitos|lower or 'televisão' in projeto.nome|lower %}bg-success
+                  {% elif 'varejo' in projeto.requisitos|lower or 'loja' in projeto.nome|lower %}bg-danger
+                  {% elif 'teatro' in projeto.requisitos|lower %}bg-warning
+                  {% else %}bg-secondary{% endif %}
+                  rounded-circle d-flex align-items-center justify-content-center text-white" 
+                  style="width: 36px; height: 36px; font-size: 0.8rem; {% if 'casamento' in projeto.nome|lower %}background-color: #8557e6;{% endif %}">
+                  <i class="fas 
+                  {% if 'corporativo' in projeto.requisitos|lower or 'corporativo' in projeto.nome|lower %}fa-building
+                  {% elif 'social' in projeto.requisitos|lower or 'casamento' in projeto.nome|lower %}fa-glass-cheers
+                  {% elif 'tv' in projeto.requisitos|lower or 'televisão' in projeto.nome|lower %}fa-theater-masks
+                  {% elif 'varejo' in projeto.requisitos|lower or 'loja' in projeto.nome|lower %}fa-store
+                  {% elif 'teatro' in projeto.requisitos|lower %}fa-theater-masks
+                  {% else %}fa-project-diagram{% endif %}"></i>
                 </div>
                 <div class="ms-2">
-                  <div class="fw-bold">Stand Expo 2025</div>
-                  <div class="small text-muted">Evento Corporativo</div>
+                  <div class="fw-bold">{{ projeto.nome }}</div>
+                  <div class="small text-muted">
+                    {% if 'corporativo' in projeto.requisitos|lower %}Evento Corporativo
+                    {% elif 'social' in projeto.requisitos|lower or 'casamento' in projeto.nome|lower %}Evento Social
+                    {% elif 'tv' in projeto.requisitos|lower %}Televisão
+                    {% elif 'varejo' in projeto.requisitos|lower or 'loja' in projeto.nome|lower %}Varejo
+                    {% elif 'teatro' in projeto.requisitos|lower %}Teatro
+                    {% else %}Outro{% endif %}
+                  </div>
                 </div>
               </div>
             </td>
             <td>
               <div class="d-flex align-items-center">
-                <div class="bg-info rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 30px; height: 30px; font-size: 0.8rem;">
-                  SE
+                <div class="
+                  {% cycle 'bg-info' 'bg-warning' 'bg-secondary' 'bg-primary' 'bg-danger' %}
+                  rounded-circle d-flex align-items-center justify-content-center text-white" 
+                  style="width: 30px; height: 30px; font-size: 0.8rem;">
+                  {{ projeto.empresa.nome|slice:":2"|upper }}
                 </div>
-                <span class="ms-2">StartupXYZ Eventos</span>
+                <span class="ms-2">{{ projeto.empresa.nome }}</span>
               </div>
             </td>
-            <td><span class="badge bg-success">Aprovado</span></td>
-            <td>01/04/2025</td>
-            <td>Ana Silva</td>
+            <td>
+              <span class="badge 
+                {% if projeto.status == 'pendente' %}bg-info
+                {% elif projeto.status == 'ativo' %}bg-primary
+                {% elif projeto.status == 'pausado' %}bg-warning text-dark
+                {% elif projeto.status == 'concluido' %}bg-success
+                {% elif projeto.status == 'cancelado' %}bg-danger
+                {% else %}bg-secondary{% endif %}">
+                {{ projeto.get_status_display }}
+              </span>
+              {% if projeto.briefing_status == 'enviado' %}
+              <span class="badge bg-warning text-dark ms-1">Briefing Enviado</span>
+              {% endif %}
+            </td>
+            <td>{{ projeto.created_at|date:"d/m/Y" }}</td>
+            <td>
+              {% if projeto.projetista %}
+                {{ projeto.projetista.get_full_name|default:projeto.projetista.username }}
+              {% else %}
+                <span class="text-muted">Não atribuído</span>
+              {% endif %}
+            </td>
             <td>
               <div class="btn-group">
-                <a href="#" class="btn btn-sm btn-outline-primary">
+                <a href="{% url 'gestor:projeto_detail' pk=projeto.pk %}" class="btn btn-sm btn-outline-primary">
                   <i class="fas fa-eye"></i>
                 </a>
-                <a href="#" class="btn btn-sm btn-outline-success">
+                <a href="{% url 'gestor:mensagens_projeto' projeto_id=projeto.id %}" class="btn btn-sm btn-outline-success">
                   <i class="fas fa-comment"></i>
-                  <span class="badge bg-danger position-absolute" style="top: -5px; right: -5px; font-size: 0.6rem;">3</span>
+                  {% if projeto.briefing_status == 'enviado' %}
+                  <span class="badge bg-danger position-absolute" style="top: -5px; right: -5px; font-size: 0.6rem;">!</span>
+                  {% endif %}
                 </a>
                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
                   <i class="fas fa-ellipsis-v"></i>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
-                  <li><a class="dropdown-item" href="#"><i class="fas fa-edit me-2"></i> Editar</a></li>
-                  <li><a class="dropdown-item" href="#"><i class="fas fa-user-edit me-2"></i> Alterar Projetista</a></li>
+                  <li><a class="dropdown-item" href="{% url 'gestor:projeto_detail' pk=projeto.pk %}"><i class="fas fa-edit me-2"></i> Editar</a></li>
+                  {% if projeto.projetista %}
+                  <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#alterarProjetistaModal" data-projeto-id="{{ projeto.id }}" data-projeto-nome="{{ projeto.nome }}"><i class="fas fa-user-edit me-2"></i> Alterar Projetista</a></li>
+                  {% else %}
+                  <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#alterarProjetistaModal" data-projeto-id="{{ projeto.id }}" data-projeto-nome="{{ projeto.nome }}"><i class="fas fa-user-plus me-2"></i> Atribuir Projetista</a></li>
+                  {% endif %}
                   <li><hr class="dropdown-divider"></li>
-                  <li><a class="dropdown-item text-danger" href="#"><i class="fas fa-trash me-2"></i> Excluir</a></li>
+                  <li>
+                    <form action="{% url 'gestor:projeto_alterar_status' pk=projeto.pk %}" method="post" style="display: inline;">
+                      {% csrf_token %}
+                      <input type="hidden" name="status" value="cancelado">
+                      <button type="submit" class="dropdown-item text-danger"><i class="fas fa-trash me-2"></i> Cancelar Projeto</button>
+                    </form>
+                  </li>
                 </ul>
               </div>
             </td>
           </tr>
-          
-          <!-- Projeto 2 -->
+          {% empty %}
           <tr>
-            <td>2</td>
-            <td>
-              <div class="d-flex align-items-center">
-                <div class="bg-success rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 36px; height: 36px; font-size: 0.8rem;">
-                  <i class="fas fa-theater-masks"></i>
-                </div>
-                <div class="ms-2">
-                  <div class="fw-bold">Cenário Programa TV</div>
-                  <div class="small text-muted">Televisão</div>
-                </div>
-              </div>
-            </td>
-            <td>
-              <div class="d-flex align-items-center">
-                <div class="bg-warning rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 30px; height: 30px; font-size: 0.8rem;">
-                  TV
-                </div>
-                <span class="ms-2">TV Brasil Produções</span>
-              </div>
-            </td>
-            <td><span class="badge bg-warning text-dark">Em Produção</span></td>
-            <td>28/03/2025</td>
-            <td>Carlos Mendes</td>
-            <td>
-              <div class="btn-group">
-                <a href="#" class="btn btn-sm btn-outline-primary">
-                  <i class="fas fa-eye"></i>
-                </a>
-                <a href="#" class="btn btn-sm btn-outline-success">
-                  <i class="fas fa-comment"></i>
-                </a>
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-                  <i class="fas fa-ellipsis-v"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                  <li><a class="dropdown-item" href="#"><i class="fas fa-edit me-2"></i> Editar</a></li>
-                  <li><a class="dropdown-item" href="#"><i class="fas fa-user-edit me-2"></i> Alterar Projetista</a></li>
-                  <li><hr class="dropdown-divider"></li>
-                  <li><a class="dropdown-item text-danger" href="#"><i class="fas fa-trash me-2"></i> Excluir</a></li>
-                </ul>
+            <td colspan="7" class="text-center py-4">
+              <div class="text-muted">
+                <i class="fas fa-search fa-2x mb-3"></i>
+                <p>Nenhum projeto encontrado.</p>
+                <p class="small">Tente ajustar os filtros ou criar um novo projeto.</p>
               </div>
             </td>
           </tr>
-          
-          <!-- Projeto 3 -->
-          <tr>
-            <td>3</td>
-            <td>
-              <div class="d-flex align-items-center">
-                <div class="bg-danger rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 36px; height: 36px; font-size: 0.8rem;">
-                  <i class="fas fa-store"></i>
-                </div>
-                <div class="ms-2">
-                  <div class="fw-bold">Vitrine Temporada</div>
-                  <div class="small text-muted">Varejo</div>
-                </div>
-              </div>
-            </td>
-            <td>
-              <div class="d-flex align-items-center">
-                <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 30px; height: 30px; font-size: 0.8rem;">
-                  MF
-                </div>
-                <span class="ms-2">Moda Fashion LTDA</span>
-              </div>
-            </td>
-            <td><span class="badge bg-info">Briefing</span></td>
-            <td>25/03/2025</td>
-            <td><span class="text-muted">Não atribuído</span></td>
-            <td>
-              <div class="btn-group">
-                <a href="#" class="btn btn-sm btn-outline-primary">
-                  <i class="fas fa-eye"></i>
-                </a>
-                <a href="#" class="btn btn-sm btn-outline-success">
-                  <i class="fas fa-comment"></i>
-                  <span class="badge bg-danger position-absolute" style="top: -5px; right: -5px; font-size: 0.6rem;">1</span>
-                </a>
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-                  <i class="fas fa-ellipsis-v"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                  <li><a class="dropdown-item" href="#"><i class="fas fa-edit me-2"></i> Editar</a></li>
-                  <li><a class="dropdown-item" href="#"><i class="fas fa-user-edit me-2"></i> Atribuir Projetista</a></li>
-                  <li><hr class="dropdown-divider"></li>
-                  <li><a class="dropdown-item text-danger" href="#"><i class="fas fa-trash me-2"></i> Excluir</a></li>
-                </ul>
-              </div>
-            </td>
-          </tr>
-          
-          <!-- Projeto 4 -->
-          <tr>
-            <td>4</td>
-            <td>
-              <div class="d-flex align-items-center">
-                <div class="bg-purple rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 36px; height: 36px; font-size: 0.8rem; background-color: #8557e6;">
-                  <i class="fas fa-glass-cheers"></i>
-                </div>
-                <div class="ms-2">
-                  <div class="fw-bold">Casamento Silva</div>
-                  <div class="small text-muted">Evento Social</div>
-                </div>
-              </div>
-            </td>
-            <td>
-              <div class="d-flex align-items-center">
-                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 30px; height: 30px; font-size: 0.8rem;">
-                  FE
-                </div>
-                <span class="ms-2">Festas Exclusivas</span>
-              </div>
-            </td>
-            <td><span class="badge bg-primary">Em Análise</span></td>
-            <td>20/03/2025</td>
-            <td>Marcela Santos</td>
-            <td>
-              <div class="btn-group">
-                <a href="#" class="btn btn-sm btn-outline-primary">
-                  <i class="fas fa-eye"></i>
-                </a>
-                <a href="#" class="btn btn-sm btn-outline-success">
-                  <i class="fas fa-comment"></i>
-                </a>
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-                  <i class="fas fa-ellipsis-v"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                  <li><a class="dropdown-item" href="#"><i class="fas fa-edit me-2"></i> Editar</a></li>
-                  <li><a class="dropdown-item" href="#"><i class="fas fa-user-edit me-2"></i> Alterar Projetista</a></li>
-                  <li><hr class="dropdown-divider"></li>
-                  <li><a class="dropdown-item text-danger" href="#"><i class="fas fa-trash me-2"></i> Excluir</a></li>
-                </ul>
-              </div>
-            </td>
-          </tr>
-          
-          <!-- Projeto 5 -->
-          <tr>
-            <td>5</td>
-            <td>
-              <div class="d-flex align-items-center">
-                <div class="bg-success rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 36px; height: 36px; font-size: 0.8rem;">
-                  <i class="fas fa-shopping-center"></i>
-                </div>
-                <div class="ms-2">
-                  <div class="fw-bold">Quiosque Shopping</div>
-                  <div class="small text-muted">Varejo</div>
-                </div>
-              </div>
-            </td>
-            <td>
-              <div class="d-flex align-items-center">
-                <div class="bg-danger rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 30px; height: 30px; font-size: 0.8rem;">
-                  CF
-                </div>
-                <span class="ms-2">Café Delícia</span>
-              </div>
-            </td>
-            <td><span class="badge bg-secondary">Concluído</span></td>
-            <td>15/03/2025</td>
-            <td>Ricardo Alves</td>
-            <td>
-              <div class="btn-group">
-                <a href="#" class="btn btn-sm btn-outline-primary">
-                  <i class="fas fa-eye"></i>
-                </a>
-                <a href="#" class="btn btn-sm btn-outline-success">
-                  <i class="fas fa-comment"></i>
-                </a>
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-                  <i class="fas fa-ellipsis-v"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                  <li><a class="dropdown-item" href="#"><i class="fas fa-clone me-2"></i> Duplicar</a></li>
-                  <li><a class="dropdown-item" href="#"><i class="fas fa-archive me-2"></i> Arquivar</a></li>
-                  <li><hr class="dropdown-divider"></li>
-                  <li><a class="dropdown-item text-danger" href="#"><i class="fas fa-trash me-2"></i> Excluir</a></li>
-                </ul>
-              </div>
-            </td>
-          </tr>
+          {% endfor %}
         </tbody>
       </table>
     </div>
     
     <!-- Paginação -->
+    {% if projetos.paginator.num_pages > 1 %}
     <nav aria-label="Paginação de projetos">
       <ul class="pagination justify-content-center mt-4">
+        {% if projetos.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page=1{% if status_escolhido %}&status={{ status_escolhido }}{% endif %}{% if empresa_escolhida %}&empresa={{ empresa_escolhida }}{% endif %}" tabindex="-1">Primeira</a>
+        </li>
+        <li class="page-item">
+          <a class="page-link" href="?page={{ projetos.previous_page_number }}{% if status_escolhido %}&status={{ status_escolhido }}{% endif %}{% if empresa_escolhida %}&empresa={{ empresa_escolhida }}{% endif %}">Anterior</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+          <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Primeira</a>
+        </li>
         <li class="page-item disabled">
           <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Anterior</a>
         </li>
-        <li class="page-item active"><a class="page-link" href="#">1</a></li>
-        <li class="page-item"><a class="page-link" href="#">2</a></li>
-        <li class="page-item"><a class="page-link" href="#">3</a></li>
+        {% endif %}
+        
+        {% for i in projetos.paginator.page_range %}
+          {% if i > projetos.number|add:"-3" and i < projetos.number|add:"3" %}
+            {% if i == projetos.number %}
+            <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
+            {% else %}
+            <li class="page-item"><a class="page-link" href="?page={{ i }}{% if status_escolhido %}&status={{ status_escolhido }}{% endif %}{% if empresa_escolhida %}&empresa={{ empresa_escolhida }}{% endif %}">{{ i }}</a></li>
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+        
+        {% if projetos.has_next %}
         <li class="page-item">
-          <a class="page-link" href="#">Próximo</a>
+          <a class="page-link" href="?page={{ projetos.next_page_number }}{% if status_escolhido %}&status={{ status_escolhido }}{% endif %}{% if empresa_escolhida %}&empresa={{ empresa_escolhida }}{% endif %}">Próximo</a>
         </li>
+        <li class="page-item">
+          <a class="page-link" href="?page={{ projetos.paginator.num_pages }}{% if status_escolhido %}&status={{ status_escolhido }}{% endif %}{% if empresa_escolhida %}&empresa={{ empresa_escolhida }}{% endif %}">Última</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+          <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Próximo</a>
+        </li>
+        <li class="page-item disabled">
+          <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Última</a>
+        </li>
+        {% endif %}
       </ul>
     </nav>
+    {% endif %}
   </div>
 </div>
 
@@ -310,111 +229,145 @@
         <h5 class="modal-title" id="filtroModalLabel"><i class="fas fa-filter me-2"></i> Filtrar Projetos</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
       </div>
-      <div class="modal-body">
-        <div class="row g-3">
-          <!-- Status -->
-          <div class="col-md-6">
-            <label class="form-label">Status do Projeto</label>
-            <div class="d-flex flex-wrap gap-2">
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="checkbox" id="statusTodos" checked>
-                <label class="form-check-label" for="statusTodos">Todos</label>
-              </div>
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="checkbox" id="statusBriefing">
-                <label class="form-check-label" for="statusBriefing">Briefing</label>
-              </div>
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="checkbox" id="statusAnalise">
-                <label class="form-check-label" for="statusAnalise">Em Análise</label>
-              </div>
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="checkbox" id="statusAprovado">
-                <label class="form-check-label" for="statusAprovado">Aprovado</label>
-              </div>
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="checkbox" id="statusProducao">
-                <label class="form-check-label" for="statusProducao">Em Produção</label>
-              </div>
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="checkbox" id="statusConcluido">
-                <label class="form-check-label" for="statusConcluido">Concluído</label>
+      <form method="get" action="{% url 'gestor:projeto_list' %}">
+        <div class="modal-body">
+          <div class="row g-3">
+            <!-- Status -->
+            <div class="col-md-6">
+              <label class="form-label">Status do Projeto</label>
+              <select class="form-select" name="status">
+                <option value="" {% if not status_escolhido %}selected{% endif %}>Todos os Status</option>
+                {% for status_value, status_label in projeto_status_choices %}
+                <option value="{{ status_value }}" {% if status_escolhido == status_value %}selected{% endif %}>{{ status_label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            
+            <!-- Empresa -->
+            <div class="col-md-6">
+              <label for="filtroEmpresa" class="form-label">Empresa</label>
+              <select class="form-select" id="filtroEmpresa" name="empresa">
+                <option value="" {% if not empresa_escolhida %}selected{% endif %}>Todas as Empresas</option>
+                {% for empresa in empresas %}
+                <option value="{{ empresa.id }}" {% if empresa_escolhida == empresa.id|stringformat:"i" %}selected{% endif %}>{{ empresa.nome }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            
+            <!-- Briefing Status -->
+            <div class="col-md-6">
+              <label for="filtroBriefingStatus" class="form-label">Status do Briefing</label>
+              <select class="form-select" id="filtroBriefingStatus" name="briefing_status">
+                <option value="" selected>Todos</option>
+                <option value="nao_iniciado">Não Iniciado</option>
+                <option value="em_andamento">Em Andamento</option>
+                <option value="enviado">Enviado</option>
+                <option value="aprovado">Aprovado</option>
+                <option value="reprovado">Reprovado</option>
+              </select>
+            </div>
+            
+            <!-- Data Criação -->
+            <div class="col-md-6">
+              <label class="form-label">Período de Criação</label>
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <input type="date" class="form-control" name="data_inicio" placeholder="Data Inicial">
+                </div>
+                <div class="col-md-6">
+                  <input type="date" class="form-control" name="data_fim" placeholder="Data Final">
+                </div>
               </div>
             </div>
-          </div>
-          
-          <!-- Cliente -->
-          <div class="col-md-6">
-            <label for="filtroCliente" class="form-label">Cliente</label>
-            <select class="form-select" id="filtroCliente">
-              <option value="" selected>Todos os Clientes</option>
-              <option value="1">StartupXYZ Eventos</option>
-              <option value="2">TV Brasil Produções</option>
-              <option value="3">Moda Fashion LTDA</option>
-              <option value="4">Festas Exclusivas</option>
-              <option value="5">Café Delícia</option>
-            </select>
-          </div>
-          
-          <!-- Projetista -->
-          <div class="col-md-6">
-            <label for="filtroProjetista" class="form-label">Projetista Responsável</label>
-            <select class="form-select" id="filtroProjetista">
-              <option value="" selected>Todos os Projetistas</option>
-              <option value="1">Ana Silva</option>
-              <option value="2">Carlos Mendes</option>
-              <option value="3">Marcela Santos</option>
-              <option value="4">Ricardo Alves</option>
-              <option value="5">Sem atribuição</option>
-            </select>
-          </div>
-          
-          <!-- Categoria -->
-          <div class="col-md-6">
-            <label for="filtroCategoria" class="form-label">Categoria</label>
-            <select class="form-select" id="filtroCategoria">
-              <option value="" selected>Todas as Categorias</option>
-              <option value="1">Evento Corporativo</option>
-              <option value="2">Evento Social</option>
-              <option value="3">Televisão</option>
-              <option value="4">Varejo</option>
-              <option value="5">Teatro</option>
-              <option value="6">Outros</option>
-            </select>
-          </div>
-          
-          <!-- Período -->
-          <div class="col-md-6">
-            <label class="form-label">Período de Criação</label>
-            <div class="row g-2">
-              <div class="col-md-6">
-                <input type="date" class="form-control" placeholder="Data Inicial">
-              </div>
-              <div class="col-md-6">
-                <input type="date" class="form-control" placeholder="Data Final">
-              </div>
-            </div>
-          </div>
-          
-          <!-- Ordenação -->
-          <div class="col-md-6">
-            <label for="filtroOrdenacao" class="form-label">Ordenar por</label>
-            <select class="form-select" id="filtroOrdenacao">
-              <option value="1" selected>Data de Criação (mais recente)</option>
-              <option value="2">Data de Criação (mais antigo)</option>
-              <option value="3">Nome do Projeto (A-Z)</option>
-              <option value="4">Status</option>
-              <option value="5">Cliente</option>
-            </select>
           </div>
         </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <a href="{% url 'gestor:projeto_list' %}" class="btn btn-outline-secondary">Limpar Filtros</a>
+          <button type="submit" class="btn btn-primary">Aplicar Filtros</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para Alterar Projetista -->
+<div class="modal fade" id="alterarProjetistaModal" tabindex="-1" aria-labelledby="alterarProjetistaModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="alterarProjetistaModalLabel"><i class="fas fa-user-edit me-2"></i> Atribuir Projetista</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <p>Selecione o projetista para atribuir ao projeto <strong id="projetoNome"></strong>:</p>
+        
+        <div class="list-group">
+          {% for projetista in projetistas %}
+          <a href="#" class="list-group-item list-group-item-action select-projetista" data-projetista-id="{{ projetista.id }}">
+            <div class="d-flex align-items-center">
+              {% if projetista.foto_perfil %}
+              <img src="{{ projetista.foto_perfil.url }}" alt="{{ projetista.get_full_name }}" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">
+              {% else %}
+              <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white me-3" style="width: 40px; height: 40px;">
+                {{ projetista.get_full_name|default:projetista.username|slice:":1"|upper }}
+              </div>
+              {% endif %}
+              <div>
+                <h6 class="mb-0">{{ projetista.get_full_name|default:projetista.username }}</h6>
+                <small class="text-muted">{{ projetista.email }}</small>
+              </div>
+            </div>
+          </a>
+          {% empty %}
+          <div class="alert alert-info mb-0">
+            Nenhum projetista disponível. Cadastre projetistas primeiro.
+          </div>
+          {% endfor %}
+        </div>
+        
+        <form id="atribuirProjetistaForm" method="post" class="d-none">
+          {% csrf_token %}
+          <input type="hidden" id="projetistaId" name="usuario_id">
+          <input type="hidden" id="projetoId" name="projeto_id">
+        </form>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-outline-secondary">Limpar Filtros</button>
-        <button type="button" class="btn btn-primary">Aplicar Filtros</button>
       </div>
     </div>
   </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Configuração do modal de alteração de projetista
+    const alterarProjetistaModal = document.getElementById('alterarProjetistaModal');
+    if (alterarProjetistaModal) {
+      alterarProjetistaModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const projetoId = button.getAttribute('data-projeto-id');
+        const projetoNome = button.getAttribute('data-projeto-nome');
+        
+        document.getElementById('projetoNome').textContent = projetoNome;
+        document.getElementById('projetoId').value = projetoId;
+      });
+      
+      // Manipulador para seleção de projetista
+      document.querySelectorAll('.select-projetista').forEach(item => {
+        item.addEventListener('click', function(e) {
+          e.preventDefault();
+          const projetistaId = this.getAttribute('data-projetista-id');
+          document.getElementById('projetistaId').value = projetistaId;
+          
+          // Construir URL para redirecionamento
+          const projetoId = document.getElementById('projetoId').value;
+          const form = document.getElementById('atribuirProjetistaForm');
+          form.action = '/gestor/projeto/' + projetoId + '/atribuir/' + projetistaId + '/';
+          form.submit();
+        });
+      });
+    }
+  });
+</script>
 {% endblock %}

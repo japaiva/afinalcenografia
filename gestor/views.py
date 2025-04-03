@@ -10,6 +10,8 @@ from projetos.models import Projeto
 from django.contrib.auth.views import LoginView
 from django.urls import reverse_lazy
 
+from projetos.models.briefing import Briefing, BriefingConversation, BriefingValidacao, BriefingArquivoReferencia
+
 class GestorLoginView(LoginView):
     template_name = 'gestor/login.html'
     
@@ -416,3 +418,184 @@ def mensagens_projeto(request, projeto_id):
         'mensagens': mensagens_lista,
     }
     return render(request, 'gestor/mensagens_projeto.html', context)
+
+@login_required
+def ver_briefing(request, projeto_id):
+    """
+    Permite ao gestor visualizar o briefing de um projeto
+    """
+    # Obter o projeto
+    projeto = get_object_or_404(Projeto, pk=projeto_id)
+    
+    # Verificar se o projeto tem briefing
+    try:
+        briefing = Briefing.objects.get(projeto=projeto)
+    except Briefing.DoesNotExist:
+        messages.error(request, 'Este projeto não possui um briefing.')
+        return redirect('gestor:projeto_detail', pk=projeto_id)
+    
+    # Obter validações do briefing
+    validacoes = BriefingValidacao.objects.filter(briefing=briefing)
+    
+    # Obter arquivos associados ao briefing
+    arquivos = BriefingArquivoReferencia.objects.filter(briefing=briefing)
+    
+    # Obter histórico de conversas
+    conversas = BriefingConversation.objects.filter(briefing=briefing).order_by('timestamp')
+    
+    context = {
+        'projeto': projeto,
+        'briefing': briefing,
+        'validacoes': validacoes,
+        'arquivos': arquivos,
+        'conversas': conversas,
+        'todas_aprovadas': all(v.status == 'aprovado' for v in validacoes),
+    }
+    
+    return render(request, 'gestor/ver_briefing.html', context)
+
+@login_required
+def aprovar_briefing(request, projeto_id):
+    """
+    Aprova o briefing de um projeto
+    """
+    if request.method != 'POST':
+        return redirect('gestor:ver_briefing', projeto_id=projeto_id)
+    
+    # Obter o projeto
+    projeto = get_object_or_404(Projeto, pk=projeto_id)
+    
+    # Verificar se o projeto tem briefing
+    try:
+        briefing = Briefing.objects.get(projeto=projeto)
+    except Briefing.DoesNotExist:
+        messages.error(request, 'Este projeto não possui um briefing.')
+        return redirect('gestor:projeto_detail', pk=projeto_id)
+    
+    # Atualizar status do briefing
+    briefing.status = 'aprovado'
+    briefing.save()
+    
+    # Atualizar status do projeto
+    projeto.briefing_status = 'aprovado'
+    projeto.status = 'ativo'  # Opcionalmente, ativar o projeto
+    projeto.save()
+    
+    # Registrar comentário do gestor, se houver
+    comentario = request.POST.get('comentario', '')
+    if comentario:
+        BriefingConversation.objects.create(
+            briefing=briefing,
+            mensagem=f"Briefing aprovado: {comentario}",
+            origem='gestor',
+            etapa=briefing.etapa_atual
+        )
+    
+    messages.success(request, f'Briefing do projeto "{projeto.nome}" aprovado com sucesso!')
+    return redirect('gestor:projeto_detail', pk=projeto_id)
+
+
+@login_required
+def reprovar_briefing(request, projeto_id):
+    """
+    Reprova o briefing de um projeto e solicita ajustes
+    """
+    if request.method != 'POST':
+        return redirect('gestor:ver_briefing', projeto_id=projeto_id)
+    
+    # Obter o projeto
+    projeto = get_object_or_404(Projeto, pk=projeto_id)
+    
+    # Verificar se o projeto tem briefing
+    try:
+        briefing = Briefing.objects.get(projeto=projeto)
+    except Briefing.DoesNotExist:
+        messages.error(request, 'Este projeto não possui um briefing.')
+        return redirect('gestor:projeto_detail', pk=projeto_id)
+    
+    # Obter comentário (obrigatório para reprovação)
+    comentario = request.POST.get('comentario', '')
+    if not comentario:
+        messages.error(request, 'É necessário informar os motivos da reprovação.')
+        return redirect('gestor:ver_briefing', projeto_id=projeto_id)
+    
+    # Atualizar status do briefing
+    briefing.status = 'revisao'
+    briefing.save()
+    
+    # Atualizar status do projeto
+    projeto.briefing_status = 'reprovado'
+    projeto.save()
+    
+    # Registrar comentário do gestor
+    BriefingConversation.objects.create(
+        briefing=briefing,
+        mensagem=f"Solicitação de ajustes: {comentario}",
+        origem='gestor',
+        etapa=briefing.etapa_atual
+    )
+    
+    messages.warning(request, f'Foram solicitados ajustes no briefing do projeto "{projeto.nome}".')
+    return redirect('gestor:projeto_detail', pk=projeto_id)
+
+@login_required
+def upload_arquivo(request, projeto_id):
+    """
+    Faz upload de um arquivo para um projeto
+    """
+    if request.method != 'POST':
+        return redirect('gestor:projeto_detail', pk=projeto_id)
+    
+    # Obter o projeto
+    projeto = get_object_or_404(Projeto, pk=projeto_id)
+    
+    # Verificar se foi enviado um arquivo
+    if 'arquivo' not in request.FILES:
+        messages.error(request, 'Nenhum arquivo foi enviado.')
+        return redirect('gestor:projeto_detail', pk=projeto_id)
+    
+    # Obter arquivo e informações
+    arquivo = request.FILES['arquivo']
+    tipo = request.POST.get('tipo', 'outro')
+    descricao = request.POST.get('descricao', '')
+    
+    # Criar o arquivo
+    from projetos.models import ArquivoReferencia  # Importe o modelo correto conforme seu projeto
+    
+    novo_arquivo = ArquivoReferencia.objects.create(
+        projeto=projeto,
+        nome=arquivo.name,
+        arquivo=arquivo,
+        tipo=tipo,
+        descricao=descricao,
+        uploaded_by=request.user
+    )
+    
+    messages.success(request, f'Arquivo "{arquivo.name}" enviado com sucesso.')
+    return redirect('gestor:projeto_detail', pk=projeto_id)
+
+
+@login_required
+def excluir_arquivo(request, arquivo_id):
+    """
+    Exclui um arquivo de referência
+    """
+    # Obter o arquivo
+    from projetos.models import ArquivoReferencia  # Importe o modelo correto conforme seu projeto
+    arquivo = get_object_or_404(ArquivoReferencia, pk=arquivo_id)
+    
+    # Verificar se o usuário tem permissão (é um gestor)
+    if request.user.nivel not in ['admin', 'gestor']:
+        return JsonResponse({'success': False, 'error': 'Permissão negada'}, status=403)
+    
+    # Verificar se é uma requisição POST
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Método não permitido'}, status=405)
+    
+    # Guardar referência ao projeto para redirecionamento
+    projeto_id = arquivo.projeto.id
+    
+    # Excluir o arquivo
+    arquivo.delete()
+    
+    return JsonResponse({'success': True})

@@ -1,0 +1,351 @@
+{% extends 'gestor/base_gestor.html' %}
+
+{% block title %}Briefing: {{ projeto.nome }} | Portal do Gestor | Afinal Cenografia{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">
+      <i class="fas fa-clipboard-list me-2"></i> Briefing: {{ projeto.nome }}
+    </h5>
+    <div>
+      <a href="{% url 'gestor:projeto_detail' pk=projeto.pk %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i> Voltar ao Projeto
+      </a>
+    </div>
+  </div>
+  
+  <div class="card-body">
+    <!-- Status do briefing -->
+    <div class="alert 
+      {% if briefing.status == 'rascunho' %}alert-secondary
+      {% elif briefing.status == 'em_validacao' %}alert-primary
+      {% elif briefing.status == 'validado' %}alert-info
+      {% elif briefing.status == 'enviado' %}alert-info
+      {% elif briefing.status == 'revisao' %}alert-warning
+      {% elif briefing.status == 'aprovado' %}alert-success
+      {% else %}alert-secondary{% endif %}">
+      <div class="d-flex align-items-center">
+        <div>
+          <h5 class="alert-heading mb-1">
+            {% if briefing.status == 'enviado' %}Briefing Enviado para Aprovação
+            {% elif briefing.status == 'revisao' %}Aguardando Ajustes do Cliente
+            {% elif briefing.status == 'aprovado' %}Briefing Aprovado
+            {% else %}{{ briefing.get_status_display }}
+            {% endif %}
+          </h5>
+          <p class="mb-0">
+            Última atualização: {{ briefing.updated_at|date:"d/m/Y H:i" }}
+          </p>
+        </div>
+        <div class="ms-auto">
+          {% if briefing.status == 'enviado' %}
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#aprovarBriefingModal">
+              <i class="fas fa-check-circle me-1"></i> Aprovar
+            </button>
+            <button class="btn btn-danger ms-2" data-bs-toggle="modal" data-bs-target="#reprovarBriefingModal">
+              <i class="fas fa-times-circle me-1"></i> Solicitar Ajustes
+            </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    
+    <!-- Abas para diferentes seções -->
+    <ul class="nav nav-tabs mb-4 mt-4" id="briefingTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab" aria-controls="info" aria-selected="true">
+          Informações Básicas
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tech-tab" data-bs-toggle="tab" data-bs-target="#tech" type="button" role="tab" aria-controls="tech" aria-selected="false">
+          Detalhes Técnicos
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="materials-tab" data-bs-toggle="tab" data-bs-target="#materials" type="button" role="tab" aria-controls="materials" aria-selected="false">
+          Materiais
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="requirements-tab" data-bs-toggle="tab" data-bs-target="#requirements" type="button" role="tab" aria-controls="requirements" aria-selected="false">
+          Requisitos
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="chat-tab" data-bs-toggle="tab" data-bs-target="#chat" type="button" role="tab" aria-controls="chat" aria-selected="false">
+          Conversas <span class="badge bg-primary rounded-pill ms-1">{{ conversas.count }}</span>
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="files-tab" data-bs-toggle="tab" data-bs-target="#files" type="button" role="tab" aria-controls="files" aria-selected="false">
+          Arquivos <span class="badge bg-primary rounded-pill ms-1">{{ arquivos.count }}</span>
+        </button>
+      </li>
+    </ul>
+    
+    <!-- Conteúdo das abas -->
+    <div class="tab-content" id="briefingTabContent">
+      <!-- Informações Básicas -->
+      <div class="tab-pane fade show active" id="info" role="tabpanel" aria-labelledby="info-tab">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-bold">Categoria</label>
+            <p class="border-bottom pb-2">{{ briefing.categoria|default:"-" }}</p>
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-bold">Data de Criação</label>
+            <p class="border-bottom pb-2">{{ briefing.created_at|date:"d/m/Y H:i" }}</p>
+          </div>
+          
+          <div class="col-12 mb-3">
+            <label class="form-label fw-bold">Descrição Detalhada</label>
+            <div class="p-3 bg-light rounded">
+              {{ briefing.descricao_detalhada|linebreaks|default:"Não informado" }}
+            </div>
+          </div>
+          
+          <div class="col-12 mb-3">
+            <label class="form-label fw-bold">Objetivos</label>
+            <div class="p-3 bg-light rounded">
+              {{ briefing.objetivos|linebreaks|default:"Não informado" }}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Detalhes Técnicos -->
+      <div class="tab-pane fade" id="tech" role="tabpanel" aria-labelledby="tech-tab">
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label fw-bold">Dimensões (m²)</label>
+            <p class="border-bottom pb-2">{{ briefing.dimensoes|default:"Não informado" }}</p>
+          </div>
+          
+          <div class="col-md-4 mb-3">
+            <label class="form-label fw-bold">Altura (m)</label>
+            <p class="border-bottom pb-2">{{ briefing.altura|default:"Não informado" }}</p>
+          </div>
+          
+          <div class="col-md-4 mb-3">
+            <label class="form-label fw-bold">Paleta de Cores</label>
+            <p class="border-bottom pb-2">{{ briefing.paleta_cores|default:"Não informado" }}</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Materiais e Acabamentos -->
+      <div class="tab-pane fade" id="materials" role="tabpanel" aria-labelledby="materials-tab">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-bold">Materiais Preferidos</label>
+            <div class="p-3 bg-light rounded">
+              {{ briefing.materiais_preferidos|linebreaks|default:"Não informado" }}
+            </div>
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-bold">Acabamentos</label>
+            <div class="p-3 bg-light rounded">
+              {{ briefing.acabamentos|linebreaks|default:"Não informado" }}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Requisitos Técnicos -->
+      <div class="tab-pane fade" id="requirements" role="tabpanel" aria-labelledby="requirements-tab">
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label fw-bold">Iluminação</label>
+            <div class="p-3 bg-light rounded">
+              {{ briefing.iluminacao|linebreaks|default:"Não informado" }}
+            </div>
+          </div>
+          
+          <div class="col-md-4 mb-3">
+            <label class="form-label fw-bold">Elétrica</label>
+            <div class="p-3 bg-light rounded">
+              {{ briefing.eletrica|linebreaks|default:"Não informado" }}
+            </div>
+          </div>
+          
+          <div class="col-md-4 mb-3">
+            <label class="form-label fw-bold">Mobiliário</label>
+            <div class="p-3 bg-light rounded">
+              {{ briefing.mobiliario|linebreaks|default:"Não informado" }}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Conversas -->
+      <div class="tab-pane fade" id="chat" role="tabpanel" aria-labelledby="chat-tab">
+        <div class="chat-container p-3 bg-light rounded" style="max-height: 500px; overflow-y: auto;">
+          {% if conversas %}
+            {% for conversa in conversas %}
+              <div class="chat-message mb-3">
+                <div class="d-flex align-items-center mb-1">
+                  <div class="{% if conversa.origem == 'cliente' %}bg-info{% else %}bg-success{% endif %} rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 30px; height: 30px; font-size: 0.8rem;">
+                    {{ conversa.origem|slice:":1"|upper }}
+                  </div>
+                  <span class="ms-2 fw-medium">
+                    {{ conversa.origem|title }}
+                    {% if conversa.etapa %}<span class="text-muted">(Etapa {{ conversa.etapa }})</span>{% endif %}
+                  </span>
+                  <small class="text-muted ms-auto">{{ conversa.timestamp|date:"d/m/Y H:i" }}</small>
+                </div>
+                <div class="chat-bubble {% if conversa.origem == 'cliente' %}bg-white{% else %}bg-light{% endif %}">
+                  {{ conversa.mensagem|linebreaks }}
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-center py-4">
+              <i class="fas fa-comments fa-2x mb-3 text-muted"></i>
+              <p>Nenhuma conversa registrada durante o preenchimento do briefing.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      
+      <!-- Arquivos -->
+      <div class="tab-pane fade" id="files" role="tabpanel" aria-labelledby="files-tab">
+        {% if arquivos %}
+          <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-3">
+            {% for arquivo in arquivos %}
+              <div class="col">
+                <div class="card h-100">
+                  {% if arquivo.tipo == 'imagem' %}
+                    <img src="{{ arquivo.arquivo.url }}" class="card-img-top" alt="{{ arquivo.nome }}" style="height: 150px; object-fit: cover;">
+                  {% else %}
+                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 150px;">
+                      <i class="fas 
+                        {% if arquivo.tipo == 'planta' %}fa-map
+                        {% elif arquivo.tipo == 'documento' %}fa-file-alt
+                        {% else %}fa-file{% endif %} fa-3x text-secondary"></i>
+                    </div>
+                  {% endif %}
+                  <div class="card-body">
+                    <h6 class="card-title text-truncate">{{ arquivo.nome }}</h6>
+                    <p class="card-text small text-muted">
+                      <span class="badge bg-secondary">{{ arquivo.get_tipo_display }}</span>
+                      <span class="d-block mt-1">{{ arquivo.uploaded_at|date:"d/m/Y H:i" }}</span>
+                    </p>
+                    <a href="{{ arquivo.arquivo.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                      <i class="fas fa-download me-1"></i> Download
+                    </a>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-4">
+            <i class="fas fa-file fa-2x mb-3 text-muted"></i>
+            <p>Nenhum arquivo de referência enviado para este briefing.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  
+  <div class="card-footer bg-light">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        {% if briefing.status == 'enviado' %}
+          <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#aprovarBriefingModal">
+            <i class="fas fa-check-circle me-1"></i> Aprovar Briefing
+          </button>
+          <button class="btn btn-danger ms-2" data-bs-toggle="modal" data-bs-target="#reprovarBriefingModal">
+            <i class="fas fa-times-circle me-1"></i> Solicitar Ajustes
+          </button>
+        {% endif %}
+      </div>
+      <div>
+        <a href="{% url 'gestor:projeto_detail' pk=projeto.pk %}" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-1"></i> Voltar ao Projeto
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para aprovar briefing -->
+<div class="modal fade" id="aprovarBriefingModal" tabindex="-1" aria-labelledby="aprovarBriefingModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="aprovarBriefingModalLabel">Aprovar Briefing</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <form action="{% url 'gestor:aprovar_briefing' projeto_id=projeto.id %}" method="post">
+        {% csrf_token %}
+        <div class="modal-body">
+          <p>Você está prestes a aprovar o briefing do projeto <strong>{{ projeto.nome }}</strong>.</p>
+          <p>Após a aprovação, o projeto avançará para a fase de produção.</p>
+          
+          <div class="mb-3">
+            <label for="comentario_aprovacao" class="form-label">Comentário (opcional)</label>
+            <textarea class="form-control" id="comentario_aprovacao" name="comentario" rows="3" placeholder="Adicione uma mensagem para o cliente..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success">
+            <i class="fas fa-check-circle me-1"></i> Aprovar Briefing
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para reprovar briefing -->
+<div class="modal fade" id="reprovarBriefingModal" tabindex="-1" aria-labelledby="reprovarBriefingModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="reprovarBriefingModalLabel">Solicitar Ajustes no Briefing</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <form action="{% url 'gestor:reprovar_briefing' projeto_id=projeto.id %}" method="post">
+        {% csrf_token %}
+        <div class="modal-body">
+          <p>Você está solicitando ajustes no briefing do projeto <strong>{{ projeto.nome }}</strong>.</p>
+          <p>Por favor, informe quais pontos precisam ser revisados pelo cliente.</p>
+          
+          <div class="mb-3">
+            <label for="comentario_reprovacao" class="form-label">Comentário <span class="text-danger">*</span></label>
+            <textarea class="form-control" id="comentario_reprovacao" name="comentario" rows="5" placeholder="Explique detalhadamente quais itens precisam ser ajustados..." required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger">
+            <i class="fas fa-times-circle me-1"></i> Solicitar Ajustes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+.chat-message {
+  max-width: 90%;
+  margin-bottom: 15px;
+}
+
+.chat-bubble {
+  padding: 12px 15px;
+  border-radius: 15px;
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  border: 1px solid #dee2e6;
+}
+</style>
+{% endblock %}
