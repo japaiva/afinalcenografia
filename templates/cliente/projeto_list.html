@@ -8,290 +8,188 @@
     <h5 class="card-title mb-0">
       <i class="fas fa-project-diagram me-2"></i> Meus Projetos
     </h5>
-    <div>
-      <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#filtroModal">
-        <i class="fas fa-filter me-1"></i> Filtros
-      </button>
-      <a href="{% url 'cliente:projeto_create' %}" class="btn btn-primary btn-sm ms-2">
-        <i class="fas fa-plus-circle me-1"></i> Novo Projeto
-      </a>
-    </div>
+    <a href="{% url 'cliente:projeto_create' %}" class="btn btn-primary btn-sm">
+      <i class="fas fa-plus me-1"></i> Novo Projeto
+    </a>
   </div>
   
   <div class="card-body">
-    <!-- Resumo de filtros ativos (opcional) -->
-    <div class="d-flex flex-wrap gap-2 mb-3">
-      <span class="badge bg-light text-dark p-2">
-        Status: <strong>Todos</strong>
-        <button class="btn-close btn-close-sm ms-1" style="font-size: 0.5rem;"></button>
-      </span>
-      <span class="badge bg-light text-dark p-2">
-        Período: <strong>Último mês</strong>
-        <button class="btn-close btn-close-sm ms-1" style="font-size: 0.5rem;"></button>
-      </span>
-    </div>
-
     {% if projetos %}
-    <!-- Tabela de projetos -->
-    <div class="table-responsive">
-      <table class="table table-hover align-middle">
-        <thead class="table-light">
-          <tr>
-            <th scope="col" style="width: 40px;">#</th>
-            <th scope="col">Projeto</th>
-            <th scope="col" style="width: 100px;">Status</th>
-            <th scope="col" style="width: 110px;">Briefing</th>
-            <th scope="col" style="width: 100px;">Data Criação</th>
-            <th scope="col" style="width: 220px;">Ações</th> <!-- Largura aumentada significativamente -->
-          </tr>
-        </thead>
-        <tbody>
-          {% for projeto in projetos %}
-          <tr>
-            <td>{{ forloop.counter }}</td>
-            <td>
-              <div class="d-flex align-items-center">
-                <div class="{% if projeto.tipo == 'evento_corporativo' %}bg-primary{% elif projeto.tipo == 'televisao' %}bg-success{% elif projeto.tipo == 'varejo' %}bg-danger{% elif projeto.tipo == 'evento_social' %}bg-purple{% else %}bg-secondary{% endif %} rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 36px; height: 36px; font-size: 0.8rem; {% if projeto.tipo == 'evento_social' %}background-color: #8557e6;{% endif %}">
-                  <i class="fas {% if projeto.tipo == 'evento_corporativo' %}fa-building{% elif projeto.tipo == 'televisao' %}fa-theater-masks{% elif projeto.tipo == 'varejo' %}fa-store{% elif projeto.tipo == 'evento_social' %}fa-glass-cheers{% else %}fa-project-diagram{% endif %}"></i>
-                </div>
-                <div class="ms-2">
-                  <div class="fw-bold">{{ projeto.nome }}</div>
-                  <div class="small text-muted">{{ projeto.get_tipo_display|default:"Projeto" }}</div>
-                </div>
-              </div>
-            </td>
-            <td>
-              <span class="badge 
-                {% if projeto.status == 'pendente' %}bg-info
-                {% elif projeto.status == 'em_analise' %}bg-primary
-                {% elif projeto.status == 'aprovado' %}bg-success
-                {% elif projeto.status == 'em_producao' %}bg-warning text-dark
-                {% elif projeto.status == 'concluido' %}bg-secondary
-                {% elif projeto.status == 'cancelado' %}bg-danger
-                {% else %}bg-secondary{% endif %}">
-                {{ projeto.get_status_display }}
-              </span>
-            </td>
-            <td>
-              {% if projeto.has_briefing or projeto.tem_briefing %}
-                {% if projeto.briefing_status == 'em_andamento' %}
-                  <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=projeto.briefing.etapa_atual %}" class="badge bg-primary text-decoration-none">
-                    <i class="fas fa-edit me-1"></i> Em Andamento
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Nome</th>
+              <th>Data de Início</th>
+              <th>Prazo de Entrega</th>
+              <th>Orçamento</th>
+              <th class="text-center">Status</th>
+              <th class="text-center">Briefing</th>
+              <th class="text-center">Progresso</th>
+              <th class="text-end">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for projeto in projetos %}
+              <tr>
+                <td>
+                  <a href="{% url 'cliente:projeto_detail' pk=projeto.pk %}" class="text-decoration-none fw-medium">
+                    {{ projeto.nome }}
                   </a>
-                {% elif projeto.briefing_status == 'enviado' %}
-                  <span class="badge bg-info">
-                    <i class="fas fa-paper-plane me-1"></i> Enviado
+                </td>
+                <td>{{ projeto.data_inicio|date:"d/m/Y"|default:"-" }}</td>
+                <td>{{ projeto.prazo_entrega|date:"d/m/Y"|default:"-" }}</td>
+                <td>R$ {{ projeto.orcamento|floatformat:2 }}</td>
+                <td class="text-center">
+                  <span class="badge 
+                    {% if projeto.status == 'pendente' %}bg-info
+                    {% elif projeto.status == 'ativo' %}bg-primary
+                    {% elif projeto.status == 'pausado' %}bg-warning text-dark
+                    {% elif projeto.status == 'concluido' %}bg-success
+                    {% elif projeto.status == 'cancelado' %}bg-danger
+                    {% else %}bg-secondary{% endif %}">
+                    {{ projeto.get_status_display }}
                   </span>
-                {% elif projeto.briefing_status == 'aprovado' %}
-                  <span class="badge bg-success">
-                    <i class="fas fa-check-circle me-1"></i> Aprovado
-                  </span>
-                {% elif projeto.briefing_status == 'reprovado' %}
-                  <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=1 %}" class="badge bg-danger text-decoration-none">
-                    <i class="fas fa-exclamation-circle me-1"></i> Revisão
-                  </a>
-                {% endif %}
-              {% else %}
-                <a href="{% url 'cliente:iniciar_briefing' projeto_id=projeto.id %}" class="badge bg-secondary text-decoration-none">
-                  <i class="fas fa-clipboard-list me-1"></i> Não Iniciado
+                </td>
+                <td class="text-center">
+                  {% if projeto.tem_briefing %}
+                    <span class="badge 
+                      {% if projeto.briefing_status == 'nao_iniciado' %}bg-secondary
+                      {% elif projeto.briefing_status == 'em_andamento' %}bg-primary
+                      {% elif projeto.briefing_status == 'enviado' %}bg-info
+                      {% elif projeto.briefing_status == 'aprovado' %}bg-success
+                      {% elif projeto.briefing_status == 'reprovado' %}bg-danger
+                      {% else %}bg-secondary{% endif %}">
+                      {{ projeto.get_briefing_status_display }}
+                    </span>
+                  {% else %}
+                    <span class="badge bg-secondary">Não Iniciado</span>
+                  {% endif %}
+                </td>
+                <td class="text-center" style="width: 150px;">
+                  <div class="progress" style="height: 8px;">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ projeto.progresso }}%;" aria-valuenow="{{ projeto.progresso }}" aria-valuemin="0" aria-valuemax="100"></div>
+                  </div>
+                  <small class="text-muted">{{ projeto.progresso }}%</small>
+                </td>
+                <td class="text-end">
+                  <!-- Novo estilo com dropdown, igual ao gestor -->
+                  <div class="btn-group">
+                    <a href="{% url 'cliente:projeto_detail' pk=projeto.pk %}" class="btn btn-sm btn-outline-primary">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                    {% if projeto.tem_briefing and projeto.briefing_status == 'em_andamento' %}
+                    <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=1 %}" class="btn btn-sm btn-outline-success">
+                      <i class="fas fa-clipboard-list"></i>
+                    </a>
+                    {% elif not projeto.tem_briefing %}
+                    <a href="{% url 'cliente:iniciar_briefing' projeto_id=projeto.id %}" class="btn btn-sm btn-outline-success">
+                      <i class="fas fa-clipboard-list"></i>
+                    </a>
+                    {% else %}
+                    <a href="{% url 'cliente:mensagens' %}" class="btn btn-sm btn-outline-info">
+                      <i class="fas fa-comment"></i>
+                    </a>
+                    {% endif %}
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                      <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                      <li><a class="dropdown-item" href="{% url 'cliente:projeto_update' pk=projeto.pk %}"><i class="fas fa-edit me-2"></i> Editar</a></li>
+                      {% if projeto.tem_briefing %}
+                      <li><a class="dropdown-item" href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=1 %}"><i class="fas fa-clipboard-list me-2"></i> Ver Briefing</a></li>
+                      {% else %}
+                      <li><a class="dropdown-item" href="{% url 'cliente:iniciar_briefing' projeto_id=projeto.id %}"><i class="fas fa-clipboard-list me-2"></i> Iniciar Briefing</a></li>
+                      {% endif %}
+                      <li><a class="dropdown-item" href="{% url 'cliente:mensagens' %}"><i class="fas fa-comment me-2"></i> Mensagens</a></li>
+                      <li><hr class="dropdown-divider"></li>
+                      <li><a class="dropdown-item text-danger" href="{% url 'cliente:projeto_delete' pk=projeto.pk %}"><i class="fas fa-trash me-2"></i> Excluir</a></li>
+                    </ul>
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="8" class="text-center py-4">
+                  <div class="text-muted">
+                    <i class="fas fa-project-diagram fa-2x mb-3"></i>
+                    <p>Você ainda não possui projetos cadastrados.</p>
+                    <a href="{% url 'cliente:projeto_create' %}" class="btn btn-primary btn-sm">
+                      <i class="fas fa-plus me-1"></i> Criar Novo Projeto
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      
+      {% if projetos.paginator.num_pages > 1 %}
+      <div class="mt-4">
+        <nav aria-label="Navegação de páginas">
+          <ul class="pagination justify-content-center">
+            {% if projetos.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page=1" aria-label="Primeiro">
+                  <span aria-hidden="true">&laquo;&laquo;</span>
                 </a>
+              </li>
+              <li class="page-item">
+                <a class="page-link" href="?page={{ projetos.previous_page_number }}" aria-label="Anterior">
+                  <span aria-hidden="true">&laquo;</span>
+                </a>
+              </li>
+            {% else %}
+              <li class="page-item disabled">
+                <span class="page-link">&laquo;&laquo;</span>
+              </li>
+              <li class="page-item disabled">
+                <span class="page-link">&laquo;</span>
+              </li>
+            {% endif %}
+            
+            {% for i in projetos.paginator.page_range %}
+              {% if projetos.number == i %}
+                <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+              {% elif i > projetos.number|add:'-3' and i < projetos.number|add:'3' %}
+                <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
               {% endif %}
-            </td>
-            <td>{{ projeto.created_at|date:"d/m/Y" }}</td>
-            <td>
-              <!-- Layout modificado para os botões de ação -->
-              <div class="d-flex">
-                <a href="{% url 'cliente:projeto_detail' pk=projeto.pk %}" class="btn btn-sm btn-outline-primary me-1" title="Visualizar">
-                  <i class="fas fa-eye"></i>
+            {% endfor %}
+            
+            {% if projetos.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ projetos.next_page_number }}" aria-label="Próximo">
+                  <span aria-hidden="true">&raquo;</span>
                 </a>
-                {% if not projeto.tem_briefing and not projeto.has_briefing or projeto.briefing_status == 'em_andamento' %}
-                  <a href="{% url 'cliente:projeto_update' pk=projeto.pk %}" class="btn btn-sm btn-outline-secondary me-1" title="Editar">
-                    <i class="fas fa-edit"></i>
-                  </a>
-                {% else %}
-                  <button class="btn btn-sm btn-outline-secondary me-1" disabled title="Editar">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                {% endif %}
-                
-                {% if projeto.has_briefing or projeto.tem_briefing %}
-                  <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=projeto.briefing.etapa_atual %}" class="btn btn-sm btn-outline-success me-1" title="Ver Briefing">
-                    <i class="fas fa-clipboard-list"></i>
-                  </a>
-                {% else %}
-                  <a href="{% url 'cliente:iniciar_briefing' projeto_id=projeto.id %}" class="btn btn-sm btn-outline-success me-1" title="Iniciar Briefing">
-                    <i class="fas fa-clipboard-list"></i>
-                  </a>
-                {% endif %}
-                
-                {% if not projeto.tem_briefing and not projeto.has_briefing or projeto.briefing_status == 'em_andamento' %}
-                  <a href="{% url 'cliente:projeto_delete' pk=projeto.pk %}" class="btn btn-sm btn-outline-danger" title="Excluir">
-                    <i class="fas fa-trash"></i>
-                  </a>
-                {% else %}
-                  <button class="btn btn-sm btn-outline-danger" disabled title="Excluir">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                {% endif %}
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    
-    <!-- Paginação -->
-    {% if projetos.has_other_pages %}
-    <nav aria-label="Paginação de projetos">
-      <ul class="pagination justify-content-center mt-4">
-        {% if projetos.has_previous %}
-        <li class="page-item">
-          <a class="page-link" href="?page=1" aria-label="Primeira">
-            <span aria-hidden="true">&laquo;&laquo;</span>
-          </a>
-        </li>
-        <li class="page-item">
-          <a class="page-link" href="?page={{ projetos.previous_page_number }}" aria-label="Anterior">
-            <span aria-hidden="true">&laquo;</span>
-          </a>
-        </li>
-        {% else %}
-        <li class="page-item disabled">
-          <span class="page-link">&laquo;&laquo;</span>
-        </li>
-        <li class="page-item disabled">
-          <span class="page-link">&laquo;</span>
-        </li>
-        {% endif %}
-        
-        {% for i in projetos.paginator.page_range %}
-          {% if projetos.number == i %}
-            <li class="page-item active"><span class="page-link">{{ i }}</span></li>
-          {% elif i > projetos.number|add:'-3' and i < projetos.number|add:'3' %}
-            <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
-          {% endif %}
-        {% endfor %}
-        
-        {% if projetos.has_next %}
-        <li class="page-item">
-          <a class="page-link" href="?page={{ projetos.next_page_number }}" aria-label="Próxima">
-            <span aria-hidden="true">&raquo;</span>
-          </a>
-        </li>
-        <li class="page-item">
-          <a class="page-link" href="?page={{ projetos.paginator.num_pages }}" aria-label="Última">
-            <span aria-hidden="true">&raquo;&raquo;</span>
-          </a>
-        </li>
-        {% else %}
-        <li class="page-item disabled">
-          <span class="page-link">&raquo;</span>
-        </li>
-        <li class="page-item disabled">
-          <span class="page-link">&raquo;&raquo;</span>
-        </li>
-        {% endif %}
-      </ul>
-    </nav>
-    {% endif %}
-    
+              </li>
+              <li class="page-item">
+                <a class="page-link" href="?page={{ projetos.paginator.num_pages }}" aria-label="Último">
+                  <span aria-hidden="true">&raquo;&raquo;</span>
+                </a>
+              </li>
+            {% else %}
+              <li class="page-item disabled">
+                <span class="page-link">&raquo;</span>
+              </li>
+              <li class="page-item disabled">
+                <span class="page-link">&raquo;&raquo;</span>
+              </li>
+            {% endif %}
+          </ul>
+        </nav>
+      </div>
+      {% endif %}
     {% else %}
-    <!-- Mensagem quando não há projetos -->
-    <div class="alert alert-info">
-      <i class="fas fa-info-circle me-2"></i> Você ainda não possui projetos cadastrados.
-      <a href="{% url 'cliente:projeto_create' %}" class="alert-link">Criar um novo projeto</a>.
-    </div>
+      <div class="text-center py-5">
+        <i class="fas fa-project-diagram fa-3x mb-3 text-muted"></i>
+        <h4>Você ainda não possui projetos</h4>
+        <p class="text-muted">Crie seu primeiro projeto para começar.</p>
+        <a href="{% url 'cliente:projeto_create' %}" class="btn btn-primary mt-2">
+          <i class="fas fa-plus me-1"></i> Novo Projeto
+        </a>
+      </div>
     {% endif %}
-  </div>
-</div>
-
-<!-- Modal de Filtros -->
-<div class="modal fade" id="filtroModal" tabindex="-1" aria-labelledby="filtroModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="filtroModalLabel"><i class="fas fa-filter me-2"></i> Filtrar Projetos</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-      </div>
-      <div class="modal-body">
-        <div class="row g-3">
-          <!-- Status -->
-          <div class="col-12">
-            <label class="form-label">Status do Projeto</label>
-            <div class="d-flex flex-wrap gap-2">
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="checkbox" id="statusTodos" checked>
-                <label class="form-check-label" for="statusTodos">Todos</label>
-              </div>
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="checkbox" id="statusPendente">
-                <label class="form-check-label" for="statusPendente">Pendente</label>
-              </div>
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="checkbox" id="statusAnalise">
-                <label class="form-check-label" for="statusAnalise">Em Análise</label>
-              </div>
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="checkbox" id="statusAprovado">
-                <label class="form-check-label" for="statusAprovado">Aprovado</label>
-              </div>
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="checkbox" id="statusProducao">
-                <label class="form-check-label" for="statusProducao">Em Produção</label>
-              </div>
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="checkbox" id="statusConcluido">
-                <label class="form-check-label" for="statusConcluido">Concluído</label>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Categoria -->
-          <div class="col-md-12">
-            <label for="filtroCategoria" class="form-label">Categoria</label>
-            <select class="form-select" id="filtroCategoria">
-              <option value="" selected>Todas as Categorias</option>
-              <option value="evento_corporativo">Evento Corporativo</option>
-              <option value="evento_social">Evento Social</option>
-              <option value="televisao">Televisão</option>
-              <option value="varejo">Varejo</option>
-              <option value="teatro">Teatro</option>
-              <option value="outros">Outros</option>
-            </select>
-          </div>
-          
-          <!-- Período -->
-          <div class="col-12">
-            <label class="form-label">Período de Criação</label>
-            <div class="row g-2">
-              <div class="col-md-6">
-                <input type="date" class="form-control" placeholder="Data Inicial">
-              </div>
-              <div class="col-md-6">
-                <input type="date" class="form-control" placeholder="Data Final">
-              </div>
-            </div>
-          </div>
-          
-          <!-- Ordenação -->
-          <div class="col-12">
-            <label for="filtroOrdenacao" class="form-label">Ordenar por</label>
-            <select class="form-select" id="filtroOrdenacao">
-              <option value="1" selected>Data de Criação (mais recente)</option>
-              <option value="2">Data de Criação (mais antigo)</option>
-              <option value="3">Nome do Projeto (A-Z)</option>
-              <option value="4">Status</option>
-            </select>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-outline-secondary">Limpar Filtros</button>
-        <button type="button" class="btn btn-primary">Aplicar Filtros</button>
-      </div>
-    </div>
   </div>
 </div>
 {% endblock %}

@@ -1,343 +1,340 @@
 {% extends 'gestor/base_gestor.html' %}
-{% load static %}
 
-{% block title %}Detalhes do Projeto | Portal do Gestor{% endblock %}
+{% block title %}Detalhes do Projeto | Portal do Gestor | Afinal Cenografia{% endblock %}
 
 {% block content %}
 <div class="card shadow">
   <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">
+      <i class="fas fa-project-diagram me-2"></i> Detalhes do Projeto
+    </h5>
     <div>
-      <nav aria-label="breadcrumb">
-        <ol class="breadcrumb mb-0">
-          <li class="breadcrumb-item"><a href="{% url 'gestor:dashboard' %}">Dashboard</a></li>
-          <li class="breadcrumb-item"><a href="{% url 'gestor:projeto_list' %}">Projetos</a></li>
-          <li class="breadcrumb-item active">Stand Expo 2025</li>
-        </ol>
-      </nav>
-    </div>
-    <div>
-      <a href="{% url 'gestor:mensagens' %}" class="btn btn-outline-success btn-sm me-1">
-        <i class="fas fa-comment me-1"></i> Mensagens
-        <span class="badge bg-danger">3</span>
+      {% if projeto.tem_briefing %}
+      <a href="{% url 'gestor:ver_briefing' projeto_id=projeto.id %}" class="btn btn-success btn-sm">
+        <i class="fas fa-clipboard-list me-1"></i> Acessar Briefing
       </a>
-      <div class="btn-group">
-        <button class="btn btn-outline-primary btn-sm">
-          <i class="fas fa-edit me-1"></i> Editar
-        </button>
-        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
-          <i class="fas fa-ellipsis-v"></i>
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end">
-          <li><a class="dropdown-item" href="#"><i class="fas fa-file-export me-2"></i> Exportar</a></li>
-          <li><a class="dropdown-item" href="#"><i class="fas fa-clone me-2"></i> Duplicar</a></li>
-          <li><hr class="dropdown-divider"></li>
-          <li><a class="dropdown-item text-danger" href="#"><i class="fas fa-trash me-2"></i> Excluir</a></li>
-        </ul>
-      </div>
+      {% endif %}
+      <a href="{% url 'gestor:mensagens_projeto' projeto_id=projeto.id %}" class="btn btn-outline-info btn-sm ms-2">
+        <i class="fas fa-comments me-1"></i> Acessar Mensagens
+      </a>
+      <a href="{% url 'gestor:projeto_list' %}" class="btn btn-outline-secondary btn-sm ms-2">
+        <i class="fas fa-arrow-left me-1"></i> Voltar
+      </a>
     </div>
   </div>
   
   <div class="card-body">
     <div class="row">
-      <!-- Resumo do Projeto -->
-      <div class="col-lg-8">
-        <div class="d-flex align-items-center mb-4">
-          <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white me-3" style="width: 60px; height: 60px; font-size: 1.5rem;">
-            <i class="fas fa-building"></i>
-          </div>
-          <div>
-            <h3 class="mb-0">Stand Expo 2025</h3>
-            <p class="text-muted mb-0">Evento Corporativo</p>
-          </div>
-          <span class="badge bg-success ms-3 p-2">Aprovado</span>
-        </div>
-        
-        <div class="row mb-4">
-          <div class="col-md-6">
-            <div class="card mb-3">
-              <div class="card-header bg-light py-2">
-                <h6 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i> Informações Básicas</h6>
-              </div>
-              <div class="card-body">
-                <dl class="row mb-0">
-                  <dt class="col-sm-4">Cliente:</dt>
-                  <dd class="col-sm-8">StartupXYZ Eventos</dd>
-                  
-                  <dt class="col-sm-4">Data Criação:</dt>
-                  <dd class="col-sm-8">01/04/2025</dd>
-                  
-                  <dt class="col-sm-4">Prazo Final:</dt>
-                  <dd class="col-sm-8">15/05/2025</dd>
-                  
-                  <dt class="col-sm-4">Projetista:</dt>
-                  <dd class="col-sm-8">Ana Silva</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-          
-          <div class="col-md-6">
-            <div class="card mb-3">
-              <div class="card-header bg-light py-2">
-                <h6 class="card-title mb-0"><i class="fas fa-dollar-sign me-2"></i> Informações Financeiras</h6>
-              </div>
-              <div class="card-body">
-                <dl class="row mb-0">
-                  <dt class="col-sm-6">Orçamento:</dt>
-                  <dd class="col-sm-6">R$ 85.000,00</dd>
-                  
-                  <dt class="col-sm-6">Valor Aprovado:</dt>
-                  <dd class="col-sm-6">R$ 82.500,00</dd>
-                  
-                  <dt class="col-sm-6">Status Pagamento:</dt>
-                  <dd class="col-sm-6"><span class="badge bg-warning text-dark">Parcial</span></dd>
-                  
-                  <dt class="col-sm-6">Valor Pago:</dt>
-                  <dd class="col-sm-6">R$ 41.250,00 (50%)</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Descrição -->
-        <div class="card mb-4">
-          <div class="card-header bg-light py-2">
-            <h6 class="card-title mb-0"><i class="fas fa-align-left me-2"></i> Descrição do Projeto</h6>
+      <!-- Informações básicas -->
+      <div class="col-md-8">
+        <div class="card mb-3">
+          <div class="card-header bg-light">
+            <h6 class="card-title mb-0">Informações Básicas</h6>
           </div>
           <div class="card-body">
-            <p>Stand para a empresa StartupXYZ na Expo Tecnologia 2025. O cliente deseja um espaço moderno e inovador com área de demonstração de produtos, recepção e espaço para reuniões.</p>
-            <p>A estrutura deve ser modular, com fácil montagem e desmontagem. Iluminação LED com controle de cores e intensidade. Sistema de som ambiente integrado. A paleta de cores deve seguir a identidade visual da empresa (azul, branco e cinza).</p>
-            <p>O stand terá 50m² e deve comportar até 15 pessoas simultaneamente. Localização: Pavilhão Norte, Setor A, posição 12.</p>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-bold">Nome</label>
+                <p class="border-bottom pb-2">{{ projeto.nome }}</p>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-bold">Status</label>
+                <p class="border-bottom pb-2">
+                  <span class="badge 
+                    {% if projeto.status == 'pendente' %}bg-info
+                    {% elif projeto.status == 'ativo' %}bg-primary
+                    {% elif projeto.status == 'pausado' %}bg-warning text-dark
+                    {% elif projeto.status == 'concluido' %}bg-success
+                    {% elif projeto.status == 'cancelado' %}bg-danger
+                    {% else %}bg-secondary{% endif %}">
+                    {{ projeto.get_status_display }}
+                  </span>
+                </p>
+              </div>
+              <div class="col-12 mb-3">
+                <label class="form-label fw-bold">Descrição</label>
+                <p class="border-bottom pb-2">{{ projeto.descricao|default:"-" }}</p>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-bold">Data de Início</label>
+                <p class="border-bottom pb-2">{{ projeto.data_inicio|date:"d/m/Y"|default:"-" }}</p>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-bold">Prazo de Entrega</label>
+                <p class="border-bottom pb-2">{{ projeto.prazo_entrega|date:"d/m/Y"|default:"-" }}</p>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-bold">Orçamento</label>
+                <p class="border-bottom pb-2">R$ {{ projeto.orcamento|floatformat:2|default:"0,00" }}</p>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-bold">Progresso</label>
+                <div class="progress mb-2" style="height: 10px;">
+                  <div class="progress-bar bg-success" role="progressbar" style="width: {{ projeto.progresso|default:0 }}%;" aria-valuenow="{{ projeto.progresso|default:0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <small class="text-muted">{{ projeto.progresso|default:0 }}% concluído</small>
+              </div>
+            </div>
           </div>
         </div>
         
-        <!-- Timeline -->
-        <div class="card mb-4">
-          <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
-            <h6 class="card-title mb-0"><i class="fas fa-history me-2"></i> Histórico do Projeto</h6>
-            <button class="btn btn-sm btn-link p-0">Ver completo</button>
+        <!-- Requisitos específicos -->
+        <div class="card mb-3">
+          <div class="card-header bg-light">
+            <h6 class="card-title mb-0">Requisitos Específicos</h6>
           </div>
-          <div class="card-body p-0">
-            <div class="timeline p-3">
-              <div class="timeline-item">
-                <div class="timeline-marker bg-success"></div>
-                <div class="timeline-content">
-                  <div class="d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">Projeto Aprovado</h6>
-                    <small class="text-muted">01/04/2025 14:35</small>
+          <div class="card-body">
+            <p>{{ projeto.requisitos|default:"Nenhum requisito específico informado."|linebreaks }}</p>
+          </div>
+        </div>
+        
+        <!-- Arquivos de referência -->
+        <div class="card mb-3">
+          <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h6 class="card-title mb-0">Arquivos de Referência</h6>
+            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+              <i class="fas fa-upload me-1"></i> Adicionar Arquivo
+            </button>
+          </div>
+          <div class="card-body">
+            {% if projeto.arquivos.all %}
+              <div class="d-flex flex-wrap gap-2">
+                {% for arquivo in projeto.arquivos.all %}
+                  <div class="position-relative arquivo-item" data-id="{{ arquivo.id }}" style="width: 120px;">
+                    {% if arquivo.tipo == 'imagem' %}
+                      <a href="{{ arquivo.arquivo.url }}" target="_blank" class="d-block">
+                        <img src="{{ arquivo.arquivo.url }}" alt="{{ arquivo.nome }}" class="img-thumbnail" style="width: 120px; height: 120px; object-fit: cover;">
+                      </a>
+                    {% else %}
+                      <a href="{{ arquivo.arquivo.url }}" target="_blank" class="d-block text-decoration-none">
+                        <div class="bg-light border text-center p-2" style="width: 120px; height: 120px;">
+                          <i class="fas 
+                            {% if arquivo.tipo == 'planta' %}fa-map
+                            {% elif arquivo.tipo == 'documento' %}fa-file-alt
+                            {% else %}fa-file{% endif %} fa-3x my-2 text-secondary"></i>
+                          <p class="small text-truncate mb-0 text-dark">{{ arquivo.nome }}</p>
+                        </div>
+                      </a>
+                    {% endif %}
+                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 excluir-arquivo" style="font-size: 0.7rem; padding: 0.1rem 0.3rem;" data-url="{% url 'gestor:excluir_arquivo' arquivo_id=arquivo.id %}">
+                      <i class="fas fa-times"></i>
+                    </button>
                   </div>
-                  <p class="text-muted mb-0">Cliente aprovou o projeto e o orçamento final.</p>
-                </div>
+                {% endfor %}
               </div>
-              <div class="timeline-item">
-                <div class="timeline-marker bg-primary"></div>
-                <div class="timeline-content">
-                  <div class="d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">Orçamento Enviado</h6>
-                    <small class="text-muted">01/04/2025 10:20</small>
-                  </div>
-                  <p class="text-muted mb-0">Orçamento final enviado ao cliente para aprovação.</p>
-                </div>
-              </div>
-              <div class="timeline-item">
-                <div class="timeline-marker bg-info"></div>
-                <div class="timeline-content">
-                  <div class="d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">Briefing Validado</h6>
-                    <small class="text-muted">31/03/2025 16:45</small>
-                  </div>
-                  <p class="text-muted mb-0">Briefing validado pela equipe de projeto.</p>
-                </div>
-              </div>
-              <div class="timeline-item">
-                <div class="timeline-marker bg-light"></div>
-                <div class="timeline-content">
-                  <div class="d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">Projeto Iniciado</h6>
-                    <small class="text-muted">30/03/2025 09:15</small>
-                  </div>
-                  <p class="text-muted mb-0">Cliente preencheu o briefing inicial.</p>
-                </div>
-              </div>
-            </div>
+            {% else %}
+              <p class="text-muted">Nenhum arquivo enviado até o momento.</p>
+            {% endif %}
           </div>
         </div>
       </div>
       
-      <!-- Sidebar do Projeto -->
-      <div class="col-lg-4">
-        <!-- Status do Projeto -->
-        <div class="card mb-4">
-          <div class="card-header bg-light py-2">
-            <h6 class="card-title mb-0"><i class="fas fa-tasks me-2"></i> Status do Projeto</h6>
+      <!-- Status do Briefing e Cliente -->
+      <div class="col-md-4">
+        <!-- Cliente e Empresa -->
+        <div class="card mb-3">
+          <div class="card-header bg-light">
+            <h6 class="card-title mb-0">Cliente e Empresa</h6>
           </div>
           <div class="card-body">
-            <div class="progress mb-3" style="height: 25px;">
-              <div class="progress-bar bg-success" role="progressbar" style="width: 50%;" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100">50%</div>
+            <div class="d-flex align-items-center mb-3">
+              {% if projeto.cliente.foto_perfil %}
+                <img src="{{ projeto.cliente.foto_perfil.url }}" alt="{{ projeto.cliente.username }}" class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;">
+              {% else %}
+                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white me-3" style="width: 50px; height: 50px;">
+                  {{ projeto.cliente.get_full_name|default:projeto.cliente.username|slice:":1"|upper }}
+                </div>
+              {% endif %}
+              <div>
+                <h6 class="mb-0">{{ projeto.cliente.get_full_name|default:projeto.cliente.username }}</h6>
+                <small class="text-muted">{{ projeto.cliente.email }}</small>
+              </div>
             </div>
             
-            <ul class="list-group list-group-flush">
-              <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                <span>
-                  <i class="fas fa-check-circle text-success me-2"></i> Briefing
-                </span>
-                <span class="badge bg-success">Concluído</span>
-              </li>
-              <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                <span>
-                  <i class="fas fa-check-circle text-success me-2"></i> Orçamento
-                </span>
-                <span class="badge bg-success">Aprovado</span>
-              </li>
-              <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                <span>
-                  <i class="fas fa-circle-notch text-primary me-2 fa-spin"></i> Projeto Executivo
-                </span>
-                <span class="badge bg-primary">Em andamento</span>
-              </li>
-              <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                <span>
-                  <i class="far fa-circle text-muted me-2"></i> Produção
-                </span>
-                <span class="badge bg-secondary">Pendente</span>
-              </li>
-              <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                <span>
-                  <i class="far fa-circle text-muted me-2"></i> Montagem
-                </span>
-                <span class="badge bg-secondary">Pendente</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-        
-        <!-- Arquivos -->
-        <div class="card mb-4">
-          <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
-            <h6 class="card-title mb-0"><i class="fas fa-file me-2"></i> Arquivos</h6>
-            <button class="btn btn-sm btn-outline-primary">
-              <i class="fas fa-upload me-1"></i> Upload
-            </button>
-          </div>
-          <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-              <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center">
-                  <i class="fas fa-file-pdf text-danger me-2" style="font-size: 1.2rem;"></i>
-                  <div>
-                    <div class="fw-bold">briefing_completo.pdf</div>
-                    <small class="text-muted">Briefing</small>
-                  </div>
+            <div class="d-flex align-items-center mb-3">
+              {% if projeto.empresa.logo %}
+                <img src="{{ projeto.empresa.logo.url }}" alt="{{ projeto.empresa.nome }}" class="rounded me-3" style="width: 50px; height: 50px; object-fit: contain;">
+              {% else %}
+                <div class="bg-secondary rounded d-flex align-items-center justify-content-center text-white me-3" style="width: 50px; height: 50px;">
+                  {{ projeto.empresa.nome|slice:":1"|upper }}
                 </div>
-                <div>
-                  <button class="btn btn-sm btn-link">
-                    <i class="fas fa-download"></i>
-                  </button>
-                </div>
-              </li>
-              <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center">
-                  <i class="fas fa-file-image text-primary me-2" style="font-size: 1.2rem;"></i>
-                  <div>
-                    <div class="fw-bold">render_perspectiva_01.jpg</div>
-                    <small class="text-muted">Render</small>
-                  </div>
-                </div>
-                <div>
-                  <button class="btn btn-sm btn-link">
-                    <i class="fas fa-download"></i>
-                  </button>
-                </div>
-              </li>
-              <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center">
-                  <i class="fas fa-file-image text-primary me-2" style="font-size: 1.2rem;"></i>
-                  <div>
-                    <div class="fw-bold">render_perspectiva_02.jpg</div>
-                    <small class="text-muted">Render</small>
-                  </div>
-                </div>
-                <div>
-                  <button class="btn btn-sm btn-link">
-                    <i class="fas fa-download"></i>
-                  </button>
-                </div>
-              </li>
-              <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center">
-                  <i class="fas fa-file-excel text-success me-2" style="font-size: 1.2rem;"></i>
-                  <div>
-                    <div class="fw-bold">orcamento_final.xlsx</div>
-                    <small class="text-muted">Orçamento</small>
-                  </div>
-                </div>
-                <div>
-                  <button class="btn btn-sm btn-link">
-                    <i class="fas fa-download"></i>
-                  </button>
-                </div>
-              </li>
-              <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center">
-                  <i class="fas fa-file-pdf text-danger me-2" style="font-size: 1.2rem;"></i>
-                  <div>
-                    <div class="fw-bold">especificacoes_tecnicas.pdf</div>
-                    <small class="text-muted">Especificações</small>
-                  </div>
-                </div>
-                <div>
-                  <button class="btn btn-sm btn-link">
-                    <i class="fas fa-download"></i>
-                  </button>
-                </div>
-              </li>
-            </ul>
-            <div class="p-3 text-center">
-              <a href="#" class="btn btn-sm btn-link">Ver todos os arquivos (12)</a>
+              {% endif %}
+              <div>
+                <h6 class="mb-0">{{ projeto.empresa.nome }}</h6>
+                <small class="text-muted">{{ projeto.empresa.get_segmento_display|default:"" }}</small>
+              </div>
+            </div>
+            
+            <div class="list-group list-group-flush">
+              <a href="tel:{{ projeto.cliente.telefone }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                <span><i class="fas fa-phone-alt me-2 text-primary"></i> Telefone</span>
+                <span>{{ projeto.cliente.telefone|default:"Não informado" }}</span>
+              </a>
+              <a href="mailto:{{ projeto.cliente.email }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                <span><i class="fas fa-envelope me-2 text-primary"></i> Email</span>
+                <span>{{ projeto.cliente.email }}</span>
+              </a>
             </div>
           </div>
         </div>
         
-        <!-- Equipe -->
-        <div class="card mb-4">
-          <div class="card-header bg-light py-2">
-            <h6 class="card-title mb-0"><i class="fas fa-users me-2"></i> Equipe do Projeto</h6>
+        <!-- Status do Briefing -->
+        <div class="card mb-3">
+          <div class="card-header bg-light">
+            <h6 class="card-title mb-0">Status do Briefing</h6>
+          </div>
+          <div class="card-body">
+            {% if projeto.tem_briefing %}
+              <div class="text-center mb-3">
+                <div class="mb-2">
+                  {% if projeto.briefing_status == 'em_andamento' %}
+                    <i class="fas fa-edit text-primary" style="font-size: 3rem;"></i>
+                  {% elif projeto.briefing_status == 'enviado' %}
+                    <i class="fas fa-paper-plane text-info" style="font-size: 3rem;"></i>
+                  {% elif projeto.briefing_status == 'aprovado' %}
+                    <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+                  {% elif projeto.briefing_status == 'reprovado' %}
+                    <i class="fas fa-times-circle text-danger" style="font-size: 3rem;"></i>
+                  {% endif %}
+                </div>
+                <h5>
+                  {% if projeto.briefing_status == 'em_andamento' %}
+                    Briefing em Andamento
+                  {% elif projeto.briefing_status == 'enviado' %}
+                    Briefing Enviado
+                  {% elif projeto.briefing_status == 'aprovado' %}
+                    Briefing Aprovado
+                  {% elif projeto.briefing_status == 'reprovado' %}
+                    Briefing Precisa de Ajustes
+                  {% endif %}
+                </h5>
+              </div>
+              
+              <!-- Verificação se o briefing existe -->
+              {% if projeto.briefing %}
+                <div class="progress mb-3" style="height: 10px;">
+                  <div class="progress-bar 
+                    {% if projeto.briefing_status == 'aprovado' %}bg-success
+                    {% elif projeto.briefing_status == 'enviado' %}bg-info
+                    {% elif projeto.briefing_status == 'reprovado' %}bg-danger
+                    {% else %}bg-primary{% endif %}" 
+                    role="progressbar" style="width: {{ projeto.briefing.progresso }}%;" 
+                    aria-valuenow="{{ projeto.briefing.progresso }}" aria-valuemin="0" aria-valuemax="100">
+                  </div>
+                </div>
+                
+                <div class="d-grid">
+                  {% if projeto.briefing_status == 'enviado' %}
+                    <a href="{% url 'gestor:ver_briefing' projeto_id=projeto.id %}" class="btn btn-info">
+                      <i class="fas fa-clipboard-check me-1"></i> Analisar Briefing
+                    </a>
+                  {% else %}
+                    <a href="{% url 'gestor:ver_briefing' projeto_id=projeto.id %}" class="btn btn-outline-primary">
+                      <i class="fas fa-clipboard-list me-1"></i> Ver Briefing
+                    </a>
+                  {% endif %}
+                </div>
+                
+                {% if projeto.briefing_status == 'enviado' %}
+                  <div class="alert alert-info mt-3 mb-0">
+                    <small><i class="fas fa-info-circle me-1"></i> O cliente enviou o briefing e está aguardando sua aprovação.</small>
+                  </div>
+                {% elif projeto.briefing_status == 'reprovado' %}
+                  <div class="alert alert-danger mt-3 mb-0">
+                    <small><i class="fas fa-exclamation-circle me-1"></i> Você solicitou ajustes no briefing. O cliente deve revisar as informações.</small>
+                  </div>
+                {% endif %}
+              {% endif %}
+            {% else %}
+              <div class="text-center mb-3">
+                <div class="mb-2">
+                  <i class="fas fa-clipboard text-secondary" style="font-size: 3rem;"></i>
+                </div>
+                <h5>Briefing Não Iniciado</h5>
+              </div>
+              
+              <p class="text-muted text-center">O cliente ainda não iniciou o preenchimento do briefing.</p>
+            {% endif %}
+          </div>
+        </div>
+        
+        <!-- Projetista -->
+        <div class="card mb-3">
+          <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h6 class="card-title mb-0">Projetista Responsável</h6>
+            {% if projeto.projetista %}
+              <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#alterarProjetistaModal">
+                <i class="fas fa-user-edit me-1"></i> Alterar
+              </button>
+            {% endif %}
+          </div>
+          <div class="card-body">
+            {% if projeto.projetista %}
+              <div class="d-flex align-items-center mb-3">
+                {% if projeto.projetista.foto_perfil %}
+                  <img src="{{ projeto.projetista.foto_perfil.url }}" alt="{{ projeto.projetista.username }}" class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                {% else %}
+                  <div class="bg-success rounded-circle d-flex align-items-center justify-content-center text-white me-3" style="width: 50px; height: 50px;">
+                    {{ projeto.projetista.get_full_name|default:projeto.projetista.username|slice:":1"|upper }}
+                  </div>
+                {% endif %}
+                <div>
+                  <h6 class="mb-0">{{ projeto.projetista.get_full_name|default:projeto.projetista.username }}</h6>
+                  <small class="text-muted">{{ projeto.projetista.email }}</small>
+                </div>
+              </div>
+            {% else %}
+              <div class="text-center py-3">
+                <i class="fas fa-user-plus fa-2x mb-3 text-muted"></i>
+                <p>Nenhum projetista atribuído a este projeto.</p>
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#atribuirProjetistaModal">
+                  <i class="fas fa-user-plus me-1"></i> Atribuir Projetista
+                </button>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+        
+        <!-- Cronograma -->
+        <div class="card mb-3">
+          <div class="card-header bg-light">
+            <h6 class="card-title mb-0">Cronograma</h6>
           </div>
           <div class="card-body p-0">
             <ul class="list-group list-group-flush">
-              <li class="list-group-item d-flex align-items-center">
-                <div class="flex-shrink-0">
-                  <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                    <span class="text-white">AS</span>
-                  </div>
-                </div>
-                <div class="ms-3">
-                  <div class="fw-bold">Ana Silva</div>
-                  <small class="text-muted">Projetista Responsável</small>
-                </div>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-calendar-plus text-primary me-2"></i> Criação</span>
+                <span>{{ projeto.created_at|date:"d/m/Y" }}</span>
               </li>
-              <li class="list-group-item d-flex align-items-center">
-                <div class="flex-shrink-0">
-                  <div class="bg-success rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                    <span class="text-white">CM</span>
-                  </div>
-                </div>
-                <div class="ms-3">
-                  <div class="fw-bold">Carlos Mendes</div>
-                  <small class="text-muted">Gestor do Projeto</small>
-                </div>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-clipboard-list {% if projeto.briefing_status != 'nao_iniciado' %}text-success{% else %}text-muted{% endif %} me-2"></i> Briefing</span>
+                <span>
+                  {% if projeto.briefing_status != 'nao_iniciado' %}
+                    {% if projeto.briefing %}{{ projeto.briefing.updated_at|date:"d/m/Y" }}{% else %}Em andamento{% endif %}
+                  {% else %}
+                    Pendente
+                  {% endif %}
+                </span>
               </li>
-              <li class="list-group-item d-flex align-items-center">
-                <div class="flex-shrink-0">
-                  <div class="bg-info rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                    <span class="text-white">RL</span>
-                  </div>
-                </div>
-                <div class="ms-3">
-                  <div class="fw-bold">Ricardo Lima</div>
-                  <small class="text-muted">Designer</small>
-                </div>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-tasks {% if projeto.status == 'ativo' or projeto.status == 'concluido' %}text-success{% else %}text-muted{% endif %} me-2"></i> Produção</span>
+                <span>
+                  {% if projeto.status == 'ativo' or projeto.status == 'concluido' %}
+                    {{ projeto.data_inicio|date:"d/m/Y" }}
+                  {% else %}
+                    Pendente
+                  {% endif %}
+                </span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-check-circle {% if projeto.status == 'concluido' %}text-success{% else %}text-muted{% endif %} me-2"></i> Conclusão</span>
+                <span>
+                  {% if projeto.status == 'concluido' %}
+                    {{ projeto.updated_at|date:"d/m/Y" }}
+                  {% else %}
+                    Pendente
+                  {% endif %}
+                </span>
               </li>
             </ul>
           </div>
@@ -345,38 +342,204 @@
       </div>
     </div>
   </div>
+  
+  <div class="card-footer bg-light">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#alterarStatusModal">
+          <i class="fas fa-tasks me-1"></i> Alterar Status
+        </button>
+        <a href="{% url 'gestor:mensagens_projeto' projeto_id=projeto.id %}" class="btn btn-outline-info ms-2">
+          <i class="fas fa-comment me-1"></i> Mensagens
+        </a>
+      </div>
+      <div>
+        <a href="{% url 'gestor:projeto_list' %}" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-1"></i> Voltar
+        </a>
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- Estilos específicos para a timeline -->
-<style>
-.timeline {
-  position: relative;
-  padding-left: 1.5rem;
-}
+<!-- Modal para atribuir/alterar projetista -->
+<div class="modal fade" id="atribuirProjetistaModal" tabindex="-1" aria-labelledby="atribuirProjetistaModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="atribuirProjetistaModalLabel">
+          {% if projeto.projetista %}
+            <i class="fas fa-user-edit me-2"></i> Alterar Projetista
+          {% else %}
+            <i class="fas fa-user-plus me-2"></i> Atribuir Projetista
+          {% endif %}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <p>Selecione o projetista para atribuir ao projeto <strong>{{ projeto.nome }}</strong>:</p>
+        
+        {% if projetistas %}
+        <div class="list-group">
+          {% for projetista in projetistas %}
+          <a href="{% url 'gestor:projeto_atribuir' pk=projeto.pk usuario_id=projetista.id %}" class="list-group-item list-group-item-action">
+            <div class="d-flex align-items-center">
+              {% if projetista.foto_perfil %}
+              <img src="{{ projetista.foto_perfil.url }}" alt="{{ projetista.get_full_name }}" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">
+              {% else %}
+              <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white me-3" style="width: 40px; height: 40px;">
+                {{ projetista.get_full_name|default:projetista.username|slice:":1"|upper }}
+              </div>
+              {% endif %}
+              <div>
+                <h6 class="mb-0">{{ projetista.get_full_name|default:projetista.username }}</h6>
+                <small class="text-muted">{{ projetista.email }}</small>
+              </div>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-info mb-0">
+          Nenhum projetista disponível. Cadastre projetistas primeiro.
+        </div>
+        {% endif %}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
 
-.timeline-item {
-  position: relative;
-  padding-bottom: 1.5rem;
-}
+<!-- Modal para alterar status -->
+<div class="modal fade" id="alterarStatusModal" tabindex="-1" aria-labelledby="alterarStatusModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="alterarStatusModalLabel"><i class="fas fa-tasks me-2"></i> Alterar Status do Projeto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <form action="{% url 'gestor:projeto_alterar_status' pk=projeto.pk %}" method="post">
+        {% csrf_token %}
+        <div class="modal-body">
+          <p>Selecione o novo status para o projeto <strong>{{ projeto.nome }}</strong>:</p>
+          
+          <div class="btn-group-vertical w-100" role="group">
+            <input type="radio" class="btn-check" name="status" id="status-pendente" value="pendente" {% if projeto.status == 'pendente' %}checked{% endif %}>
+            <label class="btn btn-outline-info text-start" for="status-pendente">
+              <i class="fas fa-hourglass-start me-2"></i> Pendente
+              <small class="d-block text-muted">Projeto aguardando análise inicial</small>
+            </label>
+            
+            <input type="radio" class="btn-check" name="status" id="status-ativo" value="ativo" {% if projeto.status == 'ativo' %}checked{% endif %}>
+            <label class="btn btn-outline-primary text-start" for="status-ativo">
+              <i class="fas fa-play-circle me-2"></i> Ativo
+              <small class="d-block text-muted">Projeto em andamento</small>
+            </label>
+            
+            <input type="radio" class="btn-check" name="status" id="status-pausado" value="pausado" {% if projeto.status == 'pausado' %}checked{% endif %}>
+            <label class="btn btn-outline-warning text-start" for="status-pausado">
+              <i class="fas fa-pause-circle me-2"></i> Pausado
+              <small class="d-block text-muted">Projeto temporariamente interrompido</small>
+            </label>
+            
+            <input type="radio" class="btn-check" name="status" id="status-concluido" value="concluido" {% if projeto.status == 'concluido' %}checked{% endif %}>
+            <label class="btn btn-outline-success text-start" for="status-concluido">
+              <i class="fas fa-check-circle me-2"></i> Concluído
+              <small class="d-block text-muted">Projeto finalizado com sucesso</small>
+            </label>
+            
+            <input type="radio" class="btn-check" name="status" id="status-cancelado" value="cancelado" {% if projeto.status == 'cancelado' %}checked{% endif %}>
+            <label class="btn btn-outline-danger text-start" for="status-cancelado">
+              <i class="fas fa-times-circle me-2"></i> Cancelado
+              <small class="d-block text-muted">Projeto cancelado</small>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
-.timeline-marker {
-  position: absolute;
-  left: -1.5rem;
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  border: 2px solid white;
-}
+<!-- Modal para upload de arquivo -->
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="uploadModalLabel"><i class="fas fa-upload me-2"></i> Adicionar Arquivo</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <form action="{% url 'gestor:upload_arquivo' projeto_id=projeto.id %}" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="arquivo" class="form-label">Selecione o arquivo</label>
+            <input type="file" class="form-control" id="arquivo" name="arquivo" required>
+          </div>
+          <div class="mb-3">
+            <label for="tipo" class="form-label">Tipo de arquivo</label>
+            <select class="form-select" id="tipo" name="tipo" required>
+              <option value="">Selecione...</option>
+              <option value="imagem">Imagem</option>
+              <option value="planta">Planta</option>
+              <option value="documento">Documento</option>
+              <option value="outro">Outro</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="descricao" class="form-label">Descrição (opcional)</label>
+            <textarea class="form-control" id="descricao" name="descricao" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-upload me-1"></i> Enviar Arquivo
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
-.timeline-item:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  left: -1.5rem;
-  bottom: 0;
-  width: 2px;
-  height: calc(100% - 15px);
-  background-color: #e9ecef;
-  transform: translateX(6.5px);
-}
-</style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Excluir arquivo
+  document.querySelectorAll('.excluir-arquivo').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      
+      if (confirm('Tem certeza que deseja excluir este arquivo?')) {
+        const url = this.getAttribute('data-url');
+        const item = this.closest('.arquivo-item');
+        
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json'
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            item.remove();
+          } else {
+            alert('Erro ao excluir arquivo: ' + data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Erro:', error);
+          alert('Erro ao excluir arquivo. Tente novamente.');
+        });
+      }
+    });
+  });
+});
+</script>
 {% endblock %}

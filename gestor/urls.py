@@ -36,6 +36,21 @@ urlpatterns = [
     path('projetos/<int:pk>/', views.projeto_detail, name='projeto_detail'),
     path('projetos/<int:pk>/atribuir/<int:usuario_id>/', views.projeto_atribuir, name='projeto_atribuir'),
     path('projetos/<int:pk>/alterar-status/', views.projeto_alterar_status, name='projeto_alterar_status'),
+
+    # Para visualizar o briefing
+    path('projetos/<int:projeto_id>/briefing/', views.ver_briefing, name='ver_briefing'),
+
+    # Para aprovar o briefing
+    path('projetos/<int:projeto_id>/briefing/aprovar/', views.aprovar_briefing, name='aprovar_briefing'),
+
+    # Para reprovar o briefing
+    path('projetos/<int:projeto_id>/briefing/reprovar/', views.reprovar_briefing, name='reprovar_briefing'),    
+    
+    # Para upload de arquivos
+    path('projetos/<int:projeto_id>/upload/', views.upload_arquivo, name='upload_arquivo'),
+
+    # Para excluir arquivos
+    path('arquivos/<int:arquivo_id>/excluir/', views.excluir_arquivo, name='excluir_arquivo'),
     
     # Sistema de Mensagens
     path('mensagens/', views.mensagens, name='mensagens'),  # Central de mensagens

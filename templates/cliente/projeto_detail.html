@@ -15,7 +15,7 @@
         </a>
       {% elif projeto.briefing_status == 'em_andamento' %}
         <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=projeto.briefing.etapa_atual %}" class="btn btn-primary btn-sm">
-          <i class="fas fa-edit me-1"></i> Continuar Briefing
+          <i class="fas fa-edit me-1"></i> Acessar Briefing
         </a>
       {% endif %}
       <a href="{% url 'cliente:projeto_update' pk=projeto.pk %}" class="btn btn-outline-primary btn-sm ms-1">
@@ -185,7 +185,7 @@
                   {% if projeto.briefing_status == 'em_andamento' %}
                     <!-- Desab
                     <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=projeto.briefing.etapa_atual %}" class="btn btn-primary">
-                      <i class="fas fa-edit me-1"></i> Continuar Briefing
+                      <i class="fas fa-edit me-1"></i> Acessar Briefing
                     </a>
                     -->
                   {% elif projeto.briefing_status == 'enviado' %}
