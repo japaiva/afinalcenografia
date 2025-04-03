@@ -16,6 +16,65 @@ main.container {
     justify-content: center;
 }
 
+/* Título do aplicativo responsivo sem borda vertical */
+.app-title-text {
+    font-family: 'Montserrat', 'Segoe UI', Arial, sans-serif;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    color: #f0f9ff;
+    text-transform: uppercase;
+    margin-left: 12px;
+    font-size: 1.08rem;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    display: inline-block;
+    position: relative;
+    z-index: 1;
+}
+  
+/* Efeito sutíl de destaque */
+.app-title-text::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 40%;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(96, 165, 250, 0.8), transparent);
+    z-index: -1;
+}
+  
+/* Media queries para responsividade do título */
+@media (max-width: 768px) {
+    .app-title-text {
+        font-size: 0.9rem;
+        margin-left: 8px;
+        letter-spacing: 0.8px;
+    }
+}
+  
+@media (max-width: 576px) {
+    .app-title-text {
+        font-size: 0.75rem;
+        margin-left: 5px;
+    }
+    .app-title-text::after {
+        width: 30%;
+    }
+}
+  
+/* Para dispositivos muito pequenos */
+@media (max-width: 400px) {
+    .navbar-brand img {
+        height: 30px; /* Logo menor */
+    }
+    .app-title-text {
+        max-width: 140px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
 /* Estilos específicos para content-box */
 .content-box {
     background-color: rgba(0, 0, 0, 0.7);
@@ -337,53 +396,10 @@ main.container {
     min-height: 70vh;
 }
 
-.modern-login-box {
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 10px;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-    padding: 2rem;
-    width: 100%;
-    max-width: 400px;
-    margin: 0 auto;
-}
-
+/* Formulário moderno */
 .modern-form .form-control {
     border-radius: 5px;
     padding: 10px 15px;
     margin-bottom: 15px;
     border: 1px solid #ddd;
-}
-
-.modern-button {
-    background-color: #343a40;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    text-decoration: none;
-    display: inline-block;
-}
-
-.modern-button:hover {
-    background-color: #495057;
-    color: white;
-    transform: translateY(-2px);
-}
-
-.modern-login-box {
-    background: rgba(15, 23, 42, 0.85);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-radius: 16px;
-    padding: 2.5rem;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    color: #ffffff;
-    max-width: 450px;
-    width: 100%;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    position: relative;
-    overflow: hidden;
-    margin: 0 auto;
 }
