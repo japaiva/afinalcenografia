@@ -1,16 +1,17 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import LoginView
 from django.contrib import messages
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-
-from core.models import Usuario, Parametro, Empresa
-from core.forms import UsuarioForm, ParametroForm, EmpresaForm
-from projetos.models import Projeto
-
-from django.contrib.auth.views import LoginView
+from django.http import JsonResponse
 from django.urls import reverse_lazy
 
+from core.models import Usuario, Parametro, Empresa, Feira, FeiraManualChunk, ParametroIndexacao
+from core.forms import UsuarioForm, ParametroForm, EmpresaForm, FeiraForm, ParametroIndexacaoForm
+from core.tasks import processar_manual_feira
+from projetos.models import Projeto
 from projetos.models.briefing import Briefing, BriefingConversation, BriefingValidacao, BriefingArquivoReferencia
+
 
 class GestorLoginView(LoginView):
     template_name = 'gestor/login.html'
@@ -599,3 +600,402 @@ def excluir_arquivo(request, arquivo_id):
     arquivo.delete()
     
     return JsonResponse({'success': True})
+
+
+# gestor/views.py (adicionar ao final do arquivo)
+
+@login_required
+def feira_list(request):
+    """
+    Lista de feiras cadastradas
+    """
+    # Ordena por data de início (mais próximas primeiro)
+    feiras_list = Feira.objects.all().order_by('-data_inicio')
+    
+    # Filtro por status (ativa/inativa)
+    status = request.GET.get('status')
+    if status == 'ativa':
+        feiras_list = feiras_list.filter(ativa=True)
+    elif status == 'inativa':
+        feiras_list = feiras_list.filter(ativa=False)
+    
+    # Configurar paginação (10 itens por página)
+    paginator = Paginator(feiras_list, 10)
+    page = request.GET.get('page', 1)
+    
+    try:
+        feiras = paginator.page(page)
+    except PageNotAnInteger:
+        feiras = paginator.page(1)
+    except EmptyPage:
+        feiras = paginator.page(paginator.num_pages)
+    
+    return render(request, 'gestor/feira_list.html', {'feiras': feiras, 'status_filtro': status})
+
+@login_required
+def feira_create(request):
+    """
+    Criação de nova feira
+    """
+    if request.method == 'POST':
+        form = FeiraForm(request.POST, request.FILES)
+        if form.is_valid():
+            feira = form.save()
+            messages.success(request, f'Feira "{feira.nome}" cadastrada com sucesso.')
+            
+            # Agendar processamento do manual em background
+            # (usando Celery, tarefa assíncrona ou thread)
+            processar_manual_feira.delay(feira.id)  # Se estiver usando Celery
+            
+            return redirect('gestor:feira_list')
+    else:
+        form = FeiraForm()
+    
+    return render(request, 'gestor/feira_form.html', {'form': form})
+
+@login_required
+def feira_update(request, pk):
+    """
+    Atualização de feira existente
+    """
+    feira = get_object_or_404(Feira, pk=pk)
+    
+    if request.method == 'POST':
+        form = FeiraForm(request.POST, request.FILES, instance=feira)
+        if form.is_valid():
+            # Verificar se o manual foi alterado
+            manual_alterado = 'manual' in request.FILES
+            
+            feira = form.save()
+            messages.success(request, f'Feira "{feira.nome}" atualizada com sucesso.')
+            
+            # Se o manual foi alterado, processar novamente
+            if manual_alterado:
+                feira.manual_processado = False
+                feira.save(update_fields=['manual_processado'])
+                processar_manual_feira.delay(feira.id)  # Se estiver usando Celery
+            
+            return redirect('gestor:feira_list')
+    else:
+        form = FeiraForm(instance=feira)
+    
+    return render(request, 'gestor/feira_form.html', {'form': form})
+
+@login_required
+def feira_toggle_status(request, pk):
+    """
+    Ativar/Desativar feira
+    """
+    feira = get_object_or_404(Feira, pk=pk)
+    feira.ativa = not feira.ativa
+    feira.save()
+    
+    status = "ativada" if feira.ativa else "desativada"
+    messages.success(request, f'Feira "{feira.nome}" {status} com sucesso.')
+    
+    return redirect('gestor:feira_list')
+
+@login_required
+def feira_detail(request, pk):
+    """
+    Visualizar detalhes da feira
+    """
+    feira = get_object_or_404(Feira, pk=pk)
+    
+    # Obter informações sobre o processamento do manual
+    total_chunks = feira.chunks_manual.count() if hasattr(feira, 'chunks_manual') else 0
+    
+    context = {
+        'feira': feira,
+        'total_chunks': total_chunks,
+        'manual_processado': feira.manual_processado,
+    }
+    
+    return render(request, 'gestor/feira_detail.html', context)
+
+# gestor/views.py (adicionar com as outras views de feira)
+
+@login_required
+def feira_search(request, pk):
+    """
+    API para pesquisar no manual da feira
+    """
+    feira = get_object_or_404(Feira, pk=pk)
+    
+    if request.method != 'POST' or not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'error': 'Método não permitido'}, status=405)
+    
+    query = request.POST.get('query', '')
+    if not query:
+        return JsonResponse({'error': 'Consulta vazia'}, status=400)
+    
+    # Importar a função de pesquisa
+    from core.tasks import pesquisar_manual_feira
+    
+    try:
+        resultados = pesquisar_manual_feira(query, feira_id=feira.id)
+        
+        # Formatar resultados para JSON
+        resultados_json = []
+        for resultado in resultados:
+            chunk = resultado['chunk']
+            resultados_json.append({
+                'chunk': {
+                    'id': chunk.id,
+                    'posicao': chunk.posicao,
+                    'texto': chunk.texto,
+                    'pagina': chunk.pagina
+                },
+                'similaridade': resultado['similaridade']
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'query': query,
+            'results': resultados_json
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+    
+@login_required
+def parametro_indexacao_list(request):
+    """
+    Lista de parâmetros de indexação
+    """
+    # Buscar todos os parâmetros, ordenados por categoria e nome
+    parametros_list = ParametroIndexacao.objects.all().order_by('categoria', 'nome')
+    
+    # Filtro por categoria
+    categoria = request.GET.get('categoria')
+    if categoria:
+        parametros_list = parametros_list.filter(categoria=categoria)
+    
+    # Configurar paginação (15 itens por página)
+    paginator = Paginator(parametros_list, 15)
+    page = request.GET.get('page', 1)
+    
+    try:
+        parametros = paginator.page(page)
+    except PageNotAnInteger:
+        parametros = paginator.page(1)
+    except EmptyPage:
+        parametros = paginator.page(paginator.num_pages)
+    
+    context = {
+        'parametros': parametros,
+        'categorias': dict(ParametroIndexacao._meta.get_field('categoria').choices),
+        'categoria_filtro': categoria,
+    }
+    
+    return render(request, 'gestor/parametro_indexacao_list.html', context)
+
+@login_required
+def parametro_indexacao_create(request):
+    """
+    Criação de novo parâmetro de indexação
+    """
+    if request.method == 'POST':
+        form = ParametroIndexacaoForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Parâmetro de indexação criado com sucesso.')
+            storage = messages.get_messages(request)
+            storage.used = True
+            return redirect('gestor:parametro_indexacao_list')
+    else:
+        form = ParametroIndexacaoForm()
+    
+    return render(request, 'gestor/parametro_indexacao_form.html', {'form': form})
+
+@login_required
+def parametro_indexacao_update(request, pk):
+    """
+    Atualização de parâmetro de indexação
+    """
+    parametro = get_object_or_404(ParametroIndexacao, pk=pk)
+    
+    if request.method == 'POST':
+        form = ParametroIndexacaoForm(request.POST, instance=parametro)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Parâmetro de indexação atualizado com sucesso.')
+            storage = messages.get_messages(request)
+            storage.used = True
+            return redirect('gestor:parametro_indexacao_list')
+    else:
+        form = ParametroIndexacaoForm(instance=parametro)
+    
+    return render(request, 'gestor/parametro_indexacao_form.html', {'form': form})
+
+@login_required
+def parametro_indexacao_delete(request, pk):
+    """
+    Exclusão de parâmetro de indexação
+    """
+    parametro = get_object_or_404(ParametroIndexacao, pk=pk)
+    
+    if request.method == 'POST':
+        parametro.delete()
+        messages.success(request, 'Parâmetro de indexação excluído com sucesso.')
+        storage = messages.get_messages(request)
+        storage.used = True
+        return redirect('gestor:parametro_indexacao_list')
+    
+    return render(request, 'gestor/parametro_indexacao_confirm_delete.html', {'parametro': parametro})
+
+    
+
+@login_required
+def feira_reprocess(request, pk):
+    """
+    Força o reprocessamento do manual da feira
+    """
+    feira = get_object_or_404(Feira, pk=pk)
+    
+    if request.method != 'POST':
+        return redirect('gestor:feira_detail', pk=feira.id)
+    
+    # Resetar o processamento
+    if hasattr(feira, 'reset_processamento'):
+        feira.reset_processamento()
+    else:
+        feira.manual_processado = False
+        feira.processamento_status = 'pendente'
+        feira.progresso_processamento = 0
+    feira.save()
+    
+    # Importar a função
+    from core.tasks import processar_manual_feira
+    
+    try:
+        # Chamar diretamente
+        resultado = processar_manual_feira(feira.id)
+        if resultado.get('status') == 'success':
+            messages.success(request, f'Manual da feira "{feira.nome}" processado com sucesso.')
+        else:
+            messages.error(request, f'Erro ao processar manual: {resultado.get("message")}')
+    except Exception as e:
+        messages.error(request, f'Erro ao processar manual: {str(e)}')
+    
+    return redirect('gestor:feira_detail', pk=feira.id)
+
+
+# Modificação da view feira_search para usar Pinecone
+@login_required
+def feira_search(request, pk):
+    """
+    API para pesquisar no manual da feira usando Pinecone
+    """
+    feira = get_object_or_404(Feira, pk=pk)
+    
+    if request.method != 'POST' or not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'error': 'Método não permitido'}, status=405)
+    
+    query = request.POST.get('query', '')
+    if not query:
+        return JsonResponse({'error': 'Consulta vazia'}, status=400)
+    
+    # Importar a função de pesquisa
+    from core.tasks import pesquisar_manual_feira
+    
+    try:
+        resultados = pesquisar_manual_feira(query, feira_id=feira.id)
+        
+        # Verificar se houve erro
+        if isinstance(resultados, dict) and 'status' in resultados and resultados['status'] == 'error':
+            return JsonResponse({
+                'success': False,
+                'error': resultados['message']
+            }, status=500)
+        
+        # Formatar resultados para JSON
+        resultados_json = []
+        for resultado in resultados:
+            chunk = resultado['chunk']
+            resultados_json.append({
+                'chunk': {
+                    'id': chunk['id'],
+                    'posicao': chunk['posicao'],
+                    'texto': chunk['texto'],
+                    'pagina': chunk['pagina']
+                },
+                'similaridade': resultado['similaridade']
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'query': query,
+            'results': resultados_json
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+    
+@login_required
+def feira_reprocess(request, pk):
+    """
+    Força o reprocessamento do manual da feira
+    """
+    feira = get_object_or_404(Feira, pk=pk)
+    
+    if request.method != 'POST':
+        return redirect('gestor:feira_detail', pk=feira.id)
+    
+    # Resetar o processamento
+    if hasattr(feira, 'reset_processamento'):
+        feira.reset_processamento()
+    else:
+        feira.manual_processado = False
+        feira.processamento_status = 'pendente'
+        feira.progresso_processamento = 0
+    feira.save()
+    
+    # Importar a função
+    from core.tasks import processar_manual_feira
+    
+    try:
+        # Chamar diretamente (sem .delay())
+        resultado = processar_manual_feira(feira.id)
+        if resultado.get('status') == 'success':
+            messages.success(request, f'Manual da feira "{feira.nome}" processado com sucesso.')
+        else:
+            messages.error(request, f'Erro ao processar manual: {resultado.get("message")}')
+    except Exception as e:
+        messages.error(request, f'Erro ao processar manual: {str(e)}')
+    
+    return redirect('gestor:feira_detail', pk=feira.id)
+
+
+@login_required
+def feira_progress(request, pk):
+    """
+    API para obter o progresso de processamento de uma feira
+    """
+    try:
+        feira = Feira.objects.get(pk=pk)
+        return JsonResponse({
+            'success': True,
+            'progress': feira.progresso_processamento,
+            'status': feira.processamento_status,
+            'message': feira.mensagem_erro if feira.mensagem_erro else None,
+            'processed': feira.manual_processado,
+            'total_chunks': feira.total_chunks,
+            'total_paginas': feira.total_paginas
+        })
+    except Feira.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Feira não encontrada'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False, 
+            'error': str(e)
+        }, status=500)

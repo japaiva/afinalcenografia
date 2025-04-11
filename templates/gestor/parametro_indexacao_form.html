@@ -1,0 +1,133 @@
+{% extends 'gestor/base_gestor.html' %}
+
+{% block title %}{% if form.instance.pk %}Editar{% else %}Novo{% endif %} Parâmetro de Indexação | Portal do Gestor | Afinal Cenografia{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-light">
+    <h5 class="card-title mb-0">
+      <i class="fas {% if form.instance.pk %}fa-edit{% else %}fa-plus-circle{% endif %} me-2"></i>
+      {% if form.instance.pk %}Editar{% else %}Novo{% endif %} Parâmetro de Indexação
+    </h5>
+  </div>
+  
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+          {% for error in form.non_field_errors %}
+            <p class="mb-0">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+      
+      <div class="row g-3">
+        <!-- Nome do parâmetro -->
+        <div class="col-md-6">
+          <label for="{{ form.nome.id_for_label }}" class="form-label">Nome do Parâmetro*</label>
+          {{ form.nome }}
+          <div class="form-text">Utilize nomes descritivos como CHUNK_SIZE, EMBEDDING_MODEL, etc.</div>
+          {% if form.nome.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.nome.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Categoria -->
+        <div class="col-md-6">
+          <label for="{{ form.categoria.id_for_label }}" class="form-label">Categoria*</label>
+          {{ form.categoria }}
+          {% if form.categoria.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.categoria.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Valor -->
+        <div class="col-md-6">
+          <label for="{{ form.valor.id_for_label }}" class="form-label">Valor*</label>
+          {{ form.valor }}
+          {% if form.valor.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.valor.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Tipo -->
+        <div class="col-md-6">
+          <label for="{{ form.tipo.id_for_label }}" class="form-label">Tipo de Valor*</label>
+          {{ form.tipo }}
+          <div class="form-text">Tipo de dado que será convertido durante o uso</div>
+          {% if form.tipo.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.tipo.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Descrição -->
+        <div class="col-12">
+          <label for="{{ form.descricao.id_for_label }}" class="form-label">Descrição</label>
+          {{ form.descricao }}
+          <div class="form-text">Descrição detalhada do parâmetro para referência futura</div>
+          {% if form.descricao.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.descricao.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      
+      <div class="d-flex justify-content-between mt-4">
+        <a href="{% url 'gestor:parametro_indexacao_list' %}" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-1"></i> Voltar
+        </a>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save me-1"></i> Salvar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card mt-4">
+  <div class="card-header bg-light">
+    <h6 class="card-title mb-0">
+      <i class="fas fa-info-circle me-2"></i> Ajuda sobre Parâmetros
+    </h6>
+  </div>
+  <div class="card-body">
+    <h6>Parâmetros de Chunking</h6>
+    <ul>
+      <li><strong>CHUNK_SIZE</strong> (int): Tamanho aproximado de cada chunk em tokens (ex: 1000)</li>
+      <li><strong>CHUNK_OVERLAP</strong> (int): Quantidade de sobreposição entre chunks em tokens (ex: 100)</li>
+      <li><strong>CHUNKING_STRATEGY</strong> (str): Estratégia de divisão ("page" ou "document")</li>
+    </ul>
+    
+    <h6>Parâmetros de Embeddings</h6>
+    <ul>
+      <li><strong>EMBEDDING_MODEL</strong> (str): Modelo de embedding da OpenAI (ex: "text-embedding-ada-002")</li>
+      <li><strong>EMBEDDING_DIMENSION</strong> (int): Dimensionalidade do embedding (ex: 1536 para ada-002)</li>
+    </ul>
+    
+    <h6>Parâmetros do Pinecone</h6>
+    <ul>
+      <li><strong>PINECONE_API_KEY</strong> (str): Chave de API do Pinecone</li>
+      <li><strong>PINECONE_ENVIRONMENT</strong> (str): Ambiente do Pinecone (ex: "gcp-starter")</li>
+      <li><strong>PINECONE_INDEX_NAME</strong> (str): Nome do índice no Pinecone</li>
+      <li><strong>PINECONE_METRIC</strong> (str): Métrica de similaridade (ex: "cosine", "euclidean", "dotproduct")</li>
+    </ul>
+    
+    <h6>Parâmetros de Busca</h6>
+    <ul>
+      <li><strong>SEARCH_TOP_K</strong> (int): Número de resultados a retornar em buscas (ex: 3)</li>
+      <li><strong>SEARCH_THRESHOLD</strong> (float): Limiar mínimo de similaridade (ex: 0.7)</li>
+    </ul>
+  </div>
+</div>
+{% endblock %}

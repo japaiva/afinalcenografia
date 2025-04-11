@@ -1,0 +1,196 @@
+{% extends 'gestor/base_gestor.html' %}
+
+{% block title %}{% if form.instance.pk %}Editar{% else %}Nova{% endif %} Feira | Portal do Gestor | Afinal Cenografia{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-light">
+    <h5 class="card-title mb-0">
+      <i class="fas {% if form.instance.pk %}fa-edit{% else %}fa-plus-circle{% endif %} me-2"></i>
+      {% if form.instance.pk %}Editar{% else %}Nova{% endif %} Feira
+    </h5>
+  </div>
+  
+  <div class="card-body">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+          {% for error in form.non_field_errors %}
+            <p class="mb-0">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+      
+      <div class="row g-3">
+        <!-- Nome da Feira -->
+        <div class="col-md-6">
+          <label for="{{ form.nome.id_for_label }}" class="form-label">Nome da Feira*</label>
+          {{ form.nome }}
+          {% if form.nome.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.nome.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Local -->
+        <div class="col-md-6">
+          <label for="{{ form.local.id_for_label }}" class="form-label">Local/Centro de Exposições*</label>
+          {{ form.local }}
+          {% if form.local.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.local.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Cidade e Estado -->
+        <div class="col-md-6">
+          <label for="{{ form.cidade.id_for_label }}" class="form-label">Cidade*</label>
+          {{ form.cidade }}
+          {% if form.cidade.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.cidade.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <div class="col-md-6">
+          <label for="{{ form.estado.id_for_label }}" class="form-label">UF*</label>
+          {{ form.estado }}
+          {% if form.estado.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.estado.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Datas -->
+        <div class="col-md-6">
+          <label for="{{ form.data_inicio.id_for_label }}" class="form-label">Data de Início*</label>
+          {{ form.data_inicio }}
+          {% if form.data_inicio.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.data_inicio.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <div class="col-md-6">
+          <label for="{{ form.data_fim.id_for_label }}" class="form-label">Data de Término*</label>
+          {{ form.data_fim }}
+          {% if form.data_fim.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.data_fim.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Website -->
+        <div class="col-md-6">
+          <label for="{{ form.website.id_for_label }}" class="form-label">Website</label>
+          {{ form.website }}
+          {% if form.website.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.website.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Contato -->
+        <div class="col-md-6">
+          <label for="{{ form.contato_organizacao.id_for_label }}" class="form-label">Contato da Organização</label>
+          {{ form.contato_organizacao }}
+          {% if form.contato_organizacao.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.contato_organizacao.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Email e Telefone -->
+        <div class="col-md-6">
+          <label for="{{ form.email_organizacao.id_for_label }}" class="form-label">Email da Organização</label>
+          {{ form.email_organizacao }}
+          {% if form.email_organizacao.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.email_organizacao.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <div class="col-md-6">
+          <label for="{{ form.telefone_organizacao.id_for_label }}" class="form-label">Telefone da Organização</label>
+          {{ form.telefone_organizacao }}
+          {% if form.telefone_organizacao.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.telefone_organizacao.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Manual -->
+        <div class="col-12">
+          <label for="{{ form.manual.id_for_label }}" class="form-label">Manual da Feira*</label>
+          {{ form.manual }}
+          {% if form.manual.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.manual.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+          {% if form.instance.manual %}
+            <div class="mt-2">
+              <p class="mb-1 small">Manual atual:</p>
+              <a href="{{ form.instance.manual.url }}" target="_blank" class="btn btn-sm btn-outline-info">
+                <i class="fas fa-file-pdf me-1"></i> Visualizar Manual Atual
+              </a>
+              {% if form.instance.manual_processado %}
+                <span class="badge bg-success ms-2">Processado</span>
+              {% else %}
+                <span class="badge bg-warning text-dark ms-2">Processando</span>
+              {% endif %}
+              <div class="form-text">
+                Fazer upload de um novo arquivo substituirá o manual atual e iniciará um novo processamento.
+              </div>
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Status -->
+        <div class="col-12">
+          <div class="form-check form-switch mt-2">
+            {{ form.ativa }}
+            <label class="form-check-label" for="{{ form.ativa.id_for_label }}">Feira Ativa</label>
+          </div>
+          {% if form.ativa.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.ativa.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+          <div class="form-text">
+            Apenas feiras ativas aparecem nas listas de seleção para novos projetos.
+        </div>
+    </div>
+  </div>
+  
+  <div class="d-flex justify-content-between mt-4">
+    <a href="{% url 'gestor:feira_list' %}" class="btn btn-outline-secondary">
+      <i class="fas fa-arrow-left me-1"></i> Voltar
+    </a>
+    <button type="submit" class="btn btn-primary">
+      <i class="fas fa-save me-1"></i> Salvar
+    </button>
+  </div>
+</form>
+</div>
+</div>
+
+{% if form.instance.pk %}
+<div class="alert alert-info mt-4">
+<i class="fas fa-info-circle me-2"></i> 
+<strong>Nota:</strong> Ao fazer upload de um novo manual, o sistema irá processá-lo automaticamente em segundo plano. Isso pode levar alguns minutos dependendo do tamanho do arquivo.
+</div>
+{% endif %}
+{% endblock %}

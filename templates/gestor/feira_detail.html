@@ -1,0 +1,413 @@
+{% extends 'gestor/base_gestor.html' %}
+
+{% block title %}{{ feira.nome }} | Portal do Gestor | Afinal Cenografia{% endblock %}
+
+{% block extra_head %}
+<style>
+  .loading-spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 0.15em solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-border .75s linear infinite;
+  }
+  @keyframes spinner-border {
+    to { transform: rotate(360deg); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">
+      <i class="fas fa-calendar-alt me-2"></i> {{ feira.nome }}
+    </h5>
+    <div>
+      <a href="{% url 'gestor:feira_update' feira.id %}" class="btn btn-outline-primary btn-sm me-1">
+        <i class="fas fa-edit me-1"></i> Editar
+      </a>
+      <a href="{% url 'gestor:feira_toggle_status' feira.id %}" class="btn btn-sm {% if feira.ativa %}btn-outline-danger{% else %}btn-outline-success{% endif %}">
+        <i class="fas {% if feira.ativa %}fa-ban{% else %}fa-check-circle{% endif %} me-1"></i> 
+        {% if feira.ativa %}Desativar{% else %}Ativar{% endif %}
+      </a>
+    </div>
+  </div>
+  
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-6">
+        <div class="card mb-3">
+          <div class="card-header bg-light">
+            <h6 class="card-title mb-0">Informações Gerais</h6>
+          </div>
+          <div class="card-body">
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item d-flex justify-content-between">
+                <span class="fw-bold">Nome:</span>
+                <span>{{ feira.nome }}</span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between">
+                <span class="fw-bold">Local:</span>
+                <span>{{ feira.local }}</span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between">
+                <span class="fw-bold">Cidade/UF:</span>
+                <span>{{ feira.cidade }}/{{ feira.estado }}</span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between">
+                <span class="fw-bold">Período:</span>
+                <span>{{ feira.data_inicio|date:"d/m/Y" }} a {{ feira.data_fim|date:"d/m/Y" }}</span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between">
+                <span class="fw-bold">Website:</span>
+                <span>
+                  {% if feira.website %}
+                    <a href="{{ feira.website }}" target="_blank">{{ feira.website }}</a>
+                  {% else %}
+                    -
+                  {% endif %}
+                </span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between">
+                <span class="fw-bold">Status:</span>
+                <span>
+                  <span class="badge {% if feira.ativa %}bg-success{% else %}bg-danger{% endif %}">
+                    {% if feira.ativa %}Ativa{% else %}Inativa{% endif %}
+                  </span>
+                </span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-6">
+        <div class="card mb-3">
+          <div class="card-header bg-light">
+            <h6 class="card-title mb-0">Contato da Organização</h6>
+          </div>
+          <div class="card-body">
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item d-flex justify-content-between">
+                <span class="fw-bold">Contato:</span>
+                <span>{{ feira.contato_organizacao|default:"-" }}</span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between">
+                <span class="fw-bold">Email:</span>
+                <span>{{ feira.email_organizacao|default:"-" }}</span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between">
+                <span class="fw-bold">Telefone:</span>
+                <span>{{ feira.telefone_organizacao|default:"-" }}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="card mb-3">
+          <div class="card-header bg-light">
+            <h6 class="card-title mb-0">Manual da Feira</h6>
+          </div>
+          <div class="card-body">
+            {% if feira.manual %}
+              <div class="mb-3">
+                <a href="{{ feira.manual.url }}" class="btn btn-outline-primary" target="_blank">
+                  <i class="fas fa-file-pdf me-1"></i> Visualizar Manual
+                </a>
+                
+                <a href="{{ feira.manual.url }}" class="btn btn-outline-secondary" download>
+                  <i class="fas fa-download me-1"></i> Download
+                </a>
+              </div>
+              
+              <!-- Área de acompanhamento de processamento -->
+              <div id="processamentoStatus">
+                {% if feira.processamento_status == 'processando' %}
+                  <div class="card border-warning mb-3">
+                    <div class="card-body">
+                      <h6 class="card-title text-warning">
+                        <i class="fas fa-spinner fa-spin me-2"></i> Processamento em andamento
+                      </h6>
+                      <div class="progress mb-2" style="height: 20px;">
+                        <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" 
+                             style="width: {{ feira.progresso_processamento }}%;" 
+                             aria-valuenow="{{ feira.progresso_processamento }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                          {{ feira.progresso_processamento }}%
+                        </div>
+                      </div>
+                      <p class="card-text mb-0" id="processamentoDetalhes">
+                        <!-- Será atualizado via AJAX -->
+                        Lendo e processando o documento...
+                      </p>
+                    </div>
+                  </div>
+                {% elif feira.processamento_status == 'erro' %}
+                  <div class="card border-danger mb-3">
+                    <div class="card-body">
+                      <h6 class="card-title text-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i> Erro no processamento
+                      </h6>
+                      <p class="card-text">
+                        {{ feira.mensagem_erro|default:"Ocorreu um erro durante o processamento do manual." }}
+                      </p>
+                      <button class="btn btn-danger btn-sm" onclick="document.getElementById('reprocessButton').click();">
+                        <i class="fas fa-sync-alt me-1"></i> Tentar novamente
+                      </button>
+                    </div>
+                  </div>
+                {% elif feira.processamento_status == 'concluido' %}
+                  <div class="alert alert-success">
+                    <div class="d-flex align-items-center">
+                      <div class="me-3">
+                        <i class="fas fa-check-circle fa-2x"></i>
+                      </div>
+                      <div>
+                        <p class="mb-0"><strong>Manual processado com sucesso</strong></p>
+                        <p class="mb-0">Total de páginas: {{ feira.total_paginas }}</p>
+                        <p class="mb-0">Total de chunks: {{ feira.total_chunks }}</p>
+                        <small class="text-muted">Última atualização: {{ feira.ultima_atualizacao|date:"d/m/Y H:i" }}</small>
+                      </div>
+                    </div>
+                  </div>
+                {% else %}
+                  <div class="alert alert-warning">
+                    <div class="d-flex align-items-center">
+                      <div class="me-3">
+                        <i class="fas fa-clock fa-2x"></i>
+                      </div>
+                      <div>
+                        <p class="mb-0"><strong>Manual pendente de processamento</strong></p>
+                        <p class="mb-0">O manual será processado automaticamente.</p>
+                        <p class="mb-0">Você também pode iniciar o processamento manualmente:</p>
+                        <button class="btn btn-warning btn-sm mt-2" onclick="document.getElementById('reprocessButton').click();">
+                          <i class="fas fa-play me-1"></i> Iniciar Processamento
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                {% endif %}
+              </div>
+            {% else %}
+              <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i> 
+                Esta feira não possui um manual cadastrado.
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    {% if feira.manual_processado and feira.total_chunks > 0 %}
+    <div class="card mt-3">
+      <div class="card-header bg-light">
+        <h6 class="card-title mb-0">Consultar Manual</h6>
+      </div>
+      <div class="card-body">
+        <form id="searchForm" method="post" action="{% url 'gestor:feira_search' feira.id %}">
+          {% csrf_token %}
+          <div class="input-group mb-3">
+            <input type="text" name="query" class="form-control" placeholder="O que você deseja encontrar no manual?" required>
+            <button class="btn btn-primary" type="submit" id="searchButton">
+              <i class="fas fa-search me-1"></i> Pesquisar
+            </button>
+          </div>
+        </form>
+        
+        <div id="searchResults" class="mt-3" style="display: none;">
+          <h6 class="border-bottom pb-2 mb-3">Resultados da pesquisa</h6>
+          <div id="resultsContainer">
+            <!-- Os resultados serão exibidos aqui via JavaScript -->
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  
+  <div class="card-footer bg-white">
+    <div class="d-flex justify-content-between">
+      <a href="{% url 'gestor:feira_list' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i> Voltar para Lista
+      </a>
+      
+      {% if feira.manual %}
+      <button class="btn btn-outline-primary" onclick="document.getElementById('reprocessButton').click();">
+        <i class="fas fa-sync-alt me-1"></i> {% if feira.manual_processado %}Reprocessar{% else %}Processar{% endif %} Manual
+      </button>
+      <form method="post" action="{% url 'gestor:feira_reprocess' feira.id %}" class="d-none">
+        {% csrf_token %}
+        <button id="reprocessButton" type="submit">Reprocessar</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% if feira.manual and feira.processamento_status == 'processando' %}
+<script>
+  // Função para atualizar o progresso
+  function atualizarProgresso() {
+    fetch('{% url "gestor:feira_progress" feira.id %}')
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Atualizar barra de progresso
+          const progressBar = document.getElementById('progressBar');
+          progressBar.style.width = data.progress + '%';
+          progressBar.setAttribute('aria-valuenow', data.progress);
+          progressBar.innerText = data.progress + '%';
+          
+          // Atualizar detalhes
+          let detalhes = '';
+          if (data.progress < 50) {
+            detalhes = `Lendo o documento... (${data.progress}%)`;
+          } else if (data.progress < 95) {
+            detalhes = `Gerando embeddings e armazenando no Pinecone... (${data.progress}%)`;
+          } else {
+            detalhes = 'Finalizando processamento...';
+          }
+          
+          if (data.total_paginas > 0) {
+            detalhes += ` | Total de páginas: ${data.total_paginas}`;
+          }
+          
+          if (data.total_chunks > 0) {
+            detalhes += ` | Chunks processados: ${data.total_chunks}`;
+          }
+          
+          document.getElementById('processamentoDetalhes').innerText = detalhes;
+          
+          // Verificar se o processamento foi concluído
+          if (data.processed || data.status === 'concluido') {
+            // Recarregar a página quando concluir
+            location.reload();
+          } else if (data.status === 'erro') {
+            // Exibir mensagem de erro
+            const statusDiv = document.getElementById('processamentoStatus');
+            statusDiv.innerHTML = `
+              <div class="card border-danger mb-3">
+                <div class="card-body">
+                  <h6 class="card-title text-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i> Erro no processamento
+                  </h6>
+                  <p class="card-text">
+                    ${data.message || "Ocorreu um erro durante o processamento do manual."}
+                  </p>
+                  <button class="btn btn-danger btn-sm" onclick="document.getElementById('reprocessButton').click();">
+                    <i class="fas fa-sync-alt me-1"></i> Tentar novamente
+                  </button>
+                </div>
+              </div>
+            `;
+          } else {
+            // Continuar atualizando se ainda estiver processando
+            setTimeout(atualizarProgresso, 2000);
+          }
+        } else {
+          console.error('Erro ao buscar progresso:', data.error);
+          setTimeout(atualizarProgresso, 5000);
+        }
+      })
+      .catch(error => {
+        console.error('Erro na requisição:', error);
+        setTimeout(atualizarProgresso, 5000);
+      });
+  }
+  
+  // Iniciar o monitoramento quando a página carregar
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(atualizarProgresso, 1000);
+  });
+</script>
+{% endif %}
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const searchForm = document.getElementById('searchForm');
+    if (searchForm) {
+      searchForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const form = this;
+        const query = form.querySelector('input[name="query"]').value;
+        const resultsDiv = document.getElementById('searchResults');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const searchButton = document.getElementById('searchButton');
+        
+        // Desabilitar botão e mostrar loading
+        searchButton.disabled = true;
+        searchButton.innerHTML = '<i class="loading-spinner me-1"></i> Pesquisando...';
+        
+        // Mostrar loading
+        resultsDiv.style.display = 'block';
+        resultsContainer.innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin me-2"></i> Pesquisando...</div>';
+        
+        // Enviar requisição AJAX
+        fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          resultsContainer.innerHTML = '';
+          searchButton.disabled = false;
+          searchButton.innerHTML = '<i class="fas fa-search me-1"></i> Pesquisar';
+          
+          if (data.results && data.results.length > 0) {
+            data.results.forEach(result => {
+              const resultDiv = document.createElement('div');
+              resultDiv.className = 'card mb-3';
+              resultDiv.innerHTML = `
+                <div class="card-body">
+                  <div class="d-flex align-items-center mb-2">
+                    <span class="badge bg-primary me-2">${result.similaridade.toFixed(2)}</span>
+                    <small class="text-muted">
+                      ${result.chunk.pagina ? `Página ${result.chunk.pagina}, ` : ''}
+                      Chunk #${result.chunk.posicao}
+                    </small>
+                  </div>
+                  <div class="text-excerpt">
+                    ${result.chunk.texto.substring(0, 300)}...
+                  </div>
+                  <button class="btn btn-sm btn-outline-secondary mt-2" onclick="toggleFullText(this)">
+                    Ver texto completo
+                  </button>
+                  <div class="full-text mt-2" style="display: none;">
+                    ${result.chunk.texto.replace(/\n/g, '<br>')}
+                  </div>
+                </div>
+              `;
+              resultsContainer.appendChild(resultDiv);
+            });
+          } else {
+            resultsContainer.innerHTML = '<div class="alert alert-info">Nenhum resultado encontrado para sua consulta.</div>';
+          }
+        })
+        .catch(error => {
+          searchButton.disabled = false;
+          searchButton.innerHTML = '<i class="fas fa-search me-1"></i> Pesquisar';
+          resultsContainer.innerHTML = `<div class="alert alert-danger">Erro ao processar sua consulta: ${error}</div>`;
+        });
+      });
+    }
+  });
+  
+  function toggleFullText(button) {
+    const fullText = button.nextElementSibling;
+    const isHidden = fullText.style.display === 'none';
+    
+    fullText.style.display = isHidden ? 'block' : 'none';
+    button.textContent = isHidden ? 'Ocultar texto completo' : 'Ver texto completo';
+  }
+</script>
+{% endblock %}
