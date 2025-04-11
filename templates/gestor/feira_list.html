@@ -1,0 +1,147 @@
+{% extends 'gestor/base_gestor.html' %}
+
+{% block title %}Feiras | Portal do Gestor | Afinal Cenografia{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">
+      <i class="fas fa-calendar-alt me-2"></i> Feiras e Eventos
+    </h5>
+    <a href="{% url 'gestor:feira_create' %}" class="btn btn-primary btn-sm">
+      <i class="fas fa-plus me-1"></i> Nova Feira
+    </a>
+  </div>
+  
+  <div class="card-header bg-white">
+    <form method="get" class="row g-2 align-items-center">
+      <div class="col-auto">
+        <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="">Todas as Feiras</option>
+          <option value="ativa" {% if status_filtro == 'ativa' %}selected{% endif %}>Ativas</option>
+          <option value="inativa" {% if status_filtro == 'inativa' %}selected{% endif %}>Inativas</option>
+        </select>
+      </div>
+    </form>
+  </div>
+  
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Feira</th>
+            <th>Local</th>
+            <th>Período</th>
+            <th>Manual</th>
+            <th class="text-center">Status</th>
+            <th class="text-end">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for feira in feiras %}
+            <tr>
+              <td>{{ feira.nome }}</td>
+              <td>{{ feira.cidade }}/{{ feira.estado }}</td>
+              <td>{{ feira.data_inicio|date:"d/m/Y" }} a {{ feira.data_fim|date:"d/m/Y" }}</td>
+              <td>
+                {% if feira.manual %}
+                  <a href="{{ feira.manual.url }}" target="_blank" class="btn btn-sm btn-outline-info">
+                    <i class="fas fa-file-pdf me-1"></i> Manual
+                  </a>
+                  {% if feira.manual_processado %}
+                    <span class="badge bg-success ms-1"><i class="fas fa-check-circle"></i> Processado</span>
+                  {% else %}
+                    <span class="badge bg-warning text-dark ms-1"><i class="fas fa-clock"></i> Processando</span>
+                  {% endif %}
+                {% else %}
+                  <span class="text-muted">Sem manual</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                <span class="badge {% if feira.ativa %}bg-success{% else %}bg-danger{% endif %}">
+                  {% if feira.ativa %}Ativa{% else %}Inativa{% endif %}
+                </span>
+              </td>
+              <td class="text-end">
+                <a href="{% url 'gestor:feira_detail' feira.id %}" class="btn btn-sm btn-outline-secondary me-1" title="Detalhes">
+                  <i class="fas fa-eye"></i>
+                </a>
+                <a href="{% url 'gestor:feira_update' feira.id %}" class="btn btn-sm btn-outline-primary me-1" title="Editar">
+                  <i class="fas fa-edit"></i>
+                </a>
+                <a href="{% url 'gestor:feira_toggle_status' feira.id %}" class="btn btn-sm {% if feira.ativa %}btn-outline-danger{% else %}btn-outline-success{% endif %}" 
+                   title="{% if feira.ativa %}Desativar{% else %}Ativar{% endif %}">
+                  <i class="fas {% if feira.ativa %}fa-ban{% else %}fa-check-circle{% endif %}"></i>
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="text-center py-3 text-muted">
+                Nenhuma feira cadastrada.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  {% if feiras.paginator.num_pages > 1 %}
+  <div class="card-footer bg-white">
+    <nav aria-label="Navegação de página">
+      <ul class="pagination pagination-sm justify-content-center mb-0">
+        {% if feiras.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page=1{% if status_filtro %}&status={{ status_filtro }}{% endif %}" aria-label="Primeiro">
+              <span aria-hidden="true">&laquo;&laquo;</span>
+            </a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ feiras.previous_page_number }}{% if status_filtro %}&status={{ status_filtro }}{% endif %}" aria-label="Anterior">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">&laquo;&laquo;</span>
+          </li>
+          <li class="page-item disabled">
+            <span class="page-link">&laquo;</span>
+          </li>
+        {% endif %}
+        
+        {% for i in feiras.paginator.page_range %}
+          {% if feiras.number == i %}
+            <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+          {% elif i > feiras.number|add:'-3' and i < feiras.number|add:'3' %}
+            <li class="page-item"><a class="page-link" href="?page={{ i }}{% if status_filtro %}&status={{ status_filtro }}{% endif %}">{{ i }}</a></li>
+          {% endif %}
+        {% endfor %}
+        
+        {% if feiras.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ feiras.next_page_number }}{% if status_filtro %}&status={{ status_filtro }}{% endif %}" aria-label="Próximo">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ feiras.paginator.num_pages }}{% if status_filtro %}&status={{ status_filtro }}{% endif %}" aria-label="Último">
+              <span aria-hidden="true">&raquo;&raquo;</span>
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">&raquo;</span>
+          </li>
+          <li class="page-item disabled">
+            <span class="page-link">&raquo;&raquo;</span>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,91 +1,139 @@
 from django import forms
+from core.models import Usuario, Parametro, Empresa, Feira, ParametroIndexacao
 from django.contrib.auth.hashers import make_password
-from core.models import Usuario, Empresa, Parametro, PerfilUsuario
-from core.storage import MinioStorage
 
-
-class EmpresaForm(forms.ModelForm):
+class UsuarioForm(forms.ModelForm):
+    confirm_password = forms.CharField(widget=forms.PasswordInput(), required=False)
+    password = forms.CharField(widget=forms.PasswordInput(), required=False)
+    
     class Meta:
-        model = Empresa
-        fields = ['nome', 'cnpj', 'endereco', 'telefone', 'email', 'logo', 'ativa']
+        model = Usuario
+        fields = ['username', 'first_name', 'last_name', 'email', 'nivel', 'empresa', 'telefone', 'is_active']
         widgets = {
-            'nome': forms.TextInput(attrs={'class': 'form-control'}),
-            'cnpj': forms.TextInput(attrs={'class': 'form-control', 'data-mask': '00.000.000/0000-00'}),
-            'endereco': forms.TextInput(attrs={'class': 'form-control'}),
-            'telefone': forms.TextInput(attrs={'class': 'form-control', 'data-mask': '(00) 00000-0000'}),
+            'telefone': forms.TextInput(attrs={'class': 'form-control'}),
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
-            'logo': forms.FileInput(attrs={'class': 'form-control'}),
-            'ativa': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'nivel': forms.Select(attrs={'class': 'form-select'}),
+            'empresa': forms.Select(attrs={'class': 'form-select'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super(UsuarioForm, self).__init__(*args, **kwargs)
+        
+        # Se estiver editando um usuário existente, não exigir senha
+        if self.instance.pk:
+            self.fields['password'].required = False
+            self.fields['confirm_password'].required = False
+        else:
+            self.fields['password'].required = True
+            self.fields['confirm_password'].required = True
+        
+        # Adicionar atributos de classe para os widgets que não foram especificados
+        for field_name, field in self.fields.items():
+            if not hasattr(field.widget, 'attrs') or 'class' not in field.widget.attrs:
+                if isinstance(field.widget, forms.CheckboxInput):
+                    field.widget.attrs['class'] = 'form-check-input'
+                else:
+                    field.widget.attrs['class'] = 'form-control'
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        confirm_password = cleaned_data.get("confirm_password")
+        
+        if password and confirm_password and password != confirm_password:
+            self.add_error('confirm_password', "As senhas não coincidem.")
+        
+        return cleaned_data
+    
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        
+        # Se uma senha foi fornecida, codificá-la
+        password = self.cleaned_data.get('password')
+        if password:
+            user.password = make_password(password)
+        
+        if commit:
+            user.save()
+        
+        return user
 
 class ParametroForm(forms.ModelForm):
     class Meta:
         model = Parametro
         fields = ['parametro', 'valor']
         widgets = {
-            'parametro': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
-            'valor': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
+            'parametro': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nome do parâmetro'}),
+            'valor': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Valor do parâmetro'})
         }
 
-class UsuarioForm(forms.ModelForm):
-    password = forms.CharField(
-        label="Senha", 
-        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
-        required=False,
-        help_text="Deixe em branco para manter a senha atual (ao editar)."
-    )
-    
+class EmpresaForm(forms.ModelForm):
     class Meta:
-        model = Usuario
+        model = Empresa
+        fields = ['nome', 'cnpj', 'endereco', 'telefone', 'email', 'logo', 'ativa']
+        widgets = {
+            'nome': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nome da empresa'}),
+            'cnpj': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'CNPJ'}),
+            'endereco': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Endereço'}),
+            'telefone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Telefone'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email'}),
+            'ativa': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+class FeiraForm(forms.ModelForm):
+    class Meta:
+        model = Feira
         fields = [
-            'username', 'email', 'first_name', 'last_name', 'password',
-            'nivel', 'empresa', 'telefone', 'is_active'
+            'nome', 'local', 'cidade', 'estado', 'data_inicio', 'data_fim',
+            'website', 'contato_organizacao', 'email_organizacao', 
+            'telefone_organizacao', 'manual', 'ativa'
         ]
-        # Removido 'foto_perfil' dos campos
         widgets = {
-            'username': forms.TextInput(attrs={'class': 'form-control'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
-            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'nivel': forms.Select(attrs={'class': 'form-control'}),
-            'empresa': forms.Select(attrs={'class': 'form-control'}),
-            'telefone': forms.TextInput(attrs={'class': 'form-control', 'data-mask': '(00) 00000-0000'}),
-            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'nome': forms.TextInput(attrs={'class': 'form-control'}),
+            'local': forms.TextInput(attrs={'class': 'form-control'}),
+            'cidade': forms.TextInput(attrs={'class': 'form-control'}),
+            'estado': forms.TextInput(attrs={'class': 'form-control'}),
+            'data_inicio': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'data_fim': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'website': forms.URLInput(attrs={'class': 'form-control'}),
+            'contato_organizacao': forms.TextInput(attrs={'class': 'form-control'}),
+            'email_organizacao': forms.EmailInput(attrs={'class': 'form-control'}),
+            'telefone_organizacao': forms.TextInput(attrs={'class': 'form-control'}),
+            'ativa': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance.pk:
-            self.fields['password'].required = False
-        else:
-            self.fields['password'].required = True
 
-        self.fields['empresa'].queryset = Empresa.objects.filter(ativa=True)
-    
-    def clean_password(self):
-        password = self.cleaned_data.get('password')
-        if self.instance.pk and not password:
-            return self.instance.password
-        elif password:
-            return make_password(password)
-        return password
-    
-    def save(self, commit=True):
-        usuario = super().save(commit=False)
-        password = self.cleaned_data.get('password')
-        if password:
-            usuario.password = password
-        if commit:
-            usuario.save()
-        return usuario
-
-
-# Adicionando o formulário para PerfilUsuario
-class PerfilUsuarioForm(forms.ModelForm):
+# Novo formulário para parâmetros de indexação
+class ParametroIndexacaoForm(forms.ModelForm):
     class Meta:
-        model = PerfilUsuario
-        fields = ['telefone', 'foto']
+        model = ParametroIndexacao
+        fields = ['nome', 'descricao', 'valor', 'tipo', 'categoria']
         widgets = {
-            'telefone': forms.TextInput(attrs={'class': 'form-control', 'data-mask': '(00) 00000-0000'}),
-            'foto': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'nome': forms.TextInput(attrs={'class': 'form-control'}),
+            'descricao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'valor': forms.TextInput(attrs={'class': 'form-control'}),
+            'tipo': forms.Select(attrs={'class': 'form-select'}),
+            'categoria': forms.Select(attrs={'class': 'form-select'}),
         }
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        tipo = cleaned_data.get('tipo')
+        valor = cleaned_data.get('valor')
+        
+        # Validar valor de acordo com o tipo
+        if tipo and valor:
+            try:
+                if tipo == 'int':
+                    int(valor)
+                elif tipo == 'float':
+                    float(valor)
+                elif tipo == 'bool':
+                    if valor.lower() not in ('true', 'false', 'sim', 'não', 's', 'n', 'yes', 'no', 'y', 'n', '1', '0'):
+                        self.add_error('valor', 'Valor booleano inválido')
+            except ValueError:
+                self.add_error('valor', f'Valor não é do tipo {tipo}')
+        
+        return cleaned_data

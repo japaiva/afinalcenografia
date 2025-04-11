@@ -56,4 +56,23 @@ urlpatterns = [
     path('mensagens/', views.mensagens, name='mensagens'),  # Central de mensagens
     path('mensagens/nova/', views.nova_mensagem, name='nova_mensagem'),  # Nova mensagem
     path('mensagens/projeto/<int:projeto_id>/', views.mensagens_projeto, name='mensagens_projeto'),  # Mensagens de um projeto específico
+
+    # gestor/urls.py (adicionar às URLs existentes)
+
+    path('feiras/', views.feira_list, name='feira_list'),
+    path('feiras/nova/', views.feira_create, name='feira_create'),
+    path('feiras/<int:pk>/', views.feira_detail, name='feira_detail'),
+    path('feiras/<int:pk>/editar/', views.feira_update, name='feira_update'),
+    path('feiras/<int:pk>/status/', views.feira_toggle_status, name='feira_toggle_status'),
+    path('feiras/<int:pk>/search/', views.feira_search, name='feira_search'),
+    path('feiras/<int:pk>/reprocess/', views.feira_reprocess, name='feira_reprocess'),
+
+    # Para os parâmetros de indexação
+    path('parametros-indexacao/', views.parametro_indexacao_list, name='parametro_indexacao_list'),
+    path('parametros-indexacao/novo/', views.parametro_indexacao_create, name='parametro_indexacao_create'),
+    path('parametros-indexacao/<int:pk>/editar/', views.parametro_indexacao_update, name='parametro_indexacao_update'),
+    path('parametros-indexacao/<int:pk>/excluir/', views.parametro_indexacao_delete, name='parametro_indexacao_delete'),
+
+    # Nova URL para monitorar o progresso de processamento
+    path('feira/<int:pk>/progresso/', views.feira_progress, name='feira_progress'),
 ]

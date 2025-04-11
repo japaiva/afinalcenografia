@@ -32,18 +32,19 @@
     <li><a class="dropdown-item" href="{% url 'gestor:usuario_list' %}">
         Usuários
     </a></li>
+    <li><a class="dropdown-item" href="{% url 'gestor:feira_list' %}">
+      Feiras e Eventos
+    </a></li>
     
     <!--  <li><hr class="dropdown-divider"></li>-->
     
-    {% if user.nivel == 'admin' %}
     <li><hr class="dropdown-divider"></li>
     
-    <!-- Seção de Parâmetros (apenas para admin) -->
-    <li><h6 class="dropdown-header">Parâmetros</h6></li>
-    <li><a class="dropdown-item" href="{% url 'gestor:parametro_list' %}">
-      Gerenciar Parâmetros
+    <li><a class="dropdown-item" href="{% url 'gestor:parametro_indexacao_list' %}">
+      Parâmetros de Indexação
     </a></li>
-    {% endif %}
+
+
   </ul>
 </li>
 
