@@ -86,6 +86,10 @@ class PerfilUsuario(models.Model):
         return f"{self.usuario.username} - {self.get_nivel_display()}"
 
 # Parâmetros para processamento de feiras
+
+# Adicionar a categoria 'qa' no modelo ParametroIndexacao
+# core/models.py ou core/models/base.py (onde estiver definido)
+
 class ParametroIndexacao(models.Model):
     nome = models.CharField(max_length=100, unique=True, verbose_name="Nome do Parâmetro")
     descricao = models.TextField(blank=True, null=True, verbose_name="Descrição")
@@ -107,7 +111,8 @@ class ParametroIndexacao(models.Model):
             ('chunk', 'Chunking'),
             ('embedding', 'Embeddings'),
             ('pinecone', 'Pinecone'),
-            ('search', 'Busca')
+            ('search', 'Busca'),
+            ('qa', 'Perguntas e Respostas')  # Nova categoria adicionada
         ],
         default='chunk',
         verbose_name="Categoria"
@@ -202,3 +207,31 @@ class FeiraManualChunk(models.Model):
         db_table = 'feira_manual_chunks'
         verbose_name = 'Chunk de Manual de Feira'
         verbose_name_plural = 'Chunks de Manuais de Feira'
+
+class FeiraManualQA(models.Model):
+    """
+    Modelo para armazenar perguntas e respostas extraídas do manual da feira
+    """
+    feira = models.ForeignKey(Feira, on_delete=models.CASCADE, related_name='qa_pairs')
+    question = models.TextField(verbose_name="Pergunta Principal")
+    answer = models.TextField(verbose_name="Resposta")
+    context = models.TextField(verbose_name="Contexto Original", help_text="Trecho do manual de onde a resposta foi extraída")
+    similar_questions = models.JSONField(verbose_name="Perguntas Similares", default=list, blank=True)
+    
+    # Para tracking e análise
+    chunk_id = models.CharField(max_length=100, null=True, blank=True, verbose_name="ID do Chunk de Origem")
+    embedding_id = models.CharField(max_length=100, null=True, blank=True, verbose_name="ID do Embedding")
+    score = models.FloatField(null=True, blank=True, verbose_name="Pontuação de Relevância")
+    
+    # Metadados
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"QA {self.id}: {self.question[:50]}..."
+    
+    class Meta:
+        db_table = 'feira_manual_qa'
+        verbose_name = 'Par Pergunta-Resposta'
+        verbose_name_plural = 'Pares Pergunta-Resposta'
+        ordering = ['-created_at']

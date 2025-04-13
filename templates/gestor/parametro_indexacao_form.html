@@ -128,6 +128,38 @@
       <li><strong>SEARCH_TOP_K</strong> (int): Número de resultados a retornar em buscas (ex: 3)</li>
       <li><strong>SEARCH_THRESHOLD</strong> (float): Limiar mínimo de similaridade (ex: 0.7)</li>
     </ul>
+    
+    <h6>Parâmetros de Perguntas e Respostas</h6>
+    <ul>
+      <li><strong>QA_ENABLED</strong> (bool): Ativar/desativar geração automática de perguntas e respostas (ex: true)</li>
+      <li><strong>QA_PROVIDER</strong> (str): Provedor de IA para geração de QA ("openai" ou "anthropic")</li>
+      <li><strong>QA_MODEL</strong> (str): Modelo específico a ser usado (ex: "gpt-4o" ou "claude-3-opus-20240229")</li>
+      <li><strong>QA_MAX_PAIRS_PER_CHUNK</strong> (int): Número máximo de pares QA por chunk (ex: 5)</li>
+      <li><strong>QA_MIN_CONFIDENCE</strong> (float): Pontuação mínima de confiança para incluir um par QA (ex: 0.7)</li>
+      <li><strong>QA_DELAY</strong> (int): Atraso em segundos entre chamadas à API durante geração de QA (ex: 2)</li>
+      <li><strong>QA_TEMPERATURE</strong> (float): Temperatura para geração de QA (ex: 0.3)</li>
+    </ul>
   </div>
 </div>
+
+<!-- Novo bloco de informações sobre categorias de parâmetros -->
+<div class="alert alert-info mt-4">
+  <h6><i class="fas fa-info-circle me-2"></i> Categorias de Parâmetros</h6>
+  <div class="row">
+    <div class="col-md-6">
+      <ul class="mb-0">
+        <li><strong>Chunking:</strong> Controla como os textos são divididos em partes menores.</li>
+        <li><strong>Embeddings:</strong> Configurações para os modelos de embeddings vetoriais.</li>
+        <li><strong>Perguntas e Respostas:</strong> Parâmetros para a geração e busca de perguntas e respostas.</li>
+      </ul>
+    </div>
+    <div class="col-md-6">
+      <ul class="mb-0">
+        <li><strong>Pinecone:</strong> Parâmetros para a integração com o banco de dados Pinecone.</li>
+        <li><strong>Busca:</strong> Configurações para a pesquisa semântica nos manuais.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
