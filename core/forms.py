@@ -1,5 +1,5 @@
 from django import forms
-from core.models import Usuario, Parametro, Empresa, Feira, ParametroIndexacao
+from core.models import Usuario, Parametro, Empresa, Feira, ParametroIndexacao, Agente
 from django.contrib.auth.hashers import make_password
 
 class UsuarioForm(forms.ModelForm):
@@ -105,7 +105,6 @@ class FeiraForm(forms.ModelForm):
             'ativa': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
-# Novo formulário para parâmetros de indexação
 class ParametroIndexacaoForm(forms.ModelForm):
     class Meta:
         model = ParametroIndexacao
@@ -135,5 +134,46 @@ class ParametroIndexacaoForm(forms.ModelForm):
                         self.add_error('valor', 'Valor booleano inválido')
             except ValueError:
                 self.add_error('valor', f'Valor não é do tipo {tipo}')
+        
+        return cleaned_data
+    
+class AgenteForm(forms.ModelForm):
+    class Meta:
+        model = Agente
+        fields = ['nome', 'descricao', 'llm_provider', 'llm_model', 'llm_temperature', 'llm_system_prompt', 'task_instructions', 'ativo']
+        widgets = {
+            'nome': forms.TextInput(attrs={'class': 'form-control'}),
+            'descricao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'llm_provider': forms.TextInput(attrs={'class': 'form-control'}),
+            'llm_model': forms.TextInput(attrs={'class': 'form-control'}),
+            'llm_temperature': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1', 'min': '0', 'max': '1'}),
+            'llm_system_prompt': forms.Textarea(attrs={'class': 'form-control', 'rows': 8}),
+            'task_instructions': forms.Textarea(attrs={'class': 'form-control', 'rows': 8}),
+            'ativo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+        
+    def clean(self):
+        cleaned_data = super().clean()
+        llm_temperature = cleaned_data.get('llm_temperature')
+        
+        # Validar temperatura entre 0 e 1
+        if llm_temperature is not None:
+            if llm_temperature < 0 or llm_temperature > 1:
+                self.add_error('llm_temperature', 'A temperatura deve estar entre 0 e 1')
+        
+        # Validar se o prompt do sistema foi fornecido
+        llm_system_prompt = cleaned_data.get('llm_system_prompt')
+        if not llm_system_prompt or llm_system_prompt.strip() == '':
+            self.add_error('llm_system_prompt', 'O prompt do sistema é obrigatório')
+        
+        # Validar provider e modelo
+        llm_provider = cleaned_data.get('llm_provider')
+        llm_model = cleaned_data.get('llm_model')
+        
+        if not llm_provider or llm_provider.strip() == '':
+            self.add_error('llm_provider', 'O provedor é obrigatório')
+        
+        if not llm_model or llm_model.strip() == '':
+            self.add_error('llm_model', 'O modelo é obrigatório')
         
         return cleaned_data

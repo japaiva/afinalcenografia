@@ -14,7 +14,7 @@ from django.db import transaction
 import logging
 
 from core.models import Feira, FeiraManualChunk, ParametroIndexacao, FeiraManualQA 
-from core.pinecone_utils import init_pinecone, get_index, upsert_vectors, delete_namespace, query_vectors
+from core.utils.pinecone_utils import init_pinecone, get_index, upsert_vectors, delete_namespace, query_vectors
 from core.services.qa_generator import process_all_chunks_for_feira, get_qa_param
 
 # Configuração de logger

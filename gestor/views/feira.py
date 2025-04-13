@@ -10,10 +10,14 @@ from django.http import JsonResponse
 from django.db.models import Q
 from django.views.decorators.http import require_POST, require_GET
 
-from core.models import Feira, FeiraManualChunk, FeiraManualQA, Parametro
-from core.forms import FeiraForm, ParametroForm
+from core.models import Feira, FeiraManualChunk, FeiraManualQA, Agente
+from core.forms import FeiraForm
 from core.tasks import processar_manual_feira, pesquisar_manual_feira
 from core.services.qa_generator import QAGenerator, process_all_chunks_for_feira
+from core.services.rag_service import integrar_feira_com_briefing, RAGService
+
+from projetos.models import Projeto
+from projetos.models.briefing import Briefing, BriefingConversation
 
 logger = logging.getLogger(__name__)
 
@@ -222,12 +226,16 @@ def feira_qa_list(request, feira_id):
     
     qa_count = qa_pairs_list.count()
     
+    # Obter lista de agentes para o formulário de regeneração de QA
+    agentes = Agente.objects.filter(ativo=True)
+    
     context = {
         'feira': feira,
         'qa_pairs': qa_pairs,
         'qa_count': qa_count,
         'query': query,
         'processando': processando,
+        'agentes': agentes
     }
     
     return render(request, 'gestor/feira_qa_list.html', context)
@@ -243,6 +251,18 @@ def feira_qa_regenerate(request, feira_id):
             'message': 'Já existe um processamento em andamento.'
         })
     
+    # Obter o agente selecionado na interface (se houver)
+    agente_id = request.POST.get('agente_id')
+    agente_nome = None
+    
+    if agente_id:
+        try:
+            agente = Agente.objects.get(pk=agente_id, ativo=True)
+            agente_nome = agente.nome
+        except Agente.DoesNotExist:
+            pass
+    
+    # Limpar QAs existentes
     FeiraManualQA.objects.filter(feira=feira).delete()
     
     feira.processamento_status = 'processando'
@@ -250,7 +270,8 @@ def feira_qa_regenerate(request, feira_id):
     feira.save()
     
     try:
-        process_all_chunks_for_feira(feira.id)
+        # Chamar processamento com o agente especificado
+        process_all_chunks_for_feira(feira.id, agent_name=agente_nome)
         return JsonResponse({
             'success': True,
             'message': 'Processamento iniciado com sucesso.'
@@ -317,6 +338,24 @@ def feira_qa_update(request):
         qa.similar_questions = data.get('similar_questions', qa.similar_questions)
         qa.save()
         
+        # Verificar se é necessário atualizar o embedding
+        atualizar_embedding = data.get('atualizar_embedding', False)
+        if atualizar_embedding:
+            try:
+                # Obter o agente para embedding configurado na interface ou usar o padrão
+                agente_nome = data.get('agente_nome', 'Embedding Generator')
+                rag_service = RAGService(agent_name=agente_nome)
+                embedding = rag_service.gerar_embeddings_qa(qa)
+                if embedding:
+                    rag_service._store_in_vector_db(qa, embedding)
+                    
+                    # Atualizar o registro
+                    qa.embedding_id = f"qa_{qa.id}"
+                    qa.save(update_fields=['embedding_id'])
+            except Exception as e:
+                logger.error(f"Erro ao atualizar embedding: {str(e)}")
+                # Não impedimos a atualização do QA se falhar o embedding
+        
         return JsonResponse({
             'success': True,
             'message': 'Pergunta e resposta atualizada com sucesso.'
@@ -346,6 +385,20 @@ def feira_qa_delete(request):
             })
         
         qa = get_object_or_404(FeiraManualQA, pk=qa_id)
+        
+        # Excluir do banco vetorial se houver ID de embedding
+        if hasattr(qa, 'embedding_id') and qa.embedding_id:
+            try:
+                from core.utils.pinecone_utils import get_index
+                index = get_index()
+                if index:
+                    namespace = f"feira_{qa.feira.id}"
+                    index.delete(ids=[qa.embedding_id], namespace=namespace)
+            except Exception as e:
+                logger.error(f"Erro ao excluir vetor: {str(e)}")
+                # Continuar mesmo se falhar a exclusão do vetor
+        
+        # Excluir o QA
         qa.delete()
         
         return JsonResponse({
@@ -369,6 +422,7 @@ def feira_qa_regenerate_single(request):
     try:
         data = json.loads(request.body)
         qa_id = data.get('qa_id')
+        agente_nome = data.get('agente_nome', 'Gerador de Q&A')  # Nome do agente a ser usado
         
         if not qa_id:
             return JsonResponse({
@@ -393,7 +447,22 @@ def feira_qa_regenerate_single(request):
                 'message': 'Chunk original não encontrado.'
             })
         
-        generator = QAGenerator()
+        # Verificar se o agente existe
+        try:
+            Agente.objects.get(nome=agente_nome, ativo=True)
+        except Agente.DoesNotExist:
+            # Fallback para agente padrão
+            agente_nome = 'Gerador de Q&A'
+            try:
+                Agente.objects.get(nome=agente_nome, ativo=True)
+            except Agente.DoesNotExist:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Agente para geração de Q&A não encontrado.'
+                })
+        
+        # Usar o QA Generator com o agente especificado
+        generator = QAGenerator(agent_name=agente_nome)
         new_qa_pairs = generator.generate_qa_from_chunk(chunk)
         
         if not new_qa_pairs:
@@ -404,76 +473,484 @@ def feira_qa_regenerate_single(request):
         
         new_qa = new_qa_pairs[0]
         
+        # Atualizar o QA existente
         qa.question = new_qa.get('q', qa.question)
         qa.answer = new_qa.get('a', qa.answer)
         qa.context = new_qa.get('t', qa.context)
         qa.similar_questions = new_qa.get('sq', qa.similar_questions)
         qa.save()
         
+        # Regenerar embedding se necessário
+        try:
+            rag_service = RAGService(agent_name='Embedding Generator')
+            embedding = rag_service.gerar_embeddings_qa(qa)
+            if embedding:
+                rag_service._store_in_vector_db(qa, embedding)
+        except Exception as e:
+            logger.error(f"Erro ao regenerar embedding: {str(e)}")
+            # Não impedir o sucesso da regeneração se o embedding falhar
+        
         return JsonResponse({
             'success': True,
-            'message': 'Pergunta e resposta regenerada com sucesso.'
+            'message': 'Pergunta e resposta regenerada com sucesso.',
+            'qa': {
+                'question': qa.question,
+                'answer': qa.answer,
+                'context': qa.context,
+                'similar_questions': qa.similar_questions
+            }
         })
     except Exception as e:
+        logger.error(f"Erro ao regenerar QA: {str(e)}")
         return JsonResponse({
             'success': False,
             'message': str(e)
         })
-    
-    # Views de Parâmetro
 
 @login_required
-def parametro_list(request):
-    parametros_list = Parametro.objects.all().order_by('parametro')
-    
-    paginator = Paginator(parametros_list, 10)
-    page = request.GET.get('page', 1)
+@require_POST
+def feira_qa_add(request, feira_id):
+    """
+    Adiciona um novo par QA manualmente.
+    """
+    feira = get_object_or_404(Feira, pk=feira_id)
     
     try:
-        parametros = paginator.page(page)
-    except PageNotAnInteger:
-        parametros = paginator.page(1)
-    except EmptyPage:
-        parametros = paginator.page(paginator.num_pages)
+        data = json.loads(request.body)
+        question = data.get('question', '').strip()
+        answer = data.get('answer', '').strip()
+        context = data.get('context', '').strip()
+        similar_questions = data.get('similar_questions', [])
+        
+        # Validação básica
+        if not question or not answer:
+            return JsonResponse({
+                'success': False,
+                'message': 'Pergunta e resposta são obrigatórias.'
+            }, status=400)
+        
+        # Criar o QA
+        qa = FeiraManualQA.objects.create(
+            feira=feira,
+            question=question,
+            answer=answer,
+            context=context,
+            similar_questions=similar_questions
+        )
+        
+        # Gerar o embedding se possível
+        try:
+            agente_nome = data.get('agente_nome', 'Embedding Generator')
+            rag_service = RAGService(agent_name=agente_nome)
+            embedding = rag_service.gerar_embeddings_qa(qa)
+            if embedding:
+                rag_service._store_in_vector_db(qa, embedding)
+                qa.embedding_id = f"qa_{qa.id}"
+                qa.save(update_fields=['embedding_id'])
+        except Exception as e:
+            logger.warning(f"Erro ao gerar embedding para o novo QA: {str(e)}")
+            # Não impedir a criação do QA se o embedding falhar
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Pergunta e resposta adicionada com sucesso.',
+            'qa_id': qa.id
+        })
     
-    return render(request, 'gestor/parametro_list.html', {'parametros': parametros})
+    except Exception as e:
+        logger.error(f"Erro ao adicionar QA: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=500)
 
 @login_required
-def parametro_create(request):
-    if request.method == 'POST':
-        form = ParametroForm(request.POST)
-        if form.is_valid():
-            parametro = form.save()
-            messages.success(request, 'Parâmetro criado com sucesso.')
-            storage = messages.get_messages(request)
-            storage.used = True
-            return redirect('gestor:parametro_list')
-    else:
-        form = ParametroForm()
-    return render(request, 'gestor/parametro_form.html', {'form': form})
+def feira_qa_stats(request, feira_id):
+    """
+    Obtém estatísticas sobre os QAs de uma feira.
+    """
+    feira = get_object_or_404(Feira, pk=feira_id)
+    
+    try:
+        qa_pairs = FeiraManualQA.objects.filter(feira=feira)
+        
+        total_qa = qa_pairs.count()
+        
+        # Se não houver QAs, retornar estatísticas vazias
+        if total_qa == 0:
+            return JsonResponse({
+                'success': True,
+                'stats': {
+                    'total_qa': 0,
+                    'qa_com_embedding': 0,
+                    'qa_sem_embedding': 0,
+                    'percentual_embedding': 0,
+                    'tamanho_medio_pergunta': 0,
+                    'tamanho_medio_resposta': 0
+                }
+            })
+        
+        # Contar QAs com embedding
+        qa_com_embedding = qa_pairs.exclude(embedding_id__isnull=True).exclude(embedding_id='').count()
+        qa_sem_embedding = total_qa - qa_com_embedding
+        percentual_embedding = int((qa_com_embedding / total_qa) * 100) if total_qa > 0 else 0
+        
+        # Calcular tamanho médio de perguntas e respostas
+        tamanho_perguntas = [len(qa.question) for qa in qa_pairs]
+        tamanho_respostas = [len(qa.answer) for qa in qa_pairs]
+        
+        tamanho_medio_pergunta = sum(tamanho_perguntas) // total_qa if total_qa > 0 else 0
+        tamanho_medio_resposta = sum(tamanho_respostas) // total_qa if total_qa > 0 else 0
+        
+        # Contar perguntas similares
+        total_perguntas_similares = 0
+        for qa in qa_pairs:
+            if isinstance(qa.similar_questions, list):
+                total_perguntas_similares += len(qa.similar_questions)
+            elif isinstance(qa.similar_questions, str):
+                try:
+                    similares = json.loads(qa.similar_questions)
+                    if isinstance(similares, list):
+                        total_perguntas_similares += len(similares)
+                except:
+                    # Se não for JSON válido, tenta contar por vírgulas
+                    if qa.similar_questions:
+                        total_perguntas_similares += qa.similar_questions.count(',') + 1
+        
+        media_perguntas_similares = total_perguntas_similares // total_qa if total_qa > 0 else 0
+        
+        # Contar QAs por página do manual
+        qa_por_pagina = {}
+        for qa in qa_pairs:
+            try:
+                chunk = FeiraManualChunk.objects.get(id=qa.chunk_id)
+                pagina = chunk.pagina or 0
+                if pagina not in qa_por_pagina:
+                    qa_por_pagina[pagina] = 0
+                qa_por_pagina[pagina] += 1
+            except:
+                pass
+        
+        # Organizar por página
+        qa_por_pagina_list = [{"pagina": k, "quantidade": v} for k, v in qa_por_pagina.items()]
+        qa_por_pagina_list.sort(key=lambda x: x["pagina"])
+        
+        return JsonResponse({
+            'success': True,
+            'stats': {
+                'total_qa': total_qa,
+                'qa_com_embedding': qa_com_embedding,
+                'qa_sem_embedding': qa_sem_embedding,
+                'percentual_embedding': percentual_embedding,
+                'tamanho_medio_pergunta': tamanho_medio_pergunta,
+                'tamanho_medio_resposta': tamanho_medio_resposta,
+                'total_perguntas_similares': total_perguntas_similares,
+                'media_perguntas_similares': media_perguntas_similares,
+                'qa_por_pagina': qa_por_pagina_list
+            }
+        })
+    
+    except Exception as e:
+        logger.error(f"Erro ao obter estatísticas de QA: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=500)
 
 @login_required
-def parametro_update(request, pk):
-    parametro = get_object_or_404(Parametro, pk=pk)
-    if request.method == 'POST':
-        form = ParametroForm(request.POST, instance=parametro)
-        if form.is_valid():
-            parametro = form.save()
-            messages.success(request, 'Parâmetro atualizado com sucesso.')
-            storage = messages.get_messages(request)
-            storage.used = True
-            return redirect('gestor:parametro_list')
-    else:
-        form = ParametroForm(instance=parametro)
-    return render(request, 'gestor/parametro_form.html', {'form': form})
+@require_POST
+def briefing_vincular_feira(request, briefing_id, feira_id):
+    """
+    Vincula uma feira a um briefing para usar seu manual como referência.
+    """
+    # Verificar permissões
+    briefing = get_object_or_404(Briefing, pk=briefing_id)
+    projeto = briefing.projeto
+    
+    # Garantir que o usuário tenha acesso ao projeto
+    if not (
+        request.user.nivel in ['admin', 'gestor'] or 
+        request.user == projeto.projetista or 
+        request.user == projeto.cliente
+    ):
+        return JsonResponse({
+            'success': False,
+            'message': 'Você não tem permissão para realizar esta operação.'
+        }, status=403)
+    
+    # Integrar a feira ao briefing
+    result = integrar_feira_com_briefing(briefing_id, feira_id)
+    
+    return JsonResponse({
+        'success': result.get('status') == 'success',
+        'message': result.get('message', '')
+    })
 
 @login_required
-def parametro_delete(request, pk):
-    parametro = get_object_or_404(Parametro, pk=pk)
+@require_POST
+def briefing_responder_pergunta(request):
+    """
+    Responde a uma pergunta do usuário usando o RAG baseado no manual da feira.
+    """
+    try:
+        data = json.loads(request.body)
+        briefing_id = data.get('briefing_id')
+        pergunta = data.get('pergunta')
+        agente_nome = data.get('agente_nome', 'Assistente de Briefing')  # Nome do agente a ser usado
+        
+        if not briefing_id or not pergunta:
+            return JsonResponse({
+                'success': False,
+                'message': 'Briefing ID e pergunta são obrigatórios.'
+            }, status=400)
+        
+        # Obter o briefing
+        briefing = get_object_or_404(Briefing, pk=briefing_id)
+        
+        # Verificar se há uma feira vinculada
+        if not hasattr(briefing, 'feira') or not briefing.feira:
+            return JsonResponse({
+                'success': False,
+                'message': 'Este briefing não possui uma feira vinculada.'
+            })
+        
+        # Verificar se o agente existe e está ativo
+        try:
+            agente = Agente.objects.get(nome=agente_nome, ativo=True)
+        except Agente.DoesNotExist:
+            # Caso o agente não exista, usar o padrão
+            agente_nome = 'Assistente de Briefing'
+        
+        # Inicializar o serviço RAG com o agente especificado
+        rag_service = RAGService(agent_name=agente_nome)
+        
+        # Gerar resposta
+        rag_result = rag_service.gerar_resposta_rag(pergunta, briefing.feira.id)
+        
+        # Registrar a pergunta e resposta no histórico de conversas
+        BriefingConversation.objects.create(
+            briefing=briefing,
+            mensagem=f"Pergunta: {pergunta}",
+            origem='cliente' if request.user == briefing.projeto.cliente else 'projetista',
+            etapa=briefing.etapa_atual
+        )
+        
+        BriefingConversation.objects.create(
+            briefing=briefing,
+            mensagem=f"Resposta (Manual da Feira): {rag_result['resposta']}",
+            origem='sistema',
+            etapa=briefing.etapa_atual
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'resposta': rag_result['resposta'],
+            'contextos': rag_result['contextos'],
+            'status': rag_result['status'],
+            'agente_usado': agente_nome
+        })
+        
+    except Exception as e:
+        logger.error(f"Erro ao responder pergunta: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=500)
+    
+
+@login_required
+#@require_admin_or_gestor
+@require_POST
+def feira_reset_data(request, pk):
+    """
+    Exclui todos os dados processados de uma feira: chunks, QAs e vetores.
+    """
+    feira = get_object_or_404(Feira, pk=pk)
+    
+    try:
+            
+        # 1. Obter todos os QAs para depois excluir seus vetores
+        qa_pairs = FeiraManualQA.objects.filter(feira=feira)
+        qa_embedding_ids = [qa.embedding_id for qa in qa_pairs if qa.embedding_id]
+        
+        # 2. Excluir os chunks processados
+        chunk_count = FeiraManualChunk.objects.filter(feira=feira).count()
+        FeiraManualChunk.objects.filter(feira=feira).delete()
+        
+        # 3. Excluir os QAs gerados
+        qa_count = qa_pairs.count()
+        qa_pairs.delete()
+        
+        # 4. Excluir os vetores do banco vetorial
+        vector_count = 0
+        if qa_embedding_ids:
+            try:
+                from core.utils.pinecone_utils import get_index
+                index = get_index()
+                if index:
+                    namespace = f"feira_{feira.id}"
+                    # Tentativa 1: excluir por IDs específicos
+                    index.delete(ids=qa_embedding_ids, namespace=namespace)
+                    vector_count = len(qa_embedding_ids)
+                    
+                    # Tentativa 2: excluir todo o namespace (mais confiável)
+                    try:
+                        # Alguns bancos vetoriais permitem excluir namespaces inteiros
+                        index.delete(delete_all=True, namespace=namespace)
+                    except:
+                        # Se não suportar, já tentamos excluir por IDs acima
+                        pass
+            except Exception as e:
+                logger.error(f"Erro ao excluir vetores: {str(e)}")
+                messages.warning(request, f"Alguns vetores podem não ter sido excluídos: {str(e)}")
+        
+        # 5. Resetar o status de processamento da feira
+        feira.manual_processado = False
+        feira.processamento_status = 'pendente'
+        feira.progresso_processamento = 0
+        feira.mensagem_erro = None
+        feira.save()
+        
+        # Contabilizar o que foi excluído para a mensagem
+        messages.success(
+            request, 
+            f'Dados da feira "{feira.nome}" excluídos com sucesso: '
+            f'{chunk_count} chunks, {qa_count} perguntas/respostas e {vector_count} vetores.'
+        )
+        
+        # Registrar no log
+        logger.info(
+            f"Usuário {request.user.username} resetou dados da feira {feira.id}: "
+            f"{chunk_count} chunks, {qa_count} QAs, {vector_count} vetores"
+        )
+        
+        return redirect('gestor:feira_detail', pk=feira.id)
+        
+    except Exception as e:
+        messages.error(request, f'Erro ao excluir dados da feira: {str(e)}')
+        logger.error(f"Erro ao resetar feira {feira.id}: {str(e)}")
+        return redirect('gestor:feira_detail', pk=feira.id)
+
+
+@login_required
+def feira_reset_data_confirm(request, pk):
+    """
+    Exibe página de confirmação para exclusão de dados processados e manual da feira.
+    """
+    feira = get_object_or_404(Feira, pk=pk)
+    
+    # Verificar permissões
+    if not request.user.nivel in ['admin', 'gestor']:
+        messages.error(request, 'Você não tem permissão para realizar esta operação.')
+        return redirect('gestor:feira_detail', pk=feira.id)
+    
+    # Obter estatísticas para exibir na confirmação
+    stats = {
+        'chunks': FeiraManualChunk.objects.filter(feira=feira).count(),
+        'qa_pairs': FeiraManualQA.objects.filter(feira=feira).count(),
+        'embeddings': 0  # Não temos forma direta de contar, será estimado pelos QAs
+    }
+    
+    # Estimar número de embeddings pelos QAs com embedding_id
+    qa_com_embedding = FeiraManualQA.objects.filter(feira=feira).exclude(embedding_id__isnull=True).exclude(embedding_id='').count()
+    stats['embeddings'] = qa_com_embedding
+    
+    # Verificar se existe o manual
+    tem_manual = bool(feira.manual)
+    
+    # Se for um POST, processar a exclusão
     if request.method == 'POST':
-        parametro.delete()
-        messages.success(request, 'Parâmetro excluído com sucesso.')
-        storage = messages.get_messages(request)
-        storage.used = True
-        return redirect('gestor:parametro_list')
-    return render(request, 'gestor/parametro_confirm_delete.html', {'parametro': parametro})
+        try:
+            # 1. Obter todos os QAs para depois excluir seus vetores
+            qa_pairs = FeiraManualQA.objects.filter(feira=feira)
+            qa_embedding_ids = [qa.embedding_id for qa in qa_pairs if qa.embedding_id]
+            
+            # 2. Excluir os chunks processados
+            chunk_count = stats['chunks']
+            FeiraManualChunk.objects.filter(feira=feira).delete()
+            
+            # 3. Excluir os QAs gerados
+            qa_count = stats['qa_pairs']
+            qa_pairs.delete()
+            
+            # 4. Excluir os vetores do banco vetorial
+            vector_count = 0
+            if qa_embedding_ids:
+                try:
+                    from core.utils.pinecone_utils import get_index
+                    index = get_index()
+                    if index:
+                        namespace = f"feira_{feira.id}"
+                        # Excluir por IDs específicos
+                        index.delete(ids=qa_embedding_ids, namespace=namespace)
+                        vector_count = len(qa_embedding_ids)
+                        
+                        # Tentar excluir todo o namespace (mais confiável)
+                        try:
+                            index.delete(delete_all=True, namespace=namespace)
+                        except:
+                            # Se não suportar, já tentamos excluir por IDs acima
+                            pass
+                except Exception as e:
+                    logger.error(f"Erro ao excluir vetores: {str(e)}")
+                    messages.warning(request, f"Alguns vetores podem não ter sido excluídos: {str(e)}")
+            
+            # 5. Resetar o status de processamento da feira
+            feira.manual_processado = False
+            feira.processamento_status = 'pendente'
+            feira.progresso_processamento = 0
+            feira.mensagem_erro = None
+            
+            # 6. Excluir o arquivo do manual, se solicitado
+            excluir_manual = 'excluir_manual' in request.POST and request.POST.get('excluir_manual') == 'on'
+            
+            if excluir_manual and feira.manual:
+                # Armazenar o path do arquivo antes de limpar o campo
+                manual_path = feira.manual.path if hasattr(feira.manual, 'path') else None
+                
+                # Limpar o campo manual no modelo
+                feira.manual = None
+                
+                # Tentar excluir o arquivo físico
+                if manual_path and os.path.exists(manual_path):
+                    try:
+                        import os
+                        os.remove(manual_path)
+                    except Exception as e:
+                        logger.error(f"Erro ao excluir arquivo físico: {str(e)}")
+                        messages.warning(request, f"O arquivo físico pode não ter sido excluído completamente: {str(e)}")
+            
+            # Salvar as alterações
+            feira.save()
+            
+            # Montar mensagem de sucesso
+            mensagem = f'Dados da feira "{feira.nome}" excluídos com sucesso: {chunk_count} chunks, {qa_count} perguntas/respostas e {vector_count} vetores.'
+            
+            if excluir_manual:
+                mensagem += " O arquivo do manual também foi excluído."
+                
+            messages.success(request, mensagem)
+            
+            # Registrar no log
+            logger.info(
+                f"Usuário {request.user.username} resetou dados da feira {feira.id}: "
+                f"{chunk_count} chunks, {qa_count} QAs, {vector_count} vetores. "
+                f"Manual excluído: {excluir_manual}"
+            )
+            
+            return redirect('gestor:feira_detail', pk=feira.id)
+            
+        except Exception as e:
+            messages.error(request, f'Erro ao excluir dados da feira: {str(e)}')
+            logger.error(f"Erro ao resetar feira {feira.id}: {str(e)}")
+            return redirect('gestor:feira_detail', pk=feira.id)
+    
+    # Se for GET, apenas exibir a página de confirmação
+    context = {
+        'feira': feira,
+        'stats': stats,
+        'manual_processado': feira.manual_processado,
+        'tem_manual': tem_manual
+    }
+    
+    return render(request, 'gestor/feira_reset_confirm.html', context)

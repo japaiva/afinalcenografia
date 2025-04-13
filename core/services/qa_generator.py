@@ -4,11 +4,9 @@ import logging
 from typing import List, Dict, Any, Optional
 
 from django.conf import settings
-import openai
-from anthropic import Anthropic
 
-from core.models import Feira, FeiraManualChunk, ParametroIndexacao
-from core.models.qa import FeiraManualQA
+from core.models import Feira, FeiraManualChunk, ParametroIndexacao, FeiraManualQA, Agente
+from core.utils.llm_utils import get_llm_client
 
 logger = logging.getLogger(__name__)
 
@@ -23,33 +21,51 @@ def get_qa_param(nome, default):
         return default
 
 class QAGenerator:
-    def __init__(self, provider=None):
+    def __init__(self, agent_name='Gerador de Q&A'):
         """
-        Inicializa o gerador de perguntas e respostas.
+        Inicializa o gerador de perguntas e respostas usando um agente configurado.
         
         Args:
-            provider (str): O provedor de IA a ser usado ('openai' ou 'anthropic')
+            agent_name: Nome do agente configurado a ser utilizado
         """
-        # Se o provider não for especificado, buscar do parâmetro
-        if provider is None:
-            provider = get_qa_param('QA_PROVIDER', 'openai')
+        self.agent_name = agent_name
+        
+        # Obter cliente LLM usando o utilitário
+        self.client, self.model, self.temperature, self.system_prompt, self.task_instructions = get_llm_client(agent_name)
+        
+        # Determinar o provider com base no cliente
+        if hasattr(self.client, 'chat'):  # OpenAI
+            self.provider = 'openai'
+        elif hasattr(self.client, 'messages'):  # Anthropic
+            self.provider = 'anthropic'
+        elif hasattr(self.client, 'completion'):  # Groq
+            self.provider = 'groq'
+        else:
+            logger.warning(f"Não foi possível determinar o provedor do agente '{agent_name}'. Tentando usar parâmetros padrão.")
+            # Fallback para parâmetros padrão se o agente não existir
+            self.provider = get_qa_param('QA_PROVIDER', 'openai')
+            self.model = get_qa_param('QA_MODEL', 'gpt-4o')
+            self.temperature = get_qa_param('QA_TEMPERATURE', 0.3)
+            self.task_instructions = None  # Adicionar fallback para task_instructions
             
-        self.provider = provider
-        self.temperature = get_qa_param('QA_TEMPERATURE', 0.3)
+            # Inicializar cliente com base no provider de fallback
+            if self.provider == 'openai':
+                import openai
+                openai.api_key = settings.OPENAI_API_KEY
+                self.client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+            elif self.provider == 'anthropic':
+                from anthropic import Anthropic
+                self.client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+            else:
+                raise ValueError(f"Provedor não suportado: {self.provider}")
+        
+        # Obter outros parâmetros
         self.max_pairs_per_chunk = get_qa_param('QA_MAX_PAIRS_PER_CHUNK', 5)
         self.min_confidence = get_qa_param('QA_MIN_CONFIDENCE', 0.7)
         
-        # Modelo específico a ser usado
-        self.model = None
-        if provider == 'openai':
-            self.model = get_qa_param('QA_MODEL', 'gpt-4o')
-            openai.api_key = settings.OPENAI_API_KEY
-            self.client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
-        elif provider == 'anthropic':
-            self.model = get_qa_param('QA_MODEL', 'claude-3-opus-20240229')
-            self.client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-        else:
-            raise ValueError(f"Provedor não suportado: {provider}")
+        # Se o system_prompt não estiver definido no agente, usar um padrão
+        if not self.system_prompt:
+            self.system_prompt = "Você extrai perguntas e respostas de documentos e retorna em JSON válido."
     
     def generate_qa_from_chunk(self, chunk: FeiraManualChunk, feira_description: Optional[str] = None) -> List[Dict[str, Any]]:
         """
@@ -65,11 +81,16 @@ class QAGenerator:
         # Construir a instrução para o modelo de IA
         instruction = self._build_instruction(chunk.texto, feira_description)
         
-        # Gerar QA usando o provedor escolhido
+        # Gerar QA usando o provedor associado ao agente
         if self.provider == 'openai':
             return self._generate_with_openai(instruction, chunk)
         elif self.provider == 'anthropic':
             return self._generate_with_anthropic(instruction, chunk)
+        elif self.provider == 'groq':
+            return self._generate_with_groq(instruction, chunk)
+        else:
+            logger.error(f"Provedor não suportado: {self.provider}")
+            return []
     
     def _build_instruction(self, text: str, description: Optional[str] = None) -> str:
         """
@@ -85,33 +106,25 @@ class QAGenerator:
         context = ""
         if description:
             context = f"Resumo do assunto do documento: {description}\n\n"
-            
-        return f"""Você é um agente interno de um sistema especializado em extrair perguntas e respostas de documentos. Sua tarefa é analisar o chunk fornecido, que representa um segmento de um documento completo, e gerar perguntas e respostas baseadas nas informações contidas nele.
-
-{context}Diretrizes:
-1. Extraia informações relevantes (respostas) do chunk fornecido. Essas informações devem ser associadas a perguntas principais, mantendo sempre o tom e o estilo de comunicação do texto base.
-2. Para cada resposta extraída:
-   - Crie uma pergunta principal (q) que tenha como resposta a informação extraída (a).
-   - Identifique o trecho específico do documento (t) de onde a resposta foi retirada.
-   - Formule perguntas alternativas (sq) que poderiam ser feitas para obter a mesma resposta (a).
-3. Sempre que encontrar múltiplas informações relevantes no chunk, crie múltiplas perguntas e respostas.
-4. Mantenha a maior originalidade possível no texto extraído, evitando interpretações fora do conteúdo fornecido.
-5. Gere no máximo {self.max_pairs_per_chunk} pares de pergunta e resposta por chunk.
-6. A saída deve ser estruturada em formato JSON compatível com o seguinte esquema:
-{{
-  "results": [
-    {{
-      "a": "A resposta ou informação extraída",
-      "t": "O trecho exato do documento de onde a resposta foi retirada",
-      "q": "A pergunta principal que leva à resposta",
-      "sq": ["Pergunta alternativa 1", "Pergunta alternativa 2", ...]
-    }},
-    ...
-  ]
-}}
-
-Chunk para análise:
-{text}"""
+        
+        # Usar task_instructions se disponível, caso contrário usar um template básico
+        if self.task_instructions:
+            # Substituir as variáveis no template
+            instruction = self.task_instructions
+            # Substituir {context} se presente no template
+            instruction = instruction.replace("{context}", context)
+            # Substituir {self.max_pairs_per_chunk} se presente no template
+            instruction = instruction.replace("{self.max_pairs_per_chunk}", str(self.max_pairs_per_chunk))
+        else:
+            # Template básico e mínimo para fallback
+            instruction = f"""Extraia informações deste texto e gere perguntas e respostas em formato JSON.
+{context}Gere no máximo {self.max_pairs_per_chunk} pares de pergunta-resposta.
+O formato deve ser: {{"results": [{{"q": "pergunta", "a": "resposta", "t": "trecho", "sq": ["perguntas similares"]}}]}}
+"""
+        
+        # Adicionar o texto para análise
+        instruction += f"\n\nChunk para análise:\n{text}"
+        return instruction
 
     def _generate_with_openai(self, instruction: str, chunk: FeiraManualChunk) -> List[Dict[str, Any]]:
         """
@@ -129,7 +142,7 @@ Chunk para análise:
                 model=self.model,
                 response_format={"type": "json_object"},
                 messages=[
-                    {"role": "system", "content": "Você extrai perguntas e respostas de documentos e retorna em JSON válido."},
+                    {"role": "system", "content": self.system_prompt},
                     {"role": "user", "content": instruction}
                 ],
                 temperature=self.temperature,
@@ -165,7 +178,7 @@ Chunk para análise:
                 model=self.model,
                 max_tokens=4000,
                 temperature=self.temperature,
-                system="Você extrai perguntas e respostas de documentos e retorna em JSON válido.",
+                system=self.system_prompt,
                 messages=[
                     {"role": "user", "content": instruction}
                 ],
@@ -200,6 +213,76 @@ Chunk para análise:
             logger.error(f"Erro ao gerar QA com Anthropic: {str(e)}")
             return []
 
+    def _generate_with_groq(self, instruction: str, chunk: FeiraManualChunk) -> List[Dict[str, Any]]:
+        """
+        Gera QA usando a API do Groq.
+        
+        Args:
+            instruction: As instruções para o modelo.
+            chunk: O chunk do qual gerar QA.
+            
+        Returns:
+            Uma lista de dicionários de QA.
+        """
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": self.system_prompt},
+                    {"role": "user", "content": instruction}
+                ],
+                temperature=self.temperature,
+            )
+            
+            content = response.choices[0].message.content
+            
+            # Tentar extrair o JSON da resposta
+            try:
+                # Procurar por blocos de código JSON
+                if "```json" in content:
+                    # Extrair conteúdo entre blocos de código markdown
+                    start_idx = content.find("```json") + 7
+                    end_idx = content.find("```", start_idx)
+                    if start_idx >= 7 and end_idx > start_idx:
+                        json_str = content[start_idx:end_idx].strip()
+                        data = json.loads(json_str)
+                    else:
+                        # Tentar encontrar e extrair somente o JSON
+                        start_idx = content.find('{')
+                        end_idx = content.rfind('}') + 1
+                        if start_idx >= 0 and end_idx > start_idx:
+                            json_str = content[start_idx:end_idx]
+                            data = json.loads(json_str)
+                        else:
+                            # Tentar analisar a resposta completa como JSON
+                            data = json.loads(content)
+                else:
+                    # Tentar encontrar e extrair somente o JSON
+                    start_idx = content.find('{')
+                    end_idx = content.rfind('}') + 1
+                    if start_idx >= 0 and end_idx > start_idx:
+                        json_str = content[start_idx:end_idx]
+                        data = json.loads(json_str)
+                    else:
+                        # Tentar analisar a resposta completa como JSON
+                        data = json.loads(content)
+                    
+                # Limitar ao número máximo de pares por chunk, se necessário
+                results = data.get("results", [])
+                if len(results) > self.max_pairs_per_chunk:
+                    results = results[:self.max_pairs_per_chunk]
+                    
+                return results
+                
+            except json.JSONDecodeError as e:
+                logger.error(f"Erro ao analisar JSON na resposta do Groq: {e}")
+                logger.debug(f"Conteúdo problemático: {content}")
+                return []
+                
+        except Exception as e:
+            logger.error(f"Erro ao gerar QA com Groq: {str(e)}")
+            return []
+
     def save_qa_pairs(self, qa_pairs: List[Dict[str, Any]], feira: Feira, chunk: FeiraManualChunk) -> List[FeiraManualQA]:
         """
         Salva os pares QA no banco de dados.
@@ -216,12 +299,20 @@ Chunk para análise:
         
         for qa in qa_pairs:
             try:
+                # Garantir que similar_questions seja uma lista
+                similar_questions = qa.get('sq', [])
+                if isinstance(similar_questions, str):
+                    try:
+                        similar_questions = json.loads(similar_questions)
+                    except:
+                        similar_questions = similar_questions.split(',')
+                
                 qa_obj = FeiraManualQA.objects.create(
                     feira=feira,
                     question=qa.get('q', ''),
                     answer=qa.get('a', ''),
                     context=qa.get('t', ''),
-                    similar_questions=qa.get('sq', []),
+                    similar_questions=similar_questions,
                     chunk_id=str(chunk.id)
                 )
                 created_pairs.append(qa_obj)
@@ -231,13 +322,14 @@ Chunk para análise:
         return created_pairs
 
 
-def process_all_chunks_for_feira(feira_id: int, delay: Optional[int] = None) -> Dict[str, Any]:
+def process_all_chunks_for_feira(feira_id: int, delay: Optional[int] = None, agent_name: str = 'Gerador de Q&A') -> Dict[str, Any]:
     """
     Processa todos os chunks de uma feira para gerar pares QA.
     
     Args:
         feira_id: ID da feira.
         delay: Atraso entre chamadas à API (em segundos).
+        agent_name: Nome do agente a ser utilizado.
         
     Returns:
         Dicionário com resultados do processamento.
@@ -262,9 +354,8 @@ def process_all_chunks_for_feira(feira_id: int, delay: Optional[int] = None) -> 
         if not chunks.exists():
             return {"status": "error", "message": "Nenhum chunk encontrado para esta feira"}
         
-        # Inicializar o gerador
-        provider = get_qa_param('QA_PROVIDER', 'openai')
-        generator = QAGenerator(provider=provider)
+        # Inicializar o gerador com o agente especificado
+        generator = QAGenerator(agent_name=agent_name)
         
         total_chunks = chunks.count()
         processed = 0
@@ -283,7 +374,10 @@ def process_all_chunks_for_feira(feira_id: int, delay: Optional[int] = None) -> 
                 feira.save(update_fields=['progresso_processamento'])
                 
                 # Gerar QA do chunk
-                qa_pairs = generator.generate_qa_from_chunk(chunk, feira.description if hasattr(feira, 'description') else None)
+                qa_pairs = generator.generate_qa_from_chunk(
+                    chunk, 
+                    feira.description if hasattr(feira, 'description') else None
+                )
                 
                 # Salvar QA gerados
                 saved_pairs = generator.save_qa_pairs(qa_pairs, feira, chunk)
@@ -306,7 +400,7 @@ def process_all_chunks_for_feira(feira_id: int, delay: Optional[int] = None) -> 
         
         return {
             "status": "success",
-            "message": f"Processamento concluído. Gerados {total_qa} pares QA de {processed} chunks.",
+            "message": f"Processamento concluído. Gerados {total_qa} pares QA de {processed} chunks usando o agente '{agent_name}'.",
             "total_chunks": total_chunks,
             "processed_chunks": processed,
             "total_qa": total_qa,

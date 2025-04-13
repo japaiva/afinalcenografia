@@ -33,10 +33,9 @@
           <tr>
             <th>Nome</th>
             <th>Categoria</th>
-            <th>Tipo</th>
             <th>Valor</th>
             <th>Descrição</th>
-            <th class="text-end">Ações</th>
+            <th style="width: 120px;" class="text-center">Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -46,23 +45,22 @@
               <td>
                 <span class="badge bg-secondary">{{ parametro.get_categoria_display }}</span>
               </td>
-              <td>
-                <span class="badge bg-info text-dark">{{ parametro.get_tipo_display }}</span>
-              </td>
               <td><code>{{ parametro.valor }}</code></td>
-              <td>{{ parametro.descricao|default:"--"|truncatechars:50 }}</td>
-              <td class="text-end">
-                <a href="{% url 'gestor:parametro_indexacao_update' parametro.id %}" class="btn btn-sm btn-outline-primary me-1" title="Editar">
-                  <i class="fas fa-edit"></i>
-                </a>
-                <a href="{% url 'gestor:parametro_indexacao_delete' parametro.id %}" class="btn btn-sm btn-outline-danger" title="Excluir">
-                  <i class="fas fa-trash"></i>
-                </a>
+              <td>{{ parametro.descricao|default:"--" }}</td>
+              <td class="text-center">
+                <div class="btn-group" role="group">
+                  <a href="{% url 'gestor:parametro_indexacao_update' parametro.id %}" class="btn btn-sm btn-outline-primary" title="Editar">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  <a href="{% url 'gestor:parametro_indexacao_delete' parametro.id %}" class="btn btn-sm btn-outline-danger" title="Excluir">
+                    <i class="fas fa-trash"></i>
+                  </a>
+                </div>
               </td>
             </tr>
           {% empty %}
             <tr>
-              <td colspan="6" class="text-center py-3 text-muted">
+              <td colspan="5" class="text-center py-3 text-muted">
                 Nenhum parâmetro de indexação cadastrado.
               </td>
             </tr>
@@ -135,34 +133,14 @@
     <div class="col-md-6">
       <ul class="mb-0">
         <li><strong>Chunking:</strong> Controla como os textos são divididos em partes menores.</li>
-        <li><strong>Embeddings:</strong> Configurações para os modelos de embeddings vetoriais.</li>
+        <li><strong>Embedding:</strong> Configurações para os modelos de embeddings vetoriais.</li>
+        <li><strong>Q&A:</strong> Parâmetros para a geração e busca de perguntas e respostas.</li>
       </ul>
     </div>
     <div class="col-md-6">
       <ul class="mb-0">
-        <li><strong>Pinecone:</strong> Parâmetros para a integração com o banco de dados Pinecone.</li>
-        <li><strong>Busca:</strong> Configurações para a pesquisa semântica nos manuais.</li>
-      </ul>
-    </div>
-  </div>
-</div>
-
-
-<!-- Modificação do bloco de informações ao final do template -->
-<div class="alert alert-info mt-4">
-  <h6><i class="fas fa-info-circle me-2"></i> Categorias de Parâmetros</h6>
-  <div class="row">
-    <div class="col-md-6">
-      <ul class="mb-0">
-        <li><strong>Chunking:</strong> Controla como os textos são divididos em partes menores.</li>
-        <li><strong>Embeddings:</strong> Configurações para os modelos de embeddings vetoriais.</li>
-        <li><strong>Perguntas e Respostas:</strong> Parâmetros para a geração e busca de perguntas e respostas.</li>
-      </ul>
-    </div>
-    <div class="col-md-6">
-      <ul class="mb-0">
-        <li><strong>Pinecone:</strong> Parâmetros para a integração com o banco de dados Pinecone.</li>
-        <li><strong>Busca:</strong> Configurações para a pesquisa semântica nos manuais.</li>
+        <li><strong>Connection:</strong> Parâmetros para a integração com o banco de dados vetorial.</li>
+        <li><strong>Search:</strong> Configurações para a pesquisa semântica nos manuais.</li>
       </ul>
     </div>
   </div>

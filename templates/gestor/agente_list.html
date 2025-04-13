@@ -1,0 +1,131 @@
+{% extends 'gestor/base_gestor.html' %}
+
+{% block title %}Agentes de IA | Portal do Gestor | Afinal Cenografia{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">
+      <i class="fas fa-robot me-2"></i> Agentes de IA
+    </h5>
+    <a href="{% url 'gestor:agente_create' %}" class="btn btn-primary btn-sm">
+      <i class="fas fa-plus me-1"></i> Novo Agente
+    </a>
+  </div>
+  
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Nome</th>
+            <th>Provedor</th>
+            <th>Modelo</th>
+            <th>Temperatura</th>
+            <th>Status</th>
+            <th style="width: 120px;" class="text-center">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for agente in agentes %}
+            <tr>
+              <td>{{ agente.nome }}</td>
+              <td>{{ agente.llm_provider }}</td>
+              <td>{{ agente.llm_model }}</td>
+              <td>{{ agente.llm_temperature }}</td>
+              <td>
+                {% if agente.ativo %}
+                  <span class="badge bg-success">Ativo</span>
+                {% else %}
+                  <span class="badge bg-secondary">Inativo</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                <div class="btn-group" role="group">
+                  <a href="{% url 'gestor:agente_update' agente.id %}" class="btn btn-sm btn-outline-primary" title="Editar">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  <a href="{% url 'gestor:agente_delete' agente.id %}" class="btn btn-sm btn-outline-danger" title="Excluir">
+                    <i class="fas fa-trash"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="text-center py-3 text-muted">
+                Nenhum agente de IA cadastrado.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  {% if agentes.paginator.num_pages > 1 %}
+  <div class="card-footer bg-white">
+    <nav aria-label="Navegação de página">
+      <ul class="pagination pagination-sm justify-content-center mb-0">
+        {% if agentes.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page=1" aria-label="Primeiro">
+              <span aria-hidden="true">&laquo;&laquo;</span>
+            </a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ agentes.previous_page_number }}" aria-label="Anterior">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">&laquo;&laquo;</span>
+          </li>
+          <li class="page-item disabled">
+            <span class="page-link">&laquo;</span>
+          </li>
+        {% endif %}
+        
+        {% for i in agentes.paginator.page_range %}
+          {% if agentes.number == i %}
+            <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+          {% elif i > agentes.number|add:'-3' and i < agentes.number|add:'3' %}
+            <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
+          {% endif %}
+        {% endfor %}
+        
+        {% if agentes.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ agentes.next_page_number }}" aria-label="Próximo">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ agentes.paginator.num_pages }}" aria-label="Último">
+              <span aria-hidden="true">&raquo;&raquo;</span>
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">&raquo;</span>
+          </li>
+          <li class="page-item disabled">
+            <span class="page-link">&raquo;&raquo;</span>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+
+<div class="alert alert-info mt-4">
+  <h6><i class="fas fa-info-circle me-2"></i> Sobre os Agentes de IA</h6>
+  <p class="mb-0">
+    Os agentes são configurações de modelos de linguagem (LLMs) que realizam tarefas específicas
+    no sistema, como análise de texto, validação de briefings, e geração de perguntas e respostas.
+    Cada agente pode ser configurado com provedor, modelo e parâmetros específicos.
+  </p>
+</div>
+{% endblock %}

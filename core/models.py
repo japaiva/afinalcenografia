@@ -85,58 +85,7 @@ class PerfilUsuario(models.Model):
     def __str__(self):
         return f"{self.usuario.username} - {self.get_nivel_display()}"
 
-# Parâmetros para processamento de feiras
-
-# Adicionar a categoria 'qa' no modelo ParametroIndexacao
-# core/models.py ou core/models/base.py (onde estiver definido)
-
-class ParametroIndexacao(models.Model):
-    nome = models.CharField(max_length=100, unique=True, verbose_name="Nome do Parâmetro")
-    descricao = models.TextField(blank=True, null=True, verbose_name="Descrição")
-    valor = models.CharField(max_length=255, verbose_name="Valor")
-    tipo = models.CharField(
-        max_length=20,
-        choices=[
-            ('int', 'Inteiro'),
-            ('float', 'Decimal'),
-            ('str', 'Texto'),
-            ('bool', 'Booleano')
-        ],
-        default='str',
-        verbose_name="Tipo de Valor"
-    )
-    categoria = models.CharField(
-        max_length=50,
-        choices=[
-            ('chunk', 'Chunking'),
-            ('embedding', 'Embeddings'),
-            ('pinecone', 'Pinecone'),
-            ('search', 'Busca'),
-            ('qa', 'Perguntas e Respostas')  # Nova categoria adicionada
-        ],
-        default='chunk',
-        verbose_name="Categoria"
-    )
-    
-    def __str__(self):
-        return f"{self.nome} ({self.get_categoria_display()})"
-    
-    def valor_convertido(self):
-        """Converte o valor para o tipo apropriado"""
-        if self.tipo == 'int':
-            return int(self.valor)
-        elif self.tipo == 'float':
-            return float(self.valor)
-        elif self.tipo == 'bool':
-            return self.valor.lower() in ('true', 'sim', 's', 'yes', 'y', '1')
-        else:
-            return self.valor
-    
-    class Meta:
-        db_table = 'parametros_indexacao'
-        verbose_name = 'Parâmetro de Indexação'
-        verbose_name_plural = 'Parâmetros de Indexação'
-
+# Feiras
 class Feira(models.Model):
     nome = models.CharField(max_length=255, verbose_name="Nome da Feira")
     local = models.CharField(max_length=255, verbose_name="Local/Centro de Exposições")
@@ -235,3 +184,92 @@ class FeiraManualQA(models.Model):
         verbose_name = 'Par Pergunta-Resposta'
         verbose_name_plural = 'Pares Pergunta-Resposta'
         ordering = ['-created_at']
+
+
+# Parâmetros Banco Vetorial e Agentes
+
+class ParametroIndexacao(models.Model):
+    nome = models.CharField(max_length=100, unique=True, verbose_name="Nome do Parâmetro")
+    descricao = models.TextField(blank=True, null=True, verbose_name="Descrição")
+    valor = models.CharField(max_length=255, verbose_name="Valor")
+    tipo = models.CharField(
+        max_length=20,
+        choices=[
+            ('int', 'Inteiro'),
+            ('float', 'Decimal'),
+            ('str', 'Texto'),
+            ('bool', 'Booleano')
+        ],
+        default='str',
+        verbose_name="Tipo de Valor"
+    )
+    categoria = models.CharField(
+        max_length=50,
+        choices=[
+            ('chunk', 'Chunking'),
+            ('embedding', 'Embedding'),
+            ('connection', 'Connection'),
+            ('search', 'Search'),
+            ('qa', 'Q&A')
+        ],
+        default='chunk',
+        verbose_name="Categoria"
+    )
+    
+    def __str__(self):
+        return f"{self.nome} ({self.get_categoria_display()})"
+    
+    def valor_convertido(self):
+        """Converte o valor para o tipo apropriado"""
+        if self.tipo == 'int':
+            return int(self.valor)
+        elif self.tipo == 'float':
+            return float(self.valor)
+        elif self.tipo == 'bool':
+            return self.valor.lower() in ('true', 'sim', 's', 'yes', 'y', '1')
+        else:
+            return self.valor
+    
+    class Meta:
+        db_table = 'parametros_indexacao'
+        verbose_name = 'Parâmetro do Banco Vetorial'
+        verbose_name_plural = 'Parâmetros do Banco Vetorial'
+class Agente(models.Model):
+    nome = models.CharField(max_length=100, unique=True, verbose_name="Nome do Agente")
+    descricao = models.TextField(blank=True, null=True, verbose_name="Descrição")
+    llm_provider = models.CharField(
+        max_length=50,
+        verbose_name="Provedor LLM",
+        help_text="Provedor do modelo de linguagem (ex: OpenAI, Anthropic)"
+    )
+    llm_model = models.CharField(
+        max_length=100,
+        verbose_name="Modelo LLM",
+        help_text="Nome do modelo específico a ser usado"
+    )
+    llm_temperature = models.FloatField(
+        default=0.7,
+        verbose_name="Temperatura",
+        help_text="Temperatura para geração de texto (0.0 - 1.0)"
+    )
+    llm_system_prompt = models.TextField(
+        verbose_name="Prompt do Sistema",
+        help_text="Prompt base que define o comportamento do agente"
+    )
+    task_instructions = models.TextField(
+        blank=True, 
+        null=True,
+        verbose_name="Instruções de Tarefa",
+        help_text="Instruções específicas para execução de tarefas pelo agente"
+    )
+    ativo = models.BooleanField(default=True, verbose_name="Ativo")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
+    
+    def __str__(self):
+        return self.nome
+    
+    class Meta:
+        db_table = 'agentes'
+        verbose_name = 'Agente'
+        verbose_name_plural = 'Agentes'

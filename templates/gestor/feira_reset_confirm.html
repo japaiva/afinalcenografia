@@ -1,0 +1,158 @@
+{% extends 'gestor/base_gestor.html' %}
+
+{% block title %}Excluir Dados da Feira | Portal do Gestor | Afinal Cenografia{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-danger text-white">
+    <h5 class="card-title mb-0">
+      <i class="fas fa-exclamation-triangle me-2"></i> Confirmar Exclusão de Dados
+    </h5>
+  </div>
+  
+  <div class="card-body">
+    <div class="alert alert-warning">
+      <p class="mb-0">
+        <strong>Atenção:</strong> Você está prestes a excluir os dados processados da feira abaixo.
+        Esta ação não pode ser desfeita.
+      </p>
+      {% if not manual_processado %}
+      <p class="mt-2 mb-0">
+        <span class="badge bg-info"><i class="fas fa-info-circle me-1"></i> Nota</span>
+        O manual desta feira ainda não foi processado completamente.
+      </p>
+      {% endif %}
+    </div>
+    
+    <div class="card mb-4">
+      <div class="card-body">
+        <h6 class="card-title">Informações da Feira</h6>
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item d-flex justify-content-between">
+            <span class="fw-bold">Nome:</span>
+            <span>{{ feira.nome }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span class="fw-bold">Local:</span>
+            <span>{{ feira.local }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span class="fw-bold">Cidade/UF:</span>
+            <span>{{ feira.cidade }}/{{ feira.estado }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span class="fw-bold">Período:</span>
+            <span>{{ feira.data_inicio|date:"d/m/Y" }} a {{ feira.data_fim|date:"d/m/Y" }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span class="fw-bold">Status:</span>
+            <span>{% if feira.ativa %}<span class="badge bg-success">Ativa</span>{% else %}<span class="badge bg-secondary">Inativa</span>{% endif %}</span>
+          </li>
+          {% if feira.manual %}
+          <li class="list-group-item d-flex justify-content-between">
+            <span class="fw-bold">Manual:</span>
+            <a href="{{ feira.manual.url }}" target="_blank" class="btn btn-sm btn-outline-info">
+              <i class="fas fa-file-pdf me-1"></i> Ver Manual
+            </a>
+          </li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+    
+    <div class="card mb-4 border-danger">
+      <div class="card-header bg-danger text-white">
+        <h6 class="card-title mb-0">
+          <i class="fas fa-trash-alt me-2"></i> Dados que serão excluídos
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="row g-4">
+          <div class="col-md-4">
+            <div class="text-center">
+              <div class="display-4 mb-2">{{ stats.chunks }}</div>
+              <div class="fw-bold">Chunks do Manual</div>
+              <div class="small text-muted">Divisões de texto processadas</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="text-center">
+              <div class="display-4 mb-2">{{ stats.qa_pairs }}</div>
+              <div class="fw-bold">Perguntas e Respostas</div>
+              <div class="small text-muted">QAs gerados pela IA</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="text-center">
+              <div class="display-4 mb-2">{{ stats.embeddings }}</div>
+              <div class="fw-bold">Vetores</div>
+              <div class="small text-muted">Embeddings no banco vetorial</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="alert alert-danger">
+      <p class="mb-0">
+        <strong>Consequências desta ação:</strong>
+      </p>
+      <ul class="mb-0 mt-2">
+        <li>Todos os chunks de texto extraídos do manual serão excluídos</li>
+        <li>Todas as perguntas e respostas geradas pela IA serão excluídas</li>
+        <li>Todos os vetores armazenados no banco vetorial serão excluídos</li>
+        <li>O status do manual será redefinido para "não processado"</li>
+        {% if tem_manual %}
+        <li class="text-danger" id="manual-exclusion-warning" style="display: none;">
+          <strong>O arquivo do manual será excluído permanentemente</strong>
+        </li>
+        {% endif %}
+      </ul>
+    </div>
+    
+    <form method="post">
+      {% csrf_token %}
+      
+      {% if tem_manual %}
+      <div class="card mb-4 border-danger">
+        <div class="card-body">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="excluir_manual" id="excluir_manual" onchange="toggleManualWarning()">
+            <label class="form-check-label" for="excluir_manual">
+              <strong class="text-danger">Também excluir o arquivo do manual</strong>
+            </label>
+            <div class="form-text">
+              Marque esta opção para excluir também o arquivo PDF do manual. Se não marcar, apenas os dados processados serão excluídos.
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      
+      <div class="d-flex justify-content-between">
+        <a href="{% url 'gestor:feira_detail' feira.id %}" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-1"></i> Cancelar
+        </a>
+        <button type="submit" class="btn btn-danger">
+          <i class="fas fa-trash me-1"></i> Confirmar Exclusão
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if tem_manual %}
+<script>
+  function toggleManualWarning() {
+    const checkbox = document.getElementById('excluir_manual');
+    const warning = document.getElementById('manual-exclusion-warning');
+    
+    if (checkbox.checked) {
+      warning.style.display = 'list-item';
+    } else {
+      warning.style.display = 'none';
+    }
+  }
+</script>
+{% endif %}
+{% endblock %}
