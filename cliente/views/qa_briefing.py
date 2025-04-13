@@ -7,7 +7,7 @@ from django.views.decorators.http import require_POST, require_GET
 from projetos.models import Projeto
 from projetos.models.briefing import Briefing, BriefingConversation
 from core.models import Feira
-from core.services.qa_integration import integrar_feira_com_briefing, RAGService
+from core.services.rag_service import integrar_feira_com_briefing, RAGService
 
 @login_required
 @require_POST

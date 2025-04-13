@@ -98,7 +98,7 @@
 <div class="card mt-4">
   <div class="card-header bg-light">
     <h6 class="card-title mb-0">
-      <i class="fas fa-info-circle me-2"></i> Ajuda sobre Parâmetros
+      <i class="fas fa-info-circle me-2"></i> Ajuda sobre Parâmetros do Banco Vetorial
     </h6>
   </div>
   <div class="card-body">
@@ -106,60 +106,40 @@
     <ul>
       <li><strong>CHUNK_SIZE</strong> (int): Tamanho aproximado de cada chunk em tokens (ex: 1000)</li>
       <li><strong>CHUNK_OVERLAP</strong> (int): Quantidade de sobreposição entre chunks em tokens (ex: 100)</li>
-      <li><strong>CHUNKING_STRATEGY</strong> (str): Estratégia de divisão ("page" ou "document")</li>
+      <li><strong>CHUNKING_STRATEGY</strong> (str): Estratégia de divisão ("page", "paragraph" ou "document")</li>
     </ul>
     
     <h6>Parâmetros de Embeddings</h6>
     <ul>
-      <li><strong>EMBEDDING_MODEL</strong> (str): Modelo de embedding da OpenAI (ex: "text-embedding-ada-002")</li>
+      <li><strong>EMBEDDING_MODEL</strong> (str): Modelo de embedding (ex: "text-embedding-ada-002")</li>
       <li><strong>EMBEDDING_DIMENSION</strong> (int): Dimensionalidade do embedding (ex: 1536 para ada-002)</li>
     </ul>
     
-    <h6>Parâmetros do Pinecone</h6>
+    <h6>Parâmetros de Conexão</h6>
     <ul>
-      <li><strong>PINECONE_API_KEY</strong> (str): Chave de API do Pinecone</li>
-      <li><strong>PINECONE_ENVIRONMENT</strong> (str): Ambiente do Pinecone (ex: "gcp-starter")</li>
-      <li><strong>PINECONE_INDEX_NAME</strong> (str): Nome do índice no Pinecone</li>
-      <li><strong>PINECONE_METRIC</strong> (str): Métrica de similaridade (ex: "cosine", "euclidean", "dotproduct")</li>
+      <li><strong>VECTOR_DB_PROVIDER</strong> (str): Provedor do banco vetorial (ex: "pinecone", "qdrant", "chroma")</li>
+      <li><strong>VECTOR_DB_INDEX_NAME</strong> (str): Nome do índice no banco vetorial</li>
+      <li><strong>VECTOR_DB_METRIC</strong> (str): Métrica de similaridade (ex: "cosine", "euclidean", "dotproduct")</li>
+    </ul>
+    
+    <h6>Parâmetros de Q&A</h6>
+    <ul>
+      <li><strong>QA_ENABLED</strong> (bool): Ativar/desativar geração automática de perguntas e respostas</li>
+      <li><strong>QA_MAX_PAIRS_PER_CHUNK</strong> (int): Número máximo de pares Q&A a serem gerados por chunk</li>
+      <li><strong>QA_MIN_CONFIDENCE</strong> (float): Pontuação mínima de confiança para incluir um par Q&A (ex: 0.7)</li>
+      <li><strong>QA_DELAY</strong> (int): Atraso em segundos entre chamadas à API para evitar limites de taxa</li>
+      <li><strong>QA_TEMPERATURE</strong> (float): Temperatura para geração de Q&A (valores mais baixos = mais determinístico)</li>
     </ul>
     
     <h6>Parâmetros de Busca</h6>
     <ul>
       <li><strong>SEARCH_TOP_K</strong> (int): Número de resultados a retornar em buscas (ex: 3)</li>
-      <li><strong>SEARCH_THRESHOLD</strong> (float): Limiar mínimo de similaridade (ex: 0.7)</li>
+      <li><strong>SEARCH_THRESHOLD</strong> (float): Limiar mínimo de similaridade para resultados válidos (ex: 0.7)</li>
     </ul>
     
-    <h6>Parâmetros de Perguntas e Respostas</h6>
-    <ul>
-      <li><strong>QA_ENABLED</strong> (bool): Ativar/desativar geração automática de perguntas e respostas (ex: true)</li>
-      <li><strong>QA_PROVIDER</strong> (str): Provedor de IA para geração de QA ("openai" ou "anthropic")</li>
-      <li><strong>QA_MODEL</strong> (str): Modelo específico a ser usado (ex: "gpt-4o" ou "claude-3-opus-20240229")</li>
-      <li><strong>QA_MAX_PAIRS_PER_CHUNK</strong> (int): Número máximo de pares QA por chunk (ex: 5)</li>
-      <li><strong>QA_MIN_CONFIDENCE</strong> (float): Pontuação mínima de confiança para incluir um par QA (ex: 0.7)</li>
-      <li><strong>QA_DELAY</strong> (int): Atraso em segundos entre chamadas à API durante geração de QA (ex: 2)</li>
-      <li><strong>QA_TEMPERATURE</strong> (float): Temperatura para geração de QA (ex: 0.3)</li>
-    </ul>
-  </div>
-</div>
-
-<!-- Novo bloco de informações sobre categorias de parâmetros -->
-<div class="alert alert-info mt-4">
-  <h6><i class="fas fa-info-circle me-2"></i> Categorias de Parâmetros</h6>
-  <div class="row">
-    <div class="col-md-6">
-      <ul class="mb-0">
-        <li><strong>Chunking:</strong> Controla como os textos são divididos em partes menores.</li>
-        <li><strong>Embeddings:</strong> Configurações para os modelos de embeddings vetoriais.</li>
-        <li><strong>Perguntas e Respostas:</strong> Parâmetros para a geração e busca de perguntas e respostas.</li>
-      </ul>
-    </div>
-    <div class="col-md-6">
-      <ul class="mb-0">
-        <li><strong>Pinecone:</strong> Parâmetros para a integração com o banco de dados Pinecone.</li>
-        <li><strong>Busca:</strong> Configurações para a pesquisa semântica nos manuais.</li>
-      </ul>
+    <div class="alert alert-info mt-3">
+      <i class="fas fa-lightbulb me-2"></i> <strong>Nota:</strong> Os parâmetros específicos do LLM (modelo, provedor, temperatura) foram movidos para a seção de Agentes, onde você pode configurar diferentes modelos para diferentes tarefas do sistema.
     </div>
   </div>
 </div>
-
 {% endblock %}

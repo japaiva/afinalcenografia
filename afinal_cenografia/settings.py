@@ -36,16 +36,12 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Configurações do Pinecone
+# API KEYS
 PINECONE_API_KEY = os.environ.get('PINECONE_API_KEY', '')
-PINECONE_ENVIRONMENT = os.environ.get('PINECONE_ENVIRONMENT', 'gcp-starter')
-PINECONE_INDEX_NAME = os.environ.get('PINECONE_INDEX_NAME', 'afinal-feira-index')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
+GROQ_API_KEY = os.getenv('GROQ_API_KEY', '')
+ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', '')
 
-# Parâmetros de indexação padrão (estes serão sobrescritos pelos valores do banco de dados)
-DEFAULT_CHUNK_SIZE = 1000
-DEFAULT_CHUNK_OVERLAP = 200
-DEFAULT_EMBEDDING_MODEL = "text-embedding-ada-002"
-DEFAULT_EMBEDDING_DIMENSION = 1536  # dimensão para ada-002
 
 # Aplicações instaladas
 INSTALLED_APPS = [

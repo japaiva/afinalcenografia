@@ -1,51 +1,40 @@
-# gestor/views/__init__.py
-
-# Importações do arquivo base.py
 from .base import (
-    GestorLoginView,
-    home,
-    dashboard,
-    usuario_list,
-    usuario_create,
-    usuario_update,
-    usuario_toggle_status,
+    GestorLoginView, home, empresa_list, empresa_create, empresa_update,
+    empresa_toggle_status, usuario_list, usuario_create, usuario_update,
+    usuario_toggle_status, parametro_list, parametro_create, parametro_update,
+    parametro_delete, dashboard, parametro_indexacao_list,
+    parametro_indexacao_create, parametro_indexacao_update,
+    parametro_indexacao_delete, agente_list, agente_create, agente_update, agente_delete
 )
 
-# Importações do arquivo feira.py
 from .feira import (
-    feira_list,
-    feira_create,
-    feira_update,
-    feira_toggle_status,
-    feira_detail,
-    feira_search,
-    feira_reprocess,
-    feira_progress,
-    feira_qa_list,
-    feira_qa_regenerate,
-    feira_qa_get,
-    feira_qa_update,
-    feira_qa_delete,
-    feira_qa_regenerate_single,
-    parametro_list,
-    parametro_create,
-    parametro_update,
-    parametro_delete,
+    feira_list, feira_create, feira_update, feira_toggle_status, feira_detail,
+    feira_search, feira_reprocess, feira_progress, feira_qa_list,
+    feira_qa_regenerate, feira_qa_get, feira_qa_update, feira_qa_delete,
+    feira_qa_regenerate_single, briefing_vincular_feira, briefing_responder_pergunta,
+    feira_reset_data_confirm, feira_reset_data
 )
 
-# Importações do arquivo projeto.py
+
 from .projeto import (
-    projeto_list,
-    projeto_detail,
-    projeto_atribuir,
-    projeto_alterar_status,
-    ver_briefing,
-    aprovar_briefing,
-    reprovar_briefing,
-    upload_arquivo,
-    excluir_arquivo,
-    mensagens,
-    nova_mensagem,
-    mensagens_projeto,
+    projeto_list, projeto_detail, projeto_atribuir, projeto_alterar_status,
+    ver_briefing, aprovar_briefing, reprovar_briefing, upload_arquivo,
+    excluir_arquivo, mensagens, nova_mensagem, mensagens_projeto
 )
 
+__all__ = [
+    'GestorLoginView', 'home', 'empresa_list', 'empresa_create', 'empresa_update',
+    'empresa_toggle_status', 'usuario_list', 'usuario_create', 'usuario_update',
+    'usuario_toggle_status', 'parametro_list', 'parametro_create', 'parametro_update',
+    'parametro_delete', 'dashboard',
+    'feira_list', 'feira_create', 'feira_update', 'feira_toggle_status', 'feira_detail',
+    'feira_search', 'feira_reprocess', 'feira_progress', 'feira_qa_list',
+    'feira_qa_regenerate', 'feira_qa_get', 'feira_qa_update', 'feira_qa_delete',
+    'feira_qa_regenerate_single', 'briefing_vincular_feira', 'briefing_responder_pergunta',
+    'projeto_list', 'projeto_detail', 'projeto_atribuir', 'projeto_alterar_status',
+    'ver_briefing', 'aprovar_briefing', 'reprovar_briefing', 'upload_arquivo',
+    'excluir_arquivo', 'mensagens', 'nova_mensagem', 'mensagens_projeto',
+    'parametro_indexacao_list', 'parametro_indexacao_create', 'parametro_indexacao_update',
+    'parametro_indexacao_delete', 'agente_list', 'agente_create', 'agente_update', 'agente_delete',
+    'feira_reset_data_confirm', 'feira_reset_data'
+]

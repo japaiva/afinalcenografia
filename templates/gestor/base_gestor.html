@@ -20,7 +20,7 @@
 
 <!-- Menu de Configurações -->
 <li class="nav-item dropdown">
-  <a class="nav-link dropdown-toggle {% if 'empresa' in request.resolver_match.url_name or 'usuario' in request.resolver_match.url_name or 'parametro' in request.resolver_match.url_name %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+  <a class="nav-link dropdown-toggle {% if 'empresa' in request.resolver_match.url_name or 'usuario' in request.resolver_match.url_name or 'parametro' in request.resolver_match.url_name or 'agente' in request.resolver_match.url_name %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
     Configurações
   </a>
   <ul class="dropdown-menu dropdown-menu-dark">
@@ -41,10 +41,12 @@
     <li><hr class="dropdown-divider"></li>
     
     <li><a class="dropdown-item" href="{% url 'gestor:parametro_indexacao_list' %}">
-      Parâmetros de Indexação
+      Parâmetros do Banco Vetorial
     </a></li>
-
-
+    
+    <li><a class="dropdown-item" href="{% url 'gestor:agente_list' %}">
+      Agentes de IA
+    </a></li>
   </ul>
 </li>
 

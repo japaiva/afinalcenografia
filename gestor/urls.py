@@ -57,8 +57,6 @@ urlpatterns = [
     path('mensagens/nova/', views.nova_mensagem, name='nova_mensagem'),  # Nova mensagem
     path('mensagens/projeto/<int:projeto_id>/', views.mensagens_projeto, name='mensagens_projeto'),  # Mensagens de um projeto específico
 
-    # gestor/urls.py (adicionar às URLs existentes)
-
     path('feiras/', views.feira_list, name='feira_list'),
     path('feiras/nova/', views.feira_create, name='feira_create'),
     path('feiras/<int:pk>/', views.feira_detail, name='feira_detail'),
@@ -67,11 +65,17 @@ urlpatterns = [
     path('feiras/<int:pk>/search/', views.feira_search, name='feira_search'),
     path('feiras/<int:pk>/reprocess/', views.feira_reprocess, name='feira_reprocess'),
 
-    # Para os parâmetros de indexação
-    path('parametros-indexacao/', views.parametro_indexacao_list, name='parametro_indexacao_list'),
-    path('parametros-indexacao/novo/', views.parametro_indexacao_create, name='parametro_indexacao_create'),
-    path('parametros-indexacao/<int:pk>/editar/', views.parametro_indexacao_update, name='parametro_indexacao_update'),
-    path('parametros-indexacao/<int:pk>/excluir/', views.parametro_indexacao_delete, name='parametro_indexacao_delete'),
+    # Para os parâmetros do banco vetorial (antigos parâmetros de indexação)
+    path('parametros-banco-vetorial/', views.parametro_indexacao_list, name='parametro_indexacao_list'),
+    path('parametros-banco-vetorial/novo/', views.parametro_indexacao_create, name='parametro_indexacao_create'),
+    path('parametros-banco-vetorial/<int:pk>/editar/', views.parametro_indexacao_update, name='parametro_indexacao_update'),
+    path('parametros-banco-vetorial/<int:pk>/excluir/', views.parametro_indexacao_delete, name='parametro_indexacao_delete'),
+
+    # CRUD de Agentes de IA
+    path('agentes/', views.agente_list, name='agente_list'),
+    path('agentes/novo/', views.agente_create, name='agente_create'),
+    path('agentes/<int:pk>/editar/', views.agente_update, name='agente_update'),
+    path('agentes/<int:pk>/excluir/', views.agente_delete, name='agente_delete'),
 
     # Nova URL para monitorar o progresso de processamento
     path('feira/<int:pk>/progresso/', views.feira_progress, name='feira_progress'),
@@ -83,9 +87,10 @@ urlpatterns = [
     path('feiras/qa/update/', views.feira_qa_update, name='feira_qa_update'),
     path('feiras/qa/delete/', views.feira_qa_delete, name='feira_qa_delete'),
     path('feiras/qa/regenerate-single/', views.feira_qa_regenerate_single, name='feira_qa_regenerate_single'),
+    path('feira/<int:pk>/reset-data/', views.feira_reset_data, name='feira_reset_data'),
+    path('feira/<int:pk>/reset-data/', views.feira_reset_data_confirm, name='feira_reset_data_confirm'),
 
     # Integração de QA com Briefing
     path('briefing/<int:briefing_id>/vincular-feira/<int:feira_id>/', views.briefing_vincular_feira, name='briefing_vincular_feira'),
     path('briefing/responder-pergunta/', views.briefing_responder_pergunta, name='briefing_responder_pergunta'),
-
-]
+]  
