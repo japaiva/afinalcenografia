@@ -1,0 +1,271 @@
+{% extends 'cliente/base_cliente.html' %}
+
+{% block title %}Perguntas sobre a Feira | Projeto {{ projeto.nome }} | Portal do Cliente | Afinal Cenografia{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">
+      <i class="fas fa-comments me-2"></i> Perguntas sobre a Feira - {{ projeto.nome }}
+    </h5>
+    <a href="{% url 'cliente:briefing_edit' briefing.id %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i> Voltar para o Briefing
+    </a>
+  </div>
+  
+  <div class="card-body">
+    {% if feira %}
+    <!-- Feira vinculada -->
+    <div class="alert alert-info">
+      <div class="d-flex align-items-center">
+        <div class="me-3">
+          <i class="fas fa-calendar-alt fa-2x"></i>
+        </div>
+        <div>
+          <p class="mb-0"><strong>Feira vinculada:</strong> {{ feira.nome }}</p>
+          <p class="mb-0">Local: {{ feira.cidade }}/{{ feira.estado }} | Período: {{ feira.data_inicio|date:"d/m/Y" }} a {{ feira.data_fim|date:"d/m/Y" }}</p>
+          <p class="mb-0 text-muted">Você pode fazer perguntas específicas sobre esta feira e seu manual.</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Formulário de pergunta -->
+    <div class="card mb-4">
+      <div class="card-header bg-light">
+        <h6 class="card-title mb-0">Faça uma pergunta sobre a feira</h6>
+      </div>
+      <div class="card-body">
+        <form id="perguntaForm">
+          <div class="mb-3">
+            <label for="pergunta" class="form-label">Sua pergunta</label>
+            <textarea class="form-control" id="pergunta" name="pergunta" rows="2" placeholder="Ex: Qual a altura máxima permitida para o estande?"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary" id="enviarPergunta">
+            <i class="fas fa-paper-plane me-1"></i> Enviar Pergunta
+          </button>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Área de resposta (inicialmente oculta) -->
+    <div id="respostaArea" class="card mb-4" style="display: none;">
+      <div class="card-header bg-light">
+        <h6 class="card-title mb-0">
+          <i class="fas fa-robot me-1"></i> Resposta
+        </h6>
+      </div>
+      <div class="card-body">
+        <!-- Loader durante o carregamento -->
+        <div id="resposta-loading" class="text-center py-4">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Carregando...</span>
+          </div>
+          <p class="mt-2 mb-0">Consultando o manual da feira...</p>
+        </div>
+        
+        <!-- Conteúdo da resposta -->
+        <div id="resposta-content" style="display: none;">
+          <div class="alert alert-light border">
+            <p id="resposta-texto" class="mb-0"></p>
+          </div>
+          
+          <div id="resposta-contextos" class="mt-3">
+            <p class="text-muted small mb-2"><i class="fas fa-info-circle me-1"></i> Fontes consultadas:</p>
+            <div id="contextos-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Histórico de perguntas -->
+    <div class="card">
+      <div class="card-header bg-light">
+        <h6 class="card-title mb-0">Histórico de perguntas</h6>
+      </div>
+      <div class="card-body">
+        {% if feira_qa %}
+          <div class="qa-history">
+            {% for qa in feira_qa %}
+              <div class="qa-item mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+                <div class="question mb-2">
+                  <p class="mb-1"><i class="fas fa-question-circle text-primary me-2"></i> <strong>Pergunta:</strong></p>
+                  <p class="mb-0 ms-4">{{ qa.pergunta }}</p>
+                  <p class="text-muted small ms-4 mt-1">{{ qa.timestamp|date:"d/m/Y H:i" }}</p>
+                </div>
+                <div class="answer">
+                  <p class="mb-1"><i class="fas fa-comment-dots text-success me-2"></i> <strong>Resposta:</strong></p>
+                  <p class="mb-0 ms-4">{{ qa.resposta }}</p>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-4 text-muted">
+            <i class="fas fa-history fa-2x mb-2"></i>
+            <p class="mb-0">Nenhuma pergunta realizada até o momento.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    
+    {% else %}
+    <!-- Sem feira vinculada -->
+    <div class="alert alert-warning">
+      <div class="d-flex align-items-center">
+        <div class="me-3">
+          <i class="fas fa-exclamation-triangle fa-2x"></i>
+        </div>
+        <div>
+          <p class="mb-0"><strong>Nenhuma feira vinculada ao projeto</strong></p>
+          <p class="mb-0">Para fazer perguntas específicas sobre uma feira, solicite ao gestor que vincule uma feira ao seu projeto.</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Lista de feiras disponíveis (apenas para informação) -->
+    {% if feiras_disponiveis %}
+      <div class="card mt-4">
+        <div class="card-header bg-light">
+          <h6 class="card-title mb-0">Feiras disponíveis</h6>
+        </div>
+        <div class="card-body">
+          <p class="text-muted">Estas são as feiras disponíveis para vinculação ao seu projeto. Entre em contato com seu gestor para solicitar a vinculação.</p>
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Feira</th>
+                  <th>Local</th>
+                  <th>Período</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for feira in feiras_disponiveis %}
+                  <tr>
+                    <td>{{ feira.nome }}</td>
+                    <td>{{ feira.cidade }}/{{ feira.estado }}</td>
+                    <td>{{ feira.data_inicio|date:"d/m/Y" }} a {{ feira.data_fim|date:"d/m/Y" }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const perguntaForm = document.getElementById('perguntaForm');
+  const respostaArea = document.getElementById('respostaArea');
+  const respostaLoading = document.getElementById('resposta-loading');
+  const respostaContent = document.getElementById('resposta-content');
+  const respostaTexto = document.getElementById('resposta-texto');
+  const contextosList = document.getElementById('contextos-list');
+  
+  if (perguntaForm) {
+    perguntaForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const pergunta = document.getElementById('pergunta').value.trim();
+      
+      if (!pergunta) {
+        alert('Por favor, digite uma pergunta.');
+        return;
+      }
+      
+      // Mostrar área de resposta com loader
+      respostaArea.style.display = 'block';
+      respostaLoading.style.display = 'block';
+      respostaContent.style.display = 'none';
+      
+      // Scroll para a área de resposta
+      respostaArea.scrollIntoView({ behavior: 'smooth' });
+      
+      // Enviar pergunta para a API
+      fetch('{% url "cliente:briefing_responder_pergunta" %}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+          briefing_id: {{ briefing.id }},
+          pergunta: pergunta
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Ocultar loader
+        respostaLoading.style.display = 'none';
+        
+        if (data.success) {
+          // Exibir resposta
+          respostaTexto.innerHTML = data.resposta;
+          
+          // Exibir contextos
+          contextosList.innerHTML = '';
+          
+          if (data.contextos && data.contextos.length > 0) {
+            const contextList = document.createElement('ul');
+            contextList.className = 'list-group list-group-flush';
+            
+            data.contextos.forEach(ctx => {
+              const item = document.createElement('li');
+              item.className = 'list-group-item py-2 px-0 border-0';
+              
+              const scorePercent = Math.round(ctx.score * 100);
+              const scoreClass = scorePercent > 80 ? 'success' : (scorePercent > 60 ? 'info' : 'secondary');
+              
+              item.innerHTML = `
+                <div class="d-flex align-items-start">
+                  <span class="badge bg-${scoreClass} me-2 mt-1">${scorePercent}%</span>
+                  <div>
+                    <p class="mb-1 fw-bold small">${ctx.question}</p>
+                    <p class="mb-0 small text-muted">${ctx.answer.substring(0, 100)}${ctx.answer.length > 100 ? '...' : ''}</p>
+                  </div>
+                </div>
+              `;
+              
+              contextList.appendChild(item);
+            });
+            
+            contextosList.appendChild(contextList);
+          } else {
+            contextosList.innerHTML = '<p class="text-muted small">Nenhuma fonte específica encontrada para esta pergunta.</p>';
+          }
+          
+          // Mostrar conteúdo da resposta
+          respostaContent.style.display = 'block';
+          
+          // Atualizar histórico (opcional: recarregar a página após um delay)
+          setTimeout(() => {
+            location.reload();
+          }, 5000);
+          
+        } else {
+          // Exibir erro
+          respostaTexto.innerHTML = `<div class="alert alert-danger mb-0">Erro: ${data.message || 'Não foi possível processar sua pergunta.'}</div>`;
+          respostaContent.style.display = 'block';
+        }
+      })
+      .catch(error => {
+        console.error('Erro:', error);
+        
+        // Ocultar loader
+        respostaLoading.style.display = 'none';
+        
+        // Exibir erro
+        respostaTexto.innerHTML = '<div class="alert alert-danger mb-0">Erro ao processar sua pergunta. Por favor, tente novamente mais tarde.</div>';
+        respostaContent.style.display = 'block';
+      });
+    });
+  }
+});
+</script>
+{% endblock %}

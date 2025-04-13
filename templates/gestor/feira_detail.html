@@ -192,6 +192,23 @@
                     </div>
                   </div>
                 {% endif %}
+                <!-- Adicionar este bloco logo após o fechamento do bloco "processamentoStatus" (linha 173) -->
+              
+              <!-- Link para gerenciamento de Perguntas e Respostas -->
+              {% if feira.manual_processado %}
+              <div class="mt-3">
+                <div class="d-flex justify-content-between align-items-center">
+                  <a href="{% url 'gestor:feira_qa_list' feira.id %}" class="btn btn-info">
+                    <i class="fas fa-question-circle me-1"></i> Gerenciar Perguntas e Respostas
+                  </a>
+                  
+                  <!-- Mostrar contagem de QAs se estiver disponível -->
+                  {% if qa_count is not None %}
+                    <span class="badge bg-info">{{ qa_count }} perguntas e respostas</span>
+                  {% endif %}
+                </div>
+              </div>
+            {% endif %}
               </div>
             {% else %}
               <div class="alert alert-warning">

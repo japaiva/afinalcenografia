@@ -39,6 +39,8 @@ urlpatterns = [
     #path('projeto/<int:projeto_id>/briefing/salvar-rascunho/', views.salvar_rascunho_briefing, name='salvar_rascunho_briefing'),
     #path('arquivo/<int:arquivo_id>/excluir/', views.excluir_arquivo_referencia, name='excluir_arquivo_referencia'),
     
+    # Adicionar às URLs do cliente/urls.py
+    path('briefing/<int:briefing_id>/perguntar-feira/', views.briefing_perguntar_feira, name='briefing_perguntar_feira'),
 
     path('projeto/<int:projeto_id>/briefing/iniciar/', projeto_views.iniciar_briefing, name='iniciar_briefing'),
     path('projeto/<int:projeto_id>/briefing/etapa/<int:etapa>/', projeto_views.briefing_etapa, name='briefing_etapa'),

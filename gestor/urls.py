@@ -75,4 +75,17 @@ urlpatterns = [
 
     # Nova URL para monitorar o progresso de processamento
     path('feira/<int:pk>/progresso/', views.feira_progress, name='feira_progress'),
+
+    # Adicionar nas URLs do gestor:
+    path('feiras/<int:feira_id>/qa/', views.feira_qa_list, name='feira_qa_list'),
+    path('feiras/<int:feira_id>/qa/regenerate/', views.feira_qa_regenerate, name='feira_qa_regenerate'),
+    path('feiras/qa/get/', views.feira_qa_get, name='feira_qa_get'),
+    path('feiras/qa/update/', views.feira_qa_update, name='feira_qa_update'),
+    path('feiras/qa/delete/', views.feira_qa_delete, name='feira_qa_delete'),
+    path('feiras/qa/regenerate-single/', views.feira_qa_regenerate_single, name='feira_qa_regenerate_single'),
+
+    # Integração de QA com Briefing
+    path('briefing/<int:briefing_id>/vincular-feira/<int:feira_id>/', views.briefing_vincular_feira, name='briefing_vincular_feira'),
+    path('briefing/responder-pergunta/', views.briefing_responder_pergunta, name='briefing_responder_pergunta'),
+
 ]
