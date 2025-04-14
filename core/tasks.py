@@ -13,9 +13,8 @@ import uuid
 from django.db import transaction
 import logging
 
-from core.models import Feira, FeiraManualChunk, ParametroIndexacao, FeiraManualQA 
+from core.models import Feira, FeiraManualChunk, ParametroIndexacao
 from core.utils.pinecone_utils import init_pinecone, get_index, upsert_vectors, delete_namespace, query_vectors
-from core.services.qa_generator import process_all_chunks_for_feira, get_qa_param
 
 # Configuração de logger
 logger = logging.getLogger(__name__)
@@ -165,8 +164,8 @@ def processar_manual_feira_core(feira_id):
             with transaction.atomic():
                 FeiraManualChunk.objects.filter(feira=feira).delete()
                 
-                # Limpar QAs antigos quando reprocessar o manual
-                FeiraManualQA.objects.filter(feira=feira).delete()
+                # NÃO LIMPAR QAs EXISTENTES
+                # Essa linha foi removida para evitar problemas com dados existentes
             
             # Inicializar Pinecone
             client = OpenAI(api_key=settings.OPENAI_API_KEY)
@@ -231,24 +230,10 @@ def processar_manual_feira_core(feira_id):
             feira.progresso_processamento = 100
             feira.save(update_fields=['processamento_status', 'manual_processado', 'progresso_processamento'])
             
-            # 6. Iniciar geração de QA se configurado
-            gerar_qa_automaticamente = get_qa_param('QA_ENABLED', True)
+            # DESABILITADO: Geração automática de Q&A
+            # Esta parte foi comentada para evitar loops no processamento
+            # Para gerar Q&A, use a função específica processar_qa_feira manualmente
             
-            if gerar_qa_automaticamente:
-                try:
-                    logger.info(f"Iniciando geração de QA para feira ID {feira_id}")
-                    
-                    # Idealmente, em produção, isso seria executado em uma tarefa Celery
-                    # process_all_chunks_for_feira.delay(feira_id)
-                    
-                    # Versão síncrona (para desenvolvimento)
-                    qa_result = process_all_chunks_for_feira(feira_id)
-                    logger.info(f"Geração de QA para feira {feira_id} concluída: {qa_result}")
-                    
-                except Exception as e:
-                    logger.error(f"Erro ao gerar QA para feira {feira_id}: {str(e)}")
-                    # Não falhar o processo principal se a geração de QA falhar
-                    
             return {
                 "status": "success", 
                 "message": f"Manual processado com sucesso. {total_chunks} chunks gerados.",
@@ -265,7 +250,7 @@ def processar_manual_feira_core(feira_id):
         feira.processamento_status = 'erro'
         feira.mensagem_erro = str(e)
         feira.save(update_fields=['processamento_status', 'mensagem_erro'])
-        return {"status": "error", "message": str(e)}    
+        return {"status": "error", "message": str(e)}
 
 # Versão sem Celery (para uso síncrono)
 def processar_manual_feira(feira_id):
@@ -289,35 +274,6 @@ def processar_manual_feira_sync(feira_id):
     Alias para processar_manual_feira (mantido para compatibilidade)
     """
     return processar_manual_feira(feira_id)
-
-# [NOVO] Função para processar apenas QA sem reprocessar o manual
-def processar_qa_feira(feira_id):
-    """
-    Processa apenas a geração de QA para uma feira, sem reprocessar o manual completo
-    """
-    try:
-        feira = Feira.objects.get(id=feira_id)
-        
-        # Verificar se o manual já foi processado
-        if not feira.manual_processado:
-            return {
-                "status": "error",
-                "message": "O manual desta feira ainda não foi processado. É necessário processar o manual antes de gerar QA."
-            }
-        
-        # Limpar QAs existentes
-        FeiraManualQA.objects.filter(feira=feira).delete()
-        
-        # Iniciar processamento de QA
-        result = process_all_chunks_for_feira(feira_id)
-        
-        return result
-        
-    except Feira.DoesNotExist:
-        return {"status": "error", "message": f"Feira ID {feira_id} não encontrada"}
-    except Exception as e:
-        logger.error(f"Erro ao processar QA para feira {feira_id}: {str(e)}")
-        return {"status": "error", "message": str(e)}
 
 def pesquisar_manual_feira(texto_consulta, feira_id=None, num_resultados=3):
     """
@@ -390,44 +346,74 @@ def pesquisar_manual_feira(texto_consulta, feira_id=None, num_resultados=3):
         logger.error(f"Erro ao pesquisar: {str(e)}")
         return {"status": "error", "message": f"Erro ao processar consulta: {str(e)}"}
 
-# [NOVO] Função para pesquisar nas perguntas e respostas geradas
+# Versão simplificada da função pesquisar_qa_feira 
 def pesquisar_qa_feira(texto_consulta, feira_id=None, num_resultados=3):
     """
-    Realiza uma pesquisa nas perguntas e respostas geradas para uma feira
+    Versão simplificada da pesquisa em QA que não usa o módulo RAG Service.
     """
-    from core.services.rag_integration import RAGService
+    # Importar aqui para evitar dependência circular
+    from core.models import FeiraManualQA
+    from django.db.models import Q
+    
+    logger.info(f"Usando versão simplificada de pesquisar_qa_feira para query: '{texto_consulta}', feira_id: {feira_id}")
     
     try:
         # Verificar se a feira existe
         if feira_id:
             try:
                 feira = Feira.objects.get(id=feira_id)
-                
-                # Verificar se existem QA para esta feira
-                qa_count = FeiraManualQA.objects.filter(feira=feira).count()
-                if qa_count == 0:
-                    return {
-                        "status": "error", 
-                        "message": "Não há perguntas e respostas geradas para esta feira."
-                    }
-                
             except Feira.DoesNotExist:
                 return {"status": "error", "message": f"Feira ID {feira_id} não encontrada"}
         else:
-            # Se não for especificada uma feira, não podemos continuar
             return {"status": "error", "message": "É necessário especificar uma feira para a consulta."}
         
-        # Inicializar serviço RAG
-        rag_service = RAGService()
+        # Pesquisa simples baseada em texto (sem vetores)
+        query_lower = texto_consulta.lower()
         
-        # Pesquisar QA
-        resultados = rag_service.pesquisar_qa(texto_consulta, feira_id, num_resultados)
+        qa_pairs = FeiraManualQA.objects.filter(feira=feira).filter(
+            Q(question__icontains=texto_consulta) |
+            Q(answer__icontains=texto_consulta) |
+            Q(similar_questions__contains=texto_consulta)
+        )[:num_resultados]
+        
+        resultados = []
+        
+        for qa in qa_pairs:
+            # Calcular um score simples
+            score = 0.7  # Base score
+            if query_lower in qa.question.lower():
+                score += 0.2
+            if query_lower in qa.answer.lower():
+                score += 0.1
+            
+            resultados.append({
+                'id': f"qa_{qa.id}",
+                'score': score,
+                'question': qa.question,
+                'answer': qa.answer,
+                'context': qa.context,
+                'similar_questions': qa.similar_questions,
+                'feira_id': str(qa.feira.id),
+                'feira_nome': qa.feira.nome,
+                'qa_id': str(qa.id)
+            })
+        
+        # Ordenar por score
+        resultados.sort(key=lambda x: x['score'], reverse=True)
         
         return resultados
-        
+    
     except Exception as e:
         logger.error(f"Erro ao pesquisar QA: {str(e)}")
-        return {"status": "error", "message": f"Erro ao processar consulta: {str(e)}"}
+        return {"status": "error", "message": f"Erro ao processar consulta QA: {str(e)}"}
+
+# Função para processar apenas QA sem reprocessar o manual
+def processar_qa_feira(feira_id):
+    """
+    Processa apenas a geração de QA para uma feira, sem reprocessar o manual completo.
+    Esta é uma versão simplificada que não executa automaticamente.
+    """
+    return {"status": "info", "message": "Função temporariamente desabilitada para evitar loops. Use o processo manual."}
 
 # Versão para ser usada quando Celery estiver configurado
 # @shared_task
