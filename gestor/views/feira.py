@@ -2,6 +2,7 @@
 
 import json
 import logging
+import threading
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -20,6 +21,14 @@ from projetos.models import Projeto
 from projetos.models.briefing import Briefing, BriefingConversation
 
 logger = logging.getLogger(__name__)
+
+# Função auxiliar para processar o manual em segundo plano
+def processar_manual_background(feira_id):
+    try:
+        resultado = processar_manual_feira(feira_id)
+        logger.info(f"Processamento em background concluído para feira {feira_id}: {resultado}")
+    except Exception as e:
+        logger.error(f"Erro no processamento em background para feira {feira_id}: {str(e)}")
 
 @login_required
 def feira_list(request):
@@ -50,7 +59,12 @@ def feira_create(request):
         if form.is_valid():
             feira = form.save()
             messages.success(request, f'Feira "{feira.nome}" cadastrada com sucesso.')
-            processar_manual_feira.delay(feira.id)
+            
+            # Iniciar processamento em background
+            thread = threading.Thread(target=processar_manual_background, args=(feira.id,))
+            thread.daemon = True
+            thread.start()
+            
             return redirect('gestor:feira_list')
     else:
         form = FeiraForm()
@@ -71,7 +85,11 @@ def feira_update(request, pk):
             if manual_alterado:
                 feira.manual_processado = False
                 feira.save(update_fields=['manual_processado'])
-                processar_manual_feira.delay(feira.id)
+                
+                # Iniciar processamento em background
+                thread = threading.Thread(target=processar_manual_background, args=(feira.id,))
+                thread.daemon = True
+                thread.start()
             
             return redirect('gestor:feira_list')
     else:
@@ -270,8 +288,26 @@ def feira_qa_regenerate(request, feira_id):
     feira.save()
     
     try:
-        # Chamar processamento com o agente especificado
-        process_all_chunks_for_feira(feira.id, agent_name=agente_nome)
+        # Iniciar processamento em uma thread separada
+        def process_qa_background(feira_id, agent_name):
+            try:
+                result = process_all_chunks_for_feira(feira_id, agent_name=agent_name)
+                logger.info(f"Processamento QA em background concluído para feira {feira_id}: {result}")
+            except Exception as e:
+                logger.error(f"Erro no processamento QA em background para feira {feira_id}: {str(e)}")
+                # Atualizar status da feira em caso de erro
+                try:
+                    feira = Feira.objects.get(id=feira_id)
+                    feira.processamento_status = 'erro'
+                    feira.mensagem_erro = str(e)
+                    feira.save()
+                except:
+                    pass
+        
+        thread = threading.Thread(target=process_qa_background, args=(feira.id, agente_nome))
+        thread.daemon = True
+        thread.start()
+        
         return JsonResponse({
             'success': True,
             'message': 'Processamento iniciado com sucesso.'
@@ -286,6 +322,7 @@ def feira_qa_regenerate(request, feira_id):
             'message': f'Erro ao iniciar processamento: {str(e)}'
         })
 
+# O restante do arquivo permanece igual
 @login_required
 @require_GET
 def feira_qa_get(request):

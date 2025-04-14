@@ -320,8 +320,7 @@ O formato deve ser: {{"results": [{{"q": "pergunta", "a": "resposta", "t": "trec
                 logger.error(f"Erro ao salvar par QA: {str(e)}")
         
         return created_pairs
-
-
+    
 def process_all_chunks_for_feira(feira_id: int, delay: Optional[int] = None, agent_name: str = 'Gerador de Q&A') -> Dict[str, Any]:
     """
     Processa todos os chunks de uma feira para gerar pares QA.
@@ -398,7 +397,7 @@ def process_all_chunks_for_feira(feira_id: int, delay: Optional[int] = None, age
         feira.progresso_processamento = 100
         feira.save()
         
-        return {
+        result = {
             "status": "success",
             "message": f"Processamento concluído. Gerados {total_qa} pares QA de {processed} chunks usando o agente '{agent_name}'.",
             "total_chunks": total_chunks,
@@ -406,6 +405,22 @@ def process_all_chunks_for_feira(feira_id: int, delay: Optional[int] = None, age
             "total_qa": total_qa,
             "errors": errors
         }
+        
+        # NOVA PARTE: Calcular embeddings para os Q&A gerados usando o serviço refatorado
+        try:
+            from core.services.rag_service import RAGService
+            
+            logger.info(f"Iniciando cálculo de embeddings para {total_qa} pares Q&A da feira {feira_id}")
+            rag_service = RAGService()
+            embeddings_result = rag_service.atualizar_embeddings_feira(feira_id)
+            
+            result["embeddings_result"] = embeddings_result
+            logger.info(f"Cálculo de embeddings concluído para feira {feira_id}: {embeddings_result}")
+        except Exception as e:
+            logger.error(f"Erro ao calcular embeddings para QA da feira {feira_id}: {str(e)}")
+            result["embeddings_error"] = str(e)
+        
+        return result
         
     except Feira.DoesNotExist:
         return {"status": "error", "message": f"Feira com ID {feira_id} não encontrada"}
