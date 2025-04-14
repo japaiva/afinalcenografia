@@ -1,3 +1,5 @@
+# core/services/qa_generator.py
+
 import json
 import time
 import logging
@@ -333,13 +335,6 @@ def process_all_chunks_for_feira(feira_id: int, delay: Optional[int] = None, age
     Returns:
         Dicionário com resultados do processamento.
     """
-    # Verificar se QA está habilitado
-    qa_habilitado = get_qa_param('QA_ENABLED', True)
-    if not qa_habilitado:
-        return {
-            "status": "skipped", 
-            "message": "Geração de QA desabilitada. Verifique o parâmetro QA_ENABLED."
-        }
     
     # Obter delay dos parâmetros se não for especificado
     if delay is None:

@@ -303,3 +303,26 @@ def mensagens_projeto(request, projeto_id):
         'mensagens': mensagens_lista,
     }
     return render(request, 'gestor/mensagens_projeto.html', context)
+
+@login_required
+def feira_qa_progress(request, pk):
+    try:
+        feira = Feira.objects.get(pk=pk)
+        return JsonResponse({
+            'success': True,
+            'progress': feira.qa_progresso_processamento if hasattr(feira, 'qa_progresso_processamento') else 0,
+            'status': feira.qa_processamento_status if hasattr(feira, 'qa_processamento_status') else 'pendente',
+            'message': feira.qa_mensagem_erro if hasattr(feira, 'qa_mensagem_erro') else None,
+            'processed': feira.qa_processado if hasattr(feira, 'qa_processado') else False,
+            'total_qa': FeiraManualQA.objects.filter(feira=feira).count()
+        })
+    except Feira.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Feira não encontrada'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False, 
+            'error': str(e)
+        }, status=500)
