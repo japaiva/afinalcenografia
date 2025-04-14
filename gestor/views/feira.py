@@ -258,71 +258,30 @@ def feira_qa_list(request, feira_id):
     
     return render(request, 'gestor/feira_qa_list.html', context)
 
+
 @login_required
-@require_POST
-def feira_qa_regenerate(request, feira_id):
-    feira = get_object_or_404(Feira, pk=feira_id)
-    
-    if feira.processamento_status == 'processando':
-        return JsonResponse({
-            'success': False,
-            'message': 'Já existe um processamento em andamento.'
-        })
-    
-    # Obter o agente selecionado na interface (se houver)
-    agente_id = request.POST.get('agente_id')
-    agente_nome = None
-    
-    if agente_id:
-        try:
-            agente = Agente.objects.get(pk=agente_id, ativo=True)
-            agente_nome = agente.nome
-        except Agente.DoesNotExist:
-            pass
-    
-    # Limpar QAs existentes
-    FeiraManualQA.objects.filter(feira=feira).delete()
-    
-    feira.processamento_status = 'processando'
-    feira.progresso_processamento = 0
-    feira.save()
-    
+def feira_qa_progress(request, pk):
     try:
-        # Iniciar processamento em uma thread separada
-        def process_qa_background(feira_id, agent_name):
-            try:
-                result = process_all_chunks_for_feira(feira_id, agent_name=agent_name)
-                logger.info(f"Processamento QA em background concluído para feira {feira_id}: {result}")
-            except Exception as e:
-                logger.error(f"Erro no processamento QA em background para feira {feira_id}: {str(e)}")
-                # Atualizar status da feira em caso de erro
-                try:
-                    feira = Feira.objects.get(id=feira_id)
-                    feira.processamento_status = 'erro'
-                    feira.mensagem_erro = str(e)
-                    feira.save()
-                except:
-                    pass
-        
-        thread = threading.Thread(target=process_qa_background, args=(feira.id, agente_nome))
-        thread.daemon = True
-        thread.start()
-        
+        feira = Feira.objects.get(pk=pk)
         return JsonResponse({
             'success': True,
-            'message': 'Processamento iniciado com sucesso.'
+            'progress': feira.qa_progresso_processamento if hasattr(feira, 'qa_progresso_processamento') else 0,
+            'status': feira.qa_processamento_status if hasattr(feira, 'qa_processamento_status') else 'pendente',
+            'message': feira.qa_mensagem_erro if hasattr(feira, 'qa_mensagem_erro') else None,
+            'processed': feira.qa_processado if hasattr(feira, 'qa_processado') else False,
+            'total_qa': FeiraManualQA.objects.filter(feira=feira).count()
         })
-    except Exception as e:
-        feira.processamento_status = 'erro'
-        feira.mensagem_erro = str(e)
-        feira.save()
-        
+    except Feira.DoesNotExist:
         return JsonResponse({
             'success': False,
-            'message': f'Erro ao iniciar processamento: {str(e)}'
-        })
+            'error': 'Feira não encontrada'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False, 
+            'error': str(e)
+        }, status=500)
 
-# O restante do arquivo permanece igual
 @login_required
 @require_GET
 def feira_qa_get(request):
@@ -991,3 +950,85 @@ def feira_reset_data_confirm(request, pk):
     }
     
     return render(request, 'gestor/feira_reset_confirm.html', context)
+
+@login_required
+@require_POST
+def feira_qa_regenerate(request, feira_id):
+    feira = get_object_or_404(Feira, pk=feira_id)
+    
+    # Verificar qa_processamento_status em vez de processamento_status
+    if hasattr(feira, 'qa_processamento_status') and feira.qa_processamento_status == 'processando':
+        return JsonResponse({
+            'success': False,
+            'message': 'Já existe um processamento de Q&A em andamento.'
+        })
+    
+    # Obter o agente selecionado na interface (se houver)
+    agente_id = request.POST.get('agente_id')
+    agente_nome = None
+    
+    if agente_id:
+        try:
+            agente = Agente.objects.get(pk=agente_id, ativo=True)
+            agente_nome = agente.nome
+        except Agente.DoesNotExist:
+            pass
+    
+    # Limpar QAs existentes
+    FeiraManualQA.objects.filter(feira=feira).delete()
+    
+    # Usar campos específicos para Q&A
+    feira.qa_processamento_status = 'processando'
+    feira.qa_progresso_processamento = 0
+    # Garantir que salvamos apenas campos que existem no modelo
+    if hasattr(feira, 'qa_mensagem_erro'):
+        feira.qa_mensagem_erro = None
+    feira.save()
+    
+    try:
+        # Iniciar processamento em uma thread separada
+        def process_qa_background(feira_id, agent_name):
+            try:
+                result = process_all_chunks_for_feira(feira_id, agent_name=agent_name)
+                logger.info(f"Processamento QA em background concluído para feira {feira_id}: {result}")
+                
+                # Atualizar status após sucesso
+                try:
+                    feira = Feira.objects.get(id=feira_id)
+                    feira.qa_processamento_status = 'concluido'
+                    feira.qa_progresso_processamento = 100
+                    feira.qa_processado = True
+                    feira.save()
+                except Exception as inner_e:
+                    logger.error(f"Erro ao atualizar status da feira após Q&A: {str(inner_e)}")
+                    
+            except Exception as e:
+                logger.error(f"Erro no processamento QA em background para feira {feira_id}: {str(e)}")
+                # Atualizar status da feira em caso de erro
+                try:
+                    feira = Feira.objects.get(id=feira_id)
+                    feira.qa_processamento_status = 'erro'
+                    if hasattr(feira, 'qa_mensagem_erro'):
+                        feira.qa_mensagem_erro = str(e)
+                    feira.save()
+                except Exception as inner_e:
+                    logger.error(f"Erro ao atualizar status de erro da feira após Q&A: {str(inner_e)}")
+        
+        thread = threading.Thread(target=process_qa_background, args=(feira.id, agente_nome))
+        thread.daemon = True
+        thread.start()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Processamento Q&A iniciado com sucesso.'
+        })
+    except Exception as e:
+        feira.qa_processamento_status = 'erro'
+        if hasattr(feira, 'qa_mensagem_erro'):
+            feira.qa_mensagem_erro = str(e)
+        feira.save()
+        
+        return JsonResponse({
+            'success': False,
+            'message': f'Erro ao iniciar processamento Q&A: {str(e)}'
+        })

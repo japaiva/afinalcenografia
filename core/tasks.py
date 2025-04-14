@@ -15,6 +15,7 @@ import logging
 
 from core.models import Feira, FeiraManualChunk, ParametroIndexacao
 from core.utils.pinecone_utils import init_pinecone, get_index, upsert_vectors, delete_namespace, query_vectors
+from core.services.qa_generator import process_all_chunks_for_feira
 
 # Configuração de logger
 logger = logging.getLogger(__name__)
@@ -230,9 +231,20 @@ def processar_manual_feira_core(feira_id):
             feira.progresso_processamento = 100
             feira.save(update_fields=['processamento_status', 'manual_processado', 'progresso_processamento'])
             
-            # DESABILITADO: Geração automática de Q&A
-            # Esta parte foi comentada para evitar loops no processamento
-            # Para gerar Q&A, use a função específica processar_qa_feira manualmente
+            if feira.manual_processado:
+                # Iniciar processamento de Q&A
+                try:
+                    qa_result = process_all_chunks_for_feira(feira.id)
+                    if qa_result.get('status') == 'success':
+                        logger.info(f'Q&A gerado com sucesso para feira {feira.id}: {qa_result.get("total_qa")} pares criados.')
+                    else:
+                        logger.warning(f'Aviso ao gerar Q&A para feira {feira.id}: {qa_result.get("message")}')
+                except Exception as e:
+                    logger.error(f"Erro ao processar Q&A para feira {feira.id}: {str(e)}")
+                    qa_result = {
+                        "status": "error",
+                        "message": f"Erro ao gerar Q&A: {str(e)}"
+                    }
             
             return {
                 "status": "success", 
