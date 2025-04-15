@@ -85,6 +85,17 @@ urlpatterns = [
     path('feira/<int:pk>/progress/', views.feira_progress, name='feira_progress'),
     
 
+    path('feiras/<int:feira_id>/blocos/', views.feira_blocos_list, name='feira_blocos_list'),
+    path('feiras/chunk/get/', views.feira_chunk_get, name='feira_chunk_get'),
+    path('feiras/chunk/update/', views.feira_chunk_update, name='feira_chunk_update'),
+    path('feiras/chunk/delete/', views.feira_chunk_delete, name='feira_chunk_delete'),
+    path('feiras/<int:feira_id>/chunk/add/', views.feira_chunk_add, name='feira_chunk_add'),
+    path('feiras/chunk/regenerate-vector/', views.feira_chunk_regenerate_vector, name='feira_chunk_regenerate_vector'),
+
+    # Consulta unificada ao banco vetorial
+    path('feiras/<int:feira_id>/search-unified/', views.feira_search_unified, name='feira_search_unified'),
+
+
     # Integração de QA com Briefing
     path('briefing/<int:briefing_id>/vincular-feira/<int:feira_id>/', views.briefing_vincular_feira, name='briefing_vincular_feira'),
     path('briefing/responder-pergunta/', views.briefing_responder_pergunta, name='briefing_responder_pergunta'),
