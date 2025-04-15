@@ -43,12 +43,11 @@ class QAGenerator:
         elif hasattr(self.client, 'completion'):  # Groq
             self.provider = 'groq'
         else:
-            logger.warning(f"Não foi possível determinar o provedor do agente '{agent_name}'. Tentando usar parâmetros padrão.")
             # Fallback para parâmetros padrão se o agente não existir
             self.provider = get_qa_param('QA_PROVIDER', 'openai')
             self.model = get_qa_param('QA_MODEL', 'gpt-4o')
             self.temperature = get_qa_param('QA_TEMPERATURE', 0.3)
-            self.task_instructions = None  # Adicionar fallback para task_instructions
+            self.task_instructions = None
             
             # Inicializar cliente com base no provider de fallback
             if self.provider == 'openai':
@@ -208,7 +207,7 @@ O formato deve ser: {{"results": [{{"q": "pergunta", "a": "resposta", "t": "trec
                 return results
                 
             except json.JSONDecodeError:
-                logger.error(f"Erro ao analisar JSON na resposta do Anthropic: {content}")
+                logger.error(f"Erro ao analisar JSON na resposta do Anthropic")
                 return []
                 
         except Exception as e:
@@ -277,8 +276,7 @@ O formato deve ser: {{"results": [{{"q": "pergunta", "a": "resposta", "t": "trec
                 return results
                 
             except json.JSONDecodeError as e:
-                logger.error(f"Erro ao analisar JSON na resposta do Groq: {e}")
-                logger.debug(f"Conteúdo problemático: {content}")
+                logger.error(f"Erro ao analisar JSON na resposta do Groq")
                 return []
                 
         except Exception as e:
@@ -323,6 +321,8 @@ O formato deve ser: {{"results": [{{"q": "pergunta", "a": "resposta", "t": "trec
         
         return created_pairs
     
+## Modificações necessárias no core/services/qa_generator.py
+
 def process_all_chunks_for_feira(feira_id: int, delay: Optional[int] = None, agent_name: str = 'Gerador de Q&A') -> Dict[str, Any]:
     """
     Processa todos os chunks de uma feira para gerar pares QA.
@@ -351,57 +351,118 @@ def process_all_chunks_for_feira(feira_id: int, delay: Optional[int] = None, age
         # Inicializar o gerador com o agente especificado
         generator = QAGenerator(agent_name=agent_name)
         
+        # Variáveis para estatísticas
         total_chunks = chunks.count()
         processed = 0
         total_qa = 0
         errors = 0
         
-        # Atualizar o status da feira
-        feira.processamento_status = 'processando'
+        # Limite rigoroso de 50 QAs
+        MAX_QA_TOTAL = 50
+        
+        # Atualizar o status da feira para processando
+        feira.qa_processamento_status = 'processando'
+        if hasattr(feira, 'qa_progresso_processamento'):
+            feira.qa_progresso_processamento = 0
         feira.save()
         
+        logger.info(f"Iniciando processamento de Q&A para feira {feira_id} (limite: {MAX_QA_TOTAL} QAs)")
+        
+        # Remover QAs existentes se estiverem reprocessando
+        FeiraManualQA.objects.filter(feira=feira).delete()
+        
+        # ADICIONADO: Limpar o namespace do Pinecone antes de reprocessar
+        try:
+            from core.utils.pinecone_utils import delete_namespace
+            namespace = f"feira_{feira_id}"
+            delete_namespace(namespace)
+            logger.info(f"✓ Namespace '{namespace}' limpo antes do reprocessamento de Q&A")
+        except Exception as e:
+            logger.warning(f"Aviso ao limpar namespace para feira {feira_id}: {str(e)}")
+        
+        # Processar chunks até atingir o limite
         for i, chunk in enumerate(chunks):
+            # Verificar se já alcançamos o limite
+            if total_qa >= MAX_QA_TOTAL:
+                logger.info(f"Limite de {MAX_QA_TOTAL} QAs atingido. Interrompendo o processamento.")
+                break
+                
             try:
-                # Atualizar progresso
-                progress = int((i / total_chunks) * 100)
-                feira.progresso_processamento = progress
-                feira.save(update_fields=['progresso_processamento'])
+                # Calcular quantos QAs ainda podemos gerar
+                qa_space_remaining = MAX_QA_TOTAL - total_qa
+                
+                if qa_space_remaining <= 0:
+                    break
                 
                 # Gerar QA do chunk
+                logger.info(f"Gerando Q&A para chunk {i+1}/{total_chunks} (QAs: {total_qa}/{MAX_QA_TOTAL})")
                 qa_pairs = generator.generate_qa_from_chunk(
                     chunk, 
                     feira.description if hasattr(feira, 'description') else None
                 )
                 
+                # Limitar número de pares para não exceder o limite
+                pairs_to_save = min(len(qa_pairs), qa_space_remaining)
+                if pairs_to_save < len(qa_pairs):
+                    qa_pairs = qa_pairs[:pairs_to_save]
+                
                 # Salvar QA gerados
                 saved_pairs = generator.save_qa_pairs(qa_pairs, feira, chunk)
                 
+                # Atualizar contadores
                 total_qa += len(saved_pairs)
                 processed += 1
                 
-                # Adicionar atraso para evitar limites de taxa
-                if i < total_chunks - 1:
+                # ATUALIZAÇÃO: Atualizar progresso do Q&A
+                if hasattr(feira, 'qa_progresso_processamento'):
+                    # Calcular progresso com base no número de chunks processados
+                    progress = min(95, int((i + 1) / total_chunks * 95))
+                    feira.qa_progresso_processamento = progress
+                    feira.save(update_fields=['qa_progresso_processamento'])
+                
+                logger.info(f"Salvos {len(saved_pairs)} pares Q&A do chunk {i+1}. Total atual: {total_qa}/{MAX_QA_TOTAL}")
+                
+                # ADICIONAR: Forçar atualização da feira a cada chunk para manter o status atualizado
+                feira.refresh_from_db()
+                if feira.qa_processamento_status != 'processando':
+                    feira.qa_processamento_status = 'processando'
+                    feira.save(update_fields=['qa_processamento_status'])
+                
+                # Adicionar atraso entre processamentos
+                if i < total_chunks - 1 and total_qa < MAX_QA_TOTAL:
                     time.sleep(delay)
                     
             except Exception as e:
                 logger.error(f"Erro ao processar chunk {chunk.id}: {str(e)}")
                 errors += 1
+                
+                # Continuar com o próximo chunk mesmo em caso de erro
+                continue
         
         # Atualizar o status final da feira
-        feira.processamento_status = 'concluido'
-        feira.progresso_processamento = 100
+        feira.qa_processamento_status = 'concluido'
+        feira.qa_processado = True
+        feira.qa_total_itens = total_qa
+        if hasattr(feira, 'qa_progresso_processamento'):
+            feira.qa_progresso_processamento = 100
         feira.save()
         
+        # MELHORIA: Registrar uma mensagem no log
+        logger.info(f"✓ Status da feira {feira_id} atualizado: qa_processado=True, status='concluido', progresso=100%")
+        
+        logger.info(f"Processamento de Q&A concluído para feira {feira_id}. Total: {total_qa} QAs")
+        
+        # Estruturar resultado
         result = {
             "status": "success",
-            "message": f"Processamento concluído. Gerados {total_qa} pares QA de {processed} chunks usando o agente '{agent_name}'.",
+            "message": f"Processamento concluído. Gerados {total_qa} pares QA usando o agente '{agent_name}'.",
             "total_chunks": total_chunks,
             "processed_chunks": processed,
             "total_qa": total_qa,
             "errors": errors
         }
         
-        # NOVA PARTE: Calcular embeddings para os Q&A gerados usando o serviço refatorado
+        # Calcular embeddings para os Q&A gerados
         try:
             from core.services.rag_service import RAGService
             
@@ -410,7 +471,16 @@ def process_all_chunks_for_feira(feira_id: int, delay: Optional[int] = None, age
             embeddings_result = rag_service.atualizar_embeddings_feira(feira_id)
             
             result["embeddings_result"] = embeddings_result
-            logger.info(f"Cálculo de embeddings concluído para feira {feira_id}: {embeddings_result}")
+            logger.info(f"Cálculo de embeddings concluído para feira {feira_id}")
+            
+            # MELHORIA: Garantir que o status ainda está correto após o embedding
+            feira.refresh_from_db()
+            if feira.qa_processamento_status != 'concluido':
+                feira.qa_processamento_status = 'concluido'
+                feira.qa_processado = True
+                feira.save(update_fields=['qa_processamento_status', 'qa_processado'])
+                logger.info(f"✓ Status da feira {feira_id} corrigido após embeddings: qa_processamento_status='concluido'")
+            
         except Exception as e:
             logger.error(f"Erro ao calcular embeddings para QA da feira {feira_id}: {str(e)}")
             result["embeddings_error"] = str(e)
@@ -421,4 +491,15 @@ def process_all_chunks_for_feira(feira_id: int, delay: Optional[int] = None, age
         return {"status": "error", "message": f"Feira com ID {feira_id} não encontrada"}
     except Exception as e:
         logger.error(f"Erro ao processar feira {feira_id}: {str(e)}")
+        
+        # Tentar atualizar o status da feira em caso de erro
+        try:
+            feira = Feira.objects.get(pk=feira_id)
+            feira.qa_processamento_status = 'erro'
+            feira.qa_mensagem_erro = str(e)
+            feira.save()
+            logger.info(f"✓ Status de erro atualizado para feira {feira_id}: {str(e)}")
+        except Exception as inner_e:
+            logger.error(f"Erro ao atualizar status de erro: {str(inner_e)}")
+            
         return {"status": "error", "message": str(e)}

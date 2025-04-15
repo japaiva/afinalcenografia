@@ -5,7 +5,7 @@ from typing import List, Dict, Any, Optional
 
 from django.conf import settings
 from core.models import Feira, FeiraManualQA
-from core.utils.pinecone_utils import upsert_vectors, get_namespace_stats
+from core.utils.pinecone_utils import upsert_vectors, get_namespace_stats, delete_namespace
 from core.services.rag.embedding_service import EmbeddingService
 
 logger = logging.getLogger(__name__)
@@ -59,6 +59,13 @@ class QAService:
             
             # Obter o namespace para esta feira
             namespace = f"feira_{feira_id}"
+            
+            # ADICIONADO: Limpar namespace antes de inserir novos vetores
+            try:
+                delete_namespace(namespace)
+                logger.info(f"✓ Namespace '{namespace}' limpo antes de inserir novos vetores")
+            except Exception as e:
+                logger.warning(f"Aviso ao limpar namespace: {str(e)}")
             
             # Verificar estatísticas do namespace (opcional)
             try:
