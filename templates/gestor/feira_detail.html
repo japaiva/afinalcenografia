@@ -179,6 +179,8 @@
     const manualStatus = document.getElementById('manual-status');
     const qaStatus = document.getElementById('qa-status');
     const qaCount = document.getElementById('qa-count');
+    const progressText = document.getElementById('progress-text');
+    const progressContainer = document.getElementById('progress-container');
     
     // Obter o ID da feira
     function getFeiraId() {
@@ -209,6 +211,7 @@
     // Flags para controlar verificações
     let isCheckingManual = false;
     let isCheckingQA = false;
+    let lastProgress = 0;
     
     // Função para verificar o status do processamento do manual
     function checkManualStatus() {
@@ -246,6 +249,16 @@
             }
           }
           
+          // Atualizar texto de progresso se mudou
+          if (progressText && typeof data.progress !== 'undefined' && data.progress !== lastProgress) {
+            lastProgress = data.progress;
+            progressText.textContent = `Processando manual... (${data.progress}%)`;
+            
+            if (progressContainer) {
+              progressContainer.classList.remove('d-none');
+            }
+          }
+          
           // Se o manual ainda está em processamento, continuar verificando
           if (data.status === 'processando') {
             setTimeout(checkManualStatus, 3000);
@@ -253,6 +266,11 @@
           // Se o manual foi concluído
           else if (data.status === 'concluido' && data.processed) {
             console.log('Processamento do manual concluído');
+            
+            // Ocultar mensagem de progresso
+            if (progressContainer) {
+              progressContainer.classList.add('d-none');
+            }
             
             // Habilitar botão do manual
             if (processManualButton) {
@@ -420,9 +438,19 @@
       } else if (data.status === 'concluido' && data.processed) {
         manualStatus.className = 'badge bg-success';
         manualStatus.textContent = 'Concluído';
+        
+        // Ocultar mensagem de progresso quando concluído
+        if (progressContainer) {
+          progressContainer.classList.add('d-none');
+        }
       } else if (data.status === 'erro') {
         manualStatus.className = 'badge bg-danger';
         manualStatus.textContent = 'Erro';
+        
+        // Ocultar mensagem de progresso em caso de erro
+        if (progressContainer) {
+          progressContainer.classList.add('d-none');
+        }
       } else {
         manualStatus.className = 'badge bg-secondary';
         manualStatus.textContent = 'Pendente';
