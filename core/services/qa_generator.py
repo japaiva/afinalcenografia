@@ -357,11 +357,14 @@ def process_all_chunks_for_feira(feira_id: int, delay: Optional[int] = None, age
         total_qa = 0
         errors = 0
         
-        # Limite rigoroso de 50 QAs
-        MAX_QA_TOTAL = 50
+        # Limite QAs
+        MAX_QA_TOTAL = 0
+        if MAX_QA_TOTAL <= 0:
+            MAX_QA_TOTAL = float('inf')  # ou um número muito alto
+
         
         # Atualizar o status da feira para processando
-        feira.qa_processamento_status = 'processando'
+            feira.qa_processamento_status = 'processando'
         if hasattr(feira, 'qa_progresso_processamento'):
             feira.qa_progresso_processamento = 0
         feira.save()

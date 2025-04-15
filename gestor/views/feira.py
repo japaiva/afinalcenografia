@@ -191,14 +191,14 @@ def feira_qa_list(request, feira_id):
     query = request.GET.get('q', '')
     
     # ALTERAÇÃO DE TESTE - prints para depuração 
-    print(f"\n\n==== DEBUG ====")
-    print(f"Acessando feira_qa_list - feira_id: {feira_id}")
+    #print(f"\n\n==== DEBUG ====")
+    #print(f"Acessando feira_qa_list - feira_id: {feira_id}")
     
     qa_pairs_list = FeiraManualQA.objects.filter(feira=feira).order_by('-created_at')
     
     # ALTERAÇÃO DE TESTE - ver contagem de QAs
     qa_total = qa_pairs_list.count()
-    print(f"Total de QAs para a feira: {qa_total}")
+    #print(f"Total de QAs para a feira: {qa_total}")
     
     if query:
         qa_pairs_list = qa_pairs_list.filter(
@@ -220,9 +220,9 @@ def feira_qa_list(request, feira_id):
     qa_count = qa_pairs_list.count()
     
     # ALTERAÇÃO DE TESTE - verificar paginação
-    print(f"Página atual: {getattr(qa_pairs, 'number', 'N/A')}")
-    print(f"Qtd na página: {len(qa_pairs) if qa_pairs else 0}")
-    print(f"==== FIM DEBUG ====\n\n")
+    #print(f"Página atual: {getattr(qa_pairs, 'number', 'N/A')}")
+    #print(f"Qtd na página: {len(qa_pairs) if qa_pairs else 0}")
+    #print(f"==== FIM DEBUG ====\n\n")
     
     agentes = Agente.objects.filter(ativo=True)
     
