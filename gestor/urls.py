@@ -69,6 +69,8 @@ urlpatterns = [
     path('feiras/qa/update/', views.feira_qa_update, name='feira_qa_update'),
     path('feiras/qa/delete/', views.feira_qa_delete, name='feira_qa_delete'),
     path('feiras/qa/regenerate-single/', views.feira_qa_regenerate_single, name='feira_qa_regenerate_single'),
+    path('feira/<int:feira_id>/qa/add/', views.feira_qa_add, name='feira_qa_add'),
+
     path('feiras/<int:pk>/qa/progress/', views.feira_qa_progress, name='feira_qa_progress'),
     path('feiras/', views.feira_list, name='feira_list'),
     path('feiras/nova/', views.feira_create, name='feira_create'),

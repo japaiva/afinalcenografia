@@ -1063,3 +1063,178 @@ def feira_qa_progress(request, pk):
             'success': False, 
             'error': str(e)
         }, status=500)
+    
+
+@login_required
+@require_POST
+def briefing_responder_pergunta(request):
+    """
+    Responde a uma pergunta do usuário usando o RAG baseado no manual da feira.
+    """
+    try:
+        data = json.loads(request.body)
+        pergunta = data.get('pergunta')
+        feira_id = data.get('feira_id')
+        agente_nome = data.get('agente_nome', 'Assistente RAG de Feiras')  # Nome do agente a ser usado
+        
+        if not pergunta:
+            return JsonResponse({
+                'success': False,
+                'message': 'Por favor, forneça uma pergunta para consultar.'
+            }, status=400)
+        
+        if not feira_id:
+            return JsonResponse({
+                'success': False,
+                'message': 'É necessário especificar uma feira para a consulta.'
+            }, status=400)
+        
+        # Obter a feira
+        try:
+            feira = Feira.objects.get(pk=feira_id)
+            if not feira.manual_processado:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'O manual desta feira ainda não foi totalmente processado.'
+                })
+        except Feira.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'message': 'Feira não encontrada.'
+            }, status=404)
+        
+        # Verificar se o agente existe e está ativo
+        try:
+            agente = Agente.objects.get(nome=agente_nome, ativo=True)
+        except Agente.DoesNotExist:
+            # Caso o agente não exista, usar o padrão
+            agente_nome = 'Assistente RAG de Feiras'
+            try:
+                agente = Agente.objects.get(nome=agente_nome, ativo=True)
+            except Agente.DoesNotExist:
+                # Se nem o padrão existir, usar um nome genérico que será tratado no RAGService
+                agente_nome = 'Assistente de Briefing'
+        
+        # Inicializar o serviço RAG com o agente especificado
+        rag_service = RAGService(agent_name=agente_nome)
+        
+        # Gerar resposta
+        rag_result = rag_service.gerar_resposta_rag(pergunta, feira_id)
+        
+        # Verificar resultado
+        if rag_result.get('status') == 'error':
+            return JsonResponse({
+                'success': False,
+                'message': rag_result.get('error', 'Erro ao processar consulta.')
+            })
+        
+        if rag_result.get('status') == 'no_results':
+            return JsonResponse({
+                'success': True,
+                'resposta': "Não encontrei informações específicas sobre isso no manual da feira. Talvez você possa reformular sua pergunta ou consultar o manual completo.",
+                'contextos': [],
+                'agente_usado': agente_nome
+            })
+        
+        # Registrar no log
+        logger.info(f"Consulta RAG processada - Feira: {feira.nome}, Pergunta: '{pergunta}'")
+        
+        return JsonResponse({
+            'success': True,
+            'resposta': rag_result['resposta'],
+            'contextos': rag_result['contextos'],
+            'status': rag_result['status'],
+            'agente_usado': agente_nome
+        })
+        
+    except Exception as e:
+        logger.error(f"Erro ao responder pergunta: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f"Erro ao processar consulta: {str(e)}"
+        }, status=500)
+
+@login_required
+@require_POST
+def feira_qa_add(request, feira_id):
+    """
+    Adiciona um novo par QA manualmente.
+    """
+    feira = get_object_or_404(Feira, pk=feira_id)
+    
+    try:
+        data = json.loads(request.body)
+        question = data.get('question', '').strip()
+        answer = data.get('answer', '').strip()
+        context = data.get('context', '').strip()
+        similar_questions = data.get('similar_questions', [])
+        
+        # Validação básica
+        if not question or not answer:
+            return JsonResponse({
+                'success': False,
+                'message': 'Pergunta e resposta são obrigatórias.'
+            }, status=400)
+        
+        # Criar o QA
+        qa = FeiraManualQA.objects.create(
+            feira=feira,
+            question=question,
+            answer=answer,
+            context=context,
+            similar_questions=similar_questions
+        )
+        
+        # Gerar o embedding se possível
+        try:
+            agente_nome = data.get('agente_nome', 'Embedding Generator')
+            rag_service = RAGService(agent_name=agente_nome)
+            
+            # Verificar se o método existe - em alguns casos pode ter nome diferente
+            if hasattr(rag_service, 'embedding_service') and hasattr(rag_service.embedding_service, 'gerar_embeddings_qa'):
+                embedding = rag_service.embedding_service.gerar_embeddings_qa(qa)
+                
+                # Verificar método para armazenar no banco vetorial
+                if embedding:
+                    if hasattr(rag_service, '_store_in_vector_db'):
+                        rag_service._store_in_vector_db(qa, embedding)
+                    elif hasattr(rag_service, 'vector_db_service') and hasattr(rag_service.vector_db_service, 'armazenar_vetores'):
+                        # Preparar vetores para armazenamento
+                        vector_id = f"qa_{qa.id}"
+                        metadata = {
+                            'q': qa.question,
+                            'a': qa.answer,
+                            't': qa.context,
+                            'sq': qa.similar_questions,
+                            'feira_id': str(qa.feira.id),
+                            'feira_nome': qa.feira.nome,
+                            'qa_id': str(qa.id)
+                        }
+                        vectors = [(vector_id, embedding, metadata)]
+                        namespace = f"feira_{feira_id}"
+                        rag_service.vector_db_service.armazenar_vetores(vectors, namespace)
+                    
+                    # Atualizar ID de embedding
+                    qa.embedding_id = f"qa_{qa.id}"
+                    qa.save(update_fields=['embedding_id'])
+                    
+                    logger.info(f"Embedding gerado e armazenado para o QA {qa.id}")
+            else:
+                logger.warning(f"Métodos de embedding não encontrados no RAGService")
+        
+        except Exception as e:
+            logger.warning(f"Erro ao gerar embedding para o novo QA: {str(e)}")
+            # Não impedir a criação do QA se o embedding falhar
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Pergunta e resposta adicionada com sucesso.',
+            'qa_id': qa.id
+        })
+    
+    except Exception as e:
+        logger.error(f"Erro ao adicionar QA: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=500)
