@@ -65,7 +65,7 @@
       <!-- COLUNA 2 -->
       <div class="col-md-6">
         {% if feira.manual %}
-        <!-- Substitua a div de processamento existente por esta versão -->
+        <!-- Versão corrigida para alinhamento do Q&A e sem barra de progresso -->
         <div class="card">
           <div class="card-header bg-light">
             <h6 class="card-title mb-0">Processamento do Manual</h6>
@@ -73,7 +73,7 @@
           <div class="card-body p-0">
             <ul class="list-group list-group-flush">
               <li class="list-group-item d-flex justify-content-between align-items-center">
-                <strong>Manual:</strong> {{ feira.total_chunks|default:"0" }} blocos
+                <div><strong>Manual:</strong> {{ feira.total_chunks|default:"0" }} blocos</div>
                 <span id="manual-status" class="badge {% if feira.processamento_status == 'processando' %}bg-warning text-dark{% elif feira.manual_processado %}bg-success{% elif feira.processamento_status == 'erro' %}bg-danger{% else %}bg-secondary{% endif %}">
                   {% if feira.processamento_status == 'processando' %}
                     Processando
@@ -87,7 +87,7 @@
                 </span>
               </li>
               <li class="list-group-item d-flex justify-content-between align-items-center">
-                <strong>Q&A:</strong> <span id="qa-count">{{ qa_count|default:"0" }}</span> perguntas
+                <div><strong>Q&A:</strong> <span id="qa-count">{{ qa_count|default:"0" }}</span> perguntas</div>
                 <span id="qa-status" class="badge {% if qa_processando %}bg-warning text-dark{% elif qa_count > 0 %}bg-success{% else %}bg-secondary{% endif %}">
                   {% if qa_processando %}
                     Processando
@@ -98,16 +98,8 @@
                   {% endif %}
                 </span>
               </li>
-              <!-- Linha para mostrar o progresso -->
+              <!-- Mensagem de progresso sem a barra -->
               <li id="progress-container" class="list-group-item {% if feira.processamento_status != 'processando' and not qa_processando %}d-none{% endif %}">
-                <div class="progress mb-2">
-                  <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
-                      style="width: {% if feira.processamento_status == 'processando' %}{{ feira.progresso_processamento }}{% else %}0{% endif %}%;" 
-                      aria-valuenow="{% if feira.processamento_status == 'processando' %}{{ feira.progresso_processamento }}{% else %}0{% endif %}" 
-                      aria-valuemin="0" aria-valuemax="100">
-                      {% if feira.processamento_status == 'processando' %}{{ feira.progresso_processamento }}%{% endif %}
-                  </div>
-                </div>
                 <small id="progress-text" class="text-muted">
                   {% if feira.processamento_status == 'processando' %}
                     Processando manual... ({{ feira.progresso_processamento }}%)
@@ -188,11 +180,6 @@
     const qaStatus = document.getElementById('qa-status');
     const qaCount = document.getElementById('qa-count');
     
-    // Elementos de progresso
-    const progressBar = document.getElementById('progress-bar');
-    const progressText = document.getElementById('progress-text');
-    const progressContainer = document.getElementById('progress-container');
-    
     // Obter o ID da feira
     function getFeiraId() {
       // Primeiro tentar pegar do atributo data
@@ -222,7 +209,6 @@
     // Flags para controlar verificações
     let isCheckingManual = false;
     let isCheckingQA = false;
-    let lastProgress = 0;
     
     // Função para verificar o status do processamento do manual
     function checkManualStatus() {
@@ -260,20 +246,6 @@
             }
           }
           
-          // Atualizar barra de progresso se mudou
-          if (progressBar && typeof data.progress !== 'undefined' && data.progress !== lastProgress) {
-            lastProgress = data.progress;
-            updateProgressBar(data.progress);
-            
-            if (progressText) {
-              progressText.textContent = `Processando manual... (${data.progress}%)`;
-            }
-            
-            if (progressContainer) {
-              progressContainer.classList.remove('d-none');
-            }
-          }
-          
           // Se o manual ainda está em processamento, continuar verificando
           if (data.status === 'processando') {
             setTimeout(checkManualStatus, 3000);
@@ -281,11 +253,6 @@
           // Se o manual foi concluído
           else if (data.status === 'concluido' && data.processed) {
             console.log('Processamento do manual concluído');
-            
-            // Atualizar interface para refletir conclusão
-            if (progressContainer) {
-              progressContainer.classList.add('d-none');
-            }
             
             // Habilitar botão do manual
             if (processManualButton) {
@@ -306,10 +273,6 @@
               processManualButton.disabled = false;
               processManualButton.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Processar Manual';
             }
-            
-            if (progressContainer) {
-              progressContainer.classList.add('d-none');
-            }
           }
         } else {
           console.error('Erro ao verificar status do manual:', data.error);
@@ -318,10 +281,6 @@
           if (processManualButton) {
             processManualButton.disabled = false;
             processManualButton.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Processar Manual';
-          }
-          
-          if (progressContainer) {
-            progressContainer.classList.add('d-none');
           }
         }
       })
@@ -333,10 +292,6 @@
         if (processManualButton) {
           processManualButton.disabled = false;
           processManualButton.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Processar Manual';
-        }
-        
-        if (progressContainer) {
-          progressContainer.classList.add('d-none');
         }
       });
     }
@@ -387,28 +342,14 @@
             }
           }
           
-          // Atualizar texto da barra de progresso para QA
-          if (progressText) {
-            progressText.textContent = `Gerando Q&A... (${data.total_qa || 0} perguntas)`;
-          }
-          
-          // Mostrar a barra de progresso
-          if (progressContainer) {
-            progressContainer.classList.remove('d-none');
-          }
-          
           // Se ainda estiver processando, continuar verificando
           if (data.status === 'processando') {
             setTimeout(checkQAStatus, 3000);
           } else {
-            // Processamento concluído ou erro, habilitar botão e esconder progresso
+            // Processamento concluído ou erro, habilitar botão
             if (processQAButton) {
               processQAButton.disabled = false;
               processQAButton.innerHTML = '<i class="fas fa-comment-dots me-1"></i> Regenerar Q&A';
-            }
-            
-            if (progressContainer) {
-              progressContainer.classList.add('d-none');
             }
             
             // Recarregar a página para mostrar o botão "Ver Q&A" se necessário
@@ -423,10 +364,6 @@
           if (processQAButton) {
             processQAButton.disabled = false;
             processQAButton.innerHTML = '<i class="fas fa-comment-dots me-1"></i> Gerar Q&A';
-          }
-          
-          if (progressContainer) {
-            progressContainer.classList.add('d-none');
           }
         }
       })
@@ -469,10 +406,6 @@
             }
           }
         });
-        
-        if (progressContainer) {
-          progressContainer.classList.add('d-none');
-        }
       });
     }
     
@@ -494,14 +427,6 @@
         manualStatus.className = 'badge bg-secondary';
         manualStatus.textContent = 'Pendente';
       }
-    }
-    
-    function updateProgressBar(progress) {
-      if (!progressBar) return;
-      
-      progressBar.style.width = `${progress}%`;
-      progressBar.setAttribute('aria-valuenow', progress);
-      progressBar.textContent = `${progress}%`;
     }
     
     // Iniciar a verificação com base no status atual
@@ -545,21 +470,6 @@
           manualStatus.textContent = 'Processando';
         }
         
-        // Resetar e mostrar barra de progresso
-        if (progressBar) {
-          progressBar.style.width = '0%';
-          progressBar.setAttribute('aria-valuenow', 0);
-          progressBar.textContent = '0%';
-        }
-        
-        if (progressText) {
-          progressText.textContent = 'Iniciando processamento do manual...';
-        }
-        
-        if (progressContainer) {
-          progressContainer.classList.remove('d-none');
-        }
-        
         // Enviar requisição para iniciar processamento
         fetch(this.action, {
           method: 'POST',
@@ -596,10 +506,6 @@
               manualStatus.className = 'badge bg-danger';
               manualStatus.textContent = 'Erro';
             }
-            
-            if (progressContainer) {
-              progressContainer.classList.add('d-none');
-            }
           }
         })
         .catch(error => {
@@ -613,10 +519,6 @@
           if (manualStatus) {
             manualStatus.className = 'badge bg-danger';
             manualStatus.textContent = 'Erro';
-          }
-          
-          if (progressContainer) {
-            progressContainer.classList.add('d-none');
           }
         });
       });
@@ -636,15 +538,6 @@
         if (qaStatus) {
           qaStatus.className = 'badge bg-warning text-dark';
           qaStatus.textContent = 'Processando';
-        }
-        
-        // Mostrar barra de progresso para QA
-        if (progressText) {
-          progressText.textContent = 'Iniciando geração de Q&A...';
-        }
-        
-        if (progressContainer) {
-          progressContainer.classList.remove('d-none');
         }
         
         // Enviar requisição para iniciar processamento de QA
@@ -683,10 +576,6 @@
               qaStatus.className = 'badge bg-danger';
               qaStatus.textContent = 'Erro';
             }
-            
-            if (progressContainer) {
-              progressContainer.classList.add('d-none');
-            }
           }
         })
         .catch(error => {
@@ -701,13 +590,9 @@
             qaStatus.className = 'badge bg-danger';
             qaStatus.textContent = 'Erro';
           }
-          
-          if (progressContainer) {
-            progressContainer.classList.add('d-none');
-          }
         });
       });
     }
   });
- </script>
+</script>
 {% endblock %}

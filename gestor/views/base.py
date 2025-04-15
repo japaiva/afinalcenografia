@@ -338,7 +338,7 @@ def parametro_indexacao_list(request):
         parametros_list = parametros_list.filter(categoria=categoria)
     
     # Configurar paginação (15 itens por página)
-    paginator = Paginator(parametros_list, 15)
+    paginator = Paginator(parametros_list, 10)
     page = request.GET.get('page', 1)
     
     try:
