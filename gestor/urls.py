@@ -41,6 +41,7 @@ urlpatterns = [
     path('projetos/<int:projeto_id>/briefing/reprovar/', views.reprovar_briefing, name='reprovar_briefing'),    
     path('projetos/<int:projeto_id>/upload/', views.upload_arquivo, name='upload_arquivo'),
 
+
     # Para excluir arquivos
     path('arquivos/<int:arquivo_id>/excluir/', views.excluir_arquivo, name='excluir_arquivo'),
     
@@ -79,6 +80,8 @@ urlpatterns = [
     path('feira/<int:pk>/progresso/', views.feira_progress, name='feira_progress'),
     path('feira/<int:pk>/reset-data/', views.feira_reset_data, name='feira_reset_data'),
     path('feira/<int:pk>/reset-data/confirm/', views.feira_reset_data_confirm, name='feira_reset_data_confirm'),
+    path('feira/<int:pk>/progress/', views.feira_progress, name='feira_progress'),
+    
 
     # Integração de QA com Briefing
     path('briefing/<int:briefing_id>/vincular-feira/<int:feira_id>/', views.briefing_vincular_feira, name='briefing_vincular_feira'),

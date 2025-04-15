@@ -109,21 +109,6 @@ def feira_toggle_status(request, pk):
     return redirect('gestor:feira_list')
 
 @login_required
-def feira_detail(request, pk):
-    feira = get_object_or_404(Feira, pk=pk)
-    total_chunks = feira.chunks_manual.count() if hasattr(feira, 'chunks_manual') else 0
-    qa_count = FeiraManualQA.objects.filter(feira=feira).count()
-    
-    context = {
-        'feira': feira,
-        'total_chunks': total_chunks,
-        'manual_processado': feira.manual_processado,
-        'qa_count': qa_count,
-    }
-    
-    return render(request, 'gestor/feira_detail.html', context)
-
-@login_required
 def feira_search(request, pk):
     feira = get_object_or_404(Feira, pk=pk)
     
@@ -167,13 +152,16 @@ def feira_search(request, pk):
             'success': False,
             'error': str(e)
         }, status=500)
-
+    
 @login_required
 def feira_reprocess(request, pk):
     feira = get_object_or_404(Feira, pk=pk)
     
     if request.method != 'POST':
         return redirect('gestor:feira_detail', pk=feira.id)
+    
+    # Obter URL para redirecionamento após processamento (opcional)
+    redirect_url = request.POST.get('redirect_url')
     
     if hasattr(feira, 'reset_processamento'):
         feira.reset_processamento()
@@ -183,40 +171,18 @@ def feira_reprocess(request, pk):
         feira.progresso_processamento = 0
     feira.save()
     
-    try:
-        resultado = processar_manual_feira(feira.id)
-        if resultado.get('status') == 'success':
-            messages.success(request, f'Manual da feira "{feira.nome}" processado com sucesso.')
-        else:
-            messages.error(request, f'Erro ao processar manual: {resultado.get("message")}')
-    except Exception as e:
-        messages.error(request, f'Erro ao processar manual: {str(e)}')
+    # Iniciar processamento em thread separada para não bloquear a resposta
+    thread = threading.Thread(target=processar_manual_background, args=(feira.id,))
+    thread.daemon = True
+    thread.start()
     
-    return redirect('gestor:feira_detail', pk=feira.id)
-
-@login_required
-def feira_progress(request, pk):
-    try:
-        feira = Feira.objects.get(pk=pk)
-        return JsonResponse({
-            'success': True,
-            'progress': feira.progresso_processamento,
-            'status': feira.processamento_status,
-            'message': feira.mensagem_erro if feira.mensagem_erro else None,
-            'processed': feira.manual_processado,
-            'total_chunks': feira.total_chunks,
-            'total_paginas': feira.total_paginas
-        })
-    except Feira.DoesNotExist:
-        return JsonResponse({
-            'success': False,
-            'error': 'Feira não encontrada'
-        }, status=404)
-    except Exception as e:
-        return JsonResponse({
-            'success': False, 
-            'error': str(e)
-        }, status=500)
+    messages.success(request, f'Processamento do manual da feira "{feira.nome}" iniciado.')
+    
+    # Redirecionar para a URL especificada ou para a página de detalhes
+    if redirect_url:
+        return redirect(redirect_url)
+    else:
+        return redirect('gestor:feira_detail', pk=feira.id)
 
 @login_required
 def feira_qa_list(request, feira_id):
@@ -257,30 +223,6 @@ def feira_qa_list(request, feira_id):
     }
     
     return render(request, 'gestor/feira_qa_list.html', context)
-
-
-@login_required
-def feira_qa_progress(request, pk):
-    try:
-        feira = Feira.objects.get(pk=pk)
-        return JsonResponse({
-            'success': True,
-            'progress': feira.qa_progresso_processamento if hasattr(feira, 'qa_progresso_processamento') else 0,
-            'status': feira.qa_processamento_status if hasattr(feira, 'qa_processamento_status') else 'pendente',
-            'message': feira.qa_mensagem_erro if hasattr(feira, 'qa_mensagem_erro') else None,
-            'processed': feira.qa_processado if hasattr(feira, 'qa_processado') else False,
-            'total_qa': FeiraManualQA.objects.filter(feira=feira).count()
-        })
-    except Feira.DoesNotExist:
-        return JsonResponse({
-            'success': False,
-            'error': 'Feira não encontrada'
-        }, status=404)
-    except Exception as e:
-        return JsonResponse({
-            'success': False, 
-            'error': str(e)
-        }, status=500)
 
 @login_required
 @require_GET
@@ -950,14 +892,86 @@ def feira_reset_data_confirm(request, pk):
     }
     
     return render(request, 'gestor/feira_reset_confirm.html', context)
+     
+@login_required
+def feira_progress(request, pk):
+    """
+    Retorna o progresso atual do processamento do manual da feira.
+    """
+    try:
+        feira = Feira.objects.get(pk=pk)
+        
+        # Contar chunks já processados
+        chunks_count = FeiraManualChunk.objects.filter(feira=feira).count()
+        
+        # Auto-correção: se temos chunks mas o status não está correto
+        if chunks_count > 0 and chunks_count == feira.total_chunks and not feira.manual_processado:
+            if feira.processamento_status != 'processando':
+                feira.manual_processado = True
+                feira.processamento_status = 'concluido'
+                feira.progresso_processamento = 100
+                feira.save(update_fields=['manual_processado', 'processamento_status', 'progresso_processamento'])
+        
+        # Contar QAs para informação adicional
+        qa_count = 0
+        try:
+            qa_count = FeiraManualQA.objects.filter(feira=feira).count()
+        except:
+            pass
+        
+        return JsonResponse({
+            'success': True,
+            'progress': feira.progresso_processamento or 0,
+            'status': feira.processamento_status or 'pendente',
+            'message': feira.mensagem_erro if feira.mensagem_erro else None,
+            'processed': feira.manual_processado or False,
+            'total_chunks': feira.total_chunks or 0,
+            'current_chunks': chunks_count,
+            'total_paginas': feira.total_paginas or 0,
+            'qa_count': qa_count  # Adicionar contagem de QA na resposta
+        })
+    except Feira.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Feira não encontrada'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False, 
+            'error': str(e)
+        }, status=500)
+    
+@login_required
+def feira_detail(request, pk):
+    feira = get_object_or_404(Feira, pk=pk)
+    total_chunks = feira.chunks_manual.count() if hasattr(feira, 'chunks_manual') else 0
+    qa_count = FeiraManualQA.objects.filter(feira=feira).count()
+    
+    # Verificar se há QA sendo processado
+    # Como não temos o campo no modelo, vamos verificar pela solicitação recente
+    import threading
+    qa_processando = any(t.name.startswith(f'QA-{feira.id}') for t in threading.enumerate())
+    
+    context = {
+        'feira': feira,
+        'total_chunks': total_chunks,
+        'manual_processado': feira.manual_processado,
+        'qa_count': qa_count,
+        'qa_processando': qa_processando,
+    }
+    
+    return render(request, 'gestor/feira_detail.html', context)
 
 @login_required
 @require_POST
 def feira_qa_regenerate(request, feira_id):
     feira = get_object_or_404(Feira, pk=feira_id)
     
-    # Verificar qa_processamento_status em vez de processamento_status
-    if hasattr(feira, 'qa_processamento_status') and feira.qa_processamento_status == 'processando':
+    # Verificar se já existe um processamento em andamento
+    import threading
+    qa_processando = any(t.name.startswith(f'QA-{feira.id}') for t in threading.enumerate())
+    
+    if qa_processando:
         return JsonResponse({
             'success': False,
             'message': 'Já existe um processamento de Q&A em andamento.'
@@ -974,47 +988,24 @@ def feira_qa_regenerate(request, feira_id):
         except Agente.DoesNotExist:
             pass
     
-    # Limpar QAs existentes
+    # Limpar QAs existentes no banco de dados
     FeiraManualQA.objects.filter(feira=feira).delete()
-    
-    # Usar campos específicos para Q&A
-    feira.qa_processamento_status = 'processando'
-    feira.qa_progresso_processamento = 0
-    # Garantir que salvamos apenas campos que existem no modelo
-    if hasattr(feira, 'qa_mensagem_erro'):
-        feira.qa_mensagem_erro = None
-    feira.save()
     
     try:
         # Iniciar processamento em uma thread separada
         def process_qa_background(feira_id, agent_name):
             try:
+                thread_name = f'QA-{feira_id}'
+                threading.current_thread().name = thread_name
+                
                 result = process_all_chunks_for_feira(feira_id, agent_name=agent_name)
                 logger.info(f"Processamento QA em background concluído para feira {feira_id}: {result}")
                 
-                # Atualizar status após sucesso
-                try:
-                    feira = Feira.objects.get(id=feira_id)
-                    feira.qa_processamento_status = 'concluido'
-                    feira.qa_progresso_processamento = 100
-                    feira.qa_processado = True
-                    feira.save()
-                except Exception as inner_e:
-                    logger.error(f"Erro ao atualizar status da feira após Q&A: {str(inner_e)}")
-                    
             except Exception as e:
                 logger.error(f"Erro no processamento QA em background para feira {feira_id}: {str(e)}")
-                # Atualizar status da feira em caso de erro
-                try:
-                    feira = Feira.objects.get(id=feira_id)
-                    feira.qa_processamento_status = 'erro'
-                    if hasattr(feira, 'qa_mensagem_erro'):
-                        feira.qa_mensagem_erro = str(e)
-                    feira.save()
-                except Exception as inner_e:
-                    logger.error(f"Erro ao atualizar status de erro da feira após Q&A: {str(inner_e)}")
         
         thread = threading.Thread(target=process_qa_background, args=(feira.id, agente_nome))
+        thread.name = f'QA-{feira.id}'  # Definir nome para identificação
         thread.daemon = True
         thread.start()
         
@@ -1023,12 +1014,52 @@ def feira_qa_regenerate(request, feira_id):
             'message': 'Processamento Q&A iniciado com sucesso.'
         })
     except Exception as e:
-        feira.qa_processamento_status = 'erro'
-        if hasattr(feira, 'qa_mensagem_erro'):
-            feira.qa_mensagem_erro = str(e)
-        feira.save()
-        
         return JsonResponse({
             'success': False,
             'message': f'Erro ao iniciar processamento Q&A: {str(e)}'
         })
+    
+@login_required
+def feira_qa_progress(request, pk):
+    """
+    Retorna o progresso atual do processamento de Q&A da feira.
+    """
+    try:
+        feira = Feira.objects.get(pk=pk)
+        
+        # Contar QAs já criados
+        qa_count = FeiraManualQA.objects.filter(feira=feira).count()
+        
+        # Verificar se há uma thread de processamento de QA ativa
+        import threading
+        qa_processando = any(t.name.startswith(f'QA-{feira.id}') for t in threading.enumerate())
+        
+        # Determinar status com base na thread
+        if qa_processando:
+            status = 'processando'
+            processed = False
+        elif qa_count > 0:
+            status = 'concluido'
+            processed = True
+        else:
+            status = 'pendente'
+            processed = False
+        
+        return JsonResponse({
+            'success': True,
+            'status': status,
+            'message': None,
+            'processed': processed,
+            'total_qa': qa_count,
+            'expected_qa': min(qa_count + 10, 50)  # Estimativa de quantos QAs esperamos no total
+        })
+    except Feira.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Feira não encontrada'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False, 
+            'error': str(e)
+        }, status=500)

@@ -2,26 +2,8 @@
 
 {% block title %}{{ feira.nome }} | Portal do Gestor | Afinal Cenografia{% endblock %}
 
-{% block extra_head %}
-<style>
-  .loading-spinner {
-    display: inline-block;
-    width: 1rem;
-    height: 1rem;
-    border: 0.15em solid currentColor;
-    border-right-color: transparent;
-    border-radius: 50%;
-    animation: spinner-border .75s linear infinite;
-  }
-  @keyframes spinner-border {
-    to { transform: rotate(360deg); }
-  }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="card shadow">
-  <!-- Cabeçalho principal com ações -->
+<div class="card shadow" style="max-width: 1400px; margin: 0 auto;" data-feira-id="{{ feira.id }}">
   <div class="card-header bg-light d-flex justify-content-between align-items-center">
     <h5 class="card-title mb-0">
       <i class="fas fa-calendar-alt me-2"></i> {{ feira.nome }}
@@ -31,487 +13,701 @@
         <i class="fas fa-edit me-1"></i> Editar
       </a>
       <a href="{% url 'gestor:feira_toggle_status' feira.id %}" class="btn btn-sm {% if feira.ativa %}btn-outline-danger{% else %}btn-outline-success{% endif %}">
-        <i class="fas {% if feira.ativa %}fa-ban{% else %}fa-check-circle{% endif %} me-1"></i> 
+        <i class="fas {% if feira.ativa %}fa-ban{% else %}fa-check-circle{% endif %} me-1"></i>
         {% if feira.ativa %}Desativar{% else %}Ativar{% endif %}
       </a>
     </div>
   </div>
-  
+
   <div class="card-body">
-    <div class="row">
-      <!-- Informações Gerais -->
+    <div class="row" style="max-width: 100%; margin: 0;">
+      <!-- COLUNA 1 -->
       <div class="col-md-6">
         <div class="card mb-3">
           <div class="card-header bg-light">
             <h6 class="card-title mb-0">Informações Gerais</h6>
           </div>
-          <div class="card-body">
+          <div class="card-body p-0">
             <ul class="list-group list-group-flush">
-              <li class="list-group-item d-flex justify-content-between">
-                <span class="fw-bold">Nome:</span>
-                <span>{{ feira.nome }}</span>
+              <li class="list-group-item"><strong>Nome:</strong> {{ feira.nome }}</li>
+              <li class="list-group-item"><strong>Local:</strong> {{ feira.local }}</li>
+              <li class="list-group-item"><strong>Cidade/UF:</strong> {{ feira.cidade }}/{{ feira.estado }}</li>
+              <li class="list-group-item"><strong>Período:</strong> {{ feira.data_inicio|date:"d/m/Y" }} a {{ feira.data_fim|date:"d/m/Y" }}</li>
+              <li class="list-group-item"><strong>Website:</strong>
+                {% if feira.website %}
+                  <a href="{{ feira.website }}" target="_blank">{{ feira.website }}</a>
+                {% else %}-{% endif %}
               </li>
-              <li class="list-group-item d-flex justify-content-between">
-                <span class="fw-bold">Local:</span>
-                <span>{{ feira.local }}</span>
-              </li>
-              <li class="list-group-item d-flex justify-content-between">
-                <span class="fw-bold">Cidade/UF:</span>
-                <span>{{ feira.cidade }}/{{ feira.estado }}</span>
-              </li>
-              <li class="list-group-item d-flex justify-content-between">
-                <span class="fw-bold">Período:</span>
-                <span>{{ feira.data_inicio|date:"d/m/Y" }} a {{ feira.data_fim|date:"d/m/Y" }}</span>
-              </li>
-              <li class="list-group-item d-flex justify-content-between">
-                <span class="fw-bold">Website:</span>
-                <span>
-                  {% if feira.website %}
-                    <a href="{{ feira.website }}" target="_blank">{{ feira.website }}</a>
-                  {% else %}
-                    -
-                  {% endif %}
-                </span>
-              </li>
-              <li class="list-group-item d-flex justify-content-between">
-                <span class="fw-bold">Status:</span>
-                <span>
-                  <span class="badge {% if feira.ativa %}bg-success{% else %}bg-danger{% endif %}">
-                    {% if feira.ativa %}Ativa{% else %}Inativa{% endif %}
-                  </span>
+              <li class="list-group-item">
+                <strong>Status:</strong>
+                <span class="badge {% if feira.ativa %}bg-success{% else %}bg-danger{% endif %}">
+                  {% if feira.ativa %}Ativa{% else %}Inativa{% endif %}
                 </span>
               </li>
             </ul>
           </div>
         </div>
-      </div>
-      
-      <!-- Contato e Blocos de Processamento -->
-      <div class="col-md-6">
-        <!-- Contato da Organização -->
+
         <div class="card mb-3">
           <div class="card-header bg-light">
             <h6 class="card-title mb-0">Contato da Organização</h6>
           </div>
-          <div class="card-body">
+          <div class="card-body p-0">
             <ul class="list-group list-group-flush">
-              <li class="list-group-item d-flex justify-content-between">
-                <span class="fw-bold">Contato:</span>
-                <span>{{ feira.contato_organizacao|default:"-" }}</span>
-              </li>
-              <li class="list-group-item d-flex justify-content-between">
-                <span class="fw-bold">Email:</span>
-                <span>{{ feira.email_organizacao|default:"-" }}</span>
-              </li>
-              <li class="list-group-item d-flex justify-content-between">
-                <span class="fw-bold">Telefone:</span>
-                <span>{{ feira.telefone_organizacao|default:"-" }}</span>
-              </li>
+              <li class="list-group-item"><strong>Contato:</strong> {{ feira.contato_organizacao|default:"-" }}</li>
+              <li class="list-group-item"><strong>Email:</strong> {{ feira.email_organizacao|default:"-" }}</li>
+              <li class="list-group-item"><strong>Telefone:</strong> {{ feira.telefone_organizacao|default:"-" }}</li>
             </ul>
           </div>
         </div>
-        
+      </div>
+
+      <!-- COLUNA 2 -->
+      <div class="col-md-6">
         {% if feira.manual %}
-        <!-- Bloco de Processamento do Manual -->
-        <div class="card mb-3">
-          <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <!-- Substitua a div de processamento existente por esta versão -->
+        <div class="card">
+          <div class="card-header bg-light">
             <h6 class="card-title mb-0">Processamento do Manual</h6>
-            {% if feira.processamento_status == 'processando' %}
-              <span class="badge bg-warning text-dark">
-                <i class="fas fa-spinner fa-spin me-1"></i> Processando
-              </span>
-            {% elif feira.processamento_status == 'concluido' %}
-              <span class="badge bg-success">
-                <i class="fas fa-check-circle me-1"></i> Concluído
-              </span>
-            {% elif feira.processamento_status == 'erro' %}
-              <span class="badge bg-danger">
-                <i class="fas fa-exclamation-triangle me-1"></i> Erro
-              </span>
-            {% else %}
-              <span class="badge bg-secondary">
-                <i class="fas fa-clock me-1"></i> Pendente
-              </span>
-            {% endif %}
           </div>
-          <div class="card-body">
-            {% if feira.processamento_status == 'processando' %}
-              <div class="progress mb-2" style="height: 8px;">
-                <div id="progressBarManual" class="progress-bar progress-bar-striped progress-bar-animated" 
-                     role="progressbar" style="width: {{ feira.progresso_processamento }}%;" 
-                     aria-valuenow="{{ feira.progresso_processamento }}" aria-valuemin="0" aria-valuemax="100"></div>
-              </div>
-              <p class="small mb-0" id="processamentoDetalhesManual">
-                Lendo e processando o documento...
-              </p>
-            {% elif feira.processamento_status == 'erro' %}
-              <p class="small text-danger">
-                {{ feira.mensagem_erro|default:"Ocorreu um erro durante o processamento do manual." }}
-              </p>
-            {% elif feira.processamento_status == 'concluido' %}
-              <div class="alert alert-success">
-                <i class="fas fa-check-circle me-1"></i>
-                <strong>Manual processado com sucesso!</strong><br>
-                <small>Total de páginas: {{ feira.total_paginas }} | Total de chunks: {{ feira.total_chunks }}</small><br>
-                <small class="text-muted">Última atualização: {{ feira.ultima_atualizacao|date:"d/m/Y H:i" }}</small>
-              </div>
-            {% else %}
-              <div class="alert alert-warning">
-                <i class="fas fa-clock me-1"></i>
-                <strong>Manual pendente de processamento.</strong><br>
-                O manual será processado automaticamente ou você pode iniciá-lo.
-              </div>
-            {% endif %}
-          </div>
-        </div>
-        
-        <!-- Bloco de Processamento Q&A -->
-        <div class="card mb-3">
-          <div class="card-header bg-light d-flex justify-content-between align-items-center">
-            <h6 class="card-title mb-0">Processamento Q&A</h6>
-            {% if feira.qa_processamento_status == 'processando' %}
-              <span class="badge bg-warning text-dark">
-                <i class="fas fa-spinner fa-spin me-1"></i> Processando
-              </span>
-            {% elif feira.qa_processamento_status == 'concluido' %}
-              <span class="badge bg-success">
-                <i class="fas fa-check-circle me-1"></i> Concluído
-              </span>
-            {% elif feira.qa_processamento_status == 'erro' %}
-              <span class="badge bg-danger">
-                <i class="fas fa-exclamation-triangle me-1"></i> Erro
-              </span>
-            {% else %}
-              <span class="badge bg-secondary">
-                <i class="fas fa-clock me-1"></i> Pendente
-              </span>
-            {% endif %}
-          </div>
-          <div class="card-body">
-            {% if feira.qa_processamento_status == 'processando' %}
-              <div class="progress mb-2" style="height: 8px;">
-                <div id="progressBarQA" class="progress-bar progress-bar-striped progress-bar-animated" 
-                     role="progressbar" style="width: {{ feira.qa_progresso_processamento }}%;" 
-                     aria-valuenow="{{ feira.qa_progresso_processamento }}" aria-valuemin="0" aria-valuemax="100"></div>
-              </div>
-              <p class="small mb-0" id="processamentoDetalhesQA">
-                Processando as perguntas e respostas...
-              </p>
-            {% elif feira.qa_processamento_status == 'erro' %}
-              <p class="small text-danger">
-                {{ feira.qa_mensagem_erro|default:"Ocorreu um erro no processamento das perguntas e respostas." }}
-              </p>
-            {% elif feira.qa_processamento_status == 'concluido' %}
-              <div class="alert alert-success">
-                <i class="fas fa-check-circle me-1"></i>
-                <strong>Processamento Q&A concluído com sucesso!</strong><br>
-                <small>Total de perguntas/respostas: {{ feira.qa_total_itens|default:"N/A" }}</small>
-              </div>
-            {% else %}
-              <div class="alert alert-warning">
-                <i class="fas fa-clock me-1"></i>
-                <strong>Q&A pendente de processamento.</strong><br>
-                O processamento será iniciado automaticamente ou você pode iniciá-lo.
-              </div>
-            {% endif %}
+          <div class="card-body p-0">
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <strong>Manual:</strong> {{ feira.total_chunks|default:"0" }} blocos
+                <span id="manual-status" class="badge {% if feira.processamento_status == 'processando' %}bg-warning text-dark{% elif feira.manual_processado %}bg-success{% elif feira.processamento_status == 'erro' %}bg-danger{% else %}bg-secondary{% endif %}">
+                  {% if feira.processamento_status == 'processando' %}
+                    Processando
+                  {% elif feira.manual_processado %}
+                    Concluído
+                  {% elif feira.processamento_status == 'erro' %}
+                    Erro
+                  {% else %}
+                    Pendente
+                  {% endif %}
+                </span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <strong>Q&A:</strong> <span id="qa-count">{{ qa_count|default:"0" }}</span> perguntas
+                <span id="qa-status" class="badge {% if qa_processando %}bg-warning text-dark{% elif qa_count > 0 %}bg-success{% else %}bg-secondary{% endif %}">
+                  {% if qa_processando %}
+                    Processando
+                  {% elif qa_count > 0 %}
+                    Concluído
+                  {% else %}
+                    Pendente
+                  {% endif %}
+                </span>
+              </li>
+              <!-- Linha para mostrar o progresso -->
+              <li id="progress-container" class="list-group-item {% if feira.processamento_status != 'processando' and not qa_processando %}d-none{% endif %}">
+                <div class="progress mb-2">
+                  <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
+                      style="width: {% if feira.processamento_status == 'processando' %}{{ feira.progresso_processamento }}{% else %}0{% endif %}%;" 
+                      aria-valuenow="{% if feira.processamento_status == 'processando' %}{{ feira.progresso_processamento }}{% else %}0{% endif %}" 
+                      aria-valuemin="0" aria-valuemax="100">
+                      {% if feira.processamento_status == 'processando' %}{{ feira.progresso_processamento }}%{% endif %}
+                  </div>
+                </div>
+                <small id="progress-text" class="text-muted">
+                  {% if feira.processamento_status == 'processando' %}
+                    Processando manual... ({{ feira.progresso_processamento }}%)
+                  {% elif qa_processando %}
+                    Gerando Q&A...
+                  {% endif %}
+                </small>
+              </li>
+            </ul>
+            <div class="p-3 d-flex flex-wrap gap-2">
+              <!-- Botão para processar manual -->
+              <form id="process-manual-form" method="post" action="{% url 'gestor:feira_reprocess' feira.id %}" class="me-2">
+                {% csrf_token %}
+                <button type="submit" id="process-manual-button" class="btn btn-primary" {% if feira.processamento_status == 'processando' %}disabled{% endif %}>
+                  <i class="fas {% if feira.processamento_status == 'processando' %}fa-spinner fa-spin{% else %}fa-sync-alt{% endif %} me-1"></i> 
+                  {% if feira.processamento_status == 'processando' %}
+                    Processando...
+                  {% elif feira.manual_processado %}
+                    Reprocessar Manual
+                  {% else %}
+                    Processar Manual
+                  {% endif %}
+                </button>
+              </form>
+              
+              <!-- Botão para gerar Q&A -->
+              <form id="process-qa-form" method="post" action="{% url 'gestor:feira_qa_regenerate' feira.id %}" class="me-2">
+                {% csrf_token %}
+                <button type="submit" id="process-qa-button" class="btn btn-success" {% if not feira.manual_processado or qa_processando %}disabled{% endif %}>
+                  <i class="fas {% if qa_processando %}fa-spinner fa-spin{% else %}fa-comment-dots{% endif %} me-1"></i> 
+                  {% if qa_processando %}
+                    Processando...
+                  {% elif qa_count > 0 %}
+                    Regenerar Q&A
+                  {% else %}
+                    Gerar Q&A
+                  {% endif %}
+                </button>
+              </form>
+              
+              <!-- Botão para ver Q&A (só aparece se já houver Q&A gerados) -->
+              {% if qa_count > 0 %}
+              <a href="{% url 'gestor:feira_qa_list' feira.id %}" class="btn btn-outline-info">
+                <i class="fas fa-list me-1"></i> Ver Q&A
+              </a>
+              {% endif %}
+            </div>
           </div>
         </div>
         {% else %}
-          <div class="alert alert-warning">
-            <i class="fas fa-exclamation-triangle me-1"></i> 
-            Esta feira não possui um manual cadastrado.
-          </div>
+        <div class="alert alert-warning mt-3">
+          <i class="fas fa-exclamation-triangle me-1"></i> Esta feira não possui um manual cadastrado.
+        </div>
         {% endif %}
       </div>
     </div>
-    
-    <!-- Se o manual foi processado, exibe as seções de consulta -->
-    {% if feira.manual_processado and feira.total_chunks > 0 %}
-      <!-- Consulta do Manual -->
-      <div class="card mt-3" id="consultaManualSection">
-        <div class="card-header bg-light">
-          <h6 class="card-title mb-0">Consultar Manual</h6>
-        </div>
-        <div class="card-body">
-          <form id="searchForm" method="post" action="{% url 'gestor:feira_search' feira.id %}">
-            {% csrf_token %}
-            <div class="input-group mb-3">
-              <input type="text" name="query" class="form-control" placeholder="O que você deseja encontrar no manual?" required>
-              <button class="btn btn-primary" type="submit" id="searchButton">
-                <i class="fas fa-search me-1"></i> Pesquisar
-              </button>
-            </div>
-          </form>
-          
-          <div id="searchResults" class="mt-3" style="display: none;">
-            <h6 class="border-bottom pb-2 mb-3">Resultados da pesquisa</h6>
-            <div id="resultsContainer">
-              <!-- Resultados via JavaScript -->
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Consulta Q&A (abaixo da consulta do manual) -->
-      {% if feira.qa_processado %}
-      <div class="card mt-3" id="consultaQASection">
-        <div class="card-header bg-light">
-          <h6 class="card-title mb-0">Consultar Q&A</h6>
-        </div>
-        <div class="card-body">
-          <form id="qaSearchForm" method="post" action="{% url 'gestor:feira_qa_search' feira.id %}">
-            {% csrf_token %}
-            <div class="input-group mb-3">
-              <input type="text" name="query" class="form-control" placeholder="O que você deseja encontrar nas perguntas e respostas?" required>
-              <button class="btn btn-primary" type="submit" id="qaSearchButton">
-                <i class="fas fa-search me-1"></i> Pesquisar
-              </button>
-            </div>
-          </form>
-          
-          <div id="qaSearchResults" class="mt-3" style="display: none;">
-            <h6 class="border-bottom pb-2 mb-3">Resultados da pesquisa Q&A</h6>
-            <div id="qaResultsContainer">
-              <!-- Resultados via JavaScript -->
-            </div>
-          </div>
-        </div>
-      </div>
-      {% endif %}
-    {% endif %}
   </div>
-  
-  <!-- Rodapé: Botões de navegação e reprocessamento unificado -->
+
   <div class="card-footer bg-white">
-    <div class="d-flex justify-content-between">
-      <a href="{% url 'gestor:feira_list' %}" class="btn btn-outline-secondary">
-        <i class="fas fa-arrow-left me-1"></i> Voltar para Lista
-      </a>
-      {% if feira.manual %}
-        <button class="btn btn-outline-primary" onclick="document.getElementById('reprocessButtonAll').click();">
-          <i class="fas fa-sync-alt me-1"></i> {% if feira.manual_processado and feira.qa_processado %}Reprocessar{% else %}Processar{% endif %} Manual &amp; Q&A
-        </button>
-        <form method="post" action="{% url 'gestor:feira_reprocess' feira.id %}" class="d-none">
-          {% csrf_token %}
-          <button id="reprocessButtonAll" type="submit">Reprocessar</button>
-        </form>
-      {% endif %}
-    </div>
+    <a href="{% url 'gestor:feira_list' %}" class="btn btn-outline-secondary">
+      <i class="fas fa-arrow-left me-1"></i> Voltar para Lista
+    </a>
   </div>
 </div>
 
-<!-- Scripts para atualização do progresso dos blocos -->
-{% if feira.manual and feira.processamento_status == 'processando' %}
 <script>
-  function atualizarProgressoManual() {
-    fetch('{% url "gestor:feira_progress" feira.id %}')
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          const progressBar = document.getElementById('progressBarManual');
-          progressBar.style.width = data.progress + '%';
-          progressBar.setAttribute('aria-valuenow', data.progress);
-          let detalhes = '';
-          if (data.progress < 50) {
-            detalhes = `Lendo o documento... (${data.progress}%)`;
-          } else if (data.progress < 95) {
-            detalhes = `Gerando embeddings e armazenando... (${data.progress}%)`;
-          } else {
-            detalhes = 'Finalizando processamento...';
-          }
-          document.getElementById('processamentoDetalhesManual').innerText = detalhes;
-          
-          if (data.processed || data.status === 'concluido') {
-            location.reload();
-          } else if (data.status === 'erro') {
-            // Lógica de erro se necessário
-          } else {
-            setTimeout(atualizarProgressoManual, 2000);
-          }
-        } else {
-          setTimeout(atualizarProgressoManual, 5000);
+  document.addEventListener('DOMContentLoaded', function() {
+    // Elementos do formulário de processamento manual
+    const processManualForm = document.getElementById('process-manual-form');
+    const processManualButton = document.getElementById('process-manual-button');
+    
+    // Elementos do formulário de processamento QA
+    const processQAForm = document.getElementById('process-qa-form');
+    const processQAButton = document.getElementById('process-qa-button');
+    
+    // Elementos de status
+    const manualStatus = document.getElementById('manual-status');
+    const qaStatus = document.getElementById('qa-status');
+    const qaCount = document.getElementById('qa-count');
+    
+    // Elementos de progresso
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    const progressContainer = document.getElementById('progress-container');
+    
+    // Obter o ID da feira
+    function getFeiraId() {
+      // Primeiro tentar pegar do atributo data
+      const feiraCard = document.querySelector('[data-feira-id]');
+      if (feiraCard && feiraCard.dataset.feiraId) {
+        return feiraCard.dataset.feiraId;
+      }
+      
+      // Tentar obter da URL
+      const url = window.location.pathname;
+      const parts = url.split('/').filter(part => part !== '');
+      if (parts.length >= 3 && (parts[1] === 'feiras' || parts[1] === 'feira')) {
+        return parts[2];
+      }
+      
+      return null;
+    }
+    
+    const feiraId = getFeiraId();
+    if (!feiraId) {
+      console.error('Não foi possível determinar o ID da feira');
+      return;
+    }
+    
+    console.log(`Monitorando feira ID: ${feiraId}`);
+    
+    // Flags para controlar verificações
+    let isCheckingManual = false;
+    let isCheckingQA = false;
+    let lastProgress = 0;
+    
+    // Função para verificar o status do processamento do manual
+    function checkManualStatus() {
+      if (isCheckingManual) return; // Evitar chamadas simultâneas
+      
+      isCheckingManual = true;
+      fetch(`/gestor/feira/${feiraId}/progress/`, {
+        method: 'GET',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
         }
       })
-      .catch(() => setTimeout(atualizarProgressoManual, 5000));
-  }
-  document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(atualizarProgressoManual, 1000);
-  });
-</script>
-{% endif %}
-
-{% if feira.manual and feira.qa_processamento_status == 'processando' %}
-<script>
-  function atualizarProgressoQA() {
-    fetch('{% url "gestor:feira_qa_progress" feira.id %}')
       .then(response => response.json())
       .then(data => {
+        isCheckingManual = false;
+        
         if (data.success) {
-          const progressBar = document.getElementById('progressBarQA');
-          progressBar.style.width = data.progress + '%';
-          progressBar.setAttribute('aria-valuenow', data.progress);
-          let detalhes = '';
-          if (data.progress < 50) {
-            detalhes = `Iniciando processamento... (${data.progress}%)`;
-          } else if (data.progress < 95) {
-            detalhes = `Processando Q&A... (${data.progress}%)`;
-          } else {
-            detalhes = 'Finalizando processamento...';
-          }
-          document.getElementById('processamentoDetalhesQA').innerText = detalhes;
+          // Atualizar status do manual
+          updateManualStatus(data);
           
-          if (data.processed || data.status === 'concluido') {
-            location.reload();
-          } else if (data.status === 'erro') {
-            // Lógica de erro se necessário
-          } else {
-            setTimeout(atualizarProgressoQA, 2000);
+          // Atualizar contagem de QA se disponível
+          if (qaCount && data.qa_count !== undefined) {
+            qaCount.textContent = data.qa_count;
+            
+            // Se temos QAs, atualizar o status de QA para concluído
+            if (data.qa_count > 0 && qaStatus) {
+              qaStatus.className = 'badge bg-success';
+              qaStatus.textContent = 'Concluído';
+              
+              // Habilitar botão de regenerar QA
+              if (processQAButton) {
+                processQAButton.disabled = false;
+                processQAButton.innerHTML = '<i class="fas fa-comment-dots me-1"></i> Regenerar Q&A';
+              }
+            }
+          }
+          
+          // Atualizar barra de progresso se mudou
+          if (progressBar && typeof data.progress !== 'undefined' && data.progress !== lastProgress) {
+            lastProgress = data.progress;
+            updateProgressBar(data.progress);
+            
+            if (progressText) {
+              progressText.textContent = `Processando manual... (${data.progress}%)`;
+            }
+            
+            if (progressContainer) {
+              progressContainer.classList.remove('d-none');
+            }
+          }
+          
+          // Se o manual ainda está em processamento, continuar verificando
+          if (data.status === 'processando') {
+            setTimeout(checkManualStatus, 3000);
+          } 
+          // Se o manual foi concluído
+          else if (data.status === 'concluido' && data.processed) {
+            console.log('Processamento do manual concluído');
+            
+            // Atualizar interface para refletir conclusão
+            if (progressContainer) {
+              progressContainer.classList.add('d-none');
+            }
+            
+            // Habilitar botão do manual
+            if (processManualButton) {
+              processManualButton.disabled = false;
+              processManualButton.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Reprocessar Manual';
+            }
+            
+            // Habilitar botão de QA
+            if (processQAButton) {
+              processQAButton.disabled = false;
+              processQAButton.innerHTML = '<i class="fas fa-comment-dots me-1"></i> Gerar Q&A';
+            }
+          } 
+          // Se ocorreu erro ou está pendente
+          else {
+            // Habilitar botão do manual
+            if (processManualButton) {
+              processManualButton.disabled = false;
+              processManualButton.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Processar Manual';
+            }
+            
+            if (progressContainer) {
+              progressContainer.classList.add('d-none');
+            }
           }
         } else {
-          setTimeout(atualizarProgressoQA, 5000);
+          console.error('Erro ao verificar status do manual:', data.error);
+          
+          // Habilitar botão em caso de erro
+          if (processManualButton) {
+            processManualButton.disabled = false;
+            processManualButton.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Processar Manual';
+          }
+          
+          if (progressContainer) {
+            progressContainer.classList.add('d-none');
+          }
         }
       })
-      .catch(() => setTimeout(atualizarProgressoQA, 5000));
-  }
-  document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(atualizarProgressoQA, 1000);
-  });
-</script>
-{% endif %}
-
-<!-- Scripts de busca para as seções de consulta -->
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const searchForm = document.getElementById('searchForm');
-    if (searchForm) {
-      searchForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const form = this;
-        const resultsDiv = document.getElementById('searchResults');
-        const resultsContainer = document.getElementById('resultsContainer');
-        const searchButton = document.getElementById('searchButton');
+      .catch(error => {
+        isCheckingManual = false;
+        console.error('Erro ao verificar status do manual:', error);
         
-        searchButton.disabled = true;
-        searchButton.innerHTML = '<i class="loading-spinner me-1"></i> Pesquisando...';
-        resultsDiv.style.display = 'block';
-        resultsContainer.innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin me-2"></i> Pesquisando...</div>';
+        // Habilitar botão em caso de erro
+        if (processManualButton) {
+          processManualButton.disabled = false;
+          processManualButton.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Processar Manual';
+        }
         
-        fetch(form.action, {
-          method: 'POST',
-          body: new FormData(form),
-          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        if (progressContainer) {
+          progressContainer.classList.add('d-none');
+        }
+      });
+    }
+    
+    // Função para verificar o status do processamento de QA
+    function checkQAStatus() {
+      if (isCheckingQA) return; // Evitar chamadas simultâneas
+      
+      isCheckingQA = true;
+      fetch(`/gestor/feiras/${feiraId}/qa/progress/`, {
+        method: 'GET',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(response => {
+        // Verificar se a resposta é bem-sucedida
+        if (!response.ok) {
+          throw new Error('API de progresso de QA não disponível');
+        }
+        return response.json();
+      })
+      .then(data => {
+        isCheckingQA = false;
+        
+        if (data.success) {
+          console.log('Status QA:', data);
+          
+          // Atualizar contagem de QA se disponível
+          if (qaCount && data.total_qa !== undefined) {
+            qaCount.textContent = data.total_qa;
+          }
+          
+          // Atualizar status de QA
+          if (qaStatus) {
+            if (data.status === 'processando') {
+              qaStatus.className = 'badge bg-warning text-dark';
+              qaStatus.textContent = 'Processando';
+            } else if (data.processed || data.total_qa > 0) {
+              qaStatus.className = 'badge bg-success';
+              qaStatus.textContent = 'Concluído';
+            } else if (data.status === 'erro') {
+              qaStatus.className = 'badge bg-danger';
+              qaStatus.textContent = 'Erro';
+            } else {
+              qaStatus.className = 'badge bg-secondary';
+              qaStatus.textContent = 'Pendente';
+            }
+          }
+          
+          // Atualizar texto da barra de progresso para QA
+          if (progressText) {
+            progressText.textContent = `Gerando Q&A... (${data.total_qa || 0} perguntas)`;
+          }
+          
+          // Mostrar a barra de progresso
+          if (progressContainer) {
+            progressContainer.classList.remove('d-none');
+          }
+          
+          // Se ainda estiver processando, continuar verificando
+          if (data.status === 'processando') {
+            setTimeout(checkQAStatus, 3000);
+          } else {
+            // Processamento concluído ou erro, habilitar botão e esconder progresso
+            if (processQAButton) {
+              processQAButton.disabled = false;
+              processQAButton.innerHTML = '<i class="fas fa-comment-dots me-1"></i> Regenerar Q&A';
+            }
+            
+            if (progressContainer) {
+              progressContainer.classList.add('d-none');
+            }
+            
+            // Recarregar a página para mostrar o botão "Ver Q&A" se necessário
+            if (data.total_qa > 0) {
+              window.location.reload();
+            }
+          }
+        } else {
+          console.error('Erro ao verificar status QA:', data.error);
+          
+          // Erro na API, habilitar botão
+          if (processQAButton) {
+            processQAButton.disabled = false;
+            processQAButton.innerHTML = '<i class="fas fa-comment-dots me-1"></i> Gerar Q&A';
+          }
+          
+          if (progressContainer) {
+            progressContainer.classList.add('d-none');
+          }
+        }
+      })
+      .catch(error => {
+        isCheckingQA = false;
+        console.error('Erro ao verificar status QA:', error);
+        
+        // Erro na API, verificar o status manualmente via contagem de QA
+        fetch(`/gestor/feira/${feiraId}/progress/`, {
+          method: 'GET',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
         })
         .then(response => response.json())
         .then(data => {
-          resultsContainer.innerHTML = '';
-          searchButton.disabled = false;
-          searchButton.innerHTML = '<i class="fas fa-search me-1"></i> Pesquisar';
-          
-          if (data.results && data.results.length > 0) {
-            data.results.forEach(result => {
-              const resultDiv = document.createElement('div');
-              resultDiv.className = 'card mb-3';
-              resultDiv.innerHTML = `
-                <div class="card-body">
-                  <div class="d-flex align-items-center mb-2">
-                    <span class="badge bg-primary me-2">${result.similaridade.toFixed(2)}</span>
-                    <small class="text-muted">
-                      ${result.chunk.pagina ? `Página ${result.chunk.pagina}, ` : ''}Chunk #${result.chunk.posicao}
-                    </small>
-                  </div>
-                  <div class="text-excerpt">
-                    ${result.chunk.texto.substring(0, 300)}...
-                  </div>
-                  <button class="btn btn-sm btn-outline-secondary mt-2" onclick="toggleFullText(this)">
-                    Ver texto completo
-                  </button>
-                  <div class="full-text mt-2" style="display: none;">
-                    ${result.chunk.texto.replace(/\n/g, '<br>')}
-                  </div>
-                </div>
-              `;
-              resultsContainer.appendChild(resultDiv);
-            });
+          if (data.success && data.qa_count > 0) {
+            // Temos QAs, então o processamento foi concluído
+            if (qaStatus) {
+              qaStatus.className = 'badge bg-success';
+              qaStatus.textContent = 'Concluído';
+            }
+            
+            if (qaCount) {
+              qaCount.textContent = data.qa_count;
+            }
+            
+            if (processQAButton) {
+              processQAButton.disabled = false;
+              processQAButton.innerHTML = '<i class="fas fa-comment-dots me-1"></i> Regenerar Q&A';
+            }
+            
+            // Recarregar para mostrar o botão "Ver Q&A"
+            window.location.reload();
           } else {
-            resultsContainer.innerHTML = '<div class="alert alert-info">Nenhum resultado encontrado para sua consulta.</div>';
+            // Nenhum QA, habilitar botão
+            if (processQAButton) {
+              processQAButton.disabled = false;
+              processQAButton.innerHTML = '<i class="fas fa-comment-dots me-1"></i> Gerar Q&A';
+            }
+          }
+        });
+        
+        if (progressContainer) {
+          progressContainer.classList.add('d-none');
+        }
+      });
+    }
+    
+    // Funções auxiliares para atualizar a UI
+    function updateManualStatus(data) {
+      if (!manualStatus) return;
+      
+      // Atualizar classe e texto do badge
+      if (data.status === 'processando') {
+        manualStatus.className = 'badge bg-warning text-dark';
+        manualStatus.textContent = 'Processando';
+      } else if (data.status === 'concluido' && data.processed) {
+        manualStatus.className = 'badge bg-success';
+        manualStatus.textContent = 'Concluído';
+      } else if (data.status === 'erro') {
+        manualStatus.className = 'badge bg-danger';
+        manualStatus.textContent = 'Erro';
+      } else {
+        manualStatus.className = 'badge bg-secondary';
+        manualStatus.textContent = 'Pendente';
+      }
+    }
+    
+    function updateProgressBar(progress) {
+      if (!progressBar) return;
+      
+      progressBar.style.width = `${progress}%`;
+      progressBar.setAttribute('aria-valuenow', progress);
+      progressBar.textContent = `${progress}%`;
+    }
+    
+    // Iniciar a verificação com base no status atual
+    function startStatusChecking() {
+      // Verificar ambos os status iniciais
+      if (manualStatus && manualStatus.textContent.trim() === 'Processando') {
+        console.log('Iniciando verificação: status do Manual em Processando');
+        if (processManualButton) {
+          processManualButton.disabled = true;
+          processManualButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Processando...';
+        }
+        checkManualStatus();
+      }
+      
+      if (qaStatus && qaStatus.textContent.trim() === 'Processando') {
+        console.log('Iniciando verificação: status do QA em Processando');
+        if (processQAButton) {
+          processQAButton.disabled = true;
+          processQAButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Processando...';
+        }
+        checkQAStatus();
+      }
+    }
+    
+    // Iniciar verificação ao carregar a página
+    startStatusChecking();
+    
+    // Adicionar event listener para o formulário de processamento manual
+    if (processManualForm) {
+      processManualForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Desabilitar botão e atualizar UI
+        if (processManualButton) {
+          processManualButton.disabled = true;
+          processManualButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Processando...';
+        }
+        
+        if (manualStatus) {
+          manualStatus.className = 'badge bg-warning text-dark';
+          manualStatus.textContent = 'Processando';
+        }
+        
+        // Resetar e mostrar barra de progresso
+        if (progressBar) {
+          progressBar.style.width = '0%';
+          progressBar.setAttribute('aria-valuenow', 0);
+          progressBar.textContent = '0%';
+        }
+        
+        if (progressText) {
+          progressText.textContent = 'Iniciando processamento do manual...';
+        }
+        
+        if (progressContainer) {
+          progressContainer.classList.remove('d-none');
+        }
+        
+        // Enviar requisição para iniciar processamento
+        fetch(this.action, {
+          method: 'POST',
+          body: new FormData(this),
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        })
+        .then(response => {
+          // Tentar analisar como JSON, mas lidar com respostas não-JSON também
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            return response.json().then(data => ({ isJson: true, data, status: response.status }));
+          } else {
+            return response.text().then(text => ({ isJson: false, text, status: response.status }));
+          }
+        })
+        .then(result => {
+          if ((result.isJson && result.data.success) || (!result.isJson && result.status >= 200 && result.status < 300)) {
+            // Iniciar verificação de status
+            console.log('Processamento do manual iniciado com sucesso, iniciando verificação de status');
+            setTimeout(() => {
+              checkManualStatus();
+            }, 2000);
+          } else {
+            // Mostrar erro
+            console.error('Erro ao iniciar processamento do manual:', result);
+            if (processManualButton) {
+              processManualButton.disabled = false;
+              processManualButton.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Tentar Novamente';
+            }
+            
+            if (manualStatus) {
+              manualStatus.className = 'badge bg-danger';
+              manualStatus.textContent = 'Erro';
+            }
+            
+            if (progressContainer) {
+              progressContainer.classList.add('d-none');
+            }
           }
         })
         .catch(error => {
-          searchButton.disabled = false;
-          searchButton.innerHTML = '<i class="fas fa-search me-1"></i> Pesquisar';
-          resultsContainer.innerHTML = `<div class="alert alert-danger">Erro ao processar sua consulta: ${error}</div>`;
+          console.error('Erro:', error);
+          
+          if (processManualButton) {
+            processManualButton.disabled = false;
+            processManualButton.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Tentar Novamente';
+          }
+          
+          if (manualStatus) {
+            manualStatus.className = 'badge bg-danger';
+            manualStatus.textContent = 'Erro';
+          }
+          
+          if (progressContainer) {
+            progressContainer.classList.add('d-none');
+          }
         });
       });
     }
     
-    const qaSearchForm = document.getElementById('qaSearchForm');
-    if (qaSearchForm) {
-      qaSearchForm.addEventListener('submit', function(e) {
+    // Adicionar event listener para o formulário de processamento QA
+    if (processQAForm) {
+      processQAForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        const form = this;
-        const resultsDiv = document.getElementById('qaSearchResults');
-        const resultsContainer = document.getElementById('qaResultsContainer');
-        const searchButton = document.getElementById('qaSearchButton');
         
-        searchButton.disabled = true;
-        searchButton.innerHTML = '<i class="loading-spinner me-1"></i> Pesquisando...';
-        resultsDiv.style.display = 'block';
-        resultsContainer.innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin me-2"></i> Pesquisando...</div>';
+        // Desabilitar botão e atualizar UI
+        if (processQAButton) {
+          processQAButton.disabled = true;
+          processQAButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Processando...';
+        }
         
-        fetch(form.action, {
+        if (qaStatus) {
+          qaStatus.className = 'badge bg-warning text-dark';
+          qaStatus.textContent = 'Processando';
+        }
+        
+        // Mostrar barra de progresso para QA
+        if (progressText) {
+          progressText.textContent = 'Iniciando geração de Q&A...';
+        }
+        
+        if (progressContainer) {
+          progressContainer.classList.remove('d-none');
+        }
+        
+        // Enviar requisição para iniciar processamento de QA
+        fetch(this.action, {
           method: 'POST',
-          body: new FormData(form),
-          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          body: new FormData(this),
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
         })
-        .then(response => response.json())
-        .then(data => {
-          resultsContainer.innerHTML = '';
-          searchButton.disabled = false;
-          searchButton.innerHTML = '<i class="fas fa-search me-1"></i> Pesquisar';
-          
-          if (data.results && data.results.length > 0) {
-            data.results.forEach(result => {
-              const resultDiv = document.createElement('div');
-              resultDiv.className = 'card mb-3';
-              resultDiv.innerHTML = `
-                <div class="card-body">
-                  <div class="d-flex align-items-center mb-2">
-                    <span class="badge bg-primary me-2">${result.similaridade.toFixed(2)}</span>
-                    <small class="text-muted">
-                      ${result.chunk.pagina ? `Página ${result.chunk.pagina}, ` : ''}Chunk #${result.chunk.posicao}
-                    </small>
-                  </div>
-                  <div class="text-excerpt">
-                    ${result.chunk.texto.substring(0, 300)}...
-                  </div>
-                  <button class="btn btn-sm btn-outline-secondary mt-2" onclick="toggleFullText(this)">
-                    Ver texto completo
-                  </button>
-                  <div class="full-text mt-2" style="display: none;">
-                    ${result.chunk.texto.replace(/\n/g, '<br>')}
-                  </div>
-                </div>
-              `;
-              resultsContainer.appendChild(resultDiv);
-            });
+        .then(response => {
+          // Tentar analisar como JSON, mas lidar com respostas não-JSON também
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            return response.json().then(data => ({ isJson: true, data, status: response.status }));
           } else {
-            resultsContainer.innerHTML = '<div class="alert alert-info">Nenhum resultado encontrado para sua consulta.</div>';
+            return response.text().then(text => ({ isJson: false, text, status: response.status }));
+          }
+        })
+        .then(result => {
+          if ((result.isJson && result.data.success) || (!result.isJson && result.status >= 200 && result.status < 300)) {
+            // Iniciar verificação de status
+            console.log('Processamento de QA iniciado com sucesso, iniciando verificação de status');
+            setTimeout(() => {
+              checkQAStatus();
+            }, 2000);
+          } else {
+            // Mostrar erro
+            console.error('Erro ao iniciar processamento de QA:', result);
+            if (processQAButton) {
+              processQAButton.disabled = false;
+              processQAButton.innerHTML = '<i class="fas fa-comment-dots me-1"></i> Tentar Novamente';
+            }
+            
+            if (qaStatus) {
+              qaStatus.className = 'badge bg-danger';
+              qaStatus.textContent = 'Erro';
+            }
+            
+            if (progressContainer) {
+              progressContainer.classList.add('d-none');
+            }
           }
         })
         .catch(error => {
-          searchButton.disabled = false;
-          searchButton.innerHTML = '<i class="fas fa-search me-1"></i> Pesquisar';
-          resultsContainer.innerHTML = `<div class="alert alert-danger">Erro ao processar sua consulta: ${error}</div>`;
+          console.error('Erro:', error);
+          
+          if (processQAButton) {
+            processQAButton.disabled = false;
+            processQAButton.innerHTML = '<i class="fas fa-comment-dots me-1"></i> Tentar Novamente';
+          }
+          
+          if (qaStatus) {
+            qaStatus.className = 'badge bg-danger';
+            qaStatus.textContent = 'Erro';
+          }
+          
+          if (progressContainer) {
+            progressContainer.classList.add('d-none');
+          }
         });
       });
     }
   });
-  
-  function toggleFullText(button) {
-    const fullText = button.nextElementSibling;
-    const isHidden = fullText.style.display === 'none';
-    fullText.style.display = isHidden ? 'block' : 'none';
-    button.textContent = isHidden ? 'Ocultar texto completo' : 'Ver texto completo';
-  }
-</script>
+ </script>
 {% endblock %}
