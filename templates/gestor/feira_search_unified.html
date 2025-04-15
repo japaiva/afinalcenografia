@@ -1,0 +1,155 @@
+{% extends 'gestor/base_gestor.html' %}
+{% load static %}
+
+{% block title %}Busca Unificada - {{ feira.nome }} | Portal do Gestor | Afinal Cenografia{% endblock %}
+
+{% block content %}
+<div class="card shadow" data-feira-id="{{ feira.id }}">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">
+      <i class="fas fa-search me-2"></i> Busca Unificada - {{ feira.nome }}
+    </h5>
+    <div>
+      <a href="{% url 'gestor:feira_detail' feira.id %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i> Voltar
+      </a>
+    </div>
+  </div>
+
+  <div class="card-body">
+    <!-- Formulário de Busca -->
+    <div class="row mb-4">
+      <div class="col-md-12">
+        <form method="get" class="d-flex">
+          <div class="input-group">
+            <input type="text" name="q" class="form-control" placeholder="Digite sua consulta..." value="{{ query }}" required>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-search me-1"></i> Buscar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    {% if error %}
+    <div class="alert alert-danger">
+      <i class="fas fa-exclamation-circle me-2"></i> Erro ao processar a consulta: {{ error }}
+    </div>
+    {% endif %}
+    
+    {% if query and not error %}
+      {% if results %}
+        <div class="row">
+          <!-- Resultados de Blocos -->
+          <div class="col-md-6">
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="card-title mb-0">
+                  <i class="fas fa-file-alt me-2"></i> Blocos do Manual
+                  <span class="badge bg-primary float-end">{{ results.blocos|length }}</span>
+                </h6>
+              </div>
+              <div class="card-body p-0">
+                {% if results.blocos %}
+                  <ul class="list-group list-group-flush">
+                  {% for result in results.blocos %}
+                    <li class="list-group-item">
+                      <div class="d-flex justify-content-between align-items-start mb-1">
+                        <strong>Bloco #{{ result.chunk.posicao }}</strong>
+                        <span class="badge bg-info">Relevância: {{ result.similaridade|floatformat:2 }}</span>
+                      </div>
+                      <div class="text-muted small mb-2">
+                        <i class="fas fa-file-alt me-1"></i> Página: {{ result.chunk.pagina|default:"N/A" }}
+                      </div>
+                      <div class="p-2 bg-light rounded">
+                        <p class="mb-0 text-truncate-3">{{ result.chunk.texto }}</p>
+                      </div>
+                      <div class="mt-2">
+                        <a href="{% url 'gestor:feira_blocos_list' feira.id %}?q={{ query }}" class="btn btn-sm btn-outline-primary">
+                          <i class="fas fa-search me-1"></i> Ver em contexto
+                        </a>
+                      </div>
+                    </li>
+                  {% endfor %}
+                  </ul>
+                {% else %}
+                  <div class="p-3 text-center">
+                    <p class="text-muted mb-0">Nenhum bloco encontrado para esta consulta.</p>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          
+          <!-- Resultados de Q&A -->
+          <div class="col-md-6">
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="card-title mb-0">
+                  <i class="fas fa-question-circle me-2"></i> Perguntas e Respostas
+                  <span class="badge bg-primary float-end">{{ results.qa|length }}</span>
+                </h6>
+              </div>
+              <div class="card-body p-0">
+                {% if results.qa %}
+                  <ul class="list-group list-group-flush">
+                  {% for qa in results.qa %}
+                    <li class="list-group-item">
+                      <div class="d-flex justify-content-between align-items-start mb-1">
+                        <strong>{{ qa.question }}</strong>
+                        <span class="badge bg-info">Relevância: {{ qa.score|floatformat:2 }}</span>
+                      </div>
+                      <div class="p-2 bg-light rounded mb-2">
+                        <p class="mb-0">{{ qa.answer|truncatewords:30 }}</p>
+                      </div>
+                      <div class="mt-2">
+                        <a href="{% url 'gestor:feira_qa_list' feira.id %}?q={{ qa.question }}" class="btn btn-sm btn-outline-success">
+                          <i class="fas fa-search me-1"></i> Ver detalhes
+                        </a>
+                      </div>
+                    </li>
+                  {% endfor %}
+                  </ul>
+                {% else %}
+                  <div class="p-3 text-center">
+                    <p class="text-muted mb-0">Nenhuma pergunta/resposta encontrada para esta consulta.</p>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Seção de explicação/ajuda -->
+        <div class="card mt-3">
+          <div class="card-header bg-light">
+            <h6 class="card-title mb-0">
+              <i class="fas fa-info-circle me-2"></i> Sobre a Busca Unificada
+            </h6>
+          </div>
+          <div class="card-body">
+            <p>Esta funcionalidade permite buscar simultaneamente nos blocos do manual e nas perguntas/respostas geradas. A busca é feita utilizando similaridade semântica, o que significa que os resultados não dependem apenas de correspondência exata de palavras.</p>
+            <div class="alert alert-info">
+              <i class="fas fa-lightbulb me-2"></i> <strong>Dica:</strong> Para melhores resultados, use frases completas ou perguntas específicas em vez de palavras isoladas.
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <div class="alert alert-info">
+          <i class="fas fa-search me-2"></i> Nenhum resultado encontrado para "<strong>{{ query }}</strong>".
+        </div>
+      {% endif %}
+    {% elif not query %}
+      <div class="card">
+        <div class="card-body text-center p-5">
+          <i class="fas fa-search fa-3x mb-3 text-muted"></i>
+          <h5>Digite uma consulta para buscar no manual e nas perguntas/respostas</h5>
+          <p class="text-muted">Você pode buscar por palavras-chave, frases ou perguntas completas.</p>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% csrf_token %}
+{% endblock %}

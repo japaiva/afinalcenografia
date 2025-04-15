@@ -1,0 +1,268 @@
+{% extends 'gestor/base_gestor.html' %}
+{% load static %}
+
+{% block title %}Blocos do Manual - {{ feira.nome }} | Portal do Gestor | Afinal Cenografia{% endblock %}
+
+{% block content %}
+<div class="card shadow" data-feira-id="{{ feira.id }}">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">
+      <i class="fas fa-file-alt me-2"></i> Blocos do Manual - {{ feira.nome }}
+    </h5>
+    <div>
+      <a href="{% url 'gestor:feira_detail' feira.id %}" class="btn btn-outline-secondary btn-sm me-1">
+        <i class="fas fa-arrow-left me-1"></i> Voltar
+      </a>
+      
+      <!-- Botão para adicionar novo bloco -->
+      <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addBlocoModal">
+        <i class="fas fa-plus me-1"></i> Adicionar Bloco
+      </button>
+    </div>
+  </div>
+
+  <div class="card-body">
+    <!-- Filtros e busca -->
+    <div class="row mb-3">
+      <div class="col-md-8">
+        <form method="get" class="d-flex">
+          <div class="input-group">
+            <input type="text" name="q" class="form-control" placeholder="Buscar nos blocos..." value="{{ query }}">
+            <button type="submit" class="btn btn-outline-primary">
+              <i class="fas fa-search"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+      <div class="col-md-4 text-md-end">
+        <span class="badge bg-info">Total: {{ chunks_count }}</span>
+      </div>
+    </div>
+
+    {% if chunks.exists %}
+    <!-- Lista de blocos -->
+    <div class="chunk-list">
+      {% for chunk in chunks %}
+      <div class="card mb-3 chunk-card">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">
+            <i class="fas fa-file-alt text-primary me-2"></i> Bloco #{{ chunk.posicao }}
+          </h6>
+          <div class="dropdown">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="chunkActions{{ chunk.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fas fa-ellipsis-v"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="chunkActions{{ chunk.id }}">
+              <li><a class="dropdown-item edit-chunk" href="#" data-id="{{ chunk.id }}"><i class="fas fa-edit me-2"></i> Editar</a></li>
+              <li><a class="dropdown-item regenerate-vector" href="#" data-id="{{ chunk.id }}"><i class="fas fa-sync me-2"></i> Regenerar Vetor</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item text-danger delete-chunk" href="#" data-id="{{ chunk.id }}"><i class="fas fa-trash me-2"></i> Excluir</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="text-content mb-3">
+            <p class="fw-bold mb-1"><i class="fas fa-quote-left text-secondary me-2"></i> Conteúdo:</p>
+            <div class="p-2 bg-light rounded">
+              <p class="mb-0">{{ chunk.texto }}</p>
+            </div>
+          </div>
+          
+          <div class="metadata mt-3">
+            <div class="small text-muted">
+              <span><i class="fas fa-hashtag me-1"></i> ID: {{ chunk.id }}</span>
+              <span class="ms-3"><i class="fas fa-file-alt me-1"></i> Página: {{ chunk.pagina|default:"N/A" }}</span>
+              <span class="ms-3"><i class="fas fa-sort-numeric-down me-1"></i> Posição: {{ chunk.posicao }}</span>
+              {% if chunk.pinecone_id %}
+              <span class="ms-3"><i class="fas fa-database me-1"></i> Vector ID: {{ chunk.pinecone_id }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    
+    <!-- Paginação -->
+    {% if chunks.paginator.num_pages > 1 %}
+    <nav aria-label="Navegação de página">
+      <ul class="pagination pagination-sm justify-content-center mb-0">
+        {% if chunks.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page=1{% if query %}&q={{ query }}{% endif %}" aria-label="Primeiro">
+              <span aria-hidden="true">&laquo;&laquo;</span>
+            </a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ chunks.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" aria-label="Anterior">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">&laquo;&laquo;</span>
+          </li>
+          <li class="page-item disabled">
+            <span class="page-link">&laquo;</span>
+          </li>
+        {% endif %}
+        
+        {% for i in chunks.paginator.page_range %}
+          {% if chunks.number == i %}
+            <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+          {% elif i > chunks.number|add:'-3' and i < chunks.number|add:'3' %}
+            <li class="page-item"><a class="page-link" href="?page={{ i }}{% if query %}&q={{ query }}{% endif %}">{{ i }}</a></li>
+          {% endif %}
+        {% endfor %}
+        
+        {% if chunks.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ chunks.next_page_number }}{% if query %}&q={{ query }}{% endif %}" aria-label="Próximo">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ chunks.paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}" aria-label="Último">
+              <span aria-hidden="true">&raquo;&raquo;</span>
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">&raquo;</span>
+          </li>
+          <li class="page-item disabled">
+            <span class="page-link">&raquo;&raquo;</span>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+    
+    {% else %}
+    <!-- Nenhum resultado -->
+    <div class="alert alert-info">
+      <div class="d-flex align-items-center">
+        <div class="me-3">
+          <i class="fas fa-info-circle fa-2x"></i>
+        </div>
+        <div>
+          <p class="mb-0"><strong>Nenhum bloco encontrado</strong></p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Modal de Edição -->
+<div class="modal fade" id="editChunkModal" tabindex="-1" aria-labelledby="editChunkModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editChunkModalLabel">Editar Bloco</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editChunkForm">
+          <input type="hidden" id="editChunkId" name="chunk_id">
+          
+          <div class="mb-3">
+            <label for="editTexto" class="form-label">Conteúdo do Bloco</label>
+            <textarea class="form-control" id="editTexto" name="texto" rows="8" required></textarea>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="editPagina" class="form-label">Número da Página</label>
+                <input type="number" class="form-control" id="editPagina" name="pagina" min="1">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="editPosicao" class="form-label">Posição</label>
+                <input type="number" class="form-control" id="editPosicao" name="posicao" min="0" required>
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="regenerateVector" name="regenerate_vector" checked>
+            <label class="form-check-label" for="regenerateVector">
+              Regenerar vetor no banco vetorial
+            </label>
+            <div class="form-text">Marque esta opção para atualizar o vetor no banco após editar o texto.</div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="saveChunkBtn">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Adicionar Bloco -->
+<div class="modal fade" id="addBlocoModal" tabindex="-1" aria-labelledby="addBlocoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addBlocoModalLabel">Adicionar Novo Bloco</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <form id="addBlocoForm">
+          <div class="mb-3">
+            <label for="addTexto" class="form-label">Conteúdo do Bloco</label>
+            <textarea class="form-control" id="addTexto" name="texto" rows="8" required></textarea>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="addPagina" class="form-label">Número da Página</label>
+                <input type="number" class="form-control" id="addPagina" name="pagina" min="1">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="addPosicao" class="form-label">Posição</label>
+                <input type="number" class="form-control" id="addPosicao" name="posicao" min="0" value="{{ next_position }}" required>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-success" id="saveNewChunkBtn">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div class="modal fade" id="deleteChunkModal" tabindex="-1" aria-labelledby="deleteChunkModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteChunkModalLabel">Confirmar Exclusão</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <p>Você tem certeza que deseja excluir este bloco do manual?</p>
+        <p class="text-danger"><strong>Esta ação não pode ser desfeita.</strong></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteChunkBtn">Excluir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% csrf_token %}
+<!-- Link para o script externo -->
+<script src="{% static 'js/feira_blocos_list.js' %}"></script>
+{% endblock %}
