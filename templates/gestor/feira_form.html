@@ -3,28 +3,28 @@
 {% block title %}{% if form.instance.pk %}Editar{% else %}Nova{% endif %} Feira | Portal do Gestor | Afinal Cenografia{% endblock %}
 
 {% block content %}
-<div class="card shadow">
-  <div class="card-header bg-light">
-    <h5 class="card-title mb-0">
-      <i class="fas {% if form.instance.pk %}fa-edit{% else %}fa-plus-circle{% endif %} me-2"></i>
-      {% if form.instance.pk %}Editar{% else %}Nova{% endif %} Feira
-    </h5>
-  </div>
+
+<div class="card shadow"> <div class="card-header bg-light"> <h5 class="card-title mb-0"> <i class="fas {% if form.instance.pk %}fa-edit{% else %}fa-plus-circle{% endif %} me-2"></i> {% if form.instance.pk %}Editar{% else %}Nova{% endif %} Feira </h5> </div> <div class="card-body"> <form method="post" enctype="multipart/form-data"> {% csrf_token %}
+
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger">
+      {% for error in form.non_field_errors %}
+        <p class="mb-0">{{ error }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
   
-  <div class="card-body">
-    <form method="post" enctype="multipart/form-data">
-      {% csrf_token %}
-      
-      {% if form.non_field_errors %}
-        <div class="alert alert-danger">
-          {% for error in form.non_field_errors %}
-            <p class="mb-0">{{ error }}</p>
-          {% endfor %}
-        </div>
-      {% endif %}
-      
+  <!-- Bloco Feira -->
+  <div class="card shadow mt-4">
+    <div class="card-header bg-light">
+      <h5 class="card-title mb-0">
+        <i class="fas fa-calendar-alt me-2"></i>
+        Informações da Feira
+      </h5>
+    </div>
+    <div class="card-body">
       <div class="row g-3">
-        <!-- Nome da Feira -->
         <div class="col-md-6">
           <label for="{{ form.nome.id_for_label }}" class="form-label">Nome da Feira*</label>
           {{ form.nome }}
@@ -35,7 +35,6 @@
           {% endif %}
         </div>
         
-        <!-- Local -->
         <div class="col-md-6">
           <label for="{{ form.local.id_for_label }}" class="form-label">Local/Centro de Exposições*</label>
           {{ form.local }}
@@ -46,7 +45,6 @@
           {% endif %}
         </div>
         
-        <!-- Cidade e Estado -->
         <div class="col-md-6">
           <label for="{{ form.cidade.id_for_label }}" class="form-label">Cidade*</label>
           {{ form.cidade }}
@@ -67,7 +65,6 @@
           {% endif %}
         </div>
         
-        <!-- Datas -->
         <div class="col-md-6">
           <label for="{{ form.data_inicio.id_for_label }}" class="form-label">Data de Início*</label>
           {{ form.data_inicio }}
@@ -88,7 +85,6 @@
           {% endif %}
         </div>
         
-        <!-- Website -->
         <div class="col-md-6">
           <label for="{{ form.website.id_for_label }}" class="form-label">Website</label>
           {{ form.website }}
@@ -99,39 +95,6 @@
           {% endif %}
         </div>
         
-        <!-- Contato -->
-        <div class="col-md-6">
-          <label for="{{ form.contato_organizacao.id_for_label }}" class="form-label">Contato da Organização</label>
-          {{ form.contato_organizacao }}
-          {% if form.contato_organizacao.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.contato_organizacao.errors %}{{ error }}{% endfor %}
-            </div>
-          {% endif %}
-        </div>
-        
-        <!-- Email e Telefone -->
-        <div class="col-md-6">
-          <label for="{{ form.email_organizacao.id_for_label }}" class="form-label">Email da Organização</label>
-          {{ form.email_organizacao }}
-          {% if form.email_organizacao.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.email_organizacao.errors %}{{ error }}{% endfor %}
-            </div>
-          {% endif %}
-        </div>
-        
-        <div class="col-md-6">
-          <label for="{{ form.telefone_organizacao.id_for_label }}" class="form-label">Telefone da Organização</label>
-          {{ form.telefone_organizacao }}
-          {% if form.telefone_organizacao.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.telefone_organizacao.errors %}{{ error }}{% endfor %}
-            </div>
-          {% endif %}
-        </div>
-        
-        <!-- Status -->
         <div class="col-12">
           <div class="form-check form-switch mt-2">
             {{ form.ativa }}
@@ -149,9 +112,51 @@
       </div>
     </div>
   </div>
-</div>
 
-  <!-- Manual da Feira como seção à parte -->
+  <!-- Bloco Organização -->
+  <div class="card shadow mt-4">
+    <div class="card-header bg-light">
+      <h5 class="card-title mb-0">
+        <i class="fas fa-users me-2"></i>
+        Informações do Contato
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label for="{{ form.contato_organizacao.id_for_label }}" class="form-label">Nome</label>
+          {{ form.contato_organizacao }}
+          {% if form.contato_organizacao.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.contato_organizacao.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <div class="col-md-6">
+          <label for="{{ form.email_organizacao.id_for_label }}" class="form-label">Email</label>
+          {{ form.email_organizacao }}
+          {% if form.email_organizacao.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.email_organizacao.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <div class="col-md-6">
+          <label for="{{ form.telefone_organizacao.id_for_label }}" class="form-label">Telefone</label>
+          {{ form.telefone_organizacao }}
+          {% if form.telefone_organizacao.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.telefone_organizacao.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manual da Feira (mantido como estava originalmente) -->
   <div class="card shadow mt-4">
     <div class="card-header bg-light">
       <h5 class="card-title mb-0">
@@ -198,7 +203,7 @@
     </div>
   </div>
 
-  <!-- Botões de ação em uma faixa branca para maior visibilidade -->
+  <!-- Botões de ação -->
   <div class="card shadow mt-4">
     <div class="card-body py-3">
       <div class="d-flex justify-content-between">
@@ -211,5 +216,5 @@
       </div>
     </div>
   </div>
-    </form>
-{% endblock %}
+</form>
+</div> </div> {% endblock %}

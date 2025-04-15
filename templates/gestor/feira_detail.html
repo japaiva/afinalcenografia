@@ -51,11 +51,11 @@
 
         <div class="card mb-3">
           <div class="card-header bg-light">
-            <h6 class="card-title mb-0">Contato da Organização</h6>
+            <h6 class="card-title mb-0">Contato</h6>
           </div>
           <div class="card-body p-0">
             <ul class="list-group list-group-flush">
-              <li class="list-group-item"><strong>Contato:</strong> {{ feira.contato_organizacao|default:"-" }}</li>
+              <li class="list-group-item"><strong>Nome:</strong> {{ feira.contato_organizacao|default:"-" }}</li>
               <li class="list-group-item"><strong>Email:</strong> {{ feira.email_organizacao|default:"-" }}</li>
               <li class="list-group-item"><strong>Telefone:</strong> {{ feira.telefone_organizacao|default:"-" }}</li>
             </ul>
@@ -172,7 +172,7 @@
                   {% if qa_processando %}
                     Processando...
                   {% elif qa_count > 0 %}
-                    Regenerar Q&A
+                    Reprocessar Q&A
                   {% else %}
                     Gerar Q&A
                   {% endif %}
