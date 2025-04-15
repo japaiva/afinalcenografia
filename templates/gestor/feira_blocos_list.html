@@ -39,7 +39,7 @@
       </div>
     </div>
 
-    {% if chunks.exists %}
+    {% if chunks|length > 0 %}
     <!-- Lista de blocos -->
     <div class="chunk-list">
       {% for chunk in chunks %}

@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
             qaStatus.className = 'badge bg-success';
             qaStatus.textContent = 'Concluído';
             
-            // Habilitar botão de regenerar QA
+            // Habilitar botão de reprocessar QA
             if (processQAButton) {
               processQAButton.disabled = false;
               processQAButton.innerHTML = '<i class="fas fa-comment-dots me-1"></i> Reprocessar Q&A';
@@ -110,11 +110,6 @@ document.addEventListener('DOMContentLoaded', function() {
             processManualButton.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Reprocessar Manual';
           }
           
-          // Habilitar botão de QA
-          if (processQAButton) {
-            processQAButton.disabled = false;
-            processQAButton.innerHTML = '<i class="fas fa-comment-dots me-1"></i> Gerar Q&A';
-          }
           
           // Recarregar a página para mostrar o card de consulta ao manual
           window.location.reload();
@@ -202,7 +197,7 @@ document.addEventListener('DOMContentLoaded', function() {
           // Processamento concluído ou erro, habilitar botão
           if (processQAButton) {
             processQAButton.disabled = false;
-            processQAButton.innerHTML = '<i class="fas fa-comment-dots me-1"></i> Regenerar Q&A';
+            processQAButton.innerHTML = '<i class="fas fa-comment-dots me-1"></i> Reprocessar Q&A';
           }
           
           // Recarregar a página para mostrar o botão "Ver Q&A" se necessário
@@ -246,7 +241,7 @@ document.addEventListener('DOMContentLoaded', function() {
           
           if (processQAButton) {
             processQAButton.disabled = false;
-            processQAButton.innerHTML = '<i class="fas fa-comment-dots me-1"></i> Regenerar Q&A';
+            processQAButton.innerHTML = '<i class="fas fa-comment-dots me-1"></i> Reprocessar Q&A';
           }
           
           // Recarregar para mostrar o botão "Ver Q&A"
