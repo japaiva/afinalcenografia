@@ -25,6 +25,7 @@
   {% if processando %}
   <!-- Barra de progresso e indicação de processamento -->
   <div class="card-body">
+
     <div class="alert alert-info">
       <div class="d-flex align-items-center">
         <div class="me-3">
@@ -66,7 +67,7 @@
       </div>
     </div>
 
-    {% if qa_pairs.exists %}
+    {% if qa_pairs|length > 0 %}
     <!-- Lista de perguntas e respostas -->
     <div class="qa-list">
       {% for qa in qa_pairs %}

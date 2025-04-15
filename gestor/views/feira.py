@@ -183,13 +183,22 @@ def feira_reprocess(request, pk):
         return redirect(redirect_url)
     else:
         return redirect('gestor:feira_detail', pk=feira.id)
-
+    
 @login_required
 def feira_qa_list(request, feira_id):
     feira = get_object_or_404(Feira, pk=feira_id)
     processando = feira.processamento_status == 'processando'
     query = request.GET.get('q', '')
-    qa_pairs_list = FeiraManualQA.objects.filter(feira=feira)
+    
+    # ALTERAÇÃO DE TESTE - prints para depuração 
+    print(f"\n\n==== DEBUG ====")
+    print(f"Acessando feira_qa_list - feira_id: {feira_id}")
+    
+    qa_pairs_list = FeiraManualQA.objects.filter(feira=feira).order_by('-created_at')
+    
+    # ALTERAÇÃO DE TESTE - ver contagem de QAs
+    qa_total = qa_pairs_list.count()
+    print(f"Total de QAs para a feira: {qa_total}")
     
     if query:
         qa_pairs_list = qa_pairs_list.filter(
@@ -210,7 +219,11 @@ def feira_qa_list(request, feira_id):
     
     qa_count = qa_pairs_list.count()
     
-    # Obter lista de agentes para o formulário de regeneração de QA
+    # ALTERAÇÃO DE TESTE - verificar paginação
+    print(f"Página atual: {getattr(qa_pairs, 'number', 'N/A')}")
+    print(f"Qtd na página: {len(qa_pairs) if qa_pairs else 0}")
+    print(f"==== FIM DEBUG ====\n\n")
+    
     agentes = Agente.objects.filter(ativo=True)
     
     context = {
@@ -223,7 +236,73 @@ def feira_qa_list(request, feira_id):
     }
     
     return render(request, 'gestor/feira_qa_list.html', context)
-
+    
+@login_required
+def feira_qa_lista(request, feira_id):
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    feira = get_object_or_404(Feira, pk=feira_id)
+    processando = feira.processamento_status == 'processando'
+    query = request.GET.get('q', '')
+    
+    logger.info(f"Processando requisição para feira_qa_list - feira_id: {feira_id}, query: '{query}'")
+    
+    # Buscar todos os QAs da feira
+    qa_pairs_list = FeiraManualQA.objects.filter(feira=feira).order_by('-created_at')
+    
+    logger.info(f"Consulta inicial retornou {qa_pairs_list.count()} QAs para a feira {feira_id}")
+    
+    # Aplicar filtro se houver query
+    if query:
+        logger.info(f"Aplicando filtro com query: '{query}'")
+        qa_pairs_list = qa_pairs_list.filter(
+            Q(question__icontains=query) | 
+            Q(answer__icontains=query) | 
+            Q(similar_questions__contains=query)
+        )
+        logger.info(f"Após filtro, temos {qa_pairs_list.count()} QAs")
+    
+    # Paginação
+    paginator = Paginator(qa_pairs_list, 10)  # 10 por página
+    page = request.GET.get('page')
+    
+    logger.info(f"Configuração da paginação: page={page}, total_pages={paginator.num_pages}, total_items={paginator.count}")
+    
+    try:
+        qa_pairs = paginator.page(page)
+        logger.info(f"Página {qa_pairs.number} carregada com sucesso")
+    except PageNotAnInteger:
+        logger.info(f"Página não é um inteiro, usando página 1")
+        qa_pairs = paginator.page(1)
+    except EmptyPage:
+        logger.info(f"Página vazia, usando última página {paginator.num_pages}")
+        qa_pairs = paginator.page(paginator.num_pages)
+    
+    # Total de itens encontrados
+    qa_count = qa_pairs_list.count()
+    
+    # Verificar conteúdo da page atual
+    logger.info(f"Página atual contém {len(qa_pairs)} QAs")
+    for i, qa in enumerate(qa_pairs):
+        logger.info(f"  QA {i+1}: ID={qa.id}, Question='{qa.question[:30]}...'")
+    
+    # Obter lista de agentes para o formulário de regeneração de QA
+    agentes = Agente.objects.filter(ativo=True)
+    
+    context = {
+        'feira': feira,
+        'qa_pairs': qa_pairs,
+        'qa_count': qa_count,
+        'query': query,
+        'processando': processando,
+        'agentes': agentes
+    }
+    
+    logger.info(f"Renderizando template com {qa_count} QAs no total")
+    
+    return render(request, 'gestor/feira_qa_list.html', context)
+    
 @login_required
 @require_GET
 def feira_qa_get(request):
