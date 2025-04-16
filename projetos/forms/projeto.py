@@ -1,6 +1,10 @@
+#forms/projeto.py
+
 from django import forms
 from django.forms.widgets import Input
-from projetos.models import Projeto, ArquivoReferencia
+from projetos.models import Projeto, ProjetoPlanta, ProjetoReferencia
+from core.models import Feira
+
 
 # Widget personalizado que permite múltiplos arquivos
 class CustomMultipleFileInput(Input):
@@ -34,41 +38,36 @@ class MultipleFileField(forms.FileField):
             result = single_file_clean(data, initial)
         return result
 
-
 class ProjetoForm(forms.ModelForm):
-    arquivos_referencia = MultipleFileField(
-        required=False,
-        help_text="Selecione um ou mais arquivos de referência (opcional)."
-    )
-
     class Meta:
         model = Projeto
         fields = [
-            'nome', 'descricao', 'status', 'data_inicio', 'prazo_entrega',
-            'orcamento', 'progresso', 'requisitos'
+            'nome', 'descricao', 'orcamento', 'status',
+            # O campo feira agora é mostrado diretamente no formulário
+            'feira'
         ]
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'form-control'}),
             'descricao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'status': forms.Select(attrs={'class': 'form-control'}),
-            'data_inicio': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'prazo_entrega': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'orcamento': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'progresso': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'max': 100}),
-            'requisitos': forms.Textarea(attrs={'class': 'form-control', 'rows': 5}),
+            'orcamento': forms.TextInput(attrs={'class': 'form-control'}),
+            'status': forms.Select(attrs={'class': 'form-select'}),
+            'feira': forms.Select(attrs={'class': 'form-select'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Filtrar apenas feiras ativas para o campo feira
+        self.fields['feira'].queryset = Feira.objects.filter(ativa=True).order_by('-data_inicio')
         self.fields['nome'].required = True
-        self.fields['status'].required = True
+        self.fields['orcamento'].required = True
+
 
     def save(self, commit=True):
         projeto = super().save(commit=commit)
 
         if commit and self.cleaned_data.get('arquivos_referencia'):
             for arquivo in self.cleaned_data['arquivos_referencia']:
-                ArquivoReferencia.objects.create(
+                ProjetoReferencia.objects.create(
                     projeto=projeto,
                     nome=arquivo.name,
                     arquivo=arquivo,
@@ -76,3 +75,4 @@ class ProjetoForm(forms.ModelForm):
                 )
 
         return projeto
+    

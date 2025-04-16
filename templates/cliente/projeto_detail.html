@@ -1,4 +1,5 @@
 {% extends 'cliente/base_cliente.html' %}
+{% load formatadores %}
 
 {% block title %}Detalhes do Projeto | Portal do Cliente | Afinal Cenografia{% endblock %}
 
@@ -70,7 +71,8 @@
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-bold">Orçamento</label>
-                <p class="border-bottom pb-2">R$ {{ projeto.orcamento|floatformat:2|default:"0,00" }}</p>
+                {% load formatadores %}
+                <p class="border-bottom pb-2">{{ projeto.orcamento|moeda_brasileira }}</p>
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-bold">Progresso</label>
@@ -82,6 +84,57 @@
             </div>
           </div>
         </div>
+
+        <!-- Informações da Feira -->
+        <div class="card mb-3">
+          <div class="card-header bg-light">
+            <h6 class="card-title mb-0">Informações da Feira</h6>
+          </div>
+          <div class="card-body">
+            {% if projeto.feira %}
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold">Nome da Feira</label>
+                  <p class="border-bottom pb-2">{{ projeto.feira.nome }}</p>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold">Local</label>
+                  <p class="border-bottom pb-2">{{ projeto.feira.local }}</p>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold">Cidade/Estado</label>
+                  <p class="border-bottom pb-2">{{ projeto.feira.cidade }}/{{ projeto.feira.estado }}</p>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold">Data</label>
+                  <p class="border-bottom pb-2">{{ projeto.feira.data_inicio|date:"d/m/Y" }} a {{ projeto.feira.data_fim|date:"d/m/Y" }}</p>
+                </div>
+                <div class="col-12">
+                  <div class="d-grid">
+                    {% if projeto.feira.manual %}
+                      <a href="{{ projeto.feira.manual.url }}" class="btn btn-outline-info btn-sm" target="_blank">
+                        <i class="fas fa-file-pdf me-1"></i> Baixar Manual da Feira
+                      </a>
+                    {% else %}
+                      <button class="btn btn-outline-secondary btn-sm" disabled>
+                        <i class="fas fa-file-pdf me-1"></i> Manual não disponível
+                      </button>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            {% else %}
+              <div class="text-center py-3">
+                <i class="fas fa-calendar-times text-muted fa-2x mb-2"></i>
+                <p class="mb-1">Nenhuma feira associada a este projeto.</p>
+                <a href="{% url 'cliente:projeto_update' pk=projeto.pk %}" class="btn btn-outline-primary btn-sm">
+                  <i class="fas fa-plus me-1"></i> Associar Feira
+                </a>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
         
         <!-- Requisitos específicos -->
         <div class="card mb-3">

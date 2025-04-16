@@ -93,20 +93,20 @@ def briefing_etapa(request, projeto_id, etapa):
     # Verificar se a etapa é válida (entre 1 e 4)
     if etapa < 1 or etapa > 4:
         etapa = 1
-    
-    # Obter formulário para a etapa atual
+        
+    # Atualizar para as novas etapas
     if etapa == 1:
         form_class = BriefingEtapa1Form
-        secao = 'informacoes_basicas'
+        secao = 'evento'
     elif etapa == 2:
         form_class = BriefingEtapa2Form
-        secao = 'detalhes_tecnicos'
+        secao = 'estande'
     elif etapa == 3:
         form_class = BriefingEtapa3Form
-        secao = 'materiais_acabamentos'
-    elif etapa == 4:
+        secao = 'areas_estande'
+    else:  # etapa == 4
         form_class = BriefingEtapa4Form
-        secao = 'requisitos_tecnicos'
+        secao = 'dados_complementares'
     
     # Processar formulário enviado
     if request.method == 'POST':
@@ -377,10 +377,10 @@ def obter_titulo_etapa(etapa):
     Retorna o título para cada etapa do briefing.
     """
     titulos = {
-        1: 'Informações Básicas',
-        2: 'Detalhes Técnicos',
-        3: 'Materiais e Acabamentos',
-        4: 'Requisitos Técnicos'
+        1: 'EVENTO - Datas e Localização',
+        2: 'ESTANDE - Características Físicas',
+        3: 'ÁREAS DO ESTANDE - Divisões Funcionais',
+        4: 'DADOS COMPLEMENTARES - Referências Visuais'
     }
     return titulos.get(etapa, 'Etapa do Briefing')
 
@@ -400,7 +400,7 @@ def validar_secao_briefing(briefing, secao):
     
     # Verificar campos preenchidos de acordo com a seção
     if secao == 'informacoes_basicas':
-        if briefing.categoria and briefing.descricao_detalhada and briefing.objetivos:
+        if briefing.local_evento and briefing.data_feira_inicio and briefing.data_feira_fim:
             validacao.status = 'aprovado'
             validacao.mensagem = 'Informações básicas completas.'
         else:
@@ -408,37 +408,28 @@ def validar_secao_briefing(briefing, secao):
             validacao.mensagem = 'Alguns campos importantes estão incompletos.'
     
     elif secao == 'detalhes_tecnicos':
-        if briefing.dimensoes and briefing.altura and briefing.paleta_cores:
+        if briefing.area_estande and briefing.estilo_estande:
             validacao.status = 'aprovado'
             validacao.mensagem = 'Detalhes técnicos completos.'
         else:
             validacao.status = 'atencao'
-            validacao.mensagem = 'Informações sobre dimensões ou cores estão incompletas.'
+            validacao.mensagem = 'Informações sobre área ou estilo do estande estão incompletas.'
     
     elif secao == 'materiais_acabamentos':
-        if briefing.materiais_preferidos and briefing.acabamentos:
+        if briefing.cores and briefing.material:
             validacao.status = 'aprovado'
             validacao.mensagem = 'Informações de materiais e acabamentos completas.'
         else:
             validacao.status = 'atencao'
-            validacao.mensagem = 'Detalhe melhor seus materiais e acabamentos preferidos.'
+            validacao.mensagem = 'Detalhe melhor as cores e materiais preferidos.'
     
     elif secao == 'requisitos_tecnicos':
-        if briefing.iluminacao and briefing.eletrica and briefing.mobiliario:
+        if briefing.equipamentos:
             validacao.status = 'aprovado'
             validacao.mensagem = 'Requisitos técnicos completos.'
         else:
             validacao.status = 'atencao'
-            validacao.mensagem = 'Especifique melhor os requisitos técnicos do projeto.'
-    
-    # Verificar regras específicas de negócio
-    # (Aqui seria onde integraria com a IA para regras mais complexas)
-    
-    # Exemplo simples de regra de negócio:
-    if secao == 'informacoes_basicas' and briefing.categoria == 'evento_corporativo':
-        if not briefing.objetivos or len(briefing.objetivos) < 50:
-            validacao.status = 'atencao'
-            validacao.mensagem = 'Para eventos corporativos, detalhe melhor os objetivos do projeto.'
+            validacao.mensagem = 'Especifique melhor os equipamentos necessários para o projeto.'
     
     # Salvar a validação
     validacao.save()
