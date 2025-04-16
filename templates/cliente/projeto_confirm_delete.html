@@ -45,10 +45,22 @@
           <span><strong>Progresso:</strong></span>
           <span>{{ projeto.progresso }}%</span>
         </li>
-        {% if projeto.prazo_entrega %}
         <li class="list-group-item d-flex justify-content-between align-items-center">
-          <span><strong>Prazo de Entrega:</strong></span>
-          <span>{{ projeto.prazo_entrega|date:"d/m/Y" }}</span>
+          <span><strong>Orçamento:</strong></span>
+          <span>R$ {{ projeto.orcamento|floatformat:2 }}</span>
+        </li>
+        {% if projeto.feira %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span><strong>Feira:</strong></span>
+          <span>{{ projeto.feira.nome }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span><strong>Local:</strong></span>
+          <span>{{ projeto.feira.local }}, {{ projeto.feira.cidade }}/{{ projeto.feira.estado }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span><strong>Período:</strong></span>
+          <span>{{ projeto.feira.data_inicio|date:"d/m/Y" }} a {{ projeto.feira.data_fim|date:"d/m/Y" }}</span>
         </li>
         {% endif %}
       </ul>

@@ -8,7 +8,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
 from core.models import Usuario, Empresa
-from projetos.models import Projeto, ArquivoReferencia
+from projetos.models import Projeto, ProjetoReferencia
 from projetos.models.briefing import Briefing, BriefingConversation, BriefingValidacao, BriefingArquivoReferencia
 
 @login_required

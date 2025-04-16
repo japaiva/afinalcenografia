@@ -14,7 +14,7 @@
       <div class="me-3">
         <div class="d-flex align-items-center">
           {% for validacao in validacoes %}
-            <div class="me-1" title="{{ validacao.secao|title }}: {{ validacao.status|title }}">
+            <div class="me-1" title="{{ validacao.get_secao_display }}: {{ validacao.get_status_display }}">
               <i class="fas 
                 {% if validacao.status == 'aprovado' %}fa-check-circle text-success
                 {% elif validacao.status == 'atencao' %}fa-exclamation-circle text-warning
@@ -79,6 +79,33 @@
           
           <h4 class="mb-3">{{ titulo_etapa }}</h4>
           
+          <!-- Informações da Feira (se existir) -->
+          {% if projeto.feira and etapa == 1 %}
+          <div class="alert alert-info mb-4">
+            <div class="d-flex">
+              <div class="me-3">
+                <i class="fas fa-calendar-alt fa-2x text-primary"></i>
+              </div>
+              <div>
+                <h5 class="alert-heading">Feira: {{ projeto.feira.nome }}</h5>
+                <p class="mb-1">Local: {{ projeto.feira.local }}, {{ projeto.feira.cidade }}/{{ projeto.feira.estado }}</p>
+                <p class="mb-1">Período: {{ projeto.feira.data_inicio|date:"d/m/Y" }} a {{ projeto.feira.data_fim|date:"d/m/Y" }}</p>
+                {% if projeto.feira.manual %}
+                <div class="mt-2">
+                  <a href="{{ projeto.feira.manual.url }}" class="btn btn-outline-primary btn-sm" target="_blank">
+                    <i class="fas fa-file-pdf me-1"></i> Manual da Feira
+                  </a>
+                  <button class="btn btn-outline-info btn-sm ms-1" data-bs-toggle="modal" data-bs-target="#feiraModal">
+                    <i class="fas fa-question-circle me-1"></i> Perguntar sobre a Feira
+                  </button>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endif %}
+          
+          <!-- Formulário principal do briefing -->
           <form id="briefingForm" method="post" enctype="multipart/form-data">
             {% csrf_token %}
             
@@ -90,131 +117,1027 @@
               </div>
             {% endif %}
             
-            {% for field in form %}
-              <div class="mb-3">
-                <label for="{{ field.id_for_label }}" class="form-label">
-                  {{ field.label }}
-                  {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+            {% if etapa == 1 %}
+            <!-- ETAPA 1: EVENTO - Datas e Localização -->
+            <div class="card mb-4">
+              <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Informações do Evento</h5>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-12 mb-3">
+                    <label for="{{ form.local_evento.id_for_label }}" class="form-label">
+                      Local do Evento
+                      {% if form.local_evento.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    <div class="input-group">
+                      {{ form.local_evento }}
+                      <span class="input-group-text 
+                        {% if form.local_evento.value %}
+                          {% if validacao_atual.status == 'aprovado' %}bg-success{% else %}bg-warning{% endif %} text-white
+                        {% endif %}">
+                        <i class="fas 
+                          {% if form.local_evento.value %}
+                            {% if validacao_atual.status == 'aprovado' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}
+                          {% else %}fa-times-circle text-muted{% endif %}"></i>
+                      </span>
+                    </div>
+                    {% if form.local_evento.help_text %}
+                      <div class="form-text text-muted">{{ form.local_evento.help_text }}</div>
+                    {% endif %}
+                    {% if form.local_evento.errors %}
+                      <div class="form-text text-danger">
+                        {% for error in form.local_evento.errors %}
+                          {{ error }}
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                  
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.data_feira_inicio.id_for_label }}" class="form-label">
+                      Data Início da Feira
+                      {% if form.data_feira_inicio.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    <div class="input-group">
+                      {{ form.data_feira_inicio }}
+                      <span class="input-group-text 
+                        {% if form.data_feira_inicio.value %}
+                          {% if validacao_atual.status == 'aprovado' %}bg-success{% else %}bg-warning{% endif %} text-white
+                        {% endif %}">
+                        <i class="fas 
+                          {% if form.data_feira_inicio.value %}
+                            {% if validacao_atual.status == 'aprovado' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}
+                          {% else %}fa-times-circle text-muted{% endif %}"></i>
+                      </span>
+                    </div>
+                    {% if form.data_feira_inicio.errors %}
+                      <div class="form-text text-danger">
+                        {% for error in form.data_feira_inicio.errors %}
+                          {{ error }}
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                  
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.data_feira_fim.id_for_label }}" class="form-label">
+                      Data Término da Feira
+                      {% if form.data_feira_fim.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    <div class="input-group">
+                      {{ form.data_feira_fim }}
+                      <span class="input-group-text 
+                        {% if form.data_feira_fim.value %}
+                          {% if validacao_atual.status == 'aprovado' %}bg-success{% else %}bg-warning{% endif %} text-white
+                        {% endif %}">
+                        <i class="fas 
+                          {% if form.data_feira_fim.value %}
+                            {% if validacao_atual.status == 'aprovado' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}
+                          {% else %}fa-times-circle text-muted{% endif %}"></i>
+                      </span>
+                    </div>
+                    {% if form.data_feira_fim.errors %}
+                      <div class="form-text text-danger">
+                        {% for error in form.data_feira_fim.errors %}
+                          {{ error }}
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                  
+                  <div class="col-md-12 mb-3">
+                    <label for="{{ form.horario_feira.id_for_label }}" class="form-label">
+                      Horário da Feira
+                      {% if form.horario_feira.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    <div class="input-group">
+                      {{ form.horario_feira }}
+                      <span class="input-group-text 
+                        {% if form.horario_feira.value %}
+                          {% if validacao_atual.status == 'aprovado' %}bg-success{% else %}bg-warning{% endif %} text-white
+                        {% endif %}">
+                        <i class="fas 
+                          {% if form.horario_feira.value %}
+                            {% if validacao_atual.status == 'aprovado' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}
+                          {% else %}fa-times-circle text-muted{% endif %}"></i>
+                      </span>
+                    </div>
+                    {% if form.horario_feira.help_text %}
+                      <div class="form-text text-muted">{{ form.horario_feira.help_text }}</div>
+                    {% endif %}
+                    {% if form.horario_feira.errors %}
+                      <div class="form-text text-danger">
+                        {% for error in form.horario_feira.errors %}
+                          {{ error }}
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="card mb-4">
+              <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Informações de Montagem e Desmontagem</h5>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.data_montagem_inicio.id_for_label }}" class="form-label">
+                      Início da Montagem
+                      {% if form.data_montagem_inicio.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    <div class="input-group">
+                      {{ form.data_montagem_inicio }}
+                      <span class="input-group-text 
+                        {% if form.data_montagem_inicio.value %}
+                          {% if validacao_atual.status == 'aprovado' %}bg-success{% else %}bg-warning{% endif %} text-white
+                        {% endif %}">
+                        <i class="fas 
+                          {% if form.data_montagem_inicio.value %}
+                            {% if validacao_atual.status == 'aprovado' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}
+                          {% else %}fa-times-circle text-muted{% endif %}"></i>
+                      </span>
+                    </div>
+                    {% if form.data_montagem_inicio.errors %}
+                      <div class="form-text text-danger">
+                        {% for error in form.data_montagem_inicio.errors %}
+                          {{ error }}
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                  
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.data_montagem_fim.id_for_label }}" class="form-label">
+                      Término da Montagem
+                      {% if form.data_montagem_fim.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    <div class="input-group">
+                      {{ form.data_montagem_fim }}
+                      <span class="input-group-text 
+                        {% if form.data_montagem_fim.value %}
+                          {% if validacao_atual.status == 'aprovado' %}bg-success{% else %}bg-warning{% endif %} text-white
+                        {% endif %}">
+                        <i class="fas 
+                          {% if form.data_montagem_fim.value %}
+                            {% if validacao_atual.status == 'aprovado' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}
+                          {% else %}fa-times-circle text-muted{% endif %}"></i>
+                      </span>
+                    </div>
+                    {% if form.data_montagem_fim.errors %}
+                      <div class="form-text text-danger">
+                        {% for error in form.data_montagem_fim.errors %}
+                          {{ error }}
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                  
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.data_desmontagem_inicio.id_for_label }}" class="form-label">
+                      Início da Desmontagem
+                      {% if form.data_desmontagem_inicio.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    <div class="input-group">
+                      {{ form.data_desmontagem_inicio }}
+                      <span class="input-group-text 
+                        {% if form.data_desmontagem_inicio.value %}
+                          {% if validacao_atual.status == 'aprovado' %}bg-success{% else %}bg-warning{% endif %} text-white
+                        {% endif %}">
+                        <i class="fas 
+                          {% if form.data_desmontagem_inicio.value %}
+                            {% if validacao_atual.status == 'aprovado' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}
+                          {% else %}fa-times-circle text-muted{% endif %}"></i>
+                      </span>
+                    </div>
+                    {% if form.data_desmontagem_inicio.errors %}
+                      <div class="form-text text-danger">
+                        {% for error in form.data_desmontagem_inicio.errors %}
+                          {{ error }}
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                  
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.data_desmontagem_fim.id_for_label }}" class="form-label">
+                      Término da Desmontagem
+                      {% if form.data_desmontagem_fim.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    <div class="input-group">
+                      {{ form.data_desmontagem_fim }}
+                      <span class="input-group-text 
+                        {% if form.data_desmontagem_fim.value %}
+                          {% if validacao_atual.status == 'aprovado' %}bg-success{% else %}bg-warning{% endif %} text-white
+                        {% endif %}">
+                        <i class="fas 
+                          {% if form.data_desmontagem_fim.value %}
+                            {% if validacao_atual.status == 'aprovado' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}
+                          {% else %}fa-times-circle text-muted{% endif %}"></i>
+                      </span>
+                    </div>
+                    {% if form.data_desmontagem_fim.errors %}
+                      <div class="form-text text-danger">
+                        {% for error in form.data_desmontagem_fim.errors %}
+                          {{ error }}
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="card mb-4">
+              <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Localização do Estande</h5>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-12 mb-3">
+                    <label for="{{ form.endereco_estande.id_for_label }}" class="form-label">
+                      Endereço do Estande
+                      {% if form.endereco_estande.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    <div class="input-group">
+                      {{ form.endereco_estande }}
+                      <span class="input-group-text 
+                        {% if form.endereco_estande.value %}
+                          {% if validacao_atual.status == 'aprovado' %}bg-success{% else %}bg-warning{% endif %} text-white
+                        {% endif %}">
+                        <i class="fas 
+                          {% if form.endereco_estande.value %}
+                            {% if validacao_atual.status == 'aprovado' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}
+                          {% else %}fa-times-circle text-muted{% endif %}"></i>
+                      </span>
+                    </div>
+                    {% if form.endereco_estande.help_text %}
+                      <div class="form-text text-muted">{{ form.endereco_estande.help_text }}</div>
+                    {% endif %}
+                    {% if form.endereco_estande.errors %}
+                      <div class="form-text text-danger">
+                        {% for error in form.endereco_estande.errors %}
+                          {{ error }}
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {% elif etapa == 2 %}
+            <!-- ETAPA 2: ESTANDE - Características Físicas -->
+            <div class="card mb-4">
+              <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Informações do Estande</h5>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.area_estande.id_for_label }}" class="form-label">
+                      Área do Estande (m²)
+                      {% if form.area_estande.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    <div class="input-group">
+                      {{ form.area_estande }}
+                      <span class="input-group-text 
+                        {% if form.area_estande.value %}
+                          {% if validacao_atual.status == 'aprovado' %}bg-success{% else %}bg-warning{% endif %} text-white
+                        {% endif %}">
+                        <i class="fas 
+                          {% if form.area_estande.value %}
+                            {% if validacao_atual.status == 'aprovado' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}
+                          {% else %}fa-times-circle text-muted{% endif %}"></i>
+                      </span>
+                    </div>
+                    {% if form.area_estande.errors %}
+                      <div class="form-text text-danger">
+                        {% for error in form.area_estande.errors %}
+                          {{ error }}
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                  
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.estilo_estande.id_for_label }}" class="form-label">
+                      Estilo do Estande
+                      {% if form.estilo_estande.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    <div class="input-group">
+                      {{ form.estilo_estande }}
+                      <span class="input-group-text 
+                        {% if form.estilo_estande.value %}
+                          {% if validacao_atual.status == 'aprovado' %}bg-success{% else %}bg-warning{% endif %} text-white
+                        {% endif %}">
+                        <i class="fas 
+                          {% if form.estilo_estande.value %}
+                            {% if validacao_atual.status == 'aprovado' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}
+                          {% else %}fa-times-circle text-muted{% endif %}"></i>
+                      </span>
+                    </div>
+                    {% if form.estilo_estande.help_text %}
+                      <div class="form-text text-muted">{{ form.estilo_estande.help_text }}</div>
+                    {% endif %}
+                    {% if form.estilo_estande.errors %}
+                      <div class="form-text text-danger">
+                        {% for error in form.estilo_estande.errors %}
+                          {{ error }}
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                  
+                  <div class="col-md-12 mb-3">
+                    <label for="{{ form.cores.id_for_label }}" class="form-label">
+                      Cores
+                      {% if form.cores.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    <div class="input-group">
+                      {{ form.cores }}
+                      <span class="input-group-text 
+                        {% if form.cores.value %}
+                          {% if validacao_atual.status == 'aprovado' %}bg-success{% else %}bg-warning{% endif %} text-white
+                        {% endif %}">
+                        <i class="fas 
+                          {% if form.cores.value %}
+                            {% if validacao_atual.status == 'aprovado' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}
+                          {% else %}fa-times-circle text-muted{% endif %}"></i>
+                      </span>
+                    </div>
+                    {% if form.cores.help_text %}
+                      <div class="form-text text-muted">{{ form.cores.help_text }}</div>
+                    {% endif %}
+                    {% if form.cores.errors %}
+                      <div class="form-text text-danger">
+                        {% for error in form.cores.errors %}
+                          {{ error }}
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                  
+                  <div class="col-md-12 mb-3">
+                    <label for="{{ form.material.id_for_label }}" class="form-label">
+                      Materiais
+                      {% if form.material.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    <div class="input-group">
+                      {{ form.material }}
+                      <span class="input-group-text 
+                        {% if form.material.value %}
+                          {% if validacao_atual.status == 'aprovado' %}bg-success{% else %}bg-warning{% endif %} text-white
+                        {% endif %}">
+                        <i class="fas 
+                          {% if form.material.value %}
+                            {% if validacao_atual.status == 'aprovado' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}
+                          {% else %}fa-times-circle text-muted{% endif %}"></i>
+                      </span>
+                    </div>
+                    {% if form.material.help_text %}
+                      <div class="form-text text-muted">{{ form.material.help_text }}</div>
+                    {% endif %}
+                    {% if form.material.errors %}
+                      <div class="form-text text-danger">
+                        {% for error in form.material.errors %}
+                          {{ error }}
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="card mb-4">
+              <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Estrutura do Estande</h5>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.piso_elevado.id_for_label }}" class="form-label">
+                      Piso Elevado
+                      {% if form.piso_elevado.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    <div class="input-group">
+                      {{ form.piso_elevado }}
+                      <span class="input-group-text 
+                        {% if form.piso_elevado.value %}
+                          {% if validacao_atual.status == 'aprovado' %}bg-success{% else %}bg-warning{% endif %} text-white
+                        {% endif %}">
+                        <i class="fas 
+                          {% if form.piso_elevado.value %}
+                            {% if validacao_atual.status == 'aprovado' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}
+                          {% else %}fa-times-circle text-muted{% endif %}"></i>
+                      </span>
+                    </div>
+                    {% if form.piso_elevado.errors %}
+                      <div class="form-text text-danger">
+                        {% for error in form.piso_elevado.errors %}
+                          {{ error }}
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                  
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.tipo_testeira.id_for_label }}" class="form-label">
+                      Tipo de Testeira
+                      {% if form.tipo_testeira.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    <div class="input-group">
+                      {{ form.tipo_testeira }}
+                      <span class="input-group-text 
+                        {% if form.tipo_testeira.value %}
+                          {% if validacao_atual.status == 'aprovado' %}bg-success{% else %}bg-warning{% endif %} text-white
+                        {% endif %}">
+                        <i class="fas 
+                          {% if form.tipo_testeira.value %}
+                            {% if validacao_atual.status == 'aprovado' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}
+                          {% else %}fa-times-circle text-muted{% endif %}"></i>
+                      </span>
+                    </div>
+                    {% if form.tipo_testeira.errors %}
+                      <div class="form-text text-danger">
+                        {% for error in form.tipo_testeira.errors %}
+                          {{ error }}
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="card mb-4">
+              <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Funcionalidades do Estande</h5>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <div class="form-check">
+                      {{ form.havera_venda }}
+                      <label class="form-check-label" for="{{ form.havera_venda.id_for_label }}">
+                        Haverá venda no estande?
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 mb-3">
+                    <div class="form-check">
+                      {{ form.havera_ativacao }}
+                      <label class="form-check-label" for="{{ form.havera_ativacao.id_for_label }}">
+                        Haverá ativação no estande?
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-12 mb-3">
+                    <label for="{{ form.observacoes_estande.id_for_label }}" class="form-label">
+                      Observações do Estande
+                      {% if form.observacoes_estande.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    <div class="input-group">
+                      {{ form.observacoes_estande }}
+                      <span class="input-group-text 
+                        {% if form.observacoes_estande.value %}
+                          {% if validacao_atual.status == 'aprovado' %}bg-success{% else %}bg-warning{% endif %} text-white
+                        {% endif %}">
+                        <i class="fas 
+                          {% if form.observacoes_estande.value %}
+                            {% if validacao_atual.status == 'aprovado' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}
+                          {% else %}fa-times-circle text-muted{% endif %}"></i>
+                      </span>
+                    </div>
+                    {% if form.observacoes_estande.help_text %}
+                      <div class="form-text text-muted">{{ form.observacoes_estande.help_text }}</div>
+                    {% endif %}
+                    {% if form.observacoes_estande.errors %}
+                      <div class="form-text text-danger">
+                        {% for error in form.observacoes_estande.errors %}
+                          {{ error }}
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                   </div>
+
+                   <div class="col-md-12 mb-3">
+                    <label class="form-label">Planta Baixa do Estande</label>
+                    <div class="input-group" id="uploadForm">
+                      <input type="file" class="form-control" id="arquivo" name="arquivo">
+                      <input type="hidden" id="tipo" name="tipo" value="planta">
+                      <button class="btn btn-outline-primary" type="button" id="uploadButton" data-url="{% url 'cliente:upload_arquivo_referencia' projeto_id=projeto.id %}">
+                        <i class="fas fa-upload"></i>
+                      </button>
+                    </div>
+                    <div class="form-text text-muted">Faça upload da planta baixa do estande, se disponível.</div>
+                  </div>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+        {% elif etapa == 3 %}
+        <!-- ETAPA 3: ÁREAS DO ESTANDE - Divisões Funcionais -->
+        <div class="card mb-4">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Área Aberta</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="{{ form.area_aberta_tamanho.id_for_label }}" class="form-label">
+                  Metragem Área Aberta (m²)
+                  {% if form.area_aberta_tamanho.field.required %}<span class="text-danger">*</span>{% endif %}
                 </label>
                 <div class="input-group">
-                  {{ field }}
+                  {{ form.area_aberta_tamanho }}
                   <span class="input-group-text 
-                    {% if field.value %}
+                    {% if form.area_aberta_tamanho.value %}
                       {% if validacao_atual.status == 'aprovado' %}bg-success{% else %}bg-warning{% endif %} text-white
                     {% endif %}">
                     <i class="fas 
-                      {% if field.value %}
+                      {% if form.area_aberta_tamanho.value %}
                         {% if validacao_atual.status == 'aprovado' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}
                       {% else %}fa-times-circle text-muted{% endif %}"></i>
                   </span>
                 </div>
-                {% if field.help_text %}
-                  <div class="form-text text-muted">{{ field.help_text }}</div>
-                {% endif %}
-                {% if field.errors %}
+                {% if form.area_aberta_tamanho.errors %}
                   <div class="form-text text-danger">
-                    {% for error in field.errors %}
+                    {% for error in form.area_aberta_tamanho.errors %}
                       {{ error }}
                     {% endfor %}
                   </div>
                 {% endif %}
               </div>
-            {% endfor %}
-            
-            {% if etapa == 2 %}
-            <!-- Upload de arquivos na etapa de Detalhes Técnicos -->
-            <div class="mb-3">
-              <label class="form-label">Referências Visuais</label>
-              <div class="input-group" id="uploadForm">
-                <input type="file" class="form-control" id="arquivo" name="arquivo" multiple>
-                <select class="form-select" id="tipo" name="tipo" style="max-width: 150px;">
-                  <option value="imagem">Imagem</option>
-                  <option value="planta">Planta</option>
-                  <option value="documento">Documento</option>
-                  <option value="outro">Outro</option>
-                </select>
-                <button class="btn btn-outline-primary" type="button" id="uploadButton" data-url="{% url 'cliente:upload_arquivo_referencia' projeto_id=projeto.id %}">
-                  <i class="fas fa-upload"></i>
-                </button>
-              </div>
-              <div class="form-text text-muted">Envie imagens de referência que possam ajudar a equipe a entender seu estilo desejado.</div>
               
-              <div id="arquivosContainer" class="d-flex flex-wrap gap-2 mt-2">
-                {% for arquivo in arquivos %}
-                <div class="position-relative arquivo-item" data-id="{{ arquivo.id }}" style="width: 100px;">
-                  {% if arquivo.tipo == 'imagem' %}
-                  <img src="{{ arquivo.arquivo.url }}" alt="{{ arquivo.nome }}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
-                  {% else %}
-                  <div class="bg-light border text-center p-2" style="width: 100px; height: 100px;">
+              <div class="col-md-6 mb-3 d-flex align-items-center">
+                <div class="form-check">
+                  {{ form.tem_mesas_atendimento }}
+                  <label class="form-check-label" for="{{ form.tem_mesas_atendimento.id_for_label }}">
+                    Mesas de Atendimento
+                  </label>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-3" id="qtd_mesas_div" style="display: none;">
+                <label for="{{ form.qtd_mesas_atendimento.id_for_label }}" class="form-label">Quantidade de Mesas</label>
+                {{ form.qtd_mesas_atendimento }}
+              </div>
+              
+              <!-- Outras opções com checkboxes -->
+              <div class="col-md-6 mb-3 d-flex align-items-center">
+                <div class="form-check">
+                  {{ form.tem_lounge }}
+                  <label class="form-check-label" for="{{ form.tem_lounge.id_for_label }}">
+                    Lounge
+                  </label>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-3 d-flex align-items-center">
+                <div class="form-check">
+                  {{ form.tem_balcao_cafe }}
+                  <label class="form-check-label" for="{{ form.tem_balcao_cafe.id_for_label }}">
+                    Balcão para Café/Bar
+                  </label>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-3 d-flex align-items-center">
+                <div class="form-check">
+                  {{ form.tem_vitrine }}
+                  <label class="form-check-label" for="{{ form.tem_vitrine.id_for_label }}">
+                    Vitrine para Exposição
+                  </label>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-3 d-flex align-items-center">
+                <div class="form-check">
+                  {{ form.tem_balcao_vitrine }}
+                  <label class="form-check-label" for="{{ form.tem_balcao_vitrine.id_for_label }}">
+                    Balcão Vitrine
+                  </label>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-3 d-flex align-items-center">
+                <div class="form-check">
+                  {{ form.tem_balcao_recepcao }}
+                  <label class="form-check-label" for="{{ form.tem_balcao_recepcao.id_for_label }}">
+                    Balcão Recepção
+                  </label>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-3 d-flex align-items-center">
+                <div class="form-check">
+                  {{ form.tem_caixa }}
+                  <label class="form-check-label" for="{{ form.tem_caixa.id_for_label }}">
+                    Caixa para Vendas
+                  </label>
+                </div>
+              </div>
+              
+              <div class="col-12 mb-3">
+                <label for="{{ form.equipamentos.id_for_label }}" class="form-label">Equipamentos</label>
+                {{ form.equipamentos }}
+                <div class="form-text">Painel de LED, TV, etc.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sala de Reunião -->
+        <div class="card mb-4">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Sala de Reunião</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6 mb-3 d-flex align-items-center">
+                <div class="form-check">
+                  {{ form.tem_sala_reuniao }}
+                  <label class="form-check-label" for="{{ form.tem_sala_reuniao.id_for_label }}">
+                    Incluir Sala de Reunião
+                  </label>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-3" id="sala_capacidade_div" style="display: none;">
+                <label for="{{ form.sala_reuniao_capacidade.id_for_label }}" class="form-label">Capacidade (pessoas)</label>
+                {{ form.sala_reuniao_capacidade }}
+              </div>
+              
+              <div class="col-md-6 mb-3" id="sala_tamanho_div" style="display: none;">
+                <label for="{{ form.sala_reuniao_tamanho.id_for_label }}" class="form-label">Metragem (m²)</label>
+                {{ form.sala_reuniao_tamanho }}
+              </div>
+              
+              <div class="col-12 mb-3" id="sala_equipamentos_div" style="display: none;">
+                <label for="{{ form.sala_reuniao_equipamentos.id_for_label }}" class="form-label">Equipamentos da Sala</label>
+                {{ form.sala_reuniao_equipamentos }}
+                <div class="form-text">Prateleira, TV, Armário, etc.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Copa -->
+        <div class="card mb-4">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Copa</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6 mb-3 d-flex align-items-center">
+                <div class="form-check">
+                  {{ form.tem_copa }}
+                  <label class="form-check-label" for="{{ form.tem_copa.id_for_label }}">
+                    Incluir Copa
+                  </label>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-3" id="copa_tamanho_div" style="display: none;">
+                <label for="{{ form.copa_tamanho.id_for_label }}" class="form-label">Metragem (m²)</label>
+                {{ form.copa_tamanho }}
+              </div>
+              
+              <div class="col-12 mb-3" id="copa_equipamentos_div" style="display: none;">
+                <label for="{{ form.copa_equipamentos.id_for_label }}" class="form-label">Equipamentos da Copa</label>
+                {{ form.copa_equipamentos }}
+                <div class="form-text">Pia, geladeira, bancada, prateleiras, etc.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Depósito -->
+        <div class="card mb-4">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Depósito</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6 mb-3 d-flex align-items-center">
+                <div class="form-check">
+                  {{ form.tem_deposito }}
+                  <label class="form-check-label" for="{{ form.tem_deposito.id_for_label }}">
+                    Incluir Depósito
+                  </label>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-3" id="deposito_tamanho_div" style="display: none;">
+                <label for="{{ form.deposito_tamanho.id_for_label }}" class="form-label">Metragem (m²)</label>
+                {{ form.deposito_tamanho }}
+              </div>
+              
+              <div class="col-12 mb-3" id="deposito_equipamentos_div" style="display: none;">
+                <label for="{{ form.deposito_equipamentos.id_for_label }}" class="form-label">Equipamentos do Depósito</label>
+                {{ form.deposito_equipamentos }}
+                <div class="form-text">Prateleiras, etc.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {% elif etapa == 4 %}
+        <!-- ETAPA 4: DADOS COMPLEMENTARES - Referências Visuais -->
+        <div class="card mb-4">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Referências</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-12 mb-3">
+                <label for="{{ form.referencias_dados.id_for_label }}" class="form-label">
+                  Referências - Dados
+                  {% if form.referencias_dados.field.required %}<span class="text-danger">*</span>{% endif %}
+                </label>
+                <div class="input-group">
+                  {{ form.referencias_dados }}
+                  <span class="input-group-text 
+                    {% if form.referencias_dados.value %}
+                      {% if validacao_atual.status == 'aprovado' %}bg-success{% else %}bg-warning{% endif %} text-white
+                    {% endif %}">
                     <i class="fas 
-                      {% if arquivo.tipo == 'planta' %}fa-map
-                      {% elif arquivo.tipo == 'documento' %}fa-file-alt
-                      {% else %}fa-file{% endif %} fa-3x my-2"></i>
-                    <p class="small text-truncate mb-0">{{ arquivo.nome }}</p>
+                      {% if form.referencias_dados.value %}
+                        {% if validacao_atual.status == 'aprovado' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}
+                      {% else %}fa-times-circle text-muted{% endif %}"></i>
+                  </span>
+                </div>
+                {% if form.referencias_dados.help_text %}
+                  <div class="form-text text-muted">{{ form.referencias_dados.help_text }}</div>
+                {% endif %}
+                {% if form.referencias_dados.errors %}
+                  <div class="form-text text-danger">
+                    {% for error in form.referencias_dados.errors %}
+                      {{ error }}
+                    {% endfor %}
                   </div>
-                  {% endif %}
-                  <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 excluir-arquivo" style="font-size: 0.7rem; padding: 0.1rem 0.3rem;" data-url="{% url 'cliente:excluir_arquivo_referencia' arquivo_id=arquivo.id %}">
-                    <i class="fas fa-times"></i>
+                {% endif %}
+              </div>
+              
+              <!-- Upload de arquivos de referência -->
+              <div class="col-md-12 mb-3">
+                <label class="form-label">Referências Visuais</label>
+                <div class="input-group" id="uploadForm">
+                  <input type="file" class="form-control" id="arquivo" name="arquivo">
+                  <select class="form-select" id="tipo" name="tipo" style="max-width: 150px;">
+                    <option value="referencia">Referência</option>
+                    <option value="logo">Logo</option>
+                    <option value="campanha">Campanha</option>
+                    <option value="imagem">Imagem</option>
+                  </select>
+                  <button class="btn btn-outline-primary" type="button" id="uploadButton" data-url="{% url 'cliente:upload_arquivo_referencia' projeto_id=projeto.id %}">
+                    <i class="fas fa-upload"></i>
                   </button>
                 </div>
-                {% endfor %}
+                <div class="form-text text-muted">Envie imagens de referência que possam ajudar a equipe a entender seu estilo desejado.</div>
+                
+                <div id="arquivosContainer" class="d-flex flex-wrap gap-2 mt-2">
+                  {% for arquivo in arquivos %}
+                  <div class="position-relative arquivo-item" data-id="{{ arquivo.id }}" style="width: 100px;">
+                    {% if arquivo.tipo == 'imagem' or arquivo.tipo == 'referencia' or arquivo.tipo == 'logo' or arquivo.tipo == 'campanha' %}
+                    <img src="{{ arquivo.arquivo.url }}" alt="{{ arquivo.nome }}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
+                    {% else %}
+                    <div class="bg-light border text-center p-2" style="width: 100px; height: 100px;">
+                      <i class="fas 
+                        {% if arquivo.tipo == 'planta' %}fa-map
+                        {% elif arquivo.tipo == 'documento' %}fa-file-alt
+                        {% else %}fa-file{% endif %} fa-3x my-2"></i>
+                      <p class="small text-truncate mb-0">{{ arquivo.nome }}</p>
+                    </div>
+                    {% endif %}
+                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 excluir-arquivo" style="font-size: 0.7rem; padding: 0.1rem 0.3rem;" data-url="{% url 'cliente:excluir_arquivo_referencia' arquivo_id=arquivo.id %}">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                  {% endfor %}
+                </div>
               </div>
             </div>
-            {% endif %}
-          </form>
+          </div>
         </div>
+        
+        <div class="card mb-4">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Logotipo e Campanha</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-12 mb-3">
+                <label for="{{ form.logotipo.id_for_label }}" class="form-label">
+                  Informações sobre o Logotipo
+                  {% if form.logotipo.field.required %}<span class="text-danger">*</span>{% endif %}
+                </label>
+                <div class="input-group">
+                  {{ form.logotipo }}
+                  <span class="input-group-text 
+                    {% if form.logotipo.value %}
+                      {% if validacao_atual.status == 'aprovado' %}bg-success{% else %}bg-warning{% endif %} text-white
+                    {% endif %}">
+                    <i class="fas 
+                      {% if form.logotipo.value %}
+                        {% if validacao_atual.status == 'aprovado' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}
+                      {% else %}fa-times-circle text-muted{% endif %}"></i>
+                  </span>
+                </div>
+                {% if form.logotipo.help_text %}
+                  <div class="form-text text-muted">{{ form.logotipo.help_text }}</div>
+                {% endif %}
+                {% if form.logotipo.errors %}
+                  <div class="form-text text-danger">
+                    {% for error in form.logotipo.errors %}
+                      {{ error }}
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+              
+              <div class="col-12 mb-3">
+                <label for="{{ form.campanha_dados.id_for_label }}" class="form-label">
+                  Campanha - Dados
+                  {% if form.campanha_dados.field.required %}<span class="text-danger">*</span>{% endif %}
+                </label>
+                <div class="input-group">
+                  {{ form.campanha_dados }}
+                  <span class="input-group-text 
+                    {% if form.campanha_dados.value %}
+                      {% if validacao_atual.status == 'aprovado' %}bg-success{% else %}bg-warning{% endif %} text-white
+                    {% endif %}">
+                    <i class="fas 
+                      {% if form.campanha_dados.value %}
+                        {% if validacao_atual.status == 'aprovado' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}
+                      {% else %}fa-times-circle text-muted{% endif %}"></i>
+                  </span>
+                </div>
+                {% if form.campanha_dados.help_text %}
+                  <div class="form-text text-muted">{{ form.campanha_dados.help_text }}</div>
+                {% endif %}
+                {% if form.campanha_dados.errors %}
+                  <div class="form-text text-danger">
+                    {% for error in form.campanha_dados.errors %}
+                      {{ error }}
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+        
+        </form>
       </div>
-      
-      <!-- Assistente IA -->
-      <div class="col-lg-4">
-        <div class="p-3 h-100 d-flex flex-column">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0">
-              <i class="fas fa-robot me-2 text-primary"></i> Assistente IA
-            </h5>
-            <div>
-              <button class="btn btn-sm btn-outline-primary" id="novaPergunta" title="Fazer nova pergunta">
-                <i class="fas fa-question-circle"></i>
+    </div>
+    
+    <!-- Assistente IA -->
+    <div class="col-lg-4">
+      <div class="p-3 h-100 d-flex flex-column">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0">
+            <i class="fas fa-robot me-2 text-primary"></i> Assistente IA
+          </h5>
+          <div class="d-flex">
+            <button class="btn btn-sm btn-outline-primary me-1" id="novaPergunta" title="Fazer nova pergunta">
+              <i class="fas fa-question-circle"></i>
+            </button>
+            {% if projeto.feira %}
+            <button class="btn btn-sm btn-outline-info" id="perguntaFeira" title="Perguntar sobre a feira"
+                    data-bs-toggle="modal" data-bs-target="#feiraModal">
+              <i class="fas fa-calendar-alt"></i>
+            </button>
+            {% endif %}
+          </div>
+        </div>
+        
+        <!-- Input do chat (no topo) -->
+        <div class="chat-input mb-3">
+          <form id="chatForm" data-url="{% url 'cliente:enviar_mensagem_ia' projeto_id=projeto.id %}">
+            <div class="input-group">
+              <input type="text" class="form-control" id="mensagemInput" name="mensagem" placeholder="Faça uma pergunta ao assistente...">
+              <button class="btn btn-primary" type="submit" id="enviarMensagem">
+                <i class="fas fa-paper-plane"></i>
               </button>
             </div>
-          </div>
-          
-          <!-- Input do chat (no topo) -->
-          <div class="chat-input mb-3">
-            <form id="chatForm" data-url="{% url 'cliente:enviar_mensagem_ia' projeto_id=projeto.id %}">
-              <div class="input-group">
-                <input type="text" class="form-control" id="mensagemInput" name="mensagem" placeholder="Faça uma pergunta ao assistente...">
-                <button class="btn btn-primary" type="submit" id="enviarMensagem">
-                  <i class="fas fa-paper-plane"></i>
-                </button>
+          </form>
+        </div>
+        
+        <!-- Chat da IA (abaixo do input) -->
+        <div class="chat-container bg-light rounded p-3 flex-grow-1 overflow-auto" style="height: 400px;" id="chatContainer">
+          {% for conversa in conversas %}
+            <div class="chat-message {{ conversa.origem }}-message mb-3">
+              <div class="chat-bubble">
+                <p>{{ conversa.mensagem|linebreaks }}</p>
               </div>
-            </form>
-          </div>
-          
-          <!-- Chat da IA (abaixo do input) -->
-          <div class="chat-container bg-light rounded p-3 flex-grow-1 overflow-auto" style="height: 400px;" id="chatContainer">
-            {% for conversa in conversas %}
-              <div class="chat-message {{ conversa.origem }}-message mb-3">
-                <div class="chat-bubble">
-                  <p>{{ conversa.mensagem|linebreaks }}</p>
-                </div>
-                <small class="text-muted">{{ conversa.timestamp|time:"H:i" }}</small>
+              <small class="text-muted">{{ conversa.timestamp|time:"H:i" }}</small>
+            </div>
+          {% empty %}
+            <div class="chat-message ai-message mb-3">
+              <div class="chat-bubble">
+                <p>Olá! Sou o assistente do briefing. Estou aqui para ajudá-lo a preencher todas as informações do seu projeto.</p>
+                
+                {% if etapa == 1 %}
+                <p>Nesta etapa, precisamos das informações sobre o evento, datas de montagem e desmontagem, e localização do estande.</p>
+                {% elif etapa == 2 %}
+                <p>Nesta etapa, precisamos das características físicas do estande, como área, estilo, cores e materiais.</p>
+                {% elif etapa == 3 %}
+                <p>Nesta etapa, vamos definir as áreas funcionais do estande, como área aberta, sala de reunião, copa e depósito.</p>
+                {% elif etapa == 4 %}
+                <p>Nesta etapa final, adicione referências visuais, informações sobre logotipo e campanha para guiar o projeto.</p>
+                {% endif %}
+                
+                {% if projeto.feira %}
+                <p>Observei que este projeto está associado à feira <strong>{{ projeto.feira.nome }}</strong>. Eu posso ajudar com dúvidas específicas sobre as regras e requisitos desta feira. Clique no botão <i class="fas fa-calendar-alt"></i> acima para fazer perguntas sobre a feira.</p>
+                {% endif %}
               </div>
-            {% empty %}
-              <div class="chat-message ai-message mb-3">
-                <div class="chat-bubble">
-                  <p>Olá! Sou o assistente do briefing. Estou aqui para ajudá-lo a preencher todas as informações do seu projeto.</p>
-                  <p>Se tiver alguma dúvida sobre qualquer campo ou precisar de sugestões, é só me perguntar!</p>
-                </div>
-                <small class="text-muted">Agora</small>
-              </div>
+              <small class="text-muted">Agora</small>
+            </div>
+          {% endfor %}
+        </div>
+        
+        <!-- Status de Validação -->
+        <div class="validation-status p-3 border-top mt-3">
+          <h6 class="mb-3">Status de Validação</h6>
+          <ul class="list-group list-group-flush">
+            {% for validacao in validacoes %}
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0 border-0">
+              <span>
+                <i class="fas 
+                  {% if validacao.status == 'aprovado' %}fa-check-circle text-success
+                  {% elif validacao.status == 'atencao' %}fa-exclamation-circle text-warning
+                  {% elif validacao.status == 'reprovado' %}fa-times-circle text-danger
+                  {% else %}fa-times-circle text-muted{% endif %} me-2"></i>
+                {{ validacao.get_secao_display }}
+              </span>
+              <span class="badge 
+                {% if validacao.status == 'aprovado' %}bg-success
+                {% elif validacao.status == 'atencao' %}bg-warning text-dark
+                {% elif validacao.status == 'reprovado' %}bg-danger
+                {% else %}bg-secondary{% endif %}">
+                {{ validacao.get_status_display }}
+              </span>
+            </li>
             {% endfor %}
+          </ul>
+          <div class="text-center mt-3">
+            <button class="btn btn-outline-primary btn-sm" id="revalidarBriefing" data-url="{% url 'cliente:validar_briefing' projeto_id=projeto.id %}">
+              <i class="fas fa-sync-alt me-1"></i> Revalidar Briefing
+            </button>
           </div>
         </div>
       </div>
     </div>
   </div>
 </div>
+</div>
+
+<!-- Modal para perguntas sobre a feira -->
+{% if projeto.feira %}
+<div class="modal fade" id="feiraModal" tabindex="-1" aria-labelledby="feiraModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="feiraModalLabel">
+          <i class="fas fa-calendar-alt me-2"></i> Perguntar sobre a Feira
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <form id="feiraForm" action="{% url 'cliente:briefing_perguntar_feira' briefing_id=briefing.id %}" method="post">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="perguntaFeira" class="form-label">O que você gostaria de saber sobre a feira "{{ projeto.feira.nome }}"?</label>
+            <textarea class="form-control" id="perguntaFeiraTexto" name="pergunta" rows="3" placeholder="Ex: Quais são as limitações de altura para o estande? Preciso de alguma autorização especial?"></textarea>
+            <div class="form-text">
+              <i class="fas fa-info-circle me-1"></i> O assistente irá consultar o manual da feira para responder sua pergunta.
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" form="feiraForm" class="btn btn-primary">
+          <i class="fas fa-paper-plane me-1"></i> Enviar Pergunta
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 <style>
 .chat-container {
@@ -304,6 +1227,87 @@ $(document).ready(function() {
     }
   });
   
+  // Mostrar/esconder campos baseados em checkboxes
+  {% if etapa == 3 %}
+  // Função para atualizar a visibilidade com base no estado dos checkboxes
+  function updateVisibility() {
+    // Área Aberta - Mesas
+    const temMesasCheckbox = document.getElementById('{{ form.tem_mesas_atendimento.id_for_label }}');
+    const qtdMesasDiv = document.getElementById('qtd_mesas_div');
+    
+    if (temMesasCheckbox && qtdMesasDiv) {
+      qtdMesasDiv.style.display = temMesasCheckbox.checked ? 'block' : 'none';
+      
+      temMesasCheckbox.addEventListener('change', function() {
+        qtdMesasDiv.style.display = this.checked ? 'block' : 'none';
+      });
+    }
+    
+    // Sala de Reunião
+    const temSalaCheckbox = document.getElementById('{{ form.tem_sala_reuniao.id_for_label }}');
+    const salaCapacidadeDiv = document.getElementById('sala_capacidade_div');
+    const salaTamanhoDiv = document.getElementById('sala_tamanho_div');
+    const salaEquipamentosDiv = document.getElementById('sala_equipamentos_div');
+    
+    if (temSalaCheckbox && salaCapacidadeDiv && salaTamanhoDiv && salaEquipamentosDiv) {
+      const salaDivs = [salaCapacidadeDiv, salaTamanhoDiv, salaEquipamentosDiv];
+      
+      salaDivs.forEach(div => {
+        div.style.display = temSalaCheckbox.checked ? 'block' : 'none';
+      });
+      
+      temSalaCheckbox.addEventListener('change', function() {
+        salaDivs.forEach(div => {
+          div.style.display = this.checked ? 'block' : 'none';
+        });
+      });
+    }
+    
+    // Copa
+    const temCopaCheckbox = document.getElementById('{{ form.tem_copa.id_for_label }}');
+    const copaTamanhoDiv = document.getElementById('copa_tamanho_div');
+    const copaEquipamentosDiv = document.getElementById('copa_equipamentos_div');
+    
+    if (temCopaCheckbox && copaTamanhoDiv && copaEquipamentosDiv) {
+      const copaDivs = [copaTamanhoDiv, copaEquipamentosDiv];
+      
+      copaDivs.forEach(div => {
+        div.style.display = temCopaCheckbox.checked ? 'block' : 'none';
+      });
+      
+      temCopaCheckbox.addEventListener('change', function() {
+        copaDivs.forEach(div => {
+          div.style.display = this.checked ? 'block' : 'none';
+        });
+      });
+    }
+    
+    // Depósito
+    const temDepositoCheckbox = document.getElementById('{{ form.tem_deposito.id_for_label }}');
+    const depositoTamanhoDiv = document.getElementById('deposito_tamanho_div');
+    const depositoEquipamentosDiv = document.getElementById('deposito_equipamentos_div');
+    
+    if (temDepositoCheckbox && depositoTamanhoDiv && depositoEquipamentosDiv) {
+      const depositoDivs = [depositoTamanhoDiv, depositoEquipamentosDiv];
+      
+      depositoDivs.forEach(div => {
+        div.style.display = temDepositoCheckbox.checked ? 'block' : 'none';
+      });
+      
+      temDepositoCheckbox.addEventListener('change', function() {
+        depositoDivs.forEach(div => {
+          div.style.display = this.checked ? 'block' : 'none';
+        });
+      });
+    }
+  }
+  
+  // Inicializa a visibilidade dos campos
+  {% if etapa == 3 %}
+  updateVisibility();
+  {% endif %}
+  {% endif %}
+  
   // Scroll para colocar as mensagens mais recentes no topo do chat
   const scrollChatToTop = () => {
     const chatContainer = document.getElementById('chatContainer');
@@ -346,6 +1350,7 @@ $(document).ready(function() {
       type: 'POST',
       data: {
         mensagem: mensagem,
+        etapa: {{ etapa }},
         csrfmiddlewaretoken: '{{ csrf_token }}'
       },
       success: function(response) {
@@ -397,11 +1402,11 @@ $(document).ready(function() {
       success: function(response) {
         // Add file to display
         const tipoIconClass = 
-          response.arquivo.tipo === 'Imagem' ? 'fa-image' :
+          response.arquivo.tipo === 'Imagem' || response.arquivo.tipo === 'Referência' || response.arquivo.tipo === 'Logo' || response.arquivo.tipo === 'Campanha' ? 'fa-image' :
           response.arquivo.tipo === 'Planta' ? 'fa-map' :
           response.arquivo.tipo === 'Documento' ? 'fa-file-alt' : 'fa-file';
         
-        if (response.arquivo.tipo === 'Imagem') {
+        if (response.arquivo.tipo === 'Imagem' || response.arquivo.tipo === 'Referência' || response.arquivo.tipo === 'Logo' || response.arquivo.tipo === 'Campanha') {
           $('#arquivosContainer').append(`
             <div class="position-relative arquivo-item" data-id="${response.arquivo.id}" style="width: 100px;">
               <img src="${response.arquivo.url}" alt="${response.arquivo.nome}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
@@ -456,11 +1461,16 @@ $(document).ready(function() {
   });
   
   // Validate briefing
-  $('#validarBriefing').on('click', function() {
+  $('#validarBriefing, #revalidarBriefing').on('click', function() {
     const url = $(this).data('url');
     
     // Save form first
     autosave();
+    
+    // Disable button and show loading state
+    const button = $(this);
+    const originalText = button.html();
+    button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Validando...');
     
     $.ajax({
       url: url,
@@ -474,8 +1484,20 @@ $(document).ready(function() {
       },
       error: function(xhr, status, error) {
         alert('Erro ao validar briefing: ' + error);
+        // Restore button state
+        button.prop('disabled', false).html(originalText);
       }
     });
+  });
+  
+  // Handle feira form submission
+  $('#feiraForm').on('submit', function() {
+    const pergunta = $('#perguntaFeiraTexto').val();
+    if (!pergunta.trim()) {
+      alert('Por favor, digite uma pergunta sobre a feira.');
+      return false;
+    }
+    return true;
   });
 });
 </script>

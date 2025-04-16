@@ -44,3 +44,38 @@ class BriefingAdmin(admin.ModelAdmin):
         }),
     ]
     inlines = [BriefingValidacaoInline, BriefingArquivoReferenciaInline, BriefingConversationInline]
+
+    # projetos/admin.py
+
+from django.contrib import admin
+from projetos.models.briefing import (
+    Briefing, BriefingConversation, BriefingArquivoReferencia, BriefingValidacao
+)
+from projetos.models.projeto import Projeto, ProjetoPlanta, ProjetoReferencia
+
+class ProjetoPlantaInline(admin.TabularInline):
+    model = ProjetoPlanta
+    extra = 0
+    
+class ProjetoReferenciaInline(admin.TabularInline):
+    model = ProjetoReferencia
+    extra = 0
+
+@admin.register(Projeto)
+class ProjetoAdmin(admin.ModelAdmin):
+    list_display = ['nome', 'empresa', 'cliente', 'feira', 'status', 'briefing_status', 'created_at']
+    list_filter = ['status', 'briefing_status', 'empresa', 'feira']
+    search_fields = ['nome', 'cliente__username', 'empresa__nome', 'feira__nome']
+    inlines = [ProjetoPlantaInline, ProjetoReferenciaInline]
+    fieldsets = [
+        ('Informações Básicas', {
+            'fields': ['nome', 'descricao', 'empresa', 'cliente', 'status', 'orcamento', 'progresso']
+        }),
+        ('Feira', {
+            'fields': ['feira', 'local_evento', 'cidade_evento', 'estado_evento']
+        }),
+        ('Briefing', {
+            'fields': ['tem_briefing', 'briefing_status']
+        }),
+    ]
+    readonly_fields = ['created_at', 'updated_at']

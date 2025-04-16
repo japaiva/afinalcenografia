@@ -1,4 +1,5 @@
 {% extends 'cliente/base_cliente.html' %}
+{% load formatadores %}
 
 {% block title %}Meus Projetos | Portal do Cliente | Afinal Cenografia{% endblock %}
 
@@ -20,8 +21,7 @@
           <thead class="table-light">
             <tr>
               <th>Nome</th>
-              <th>Data de Início</th>
-              <th>Prazo de Entrega</th>
+              <th>Feira</th>
               <th>Orçamento</th>
               <th class="text-center">Status</th>
               <th class="text-center">Briefing</th>
@@ -37,10 +37,15 @@
                     {{ projeto.nome }}
                   </a>
                 </td>
-                <td>{{ projeto.data_inicio|date:"d/m/Y"|default:"-" }}</td>
-                <td>{{ projeto.prazo_entrega|date:"d/m/Y"|default:"-" }}</td>
-                <td>R$ {{ projeto.orcamento|floatformat:2 }}</td>
-                <td class="text-center">
+                <td>
+                  {% if projeto.feira %}
+                    <span class="badge bg-info text-dark">{{ projeto.feira.nome }}</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Não associada</span>
+                  {% endif %}
+                </td>
+                  <td class="text-end">{{ projeto.orcamento|moeda_brasileira }}</td>
+                  <td class="text-center">
                   <span class="badge 
                     {% if projeto.status == 'pendente' %}bg-info
                     {% elif projeto.status == 'ativo' %}bg-primary
@@ -73,7 +78,7 @@
                   <small class="text-muted">{{ projeto.progresso }}%</small>
                 </td>
                 <td class="text-end">
-                  <!-- Novo estilo com dropdown, igual ao gestor -->
+                  <!-- Dropdown com ações -->
                   <div class="btn-group">
                     <a href="{% url 'cliente:projeto_detail' pk=projeto.pk %}" class="btn btn-sm btn-outline-primary">
                       <i class="fas fa-eye"></i>
@@ -110,7 +115,7 @@
               </tr>
             {% empty %}
               <tr>
-                <td colspan="8" class="text-center py-4">
+                <td colspan="7" class="text-center py-4">
                   <div class="text-muted">
                     <i class="fas fa-project-diagram fa-2x mb-3"></i>
                     <p>Você ainda não possui projetos cadastrados.</p>

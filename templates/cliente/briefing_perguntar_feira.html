@@ -1,0 +1,101 @@
+{% extends 'cliente/base_cliente.html' %}
+{% load static %}
+
+{% block title %}Perguntar sobre a Feira | Portal do Cliente{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">
+      <i class="fas fa-calendar-alt me-2"></i> Perguntas sobre a Feira: {{ feira.nome }}
+    </h5>
+    <div>
+      <a href="{% url 'cliente:briefing_etapa' projeto_id=briefing.projeto.id etapa=briefing.etapa_atual %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i> Voltar ao Briefing
+      </a>
+    </div>
+  </div>
+  
+  <div class="card-body">
+    <div class="row">
+      <div class="col-lg-4">
+        <div class="card mb-3">
+          <div class="card-header bg-light">
+            <h6 class="mb-0">Informações da Feira</h6>
+          </div>
+          <div class="card-body">
+            <p><strong>Nome:</strong> {{ feira.nome }}</p>
+            <p><strong>Local:</strong> {{ feira.local }}</p>
+            <p><strong>Cidade/Estado:</strong> {{ feira.cidade }}/{{ feira.estado }}</p>
+            <p><strong>Período:</strong> {{ feira.data_inicio|date:"d/m/Y" }} a {{ feira.data_fim|date:"d/m/Y" }}</p>
+            
+            {% if feira.manual %}
+            <div class="d-grid mt-3">
+              <a href="{{ feira.manual.url }}" class="btn btn-outline-primary btn-sm" target="_blank">
+                <i class="fas fa-file-pdf me-1"></i> Baixar Manual da Feira
+              </a>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-lg-8">
+        <div class="card mb-3">
+          <div class="card-header bg-light">
+            <h6 class="mb-0">Pergunte sobre a Feira</h6>
+          </div>
+          <div class="card-body">
+            <form method="post" action="{% url 'cliente:briefing_perguntar_feira' briefing_id=briefing.id %}">
+              {% csrf_token %}
+              <div class="mb-3">
+                <label for="pergunta" class="form-label">O que você gostaria de saber?</label>
+                <textarea class="form-control" id="pergunta" name="pergunta" rows="3" placeholder="Ex: Quais são as limitações de altura para o estande? Preciso de alguma autorização especial?"></textarea>
+                <div class="form-text">
+                  <i class="fas fa-info-circle me-1"></i> O assistente irá consultar o manual da feira para responder sua pergunta.
+                </div>
+              </div>
+              <div class="d-grid">
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-paper-plane me-1"></i> Enviar Pergunta
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header bg-light">
+            <h6 class="mb-0">Respostas Anteriores</h6>
+          </div>
+          <div class="card-body">
+            {% for conversa in briefing.conversas.all %}
+              {% if 'feira' in conversa.mensagem|lower %}
+                <div class="mb-3 pb-3 border-bottom">
+                  {% if conversa.origem == 'cliente' %}
+                    <p class="fw-bold text-primary mb-1">
+                      <i class="fas fa-question-circle me-1"></i> Pergunta:
+                    </p>
+                    <p class="mb-2">{{ conversa.mensagem }}</p>
+                  {% else %}
+                    <p class="fw-bold text-success mb-1">
+                      <i class="fas fa-robot me-1"></i> Resposta:
+                    </p>
+                    <p class="mb-0">{{ conversa.mensagem|linebreaks }}</p>
+                    <small class="text-muted">{{ conversa.timestamp|date:"d/m/Y H:i" }}</small>
+                  {% endif %}
+                </div>
+              {% endif %}
+            {% empty %}
+              <div class="text-center py-3 text-muted">
+                <i class="fas fa-comments fa-2x mb-2"></i>
+                <p>Nenhuma pergunta sobre esta feira foi feita ainda.</p>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
