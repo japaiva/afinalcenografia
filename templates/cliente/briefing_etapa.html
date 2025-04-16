@@ -389,6 +389,7 @@
               </div>
             </div>
             
+
             {% elif etapa == 2 %}
             <!-- ETAPA 2: ESTANDE - Características Físicas -->
             <div class="card mb-4">
@@ -625,9 +626,9 @@
                         {% endfor %}
                       </div>
                     {% endif %}
-                   </div>
-
-                   <div class="col-md-12 mb-3">
+                  </div>
+            
+                  <div class="col-md-12 mb-3">
                     <label class="form-label">Planta Baixa do Estande</label>
                     <div class="input-group" id="uploadForm">
                       <input type="file" class="form-control" id="arquivo" name="arquivo">
@@ -638,14 +639,10 @@
                     </div>
                     <div class="form-text text-muted">Faça upload da planta baixa do estande, se disponível.</div>
                   </div>
-
-                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
+      
         {% elif etapa == 3 %}
         <!-- ETAPA 3: ÁREAS DO ESTANDE - Divisões Funcionais -->
         <div class="card mb-4">
