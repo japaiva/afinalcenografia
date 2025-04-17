@@ -32,17 +32,9 @@ class QAService:
             from core.services.rag.embedding_service import EmbeddingService
             self.embedding_service = EmbeddingService()
             logger.info("✓ Criado novo embedding_service")
-    
+
     def atualizar_embeddings_feira(self, feira_id: int) -> Dict[str, Any]:
-        """
-        Atualiza os embeddings dos QA de uma feira.
-        
-        Args:
-            feira_id: ID da feira.
-            
-        Returns:
-            Dicionário com os resultados da atualização.
-        """
+        """Atualiza os embeddings dos QA de uma feira."""
         logger.info(f"Iniciando atualização de embeddings para feira ID {feira_id}")
         
         try:
@@ -57,8 +49,9 @@ class QAService:
                     'message': f'Feira com ID {feira_id} não encontrada'
                 }
             
-            # Obter o namespace para esta feira
-            namespace = f"feira_{feira_id}"
+            # Usar o método do modelo para obter o namespace da feira
+            namespace = feira.get_qa_namespace()
+            logger.info(f"✓ Usando namespace QA: '{namespace}'")
             
             # ADICIONADO: Limpar namespace antes de inserir novos vetores
             try:

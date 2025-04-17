@@ -36,11 +36,11 @@
           <p class="mb-0">Este processo pode levar alguns minutos dependendo do tamanho do manual.</p>
           <div class="progress mt-2" style="height: 20px;">
             <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
-                 role="progressbar" style="width: {{ feira.progresso_processamento }}%;" 
-                 aria-valuenow="{{ feira.progresso_processamento }}" 
+                 role="progressbar" style="width: {{ feira.chunks_progresso }}%;" 
+                 aria-valuenow="{{ feira.chunks_progresso }}" 
                  aria-valuemin="0" 
                  aria-valuemax="100">
-              {{ feira.progresso_processamento }}%
+              {{ feira.chunks_progresso }}%
             </div>
           </div>
         </div>

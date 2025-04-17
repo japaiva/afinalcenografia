@@ -8,6 +8,7 @@ from django.contrib import messages
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.http import JsonResponse
 from django.db.models import Q
+from django.urls import reverse
 
 from core.models import Feira, FeiraManualQA, FeiraManualChunk 
 from core.forms import FeiraForm
@@ -15,7 +16,6 @@ from core.tasks import processar_manual_feira, pesquisar_manual_feira
 
 logger = logging.getLogger(__name__)
 
-# Função auxiliar para processar o manual em segundo plano
 def processar_manual_background(feira_id):
     try:
         resultado = processar_manual_feira(feira_id)
@@ -156,13 +156,15 @@ def feira_reprocess(request, pk):
     # Obter URL para redirecionamento após processamento (opcional)
     redirect_url = request.POST.get('redirect_url')
     
+    # Usar o novo método reset_processamento
     if hasattr(feira, 'reset_processamento'):
         feira.reset_processamento()
     else:
-        feira.manual_processado = False
-        feira.processamento_status = 'pendente'
-        feira.progresso_processamento = 0
-    feira.save()
+        # Fallback para casos onde o método não existe
+        feira.chunks_processados = False
+        feira.chunks_processamento_status = 'pendente'
+        feira.chunks_progresso = 0
+        feira.save()
     
     # Iniciar processamento em thread separada para não bloquear a resposta
     thread = threading.Thread(target=processar_manual_background, args=(feira.id,))
@@ -177,12 +179,14 @@ def feira_reprocess(request, pk):
     else:
         return redirect('gestor:feira_detail', pk=feira.id)
     
+# Adicione esta linha nas importações
 
-     
+
 @login_required
 def feira_progress(request, pk):
     """
     Retorna o progresso atual do processamento do manual da feira.
+    Endpoint URL: /feira/<pk>/progress/ e /feira/<pk>/progresso/
     """
     try:
         feira = Feira.objects.get(pk=pk)
@@ -191,12 +195,12 @@ def feira_progress(request, pk):
         chunks_count = FeiraManualChunk.objects.filter(feira=feira).count()
         
         # Auto-correção: se temos chunks mas o status não está correto
-        if chunks_count > 0 and chunks_count == feira.total_chunks and not feira.manual_processado:
-            if feira.processamento_status != 'processando':
-                feira.manual_processado = True
-                feira.processamento_status = 'concluido'
-                feira.progresso_processamento = 100
-                feira.save(update_fields=['manual_processado', 'processamento_status', 'progresso_processamento'])
+        if chunks_count > 0 and chunks_count == feira.chunks_total and not feira.chunks_processados:
+            if feira.chunks_processamento_status != 'processando':
+                feira.chunks_processados = True
+                feira.chunks_processamento_status = 'concluido'
+                feira.chunks_progresso = 100
+                feira.save(update_fields=['chunks_processados', 'chunks_processamento_status', 'chunks_progresso'])
         
         # Contar QAs para informação adicional
         qa_count = 0
@@ -207,11 +211,11 @@ def feira_progress(request, pk):
         
         return JsonResponse({
             'success': True,
-            'progress': feira.progresso_processamento or 0,
-            'status': feira.processamento_status or 'pendente',
+            'progress': feira.chunks_progresso or 0,
+            'status': feira.chunks_processamento_status or 'pendente',
             'message': feira.mensagem_erro if feira.mensagem_erro else None,
-            'processed': feira.manual_processado or False,
-            'total_chunks': feira.total_chunks or 0,
+            'processed': feira.chunks_processados or False,
+            'total_chunks': feira.chunks_total or 0,
             'current_chunks': chunks_count,
             'total_paginas': feira.total_paginas or 0,
             'qa_count': qa_count  # Adicionar contagem de QA na resposta
@@ -228,22 +232,70 @@ def feira_progress(request, pk):
         }, status=500)
     
 @login_required
+def feira_progress(request, pk):
+    """
+    Retorna o progresso atual do processamento do manual da feira.
+    """
+    try:
+        feira = Feira.objects.get(pk=pk)
+        
+        # Contar chunks já processados
+        chunks_count = FeiraManualChunk.objects.filter(feira=feira).count()
+        
+        # Auto-correção: se temos chunks mas o status não está correto
+        if chunks_count > 0 and chunks_count == feira.chunks_total and not feira.chunks_processados:
+            if feira.chunks_processamento_status != 'processando':
+                feira.chunks_processados = True
+                feira.chunks_processamento_status = 'concluido'
+                feira.chunks_progresso = 100
+                feira.save(update_fields=['chunks_processados', 'chunks_processamento_status', 'chunks_progresso'])
+        
+        # Contar QAs para informação adicional
+        qa_count = 0
+        try:
+            qa_count = FeiraManualQA.objects.filter(feira=feira).count()
+        except:
+            pass
+        
+        return JsonResponse({
+            'success': True,
+            'progress': feira.chunks_progresso or 0,
+            'status': feira.chunks_processamento_status or 'pendente',
+            'message': feira.mensagem_erro if feira.mensagem_erro else None,
+            'processed': feira.chunks_processados or False,
+            'total_chunks': feira.chunks_total or 0,
+            'current_chunks': chunks_count,
+            'total_paginas': feira.total_paginas or 0,
+            'qa_count': qa_count  # Adicionar contagem de QA na resposta
+        })
+    except Feira.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Feira não encontrada'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False, 
+            'error': str(e)
+        }, status=500)   
+    
+@login_required
 def feira_detail(request, pk):
     feira = get_object_or_404(Feira, pk=pk)
     total_chunks = feira.chunks_manual.count() if hasattr(feira, 'chunks_manual') else 0
     qa_count = FeiraManualQA.objects.filter(feira=feira).count()
     
     # Verificar se há QA sendo processado
-    # Como não temos o campo no modelo, vamos verificar pela solicitação recente
     import threading
     qa_processando = any(t.name.startswith(f'QA-{feira.id}') for t in threading.enumerate())
     
     context = {
         'feira': feira,
         'total_chunks': total_chunks,
-        'manual_processado': feira.manual_processado,
+        'manual_processado': feira.chunks_processados,  # Compatibilidade para o template
         'qa_count': qa_count,
         'qa_processando': qa_processando,
     }
     
     return render(request, 'gestor/feira_detail.html', context)
+    

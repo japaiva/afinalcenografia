@@ -68,27 +68,15 @@ class RetrievalService:
             return default
         
     def pesquisar_qa(self, query: str, feira_id: Optional[int] = None, top_k: Optional[int] = None) -> List[Dict[str, Any]]:
-        """
-        Pesquisa QA relevantes para uma consulta.
-        
-        Args:
-            query: A consulta do usuário.
-            feira_id: ID opcional da feira para restringir a busca.
-            top_k: Número máximo de resultados.
-            
-        Returns:
-            Lista de pares QA relevantes com scores.
-        """
+        """Pesquisa QA relevantes para uma consulta."""
         start_time = time.time()
         logger.info(f"Iniciando pesquisa para query: '{query}' (feira_id: {feira_id}, top_k: {top_k})")
         
         try:
             if top_k is None:
                 top_k = self.search_top_k
-                logger.info(f"✓ Usando top_k padrão: {top_k}")
-            
+                
             similarity_threshold = self.search_threshold
-            logger.info(f"✓ Threshold de similaridade: {similarity_threshold}")
             
             logger.info(f"Gerando embedding para query: '{query}'")
             query_embedding = self.embedding_service.gerar_embedding_consulta(query)
@@ -97,10 +85,20 @@ class RetrievalService:
                 logger.error("Falha ao gerar embedding para a consulta. Realizando fallback para busca por texto.")
                 return self._text_search_fallback(query, feira_id, top_k)
             
-            logger.info(f"✓ Embedding gerado para query (tamanho: {len(query_embedding)})")
+            # Usar o método de namespace apropriado se feira_id for fornecido
+            if feira_id:
+                try:
+                    feira = Feira.objects.get(pk=feira_id)
+                    namespace = feira.get_qa_namespace()
+                    logger.info(f"✓ Usando namespace QA específico da feira: '{namespace}'")
+                except Feira.DoesNotExist:
+                    namespace = None
+                    logger.warning(f"Feira ID {feira_id} não encontrada para namespace.")
+            else:
+                namespace = None
             
-            namespace = f"feira_{feira_id}" if feira_id else None
             filter_obj = {"feira_id": {"$eq": str(feira_id)}} if feira_id else None
+
             
             logger.info(f"Consultando banco vetorial (namespace: {namespace}, filtro: {filter_obj})")
             
