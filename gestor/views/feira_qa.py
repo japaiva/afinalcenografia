@@ -9,18 +9,20 @@ from django.contrib import messages
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_GET
+from django.db.models import Q
 
 from core.models import Feira, FeiraManualChunk, FeiraManualQA, Agente
 from core.tasks import pesquisar_manual_feira
 from core.services.qa_generator import QAGenerator, process_all_chunks_for_feira
 from core.services.rag_service import RAGService
 
+
 logger = logging.getLogger(__name__)
 
 @login_required
 def feira_qa_list(request, feira_id):
     feira = get_object_or_404(Feira, pk=feira_id)
-    processando = feira.processamento_status == 'processando'
+    processando = feira.qa_processamento_status == 'processando'
     query = request.GET.get('q', '')
     
     # ALTERAÇÃO DE TESTE - prints para depuração 

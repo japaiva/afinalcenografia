@@ -59,9 +59,12 @@ def pesquisar_manual_feira(texto_consulta, feira_id=None, num_resultados=3):
     if feira_id:
         try:
             feira = Feira.objects.get(id=feira_id)
-            if not feira.manual_processado:
+            # Atualizado para usar chunks_processados
+            if not feira.chunks_processados:
                 return {"status": "error", "message": "O manual desta feira ainda não foi processado."}
-            namespace = feira.pinecone_namespace
+            
+            # Usar o método do modelo para obter o namespace correto
+            namespace = feira.get_chunks_namespace()
         except Feira.DoesNotExist:
             return {"status": "error", "message": f"Feira ID {feira_id} não encontrada"}
     else:
@@ -198,8 +201,9 @@ def verificar_processamento_pendente():
     Verifica e processa feiras com processamento pendente
     """
     # Buscar feiras com processamento pendente
+    # Atualizado para usar chunks_processamento_status
     feiras_pendentes = Feira.objects.filter(
-        processamento_status='pendente', 
+        chunks_processamento_status='pendente', 
         manual__isnull=False
     )
     
@@ -219,16 +223,14 @@ def processar_manual_feira_core(feira_id):
     except Feira.DoesNotExist:
         return {"status": "error", "message": f"Feira ID {feira_id} não encontrada"}
     
-    # Atualizar status para processando
-    feira.processamento_status = 'processando'
-    feira.progresso_processamento = 0
-    feira.manual_processado = False
-    feira.save(update_fields=['processamento_status', 'progresso_processamento', 'manual_processado'])
+    # Atualizar status para processando (atualizado para novos campos)
+    feira.chunks_processamento_status = 'processando'
+    feira.chunks_progresso = 0
+    feira.chunks_processados = False
+    feira.save(update_fields=['chunks_processamento_status', 'chunks_progresso', 'chunks_processados'])
     
-    # Criar namespace único para a feira no Pinecone
-    if not feira.pinecone_namespace:
-        feira.pinecone_namespace = f"feira_{feira_id}_{uuid.uuid4().hex[:8]}"
-        feira.save(update_fields=['pinecone_namespace'])
+    # Usar método do modelo para obter o namespace
+    namespace = feira.get_chunks_namespace()
     
     try:
         # 1. Ler o arquivo PDF
@@ -247,15 +249,15 @@ def processar_manual_feira_core(feira_id):
                 for page_num, page in enumerate(pdf_reader.pages):
                     # Atualizar progresso - 50% do processo é leitura do PDF
                     progresso = int((page_num / total_paginas) * 50)
-                    feira.progresso_processamento = progresso
-                    feira.save(update_fields=['progresso_processamento'])
+                    feira.chunks_progresso = progresso
+                    feira.save(update_fields=['chunks_progresso'])
                     
                     # Verificar periodicamente se o status ainda está correto
                     if page_num % 5 == 0:
                         feira.refresh_from_db()
-                        if feira.processamento_status != 'processando':
-                            feira.processamento_status = 'processando'
-                            feira.save(update_fields=['processamento_status'])
+                        if feira.chunks_processamento_status != 'processando':
+                            feira.chunks_processamento_status = 'processando'
+                            feira.save(update_fields=['chunks_processamento_status'])
                     
                     texto_pagina = page.extract_text()
                     if texto_pagina:
@@ -264,9 +266,9 @@ def processar_manual_feira_core(feira_id):
                         texto_por_pagina.append((page_num + 1, texto_pagina))
         
         except Exception as e:
-            feira.processamento_status = 'erro'
+            feira.chunks_processamento_status = 'erro'
             feira.mensagem_erro = f"Erro ao ler PDF: {str(e)}"
-            feira.save(update_fields=['processamento_status', 'mensagem_erro'])
+            feira.save(update_fields=['chunks_processamento_status', 'mensagem_erro'])
             return {"status": "error", "message": f"Erro ao ler PDF: {str(e)}"}
         
         # 2. Dividir o texto em chunks
@@ -339,15 +341,15 @@ def processar_manual_feira_core(feira_id):
                 })
         
         # Atualizar total de chunks
-        feira.total_chunks = len(chunks)
-        feira.progresso_processamento = 50  # 50% concluído após chunking
-        feira.save(update_fields=['total_chunks', 'progresso_processamento'])
+        feira.chunks_total = len(chunks)
+        feira.chunks_progresso = 50  # 50% concluído após chunking
+        feira.save(update_fields=['chunks_total', 'chunks_progresso'])
         
         # 3. Inicializar conexão com Pinecone
         try:
             # Primeiro, excluir namespace existente se necessário
-            if feira.manual_processado and feira.pinecone_namespace:
-                delete_namespace(feira.pinecone_namespace)
+            if feira.chunks_processados and namespace:
+                delete_namespace(namespace)
             
             # Limpar chunks antigos
             with transaction.atomic():
@@ -370,15 +372,15 @@ def processar_manual_feira_core(feira_id):
                     try:
                         # Atualizar progresso - 50% a 95%
                         progresso = 50 + int((idx / total_chunks) * 45)
-                        feira.progresso_processamento = progresso
-                        feira.save(update_fields=['progresso_processamento'])
+                        feira.chunks_progresso = progresso
+                        feira.save(update_fields=['chunks_progresso'])
                         
                         # Verificar periodicamente se o status ainda está correto
                         if idx % 10 == 0:
                             feira.refresh_from_db()
-                            if feira.processamento_status != 'processando':
-                                feira.processamento_status = 'processando'
-                                feira.save(update_fields=['processamento_status'])
+                            if feira.chunks_processamento_status != 'processando':
+                                feira.chunks_processamento_status = 'processando'
+                                feira.save(update_fields=['chunks_processamento_status'])
                         
                         # Gerar embedding
                         response = client.embeddings.create(
@@ -413,7 +415,7 @@ def processar_manual_feira_core(feira_id):
                         
                         # A cada 50 chunks, fazer upsert no Pinecone para evitar timeouts
                         if len(pinecone_vectors) >= 50 or idx == total_chunks - 1:
-                            upsert_vectors(pinecone_vectors, feira.pinecone_namespace)
+                            upsert_vectors(pinecone_vectors, namespace)
                             pinecone_vectors = []
                         
                     except Exception as e:
@@ -421,30 +423,27 @@ def processar_manual_feira_core(feira_id):
                         continue
             
             # 5. Atualizar status da feira
-            feira.processamento_status = 'concluido'
-            feira.manual_processado = True
-            feira.progresso_processamento = 100
-            feira.save(update_fields=['processamento_status', 'manual_processado', 'progresso_processamento'])
+            feira.chunks_processamento_status = 'concluido'
+            feira.chunks_processados = True
+            feira.chunks_progresso = 100
+            feira.save(update_fields=['chunks_processamento_status', 'chunks_processados', 'chunks_progresso'])
             
             logger.info(f"✓ Processamento do manual da feira {feira_id} concluído com sucesso. Status atualizado")
-            
-            # REMOVER: não vamos mais tentar processar QA automaticamente
-            # A função agora apenas processa o manual
             
             return {
                 "status": "success", 
                 "message": f"Manual processado com sucesso. {total_chunks} chunks gerados.",
-                "namespace": feira.pinecone_namespace
+                "namespace": namespace
             }
             
         except Exception as e:
-            feira.processamento_status = 'erro'
+            feira.chunks_processamento_status = 'erro'
             feira.mensagem_erro = f"Erro ao processar embeddings: {str(e)}"
-            feira.save(update_fields=['processamento_status', 'mensagem_erro'])
+            feira.save(update_fields=['chunks_processamento_status', 'mensagem_erro'])
             return {"status": "error", "message": str(e)}
             
     except Exception as e:
-        feira.processamento_status = 'erro'
+        feira.chunks_processamento_status = 'erro'
         feira.mensagem_erro = str(e)
-        feira.save(update_fields=['processamento_status', 'mensagem_erro'])
+        feira.save(update_fields=['chunks_processamento_status', 'mensagem_erro'])
         return {"status": "error", "message": str(e)}

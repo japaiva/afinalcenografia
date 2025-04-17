@@ -320,8 +320,6 @@ O formato deve ser: {{"results": [{{"q": "pergunta", "a": "resposta", "t": "trec
                 logger.error(f"Erro ao salvar par QA: {str(e)}")
         
         return created_pairs
-    
-## Modificações necessárias no core/services/qa_generator.py
 
 def process_all_chunks_for_feira(feira_id: int, delay: Optional[int] = None, agent_name: str = 'Gerador de Q&A') -> Dict[str, Any]:
     """
@@ -373,11 +371,12 @@ def process_all_chunks_for_feira(feira_id: int, delay: Optional[int] = None, age
         
         # Remover QAs existentes se estiverem reprocessando
         FeiraManualQA.objects.filter(feira=feira).delete()
-        
+
         # ADICIONADO: Limpar o namespace do Pinecone antes de reprocessar
         try:
             from core.utils.pinecone_utils import delete_namespace
-            namespace = f"feira_{feira_id}"
+            feira = Feira.objects.get(pk=feira_id)
+            namespace = feira.get_qa_namespace()
             delete_namespace(namespace)
             logger.info(f"✓ Namespace '{namespace}' limpo antes do reprocessamento de Q&A")
         except Exception as e:

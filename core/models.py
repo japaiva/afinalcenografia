@@ -86,6 +86,9 @@ class PerfilUsuario(models.Model):
         return f"{self.usuario.username} - {self.get_nivel_display()}"
 
 # Feiras
+from django.db import models
+from core.storage import MinioStorage
+
 class Feira(models.Model):
     nome = models.CharField(max_length=255, verbose_name="Nome da Feira")
     local = models.CharField(max_length=255, verbose_name="Local/Centro de Exposições")
@@ -100,12 +103,13 @@ class Feira(models.Model):
     manual = models.FileField(upload_to='manuais_feira/', storage=MinioStorage(), verbose_name="Manual da Feira")
     ativa = models.BooleanField(default=True, verbose_name="Ativa")
     
-    # Campos para vetorização
-    manual_processado = models.BooleanField(default=False, verbose_name="Manual Processado")
-    ultima_atualizacao = models.DateTimeField(auto_now=True, verbose_name="Última Atualização")
+    # Campo para o namespace base
+    namespace_base = models.CharField(max_length=100, blank=True, null=True, verbose_name="Namespace Base no Pinecone")
     
-    # Campos para controle de processamento
-    processamento_status = models.CharField(
+    # Campos para o banco de dados de chunks
+    chunks_processados = models.BooleanField(default=False, verbose_name="Chunks Processados")
+    chunks_total = models.IntegerField(default=0, verbose_name="Total de Chunks")
+    chunks_processamento_status = models.CharField(
         max_length=20,
         choices=[
             ('pendente', 'Pendente'),
@@ -114,26 +118,89 @@ class Feira(models.Model):
             ('erro', 'Erro')
         ],
         default='pendente',
-        verbose_name="Status de Processamento"
+        verbose_name="Status de Processamento de Chunks"
     )
-    progresso_processamento = models.IntegerField(default=0, verbose_name="Progresso (%)")
+    chunks_progresso = models.IntegerField(default=0, verbose_name="Progresso de Chunks (%)")
+
+    # Campos para o banco de dados de Q&A
+    qa_processado = models.BooleanField(default=False, verbose_name="Q&A Processado")
+    qa_total = models.IntegerField(default=0, verbose_name="Total de Q&A")
+    qa_processamento_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('pendente', 'Pendente'),
+            ('processando', 'Processando'),
+            ('concluido', 'Concluído'),
+            ('erro', 'Erro')
+        ],
+        default='pendente',
+        verbose_name="Status de Processamento de Q&A"
+    )
+    qa_progresso = models.IntegerField(default=0, verbose_name="Progresso de Q&A (%)")
+
+    # Campo para mensagens de erro (pode ser usado para ambos os processos)
     mensagem_erro = models.TextField(blank=True, null=True, verbose_name="Mensagem de Erro")
+
+    # Campos adicionais para controle geral
+    ultima_atualizacao = models.DateTimeField(auto_now=True, verbose_name="Última Atualização")
     total_paginas = models.IntegerField(default=0, verbose_name="Total de Páginas")
-    total_chunks = models.IntegerField(default=0, verbose_name="Total de Chunks")
-    pinecone_namespace = models.CharField(max_length=100, blank=True, null=True, verbose_name="Namespace no Pinecone")
-    
+
     def __str__(self):
         return f"{self.nome} ({self.cidade}/{self.estado})"
-    
+
+    def get_namespace_base(self):
+        """Retorna o namespace base, criando se não existir"""
+        if not self.namespace_base:
+            # Usando apenas o ID como base
+            self.namespace_base = f"{self.id}"
+            self.save(update_fields=['namespace_base'])
+        return self.namespace_base
+
+    def get_chunks_namespace(self):
+        """Retorna o namespace para chunks"""
+        return f"feira_chunks_{self.get_namespace_base()}"
+
+    def get_qa_namespace(self):
+        """Retorna o namespace para Q&A"""
+        return f"feira_qa_{self.get_namespace_base()}"
+
     def reset_processamento(self):
         """Reseta os campos de processamento para iniciar novamente"""
-        self.manual_processado = False
-        self.processamento_status = 'pendente'
-        self.progresso_processamento = 0
+        self.namespace_base = None
+        self.chunks_processados = False
+        self.chunks_processamento_status = 'pendente'
+        self.chunks_progresso = 0
+        self.chunks_total = 0
+        self.qa_processado = False
+        self.qa_processamento_status = 'pendente'
+        self.qa_progresso = 0
+        self.qa_total = 0
         self.mensagem_erro = None
         self.total_paginas = 0
-        self.total_chunks = 0
-    
+        self.save()
+
+    def atualizar_status_chunks(self, status, progresso=None, total=None):
+        """Atualiza o status do processamento de chunks"""
+        self.chunks_processamento_status = status
+        if progresso is not None:
+            self.chunks_progresso = progresso
+        if total is not None:
+            self.chunks_total = total
+        if status == 'concluido':
+            self.chunks_processados = True
+        self.save()
+
+    def atualizar_status_qa(self, status, progresso=None, total=None):
+        """Atualiza o status do processamento de Q&A"""
+        self.qa_processamento_status = status
+        if progresso is not None:
+            self.qa_progresso = progresso
+        if total is not None:
+            self.qa_total = total
+        if status == 'concluido':
+            self.qa_processado = True
+        self.save()
+
     class Meta:
         db_table = 'feiras'
         verbose_name = 'Feira'

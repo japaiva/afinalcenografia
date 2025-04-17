@@ -69,8 +69,10 @@ urlpatterns = [
     path('feiras/<int:pk>/status/', views.feira_toggle_status, name='feira_toggle_status'),
     path('feiras/<int:pk>/search/', views.feira_search, name='feira_search'),
     path('feiras/<int:pk>/reprocess/', views.feira_reprocess, name='feira_reprocess'),
-    path('feira/<int:pk>/progresso/', views.feira_progress, name='feira_progress'),
-    path('feira/<int:pk>/progress/', views.feira_progress, name='feira_progress'),
+    
+    # IMPORTANTE: Padronizar para usar somente um formato de URL para progresso
+    # Manter apenas uma URL para evitar confusão
+    path('feiras/<int:pk>/progress/', views.feira_progress, name='feira_progress'),
     
     # FEIRAS (QA)
     path('feiras/<int:feira_id>/qa/', views.feira_qa_list, name='feira_qa_list'),
@@ -79,12 +81,12 @@ urlpatterns = [
     path('feiras/qa/update/', views.feira_qa_update, name='feira_qa_update'),
     path('feiras/qa/delete/', views.feira_qa_delete, name='feira_qa_delete'),
     path('feiras/qa/regenerate-single/', views.feira_qa_regenerate_single, name='feira_qa_regenerate_single'),
-    path('feira/<int:feira_id>/qa/add/', views.feira_qa_add, name='feira_qa_add'),
+    path('feiras/<int:feira_id>/qa/add/', views.feira_qa_add, name='feira_qa_add'),
     path('feiras/<int:pk>/qa/progress/', views.feira_qa_progress, name='feira_qa_progress'),
     
     # FEIRAS (RAG)
-    path('feira/<int:pk>/reset-data/', views.feira_reset_data, name='feira_reset_data'),
-    path('feira/<int:pk>/reset-data/confirm/', views.feira_reset_data_confirm, name='feira_reset_data_confirm'),
+    path('feiras/<int:pk>/reset-data/', views.feira_reset_data, name='feira_reset_data'),
+    path('feiras/<int:pk>/reset-data/confirm/', views.feira_reset_data_confirm, name='feira_reset_data_confirm'),
     path('feiras/<int:feira_id>/search-unified/', views.feira_search_unified, name='feira_search_unified'),
     path('briefing/<int:briefing_id>/vincular-feira/<int:feira_id>/', views.briefing_vincular_feira, name='briefing_vincular_feira'),
     path('briefing/responder-pergunta/', views.briefing_responder_pergunta, name='briefing_responder_pergunta'),

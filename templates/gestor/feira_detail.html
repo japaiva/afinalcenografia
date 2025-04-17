@@ -73,13 +73,13 @@
           <div class="card-body p-0">
             <ul class="list-group list-group-flush">
               <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div><strong>Manual:</strong> {{ feira.total_chunks|default:"0" }} blocos</div>
-                <span id="manual-status" class="badge {% if feira.processamento_status == 'processando' %}bg-warning text-dark{% elif feira.manual_processado %}bg-success{% elif feira.processamento_status == 'erro' %}bg-danger{% else %}bg-secondary{% endif %}">
-                  {% if feira.processamento_status == 'processando' %}
+                <div><strong>Blocos:</strong> {{ feira.chunks_total|default:"0" }} chunks</div>
+                <span id="manual-status" class="badge {% if feira.chunks_processamento_status == 'processando' %}bg-warning text-dark{% elif feira.chunks_processados %}bg-success{% elif feira.chunks_processamento_status == 'erro' %}bg-danger{% else %}bg-secondary{% endif %}">
+                  {% if feira.chunks_processamento_status == 'processando' %}
                     Processando
-                  {% elif feira.manual_processado %}
+                  {% elif feira.chunks_processados %}
                     Concluído
-                  {% elif feira.processamento_status == 'erro' %}
+                  {% elif feira.chunks_processamento_status == 'erro' %}
                     Erro
                   {% else %}
                     Pendente
@@ -98,10 +98,10 @@
                   {% endif %}
                 </span>
               </li>
-              <li id="progress-container" class="list-group-item {% if feira.processamento_status != 'processando' and not qa_processando %}d-none{% endif %}">
+              <li id="progress-container" class="list-group-item {% if feira.chunks_processamento_status != 'processando' and not qa_processando %}d-none{% endif %}">
                 <small id="progress-text" class="text-muted">
-                  {% if feira.processamento_status == 'processando' %}
-                    Processando manual... ({{ feira.progresso_processamento }}%)
+                  {% if feira.chunks_processamento_status == 'processando' %}
+                    Processando manual... ({{ feira.chunks_progresso }}%)
                   {% elif qa_processando %}
                     Gerando Q&A...
                   {% endif %}
@@ -111,20 +111,20 @@
             <div class="p-3 d-flex flex-wrap gap-2">
               <form id="process-manual-form" method="post" action="{% url 'gestor:feira_reprocess' feira.id %}" class="me-2">
                 {% csrf_token %}
-                <button type="submit" id="process-manual-button" class="btn btn-primary" {% if feira.processamento_status == 'processando' %}disabled{% endif %}>
-                  <i class="fas {% if feira.processamento_status == 'processando' %}fa-spinner fa-spin{% else %}fa-sync-alt{% endif %} me-1"></i> 
-                  {% if feira.processamento_status == 'processando' %}
+                <button type="submit" id="process-manual-button" class="btn btn-primary" {% if feira.chunks_processamento_status == 'processando' %}disabled{% endif %}>
+                  <i class="fas {% if feira.chunks_processamento_status == 'processando' %}fa-spinner fa-spin{% else %}fa-sync-alt{% endif %} me-1"></i> 
+                  {% if feira.chunks_processamento_status == 'processando' %}
                     Processando...
-                  {% elif feira.manual_processado %}
-                    Reprocessar Manual
+                  {% elif feira.chunks_processados %}
+                    Reprocessar Blocos
                   {% else %}
-                    Processar Manual
+                    Processar Blocos
                   {% endif %}
                 </button>
               </form>
               <form id="process-qa-form" method="post" action="{% url 'gestor:feira_qa_regenerate' feira.id %}" class="me-2">
                 {% csrf_token %}
-                <button type="submit" id="process-qa-button" class="btn btn-success" {% if not feira.manual_processado or qa_processando %}disabled{% endif %}>
+                <button type="submit" id="process-qa-button" class="btn btn-success" {% if not feira.chunks_processados or qa_processando %}disabled{% endif %}>
                   <i class="fas {% if qa_processando %}fa-spinner fa-spin{% else %}fa-comment-dots{% endif %} me-1"></i> 
                   {% if qa_processando %}
                     Processando...
@@ -139,7 +139,7 @@
           </div>
         </div>
 
-        {% if feira.manual_processado %}
+        {% if feira.chunks_processados %}
         <div class="card mt-3">
           <div class="card-header bg-light">
             <h6 class="card-title mb-0">Consultas ao Banco Vetorial</h6>
@@ -168,7 +168,7 @@
       </div>
     </div>
 
-    {% if feira.manual_processado %}
+    {% if feira.chunks_processados %}
     <div class="row mt-4">
       <div class="col-12">
         <div class="card mb-3">
@@ -215,5 +215,6 @@
 </div>
 
 {% csrf_token %}
-<script src="{% static 'js/feira_detail.js' %}"></script>
+<script src="{% static 'js/feira_detail.js' %}?v=2"></script>
+<script src="{% static 'js/feira_progress_tracker.js' %}?v=1"></script>
 {% endblock %}

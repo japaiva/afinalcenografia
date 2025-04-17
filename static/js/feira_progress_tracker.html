@@ -1,0 +1,118 @@
+/**
+ * Script para monitorar o progresso de processamento de feira
+ * 
+ * Este script monitora o progresso do processamento de chunks e QA de uma feira
+ * usando a API REST e atualiza a interface do usuário de acordo.
+ */
+document.addEventListener("DOMContentLoaded", function() {
+  // Verificar se estamos na página de detalhes de feira
+  const feiraIdElement = document.querySelector('[data-feira-id]');
+  if (!feiraIdElement) return;
+  
+  const feiraId = feiraIdElement.dataset.feiraId;
+  console.log(`Monitorando progresso da feira ID: ${feiraId}`);
+  
+  // Elementos DOM para atualização
+  const manualStatus = document.getElementById('manual-status');
+  const progressBar = document.getElementById('progressBar');
+  const progressContainer = document.getElementById('progress-container');
+  const progressText = document.getElementById('progress-text');
+  
+  // Controle de estado
+  let isMonitoring = false;
+  let lastProgress = 0;
+  
+  // Função para atualizar o progresso
+  function atualizarProgresso() {
+    if (isMonitoring) return;
+    isMonitoring = true;
+    
+    fetch(`/gestor/feiras/${feiraId}/progress/`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Falha ao obter progresso');
+        }
+        return response.json();
+      })
+      .then(data => {
+        isMonitoring = false;
+        
+        if (data.success) {
+          // Atualizar barra de progresso, se existir
+          if (progressBar) {
+            progressBar.style.width = data.progress + '%';
+            progressBar.setAttribute('aria-valuenow', data.progress);
+            progressBar.innerText = data.progress + '%';
+          }
+          
+          // Atualizar texto de progresso, se existir
+          if (progressText && data.progress !== lastProgress) {
+            lastProgress = data.progress;
+            progressText.textContent = `Processando manual... (${data.progress}%)`;
+          }
+          
+          // Atualizar status visual, se o elemento existir
+          if (manualStatus) {
+            updateStatusBadge(manualStatus, data.status, data.processed);
+          }
+          
+          // Verificar se o processamento foi concluído
+          if (data.processed || data.status === 'concluido') {
+            console.log('Processamento concluído. Recarregando página...');
+            // Recarregar a página para mostrar os novos dados
+            location.reload();
+          } else if (data.status === 'processando') {
+            // Continuar monitorando se ainda estiver processando
+            setTimeout(atualizarProgresso, 2000);
+          } else if (data.status === 'erro') {
+            console.error('Erro no processamento:', data.message);
+            // Mostrar mensagem de erro, se houver container para isso
+            if (progressContainer) {
+              progressContainer.classList.remove('d-none');
+              if (progressText) {
+                progressText.innerHTML = `<span class="text-danger">Erro: ${data.message || 'Falha no processamento.'}</span>`;
+              }
+            }
+          }
+        } else {
+          console.error('Erro ao buscar progresso:', data.error);
+          setTimeout(atualizarProgresso, 5000);
+        }
+      })
+      .catch(error => {
+        isMonitoring = false;
+        console.error('Erro na requisição:', error);
+        setTimeout(atualizarProgresso, 5000);
+      });
+  }
+  
+  // Função auxiliar para atualizar o status visual
+  function updateStatusBadge(element, status, processed) {
+    if (!element) return;
+    
+    if (status === 'processando') {
+      element.className = 'badge bg-warning text-dark';
+      element.textContent = 'Processando';
+    } else if (processed || status === 'concluido') {
+      element.className = 'badge bg-success';
+      element.textContent = 'Concluído';
+    } else if (status === 'erro') {
+      element.className = 'badge bg-danger';
+      element.textContent = 'Erro';
+    } else {
+      element.className = 'badge bg-secondary';
+      element.textContent = 'Pendente';
+    }
+  }
+  
+  // Verificar se o processamento já está em andamento
+  if (manualStatus && manualStatus.textContent.trim() === 'Processando') {
+    console.log('Detectado processamento em andamento. Iniciando monitoramento...');
+    // Mostra o container de progresso, se existir
+    if (progressContainer) {
+      progressContainer.classList.remove('d-none');
+    }
+    // Iniciar monitoramento com um pequeno atraso
+    setTimeout(atualizarProgresso, 1000);
+  }
+});

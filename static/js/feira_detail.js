@@ -50,7 +50,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (isCheckingManual) return; // Evitar chamadas simultâneas
     
     isCheckingManual = true;
-    fetch(`/gestor/feira/${feiraId}/progress/`, {
+    // CORRIGIDO: URL do endpoint progress conforme definido nas URLs
+    fetch(`/gestor/feiras/${feiraId}/progress/`, {
       method: 'GET',
       headers: {
         'X-Requested-With': 'XMLHttpRequest'
@@ -220,7 +221,8 @@ document.addEventListener('DOMContentLoaded', function() {
       console.error('Erro ao verificar status QA:', error);
       
       // Erro na API, verificar o status manualmente via contagem de QA
-      fetch(`/gestor/feira/${feiraId}/progress/`, {
+      // CORRIGIDO: URL para endpoint progress
+      fetch(`/gestor/feiras/${feiraId}/progress/`, {
         method: 'GET',
         headers: {
           'X-Requested-With': 'XMLHttpRequest'
