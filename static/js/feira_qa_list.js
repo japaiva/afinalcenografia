@@ -1,19 +1,46 @@
 document.addEventListener("DOMContentLoaded", function() {
+  // Função para preservar parâmetros de busca na paginação
+  function updatePaginationLinks() {
+    const queryParam = new URLSearchParams(window.location.search).get('q');
+    const modeParam = new URLSearchParams(window.location.search).get('mode');
+    
+    document.querySelectorAll('.pagination .page-link').forEach(link => {
+      if (link.href.includes('page=')) {
+        // Preservar parâmetro de busca
+        const url = new URL(link.href);
+        if (queryParam) {
+          url.searchParams.set('q', queryParam);
+        }
+        
+        // Preservar modo de busca
+        if (modeParam) {
+          url.searchParams.set('mode', modeParam);
+        }
+        
+        link.href = url.toString();
+      }
+    });
+  }
+  
+  // Chamar a função quando a página carregar
+  updatePaginationLinks();
+  
   // Polling para atualização do progresso se estiver processando
   if (document.getElementById('progressBar')) {
     function atualizarProgresso() {
       const feiraId = document.querySelector('[data-feira-id]').dataset.feiraId;
       
       // CORRIGIDO: URL para o endpoint progress
-      fetch(`/gestor/feiras/${feiraId}/progress/`)
+      fetch(`/gestor/feiras/${feiraId}/qa/progress/`)
         .then(response => response.json())
         .then(data => {
           if (data.success) {
             // Atualizar barra de progresso
             const progressBar = document.getElementById('progressBar');
-            progressBar.style.width = data.progress + '%';
-            progressBar.setAttribute('aria-valuenow', data.progress);
-            progressBar.innerText = data.progress + '%';
+            const progress = Math.round((data.total_qa / data.expected_qa) * 100);
+            progressBar.style.width = progress + '%';
+            progressBar.setAttribute('aria-valuenow', progress);
+            progressBar.innerText = progress + '%';
             
             // Verificar se o processamento foi concluído
             if (data.processed || data.status === 'concluido') {
@@ -202,7 +229,8 @@ document.addEventListener("DOMContentLoaded", function() {
           question: question,
           answer: answer,
           context: context,
-          similar_questions: similarQuestions
+          similar_questions: similarQuestions,
+          atualizar_embedding: true // Adicionar opção para atualizar embedding sempre que editar
         })
       })
       .then(response => response.json())
