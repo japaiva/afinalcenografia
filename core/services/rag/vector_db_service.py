@@ -94,8 +94,53 @@ class VectorDBService:
         except Exception as e:
             logger.error(f"Erro ao armazenar vetores: {str(e)}")
             return False
-    
+        
     def consultar_vetores(self, query_vector: List[float], namespace: Optional[str] = None, 
+                      top_k: int = 3, filter_obj: Optional[Dict] = None) -> List[Dict[str, Any]]:
+        """
+        Consulta vetores similares no banco de dados vetorial.
+        """
+        # Use o logger Django padrão
+        from django.core.handlers.wsgi import logger as django_logger
+        
+        django_logger.info(f"[DIAGNÓSTICO] VectorDB consultando namespace '{namespace}'")
+        
+        # Forçar threshold para diagnóstico
+        threshold = self._get_param_value('SEARCH_THRESHOLD', 'search', 0.4)
+        test_threshold = 0.4  # Valor de teste forçado
+        
+        django_logger.info(f"[DIAGNÓSTICO] Threshold configurado: {threshold}, Forçado: {test_threshold}")
+        
+        try:
+            if self.vector_db_provider.lower() == 'pinecone':
+                results = query_vectors(query_vector, namespace, top_k, filter_obj)
+                
+                if results:
+                    django_logger.info(f"[DIAGNÓSTICO] VectorDB recebeu {len(results)} resultados")
+                    
+                    # Analisar resultados com base nos thresholds
+                    for i, result in enumerate(results):
+                        score = result['score']
+                        if score >= threshold:
+                            django_logger.info(f"[DIAGNÓSTICO] Resultado {i+1} (score {score:.4f}) passa pelo threshold original ({threshold})")
+                        elif score >= test_threshold:
+                            django_logger.info(f"[DIAGNÓSTICO] Resultado {i+1} (score {score:.4f}) passa apenas pelo threshold de teste ({test_threshold})")
+                        else:
+                            django_logger.info(f"[DIAGNÓSTICO] Resultado {i+1} (score {score:.4f}) abaixo de ambos thresholds")
+                else:
+                    django_logger.warning("[DIAGNÓSTICO] VectorDB não obteve resultados")
+                    
+                return results
+            else:
+                django_logger.warning(f"[DIAGNÓSTICO] Provider {self.vector_db_provider} não suportado")
+                return []
+        
+        except Exception as e:
+            django_logger.error(f"[DIAGNÓSTICO] Erro na consulta VectorDB: {str(e)}")
+            return []
+        
+    
+    def consultar_vetores1(self, query_vector: List[float], namespace: Optional[str] = None, 
                           top_k: int = 3, filter_obj: Optional[Dict] = None) -> List[Dict[str, Any]]:
         """
         Consulta vetores similares no banco de dados vetorial.

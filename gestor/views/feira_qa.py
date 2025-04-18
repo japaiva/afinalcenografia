@@ -24,23 +24,171 @@ def feira_qa_list(request, feira_id):
     feira = get_object_or_404(Feira, pk=feira_id)
     processando = feira.qa_processamento_status == 'processando'
     query = request.GET.get('q', '')
-    
-    # ALTERAÇÃO DE TESTE - prints para depuração 
-    #print(f"\n\n==== DEBUG ====")
-    #print(f"Acessando feira_qa_list - feira_id: {feira_id}")
+    search_mode = request.GET.get('mode', 'smart')  # 'smart', 'semantic', 'text'
     
     qa_pairs_list = FeiraManualQA.objects.filter(feira=feira).order_by('-created_at')
     
-    # ALTERAÇÃO DE TESTE - ver contagem de QAs
-    qa_total = qa_pairs_list.count()
-    #print(f"Total de QAs para a feira: {qa_total}")
-    
+    # Se houver uma query, realizar busca
     if query:
-        qa_pairs_list = qa_pairs_list.filter(
-            Q(question__icontains=query) | 
-            Q(answer__icontains=query) | 
-            Q(similar_questions__contains=query)
-        )
+        logger.info(f"Realizando busca QA com query: '{query}', modo: {search_mode}")
+        
+        if search_mode in ['smart', 'semantic']:
+            try:
+                # Importar serviços necessários para busca semântica
+                from core.services.rag.embedding_service import EmbeddingService
+                from core.utils.pinecone_utils import query_vectors, get_index
+                
+                # Criar serviço de embedding
+                embedding_service = EmbeddingService()
+                
+                # Gerar embedding para a consulta
+                query_embedding = embedding_service.gerar_embedding_consulta(query)
+                
+                if query_embedding:
+                    # Obter namespace para QAs da feira
+                    # Obter namespace para chunks da feira
+                    namespace = feira.get_qa_namespace()
+                    
+                    # Verificar se o índice existe e tem vetores
+                    index = get_index()
+                    if index:
+                        # Configurar parâmetros de busca
+                        top_k = 10  
+                        filter_obj = {"feira_id": {"$eq": str(feira.id)}}
+                        
+                        # Realizar consulta vetorial
+                        results = query_vectors(query_embedding, namespace, top_k, filter_obj)
+                        
+                        if results:
+                            logger.info(f"Busca semântica retornou {len(results)} resultados")
+                            
+                            # Extrair IDs dos QAs encontrados
+                            qa_ids = []
+                            
+                            for result in results:
+                                try:
+                                    # Tentar extrair o ID do QA diretamente do ID do vetor
+                                    if 'qa_' in result['id']:
+                                        qa_id = result['id'].replace('qa_', '')
+                                        try:
+                                            qa_ids.append(int(qa_id))
+                                            logger.info(f"ID extraído: {qa_id} do resultado: {result['id']}")
+                                        except ValueError:
+                                            logger.warning(f"Não foi possível converter ID '{qa_id}' para inteiro")
+                                    
+                                    # Alternativamente, verificar nos metadados
+                                    elif 'metadata' in result and 'qa_id' in result['metadata']:
+                                        qa_id = result['metadata']['qa_id']
+                                        try:
+                                            qa_ids.append(int(qa_id))
+                                            logger.info(f"ID extraído dos metadados: {qa_id}")
+                                        except ValueError:
+                                            logger.warning(f"Não foi possível converter ID dos metadados '{qa_id}' para inteiro")
+                                except Exception as e:
+                                    logger.warning(f"Erro ao extrair ID do QA: {result['id']}, erro: {str(e)}")
+                            
+                            # Log de diagnóstico dos IDs extraídos
+                            logger.info(f"IDs extraídos do Pinecone: {qa_ids}")
+                            
+                            # Filtrar QAs com base nos IDs encontrados
+                            if qa_ids:
+                                qa_pairs_list = qa_pairs_list.filter(id__in=qa_ids)
+                                
+                                # Verificar se encontramos algum QA
+                                if qa_pairs_list.exists():
+                                    # Preservar a ordem dos resultados da busca semântica
+                                    from django.db.models import Case, When, Value, IntegerField
+                                    preserved_order = [When(id=pk, then=Value(i)) for i, pk in enumerate(qa_ids)]
+                                    qa_pairs_list = qa_pairs_list.annotate(
+                                        custom_order=Case(*preserved_order, output_field=IntegerField())
+                                    ).order_by('custom_order')
+                                    
+                                    logger.info(f"QAs ordenados por relevância semântica")
+                                    logger.info(f"Busca semântica bem-sucedida, retornando {qa_pairs_list.count()} resultados")
+                                else:
+                                    logger.warning("QA IDs encontrados mas nenhum QA correspondente no banco")
+                                    if search_mode == 'smart':
+                                        # Fallback para busca de texto
+                                        logger.info("Realizando fallback para busca de texto")
+                                        qa_pairs_list = FeiraManualQA.objects.filter(
+                                            feira=feira
+                                        ).filter(
+                                            Q(question__icontains=query) | 
+                                            Q(answer__icontains=query) | 
+                                            Q(similar_questions__contains=query)
+                                        ).order_by('-created_at')
+                            else:
+                                logger.warning("Nenhum ID de QA válido encontrado nos resultados semânticos")
+                                if search_mode == 'smart':
+                                    # Fallback para busca de texto
+                                    logger.info("Realizando fallback para busca de texto")
+                                    qa_pairs_list = FeiraManualQA.objects.filter(
+                                        feira=feira
+                                    ).filter(
+                                        Q(question__icontains=query) | 
+                                        Q(answer__icontains=query) | 
+                                        Q(similar_questions__contains=query)
+                                    ).order_by('-created_at')
+                        else:
+                            logger.warning("Busca semântica não retornou resultados")
+                            if search_mode == 'smart':
+                                # Fallback para busca de texto
+                                logger.info("Realizando fallback para busca de texto")
+                                qa_pairs_list = FeiraManualQA.objects.filter(
+                                    feira=feira
+                                ).filter(
+                                    Q(question__icontains=query) | 
+                                    Q(answer__icontains=query) | 
+                                    Q(similar_questions__contains=query)
+                                ).order_by('-created_at')
+                    else:
+                        logger.error("Não foi possível obter o índice Pinecone")
+                        if search_mode == 'smart':
+                            # Fallback para busca de texto
+                            logger.info("Realizando fallback para busca de texto")
+                            qa_pairs_list = FeiraManualQA.objects.filter(
+                                feira=feira
+                            ).filter(
+                                Q(question__icontains=query) | 
+                                Q(answer__icontains=query) | 
+                                Q(similar_questions__contains=query)
+                            ).order_by('-created_at')
+                else:
+                    logger.error("Não foi possível gerar embedding para a consulta")
+                    if search_mode == 'smart':
+                        # Fallback para busca de texto
+                        logger.info("Realizando fallback para busca de texto")
+                        qa_pairs_list = FeiraManualQA.objects.filter(
+                            feira=feira
+                        ).filter(
+                            Q(question__icontains=query) | 
+                            Q(answer__icontains=query) | 
+                            Q(similar_questions__contains=query)
+                        ).order_by('-created_at')
+                        
+            except Exception as e:
+                logger.error(f"Erro na busca semântica: {str(e)}")
+                if search_mode == 'smart':
+                    # Fallback para busca de texto
+                    logger.info("Realizando fallback para busca de texto após exceção")
+                    qa_pairs_list = FeiraManualQA.objects.filter(
+                        feira=feira
+                    ).filter(
+                        Q(question__icontains=query) | 
+                        Q(answer__icontains=query) | 
+                        Q(similar_questions__contains=query)
+                    ).order_by('-created_at')
+        
+        # Se modo for 'text' ou outras opções falharam e estamos em modo 'smart'
+        if search_mode == 'text' or (search_mode == 'smart' and not qa_pairs_list.exists()):
+            logger.info("Executando busca textual")
+            qa_pairs_list = FeiraManualQA.objects.filter(
+                feira=feira
+            ).filter(
+                Q(question__icontains=query) | 
+                Q(answer__icontains=query) | 
+                Q(similar_questions__contains=query)
+            ).order_by('-created_at')
     
     paginator = Paginator(qa_pairs_list, 10)
     page = request.GET.get('page')
@@ -54,11 +202,6 @@ def feira_qa_list(request, feira_id):
     
     qa_count = qa_pairs_list.count()
     
-    # ALTERAÇÃO DE TESTE - verificar paginação
-    #print(f"Página atual: {getattr(qa_pairs, 'number', 'N/A')}")
-    #print(f"Qtd na página: {len(qa_pairs) if qa_pairs else 0}")
-    #print(f"==== FIM DEBUG ====\n\n")
-    
     agentes = Agente.objects.filter(ativo=True)
     
     context = {
@@ -66,6 +209,7 @@ def feira_qa_list(request, feira_id):
         'qa_pairs': qa_pairs,
         'qa_count': qa_count,
         'query': query,
+        'search_mode': search_mode,
         'processando': processando,
         'agentes': agentes
     }
@@ -103,6 +247,7 @@ def feira_qa_get(request):
             'message': str(e)
         })
 
+
 @login_required
 @require_POST
 def feira_qa_update(request):
@@ -118,26 +263,65 @@ def feira_qa_update(request):
         
         qa = get_object_or_404(FeiraManualQA, pk=qa_id)
         
+        # Guardar valores antigos para verificar se houve alteração
+        old_question = qa.question
+        old_answer = qa.answer
+        
+        # Atualizar com novos valores
         qa.question = data.get('question', qa.question)
         qa.answer = data.get('answer', qa.answer)
         qa.context = data.get('context', qa.context)
-        qa.similar_questions = data.get('similar_questions', qa.similar_questions)
+        
+        # Processar perguntas similares
+        similar_questions = data.get('similar_questions', '')
+        if isinstance(similar_questions, str):
+            # Converter texto em lista, cada linha como um item
+            similar_questions = [sq.strip() for sq in similar_questions.split('\n') if sq.strip()]
+        qa.similar_questions = similar_questions
+        
         qa.save()
         
-        # Verificar se é necessário atualizar o embedding
-        atualizar_embedding = data.get('atualizar_embedding', False)
-        if atualizar_embedding:
+        # Verificar se conteúdo relevante para busca foi alterado
+        conteudo_alterado = (
+            old_question != qa.question or 
+            old_answer != qa.answer
+        )
+        
+        # Se o conteúdo relevante foi alterado, regenerar embedding
+        if conteudo_alterado:
             try:
                 # Obter o agente para embedding configurado na interface ou usar o padrão
                 agente_nome = data.get('agente_nome', 'Embedding Generator')
                 rag_service = RAGService(agent_name=agente_nome)
+                
+                # Gerar novo embedding
                 embedding = rag_service.gerar_embeddings_qa(qa)
+                
                 if embedding:
-                    rag_service._store_in_vector_db(qa, embedding)
+                    # Atualizar ou criar o vetor no banco vetorial
+                    embedding_id = qa.embedding_id or f"qa_{qa.id}"
                     
-                    # Atualizar o registro
-                    qa.embedding_id = f"qa_{qa.id}"
+                    # Preparar metadados
+                    metadata = {
+                        'q': qa.question,
+                        'a': qa.answer,
+                        't': qa.context,
+                        'sq': qa.similar_questions,
+                        'feira_id': str(qa.feira.id),
+                        'feira_nome': qa.feira.nome,
+                        'qa_id': str(qa.id)
+                    }
+                    
+                    # Armazenar no banco vetorial
+                    from core.utils.pinecone_utils import upsert_vectors
+                    namespace = f"feira_{qa.feira.id}"
+                    upsert_vectors([(embedding_id, embedding, metadata)], namespace)
+                    
+                    # Atualizar ID de embedding no registro
+                    qa.embedding_id = embedding_id
                     qa.save(update_fields=['embedding_id'])
+                    
+                    logger.info(f"Embedding atualizado para QA #{qa.id}")
             except Exception as e:
                 logger.error(f"Erro ao atualizar embedding: {str(e)}")
                 # Não impedimos a atualização do QA se falhar o embedding
@@ -146,12 +330,8 @@ def feira_qa_update(request):
             'success': True,
             'message': 'Pergunta e resposta atualizada com sucesso.'
         })
-    except FeiraManualQA.DoesNotExist:
-        return JsonResponse({
-            'success': False,
-            'message': 'Pergunta e resposta não encontrada.'
-        })
     except Exception as e:
+        logger.error(f"Erro na atualização de QA: {str(e)}")
         return JsonResponse({
             'success': False,
             'message': str(e)
@@ -386,6 +566,9 @@ def feira_qa_stats(request, feira_id):
             'message': str(e)
         }, status=500)
     
+
+
+
 
 @login_required
 @require_POST

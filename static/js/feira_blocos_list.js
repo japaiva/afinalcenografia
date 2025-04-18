@@ -24,6 +24,32 @@ document.addEventListener("DOMContentLoaded", function() {
   const confirmDeleteChunkBtn = document.getElementById('confirmDeleteChunkBtn');
   let chunkIdToDelete = null;
   
+  // Função para preservar parâmetros de busca na paginação
+  function updatePaginationLinks() {
+    const queryParam = new URLSearchParams(window.location.search).get('q');
+    const modeParam = new URLSearchParams(window.location.search).get('mode');
+    
+    document.querySelectorAll('.pagination .page-link').forEach(link => {
+      if (link.href.includes('page=')) {
+        // Preservar parâmetro de busca
+        const url = new URL(link.href);
+        if (queryParam) {
+          url.searchParams.set('q', queryParam);
+        }
+        
+        // Preservar modo de busca
+        if (modeParam) {
+          url.searchParams.set('mode', modeParam);
+        }
+        
+        link.href = url.toString();
+      }
+    });
+  }
+  
+  // Chamar a função quando a página carregar
+  updatePaginationLinks();
+  
   // Botões de edição de chunk
   const editChunkButtons = document.querySelectorAll('.edit-chunk');
   editChunkButtons.forEach(button => {

@@ -24,20 +24,43 @@
   <div class="card-body">
     <!-- Filtros e busca -->
     <div class="row mb-3">
-      <div class="col-md-8">
+      <div class="col-md-12">
         <form method="get" class="d-flex">
           <div class="input-group">
             <input type="text" name="q" class="form-control" placeholder="Buscar nos blocos..." value="{{ query }}">
+            <select name="mode" class="form-select" style="max-width: 160px;">
+              <option value="smart" {% if search_mode == 'smart' %}selected{% endif %}>Busca Inteligente</option>
+              <option value="semantic" {% if search_mode == 'semantic' %}selected{% endif %}>Semântica</option>
+              <option value="text" {% if search_mode == 'text' %}selected{% endif %}>Texto Simples</option>
+            </select>
             <button type="submit" class="btn btn-outline-primary">
               <i class="fas fa-search"></i>
             </button>
           </div>
         </form>
       </div>
-      <div class="col-md-4 text-md-end">
-        <span class="badge bg-info">Total: {{ chunks_count }}</span>
+      <div class="col-md-12 mt-2 d-flex justify-content-between align-items-center">
+        <div>
+          {% if search_mode %}
+            <span class="badge bg-secondary">
+              <i class="fas fa-info-circle me-1"></i> 
+              Modo de busca: 
+              {% if search_mode == 'smart' %}
+                <span class="text-info">Inteligente</span>
+              {% elif search_mode == 'semantic' %}
+                <span class="text-warning">Semântica</span>
+              {% elif search_mode == 'text' %}
+                <span class="text-light">Texto</span>
+              {% endif %}
+            </span>
+          {% endif %}
+        </div>
+        <div>
+          <span class="badge bg-info">Total: {{ chunks_count }}</span>
+        </div>
       </div>
     </div>
+
 
     {% if chunks|length > 0 %}
     <!-- Lista de blocos -->

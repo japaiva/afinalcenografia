@@ -5,6 +5,10 @@ from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
 from core.views import home_view, perfil,logout_view
 
+
+from scripts.debug_views import debug_search_view
+
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     
@@ -16,6 +20,8 @@ urlpatterns = [
 
     # Página inicial do site
     path('', home_view, name='home'),
+
+    path('debug-search/', debug_search_view, name='debug-search'),
     
     # Portais específicos
     path('gestor/', include('gestor.urls')),

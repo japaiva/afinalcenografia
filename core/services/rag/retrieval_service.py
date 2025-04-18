@@ -1,4 +1,5 @@
-# core/services/rag/retrieval_service.py
+# services/rag/retrieval_service.py
+
 import logging
 import time
 from typing import List, Dict, Any, Optional
@@ -7,7 +8,7 @@ from django.conf import settings
 from django.db.models import Q
 
 from core.models import Feira, FeiraManualQA, ParametroIndexacao
-from core.utils.pinecone_utils import query_vectors
+from core.utils.pinecone_utils import query_vectors, get_index, get_namespace_stats
 from core.utils.llm_utils import get_llm_client
 from core.services.rag.embedding_service import EmbeddingService
 
@@ -53,8 +54,10 @@ class RetrievalService:
             self.provider = 'unknown'
             
         # Obter parâmetros de busca
-        self.search_threshold = self._get_param_value('SEARCH_THRESHOLD', 'search', 0.7)
+        self.search_threshold = self._get_param_value('SEARCH_THRESHOLD', 'search', 0.4)
         self.search_top_k = self._get_param_value('SEARCH_TOP_K', 'search', 3)
+        
+        logger.info(f"Parâmetros de busca: threshold={self.search_threshold}, top_k={self.search_top_k}")
         
     def _get_param_value(self, nome, categoria, default):
         """Obtém o valor de um parâmetro de indexação, com fallback para valor padrão."""
@@ -68,52 +71,97 @@ class RetrievalService:
             return default
         
     def pesquisar_qa(self, query: str, feira_id: Optional[int] = None, top_k: Optional[int] = None) -> List[Dict[str, Any]]:
-        """Pesquisa QA relevantes para uma consulta."""
+        """
+        Pesquisa QA relevantes para uma consulta.
+        
+        Args:
+            query: A consulta do usuário.
+            feira_id: ID opcional da feira para restringir a busca.
+            top_k: Número máximo de resultados.
+            
+        Returns:
+            Lista de pares QA relevantes com scores.
+        """
         start_time = time.time()
-        logger.info(f"Iniciando pesquisa para query: '{query}' (feira_id: {feira_id}, top_k: {top_k})")
+        logger.info(f"[DIAGNÓSTICO QA] Iniciando pesquisa para query: '{query}' (feira_id: {feira_id}, top_k: {top_k})")
         
         try:
-            if top_k is None:
-                top_k = self.search_top_k
-                
-            similarity_threshold = self.search_threshold
-            
-            logger.info(f"Gerando embedding para query: '{query}'")
-            query_embedding = self.embedding_service.gerar_embedding_consulta(query)
-            
-            if not query_embedding:
-                logger.error("Falha ao gerar embedding para a consulta. Realizando fallback para busca por texto.")
-                return self._text_search_fallback(query, feira_id, top_k)
-            
-            # Usar o método de namespace apropriado se feira_id for fornecido
+            # Definir o namespace antes de qualquer processamento
+            qa_namespace = None
             if feira_id:
                 try:
                     feira = Feira.objects.get(pk=feira_id)
-                    namespace = feira.get_qa_namespace()
-                    logger.info(f"✓ Usando namespace QA específico da feira: '{namespace}'")
+                    # IMPORTANTE: Obter o namespace correto aqui
+                    qa_namespace = feira.get_qa_namespace()  # Deve retornar algo como 'feira_qa_1'
+                    logger.info(f"[DIAGNÓSTICO QA] ✓ Namespace QA para feira {feira_id}: '{qa_namespace}'")
                 except Feira.DoesNotExist:
-                    namespace = None
-                    logger.warning(f"Feira ID {feira_id} não encontrada para namespace.")
-            else:
-                namespace = None
+                    logger.warning(f"[DIAGNÓSTICO QA] ✗ Feira ID {feira_id} não encontrada")
+                    return self._text_search_fallback(query, feira_id, top_k)
             
-            filter_obj = {"feira_id": {"$eq": str(feira_id)}} if feira_id else None
-
+            if top_k is None:
+                top_k = self.search_top_k
+                logger.info(f"[DIAGNÓSTICO QA] ✓ Usando top_k padrão: {top_k}")
             
-            logger.info(f"Consultando banco vetorial (namespace: {namespace}, filtro: {filter_obj})")
+            similarity_threshold = self.search_threshold
+            logger.info(f"[DIAGNÓSTICO QA] ✓ Threshold de similaridade: {similarity_threshold}")
             
-            try:
-                results = query_vectors(query_embedding, namespace, top_k, filter_obj)
-                logger.info(f"✓ Consulta ao banco vetorial retornou {len(results)} resultados")
-            except Exception as e:
-                logger.error(f"Erro ao consultar banco vetorial: {str(e)}. Realizando fallback para busca por texto.")
+            logger.info(f"[DIAGNÓSTICO QA] Gerando embedding para query: '{query}'")
+            query_embedding = self.embedding_service.gerar_embedding_consulta(query)
+            
+            if not query_embedding:
+                logger.error("[DIAGNÓSTICO QA] ✗ FALHA ao gerar embedding para a consulta. Realizando fallback para busca por texto.")
                 return self._text_search_fallback(query, feira_id, top_k)
             
+            logger.info(f"[DIAGNÓSTICO QA] ✓ Embedding gerado para query (tamanho: {len(query_embedding)})")
+            
+            # Verificar se o namespace existe e tem vetores
+            if qa_namespace:
+                try:
+                    stats = get_namespace_stats(qa_namespace)
+                    if stats and stats['exists']:
+                        logger.info(f"[DIAGNÓSTICO QA] ✓ Namespace '{qa_namespace}' encontrado com {stats['vector_count']} vetores")
+                    else:
+                        logger.warning(f"[DIAGNÓSTICO QA] ✗ Namespace '{qa_namespace}' não encontrado ou vazio. Usando fallback de texto.")
+                        return self._text_search_fallback(query, feira_id, top_k)
+                except Exception as e:
+                    logger.error(f"[DIAGNÓSTICO QA] ✗ Erro ao verificar estatísticas do namespace: {str(e)}")
+            
+            # O filtro ainda é útil se houver diversos QAs no mesmo namespace
+            filter_obj = {"feira_id": {"$eq": str(feira_id)}} if feira_id else None
+            
+            logger.info(f"[DIAGNÓSTICO QA] Consultando banco vetorial (namespace: {qa_namespace}, filtro: {filter_obj})")
+            
+            try:
+                # Verificar o índice Pinecone
+                index = get_index()
+                if not index:
+                    logger.error("[DIAGNÓSTICO QA] ✗ Não foi possível obter o índice Pinecone. Fallback para texto.")
+                    return self._text_search_fallback(query, feira_id, top_k)
+                
+                # CRÍTICO: Usar o namespace QA específico aqui
+                results = query_vectors(
+                    query_embedding=query_embedding,
+                    namespace=qa_namespace,  # Este é o namespace correto (feira_qa_1)
+                    top_k=top_k,
+                    filter_dict=filter_obj
+                )
+                
+                logger.info(f"[DIAGNÓSTICO QA] ✓ Consulta no namespace '{qa_namespace}' retornou {len(results)} resultados")
+                
+                # Imprimir detalhes dos resultados para diagnóstico
+                for i, result in enumerate(results):
+                    logger.info(f"[DIAGNÓSTICO QA] Resultado {i+1}: ID={result['id']}, Score={result['score']:.4f}")
+                
+            except Exception as e:
+                logger.error(f"[DIAGNÓSTICO QA] ✗ Erro ao consultar banco vetorial: {str(e)}. Realizando fallback para busca por texto.")
+                return self._text_search_fallback(query, feira_id, top_k)
+            
+            # O resto da função permanece igual
             filtered_results = []
             for result in results:
                 score = result['score']
                 if score >= similarity_threshold:
-                    logger.debug(f"✓ Resultado {result['id']} com score {score:.3f} incluído (acima do threshold)")
+                    logger.info(f"[DIAGNÓSTICO QA] ✓ Resultado {result['id']} com score {score:.4f} incluído (acima do threshold {similarity_threshold})")
                     formatted_result = {
                         'id': result['id'],
                         'score': score,
@@ -127,20 +175,20 @@ class RetrievalService:
                     }
                     filtered_results.append(formatted_result)
                 else:
-                    logger.debug(f"Resultado {result['id']} com score {score:.3f} descartado (abaixo do threshold)")
+                    logger.warning(f"[DIAGNÓSTICO QA] ✗ Resultado {result['id']} com score {score:.4f} descartado (abaixo do threshold {similarity_threshold})")
             
             # Se não houver resultados após filtrar, tente busca por texto
             if not filtered_results:
-                logger.warning("Nenhum resultado acima do threshold de similaridade. Realizando fallback para busca por texto.")
+                logger.warning("[DIAGNÓSTICO QA] ✗ Nenhum resultado acima do threshold de similaridade. Realizando fallback para busca por texto.")
                 return self._text_search_fallback(query, feira_id, top_k)
             
             elapsed_time = time.time() - start_time
-            logger.info(f"✓ Pesquisa concluída em {elapsed_time:.2f} segundos com {len(filtered_results)} resultados acima do threshold")
+            logger.info(f"[DIAGNÓSTICO QA] ✓ Pesquisa semântica concluída em {elapsed_time:.2f} segundos com {len(filtered_results)} resultados acima do threshold")
             
             return filtered_results
             
         except Exception as e:
-            logger.error(f"Erro não tratado na pesquisa: {str(e)}. Realizando fallback para busca por texto.")
+            logger.error(f"[DIAGNÓSTICO QA] ✗ Erro não tratado na pesquisa: {str(e)}. Realizando fallback para busca por texto.")
             return self._text_search_fallback(query, feira_id, top_k)
     
     def _text_search_fallback(self, query: str, feira_id: Optional[int] = None, top_k: Optional[int] = None) -> List[Dict[str, Any]]:
@@ -155,7 +203,7 @@ class RetrievalService:
         Returns:
             Lista de pares QA relevantes com scores.
         """
-        logger.info(f"Iniciando busca por texto para query: '{query}'")
+        logger.info(f"[DIAGNÓSTICO FALLBACK] Iniciando busca por texto para query: '{query}'")
         
         if top_k is None:
             top_k = self.search_top_k
@@ -164,19 +212,23 @@ class RetrievalService:
         queryset = FeiraManualQA.objects.all()
         
         if feira_id:
-            logger.info(f"Filtrando por feira_id: {feira_id}")
+            logger.info(f"[DIAGNÓSTICO FALLBACK] Filtrando por feira_id: {feira_id}")
             queryset = queryset.filter(feira_id=feira_id)
         
-        logger.info(f"Aplicando filtros de texto na busca")
+        logger.info(f"[DIAGNÓSTICO FALLBACK] Aplicando filtros de texto na busca")
         queryset = queryset.filter(
             Q(question__icontains=query) |
             Q(answer__icontains=query) |
             Q(similar_questions__contains=query)
         )
         
+        # Contar resultados antes de limitar
+        total_encontrado = queryset.count()
+        logger.info(f"[DIAGNÓSTICO FALLBACK] Total de resultados encontrados: {total_encontrado}")
+        
         # Limitar resultados
         queryset = queryset[:top_k]
-        logger.info(f"✓ Busca por texto retornou {queryset.count()} resultados")
+        logger.info(f"[DIAGNÓSTICO FALLBACK] ✓ Busca por texto retornou {queryset.count()} resultados (limitados a top_k={top_k})")
         
         results = []
         for qa in queryset:
@@ -187,7 +239,7 @@ class RetrievalService:
             if query_lower in qa.answer.lower():
                 score += 0.2
                 
-            logger.info(f"✓ QA {qa.id} obteve score {score:.2f} na busca por texto")
+            logger.info(f"[DIAGNÓSTICO FALLBACK] ✓ QA {qa.id} obteve score {score:.2f} na busca por texto")
             
             result = {
                 'id': f"qa_{qa.id}",
@@ -204,7 +256,7 @@ class RetrievalService:
         
         # Ordenar por score
         results.sort(key=lambda x: x['score'], reverse=True)
-        logger.info(f"✓ Busca por texto concluída com {len(results)} resultados ordenados por relevância")
+        logger.info(f"[DIAGNÓSTICO FALLBACK] ✓ Busca por texto concluída com {len(results)} resultados ordenados por relevância")
         
         return results
 

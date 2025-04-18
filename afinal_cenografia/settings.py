@@ -2,11 +2,37 @@ from pathlib import Path
 import os
 import dj_database_url
 from dotenv import load_dotenv
+import sys
+
+# Debug para identificar problemas de logging
+print("=== INICIANDO CONFIGURAÇÃO DE LOGGING ===")
+print(f"Diretório de execução atual: {os.getcwd()}")
 
 # Carrega variáveis do arquivo .env
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+print(f"BASE_DIR: {BASE_DIR}")
+
+# Criar diretório de logs com notificação
+logs_dir = os.path.join(BASE_DIR, 'logs')
+print(f"Tentando criar diretório de logs em: {logs_dir}")
+try:
+    os.makedirs(logs_dir, exist_ok=True)
+    print(f"✓ Diretório de logs criado/verificado com sucesso: {logs_dir}")
+    print(f"  Permissões do diretório: {oct(os.stat(logs_dir).st_mode)[-3:]}")
+except Exception as e:
+    print(f"✗ ERRO ao criar diretório de logs: {str(e)}")
+
+# Tentar criar arquivo de teste para verificar permissões
+try:
+    test_log_path = os.path.join(logs_dir, 'test_write.log')
+    print(f"Tentando escrever arquivo de teste em: {test_log_path}")
+    with open(test_log_path, 'w') as f:
+        f.write('Teste de escrita de log - OK')
+    print(f"✓ Teste de escrita no diretório de logs bem-sucedido")
+except Exception as e:
+    print(f"✗ ERRO ao escrever arquivo de teste: {str(e)}")
 
 # Security
 SECRET_KEY = os.getenv('SECRET_KEY')
@@ -140,7 +166,32 @@ CSRF_TRUSTED_ORIGINS = ['https://afinal.spsystems.pro']
 # Default primary key
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Configuração de Logging
+# Configurações de logging - Versão mais direta para encontrar problemas
+print("Configurando sistema de logging...")
+
+# Verifica permissões no diretório de logs
+LOG_DEBUG_PATH = os.path.join(logs_dir, 'debug.log')
+LOG_DIAGNOSTIC_PATH = os.path.join(logs_dir, 'diagnostic.log')
+
+print(f"Arquivos de log que serão usados:")
+print(f" - Debug: {LOG_DEBUG_PATH}")
+print(f" - Diagnostic: {LOG_DIAGNOSTIC_PATH}")
+
+# Tenta escrever nos arquivos de log diretamente para testar permissões
+try:
+    with open(LOG_DEBUG_PATH, 'a') as f:
+        f.write('Teste de inicialização de log - debug.log\n')
+    print(f"✓ Teste de escrita em debug.log bem-sucedido")
+except Exception as e:
+    print(f"✗ ERRO ao escrever em debug.log: {str(e)}")
+
+try:
+    with open(LOG_DIAGNOSTIC_PATH, 'a') as f:
+        f.write('Teste de inicialização de log - diagnostic.log\n')
+    print(f"✓ Teste de escrita em diagnostic.log bem-sucedido")
+except Exception as e:
+    print(f"✗ ERRO ao escrever em diagnostic.log: {str(e)}")
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -149,36 +200,83 @@ LOGGING = {
             'format': '[{levelname}] {asctime} {module} {process:d} {thread:d} {message}',
             'style': '{',
         },
-        'simple': {
+        'diagnostic': {
             'format': '[{levelname}] {asctime} {message}',
             'style': '{',
+        },
+        'simple': {
+            'format': '[{levelname}] {message}',
+            'style': '{',
+        },
+    },
+    'filters': {
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
         },
     },
     'handlers': {
         'console': {
-            'level': 'DEBUG',  # Mostra todos os níveis no console
+            'level': 'DEBUG',
             'class': 'logging.StreamHandler',
-            'formatter': 'simple',
+            'formatter': 'diagnostic',
+            'stream': sys.stdout,
         },
         'file': {
-            'level': 'INFO',
+            'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
-            'formatter': 'verbose',
+            'filename': LOG_DEBUG_PATH,
+            'formatter': 'diagnostic',
+        },
+        'diagnostic_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': LOG_DIAGNOSTIC_PATH,
+            'formatter': 'diagnostic',
         },
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console', 'file'],  # Adicionado 'file' para capturar logs do Django
             'level': 'INFO',
             'propagate': True,
         },
-        'core': {
-            'handlers': ['console', 'file'],
-            'level': 'DEBUG',  # Mostra todos os níveis dos apps 'core'
+        'django.db.backends': {
+            'handlers': ['console', 'file'],  # Adicionado 'file' para capturar logs do DB
+            'level': 'INFO',
             'propagate': False,
         },
-        'projetos': {
+        'core': {
+            'handlers': ['console', 'diagnostic_file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'core.utils.pinecone_utils': {
+            'handlers': ['console', 'diagnostic_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'core.services.rag': {
+            'handlers': ['console', 'diagnostic_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'core.services.rag.embedding_service': {
+            'handlers': ['console', 'diagnostic_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'core.services.rag.retrieval_service': {
+            'handlers': ['console', 'diagnostic_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'core.services.rag.qa_service': {
+            'handlers': ['console', 'diagnostic_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        # Logger de diagnóstico para configuração
+        'django.setup': {
             'handlers': ['console', 'file'],
             'level': 'DEBUG',
             'propagate': False,
@@ -186,5 +284,9 @@ LOGGING = {
     },
 }
 
-# Criar diretório de logs se não existir
-os.makedirs(os.path.join(BASE_DIR, 'logs'), exist_ok=True)
+print("=== CONFIGURAÇÃO DE LOGGING CONCLUÍDA ===")
+
+# Teste final do sistema de logging - Isso escreve no console e deve escrever no arquivo
+import logging
+logger = logging.getLogger('django.setup')
+logger.info("Teste de log durante inicialização do Django")
