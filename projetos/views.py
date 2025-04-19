@@ -492,7 +492,6 @@ def validar_secao_briefing(briefing, secao):
             elif secao == 'dados_complementares':
                 briefing_data.update({
                     "referencias_dados": briefing.referencias_dados,
-                    "observacoes": briefing.observacoes,
                 })
             
             # Instrução para o validador

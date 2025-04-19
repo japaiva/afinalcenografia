@@ -206,8 +206,8 @@ def feira_progress(request, pk):
         qa_count = 0
         try:
             qa_count = FeiraManualQA.objects.filter(feira=feira).count()
-        except:
-            pass
+        except Exception as e:
+            logger.debug(f"Erro ao contar QAs para feira {pk}: {str(e)}")
         
         return JsonResponse({
             'success': True,
@@ -226,58 +226,11 @@ def feira_progress(request, pk):
             'error': 'Feira não encontrada'
         }, status=404)
     except Exception as e:
+        logger.error(f"Erro ao verificar progresso da feira {pk}: {str(e)}")
         return JsonResponse({
             'success': False, 
             'error': str(e)
         }, status=500)
-    
-@login_required
-def feira_progress(request, pk):
-    """
-    Retorna o progresso atual do processamento do manual da feira.
-    """
-    try:
-        feira = Feira.objects.get(pk=pk)
-        
-        # Contar chunks já processados
-        chunks_count = FeiraManualChunk.objects.filter(feira=feira).count()
-        
-        # Auto-correção: se temos chunks mas o status não está correto
-        if chunks_count > 0 and chunks_count == feira.chunks_total and not feira.chunks_processados:
-            if feira.chunks_processamento_status != 'processando':
-                feira.chunks_processados = True
-                feira.chunks_processamento_status = 'concluido'
-                feira.chunks_progresso = 100
-                feira.save(update_fields=['chunks_processados', 'chunks_processamento_status', 'chunks_progresso'])
-        
-        # Contar QAs para informação adicional
-        qa_count = 0
-        try:
-            qa_count = FeiraManualQA.objects.filter(feira=feira).count()
-        except:
-            pass
-        
-        return JsonResponse({
-            'success': True,
-            'progress': feira.chunks_progresso or 0,
-            'status': feira.chunks_processamento_status or 'pendente',
-            'message': feira.mensagem_erro if feira.mensagem_erro else None,
-            'processed': feira.chunks_processados or False,
-            'total_chunks': feira.chunks_total or 0,
-            'current_chunks': chunks_count,
-            'total_paginas': feira.total_paginas or 0,
-            'qa_count': qa_count  # Adicionar contagem de QA na resposta
-        })
-    except Feira.DoesNotExist:
-        return JsonResponse({
-            'success': False,
-            'error': 'Feira não encontrada'
-        }, status=404)
-    except Exception as e:
-        return JsonResponse({
-            'success': False, 
-            'error': str(e)
-        }, status=500)   
     
 @login_required
 def feira_detail(request, pk):
