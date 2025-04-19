@@ -42,17 +42,9 @@ from .projeto import (
 from .briefing import (
     briefing_etapa,
     salvar_rascunho_briefing,
-    validar_briefing,
     concluir_briefing,
     upload_arquivo_referencia,
     excluir_arquivo_referencia,
     ver_manual_feira,
-    enviar_mensagem_ia
-)
-
-# Importações do arquivo qa_briefing.py
-from .qa_briefing import (
-    briefing_vincular_feira,
-    briefing_responder_pergunta,
-    briefing_perguntar_feira
+    validar_briefing
 )

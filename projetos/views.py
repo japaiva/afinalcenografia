@@ -324,41 +324,6 @@ def upload_arquivo_referencia(request, projeto_id):
 
 @login_required
 @cliente_required
-def validar_briefing(request, projeto_id):
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Método não permitido'}, status=405)
-    
-    projeto = get_object_or_404(Projeto, pk=projeto_id, empresa=request.user.empresa)
-    briefing = get_object_or_404(Briefing, projeto=projeto)
-    
-    validar_secao_briefing(briefing, 'evento')
-    validar_secao_briefing(briefing, 'estande')
-    validar_secao_briefing(briefing, 'areas_estande')
-    validar_secao_briefing(briefing, 'dados_complementares')
-    
-    validacoes = BriefingValidacao.objects.filter(briefing=briefing)
-    todas_aprovadas = all(v.status == 'aprovado' for v in validacoes)
-    
-    if todas_aprovadas:
-        briefing.status = 'validado'
-        briefing.validado_por_ia = True
-        briefing.save()
-        
-        BriefingConversation.objects.create(
-            briefing=briefing,
-            mensagem="Parabéns! Seu briefing foi aprovado com sucesso. Você pode enviá-lo para a equipe de cenografia avaliar.",
-            origem='ia',
-            etapa=briefing.etapa_atual
-        )
-    
-    return JsonResponse({
-        'success': True,
-        'todas_aprovadas': todas_aprovadas,
-        'validacoes': {v.secao: v.status for v in validacoes}
-    })
-
-@login_required
-@cliente_required
 def concluir_briefing(request, projeto_id):
     projeto = get_object_or_404(Projeto, pk=projeto_id, empresa=request.user.empresa)
     briefing = get_object_or_404(Briefing, projeto=projeto)
@@ -657,3 +622,4 @@ def validar_secao_briefing(briefing, secao):
             origem='ia',
             etapa=briefing.etapa_atual
         )
+

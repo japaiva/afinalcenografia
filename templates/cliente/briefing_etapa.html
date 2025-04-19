@@ -90,16 +90,6 @@
                 <h5 class="alert-heading">Feira: {{ projeto.feira.nome }}</h5>
                 <p class="mb-1">Local: {{ projeto.feira.local }}, {{ projeto.feira.cidade }}/{{ projeto.feira.estado }}</p>
                 <p class="mb-1">Período: {{ projeto.feira.data_inicio|date:"d/m/Y" }} a {{ projeto.feira.data_fim|date:"d/m/Y" }}</p>
-                {% if projeto.feira.manual %}
-                <div class="mt-2">
-                  <a href="{{ projeto.feira.manual.url }}" class="btn btn-outline-primary btn-sm" target="_blank">
-                    <i class="fas fa-file-pdf me-1"></i> Manual da Feira
-                  </a>
-                  <button class="btn btn-outline-info btn-sm ms-1" data-bs-toggle="modal" data-bs-target="#feiraModal">
-                    <i class="fas fa-question-circle me-1"></i> Perguntar sobre a Feira
-                  </button>
-                </div>
-                {% endif %}
               </div>
             </div>
           </div>
@@ -1113,18 +1103,7 @@
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
       </div>
-      <div class="modal-body">
-        <form id="feiraForm" action="{% url 'cliente:briefing_perguntar_feira' briefing_id=briefing.id %}" method="post">
-          {% csrf_token %}
-          <div class="mb-3">
-            <label for="perguntaFeira" class="form-label">O que você gostaria de saber sobre a feira "{{ projeto.feira.nome }}"?</label>
-            <textarea class="form-control" id="perguntaFeiraTexto" name="pergunta" rows="3" placeholder="Ex: Quais são as limitações de altura para o estande? Preciso de alguma autorização especial?"></textarea>
-            <div class="form-text">
-              <i class="fas fa-info-circle me-1"></i> O assistente irá consultar o manual da feira para responder sua pergunta.
-            </div>
-          </div>
-        </form>
-      </div>
+
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
         <button type="submit" form="feiraForm" class="btn btn-primary">
