@@ -15,11 +15,8 @@ from projetos.forms import (
     BriefingArquivoReferenciaForm
 )
 
-from .ai_services import validar_briefing_com_ia, processar_mensagem_ia
+from projetos.views import validar_secao_briefing
 
-# views/briefing.py (adaptado - apenas para a função briefing_etapa)
-
-# views/briefing.py
 
 @login_required
 def briefing_etapa(request, projeto_id, etapa):
@@ -169,7 +166,7 @@ def salvar_rascunho_briefing(request, projeto_id):
 @require_POST
 def validar_briefing(request, projeto_id):
     """
-    View para validar o briefing usando IA
+    View para validar o briefing verificando todas as seções
     """
     # Obtém a empresa do usuário logado
     empresa = request.user.empresa
@@ -184,24 +181,48 @@ def validar_briefing(request, projeto_id):
     # Obtém o briefing
     briefing = projeto.briefing
     
-    # Valida o briefing usando IA
-    resultado = validar_briefing_com_ia(briefing)
+    # Valida cada seção individualmente para garantir que todas estão atualizadas
+    for secao in ['evento', 'estande', 'areas_estande', 'dados_complementares']:
+        validar_secao_briefing(briefing, secao)
     
-    if resultado['success']:
-        # Atualiza o status
-        briefing.status = 'validado' if resultado['is_valid'] else 'em_validacao'
-        briefing.validado_por_ia = resultado['is_valid']
+    # Verifica se todas as seções estão aprovadas
+    validacoes = briefing.validacoes.all()
+    todas_aprovadas = all(v.status == 'aprovado' for v in validacoes)
+    
+    # Atualiza o status do briefing com base nas validações
+    if todas_aprovadas:
+        briefing.status = 'validado'
+        briefing.validado_por_ia = True
         briefing.save(update_fields=['status', 'validado_por_ia'])
         
-        # Resposta de sucesso
-        return JsonResponse({
-            'success': True, 
-            'is_valid': resultado['is_valid'],
-            'message': 'Briefing validado com sucesso!' if resultado['is_valid'] else 'Briefing necessita de ajustes.'
-        })
+        # Adiciona mensagem de parabéns no chat
+        BriefingConversation.objects.create(
+            briefing=briefing,
+            mensagem="Parabéns! Seu briefing foi completamente validado. Você pode enviá-lo para a equipe de cenografia avaliar.",
+            origem='ia',
+            etapa=briefing.etapa_atual
+        )
+    else:
+        briefing.status = 'em_validacao'
+        briefing.validado_por_ia = False
+        briefing.save(update_fields=['status', 'validado_por_ia'])
+        
+        # Adiciona mensagem indicando ajustes necessários
+        BriefingConversation.objects.create(
+            briefing=briefing,
+            mensagem="Algumas seções do briefing ainda precisam de ajustes. Por favor, verifique os itens marcados em vermelho ou amarelo.",
+            origem='ia',
+            etapa=briefing.etapa_atual
+        )
     
-    # Caso ocorra algum erro na validação
-    return JsonResponse({'success': False, 'message': 'Erro ao validar o briefing. Tente novamente.'})
+    # Retorna o resultado da validação
+    return JsonResponse({
+        'success': True, 
+        'is_valid': todas_aprovadas,
+        'message': 'Briefing validado com sucesso!' if todas_aprovadas else 'Briefing necessita de ajustes.',
+        'validacoes': {v.secao: v.status for v in validacoes}
+    })
+
 
 @login_required
 def concluir_briefing(request, projeto_id):
@@ -336,67 +357,6 @@ def ver_manual_feira(request, projeto_id):
     }
     return render(request, 'briefing/ver_manual_feira.html', context)
 
-@login_required
-@require_POST
-def enviar_mensagem_ia(request, projeto_id):
-    """
-    View para enviar mensagem ao assistente IA e obter resposta
-    """
-    # Obtém a empresa do usuário logado
-    empresa = request.user.empresa
-    
-    # Obtém o projeto e verifica se pertence à mesma empresa
-    projeto = get_object_or_404(Projeto, pk=projeto_id, empresa=empresa)
-    
-    # Verifica se o projeto tem um briefing associado
-    if not projeto.has_briefing:
-        return JsonResponse({'success': False, 'message': 'Este projeto não possui um briefing iniciado.'})
-    
-    # Obtém o briefing
-    briefing = projeto.briefing
-    
-    # Obtém a mensagem e a etapa atual
-    mensagem = request.POST.get('mensagem', '')
-    etapa = int(request.POST.get('etapa', briefing.etapa_atual))
-    
-    if not mensagem:
-        return JsonResponse({'success': False, 'message': 'Mensagem não fornecida.'})
-    
-    # Salva a mensagem do cliente
-    conversa_cliente = BriefingConversation.objects.create(
-        briefing=briefing,
-        mensagem=mensagem,
-        origem='cliente',
-        etapa=etapa
-    )
-    
-    # Processa a mensagem com a IA
-    resposta = processar_mensagem_ia(briefing, mensagem, etapa)
-    
-    # Salva a resposta da IA
-    conversa_ia = BriefingConversation.objects.create(
-        briefing=briefing,
-        mensagem=resposta['mensagem'],
-        origem='ia',
-        etapa=etapa
-    )
-    
-    # Retorna a resposta para o cliente
-    return JsonResponse({
-        'success': True,
-        'mensagem_cliente': {
-            'id': conversa_cliente.id,
-            'texto': conversa_cliente.mensagem,
-            'timestamp': conversa_cliente.timestamp.strftime('%H:%M')
-        },
-        'mensagem_ia': {
-            'id': conversa_ia.id,
-            'texto': conversa_ia.mensagem,
-            'timestamp': conversa_ia.timestamp.strftime('%H:%M')
-        }
-    })
-
-# cliente/views/briefing.py
 
 @login_required
 @cliente_required
