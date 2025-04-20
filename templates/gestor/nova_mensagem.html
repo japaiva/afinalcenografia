@@ -1,0 +1,82 @@
+{% extends 'gestor/base_gestor.html' %}
+{% load static %}
+
+{% block title %}Nova Mensagem | Portal do Gestor{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-header bg-dark text-white">
+    <h5 class="mb-0">
+      <i class="fas fa-paper-plane me-2"></i> Nova Mensagem
+    </h5>
+  </div>
+  
+  <div class="card-body">
+    <form method="post" enctype="multipart/form-data" action="{% url 'gestor:nova_mensagem' %}">
+      {% csrf_token %}
+      
+      <div class="mb-3">
+        <label for="projetoSelect" class="form-label">Projeto</label>
+        <select class="form-select" id="projetoSelect" name="projeto" required>
+          <option value="" selected disabled>Selecione um projeto...</option>
+          {% for projeto in projetos %}
+            <option value="{{ projeto.id }}">{{ projeto.nome }} - {{ projeto.cliente.empresa.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      
+      <div class="mb-3">
+        <label for="mensagemTextarea" class="form-label">Mensagem</label>
+        <textarea class="form-control" id="mensagemTextarea" name="mensagem" rows="5" placeholder="Digite sua mensagem..." required></textarea>
+      </div>
+      
+      <div class="mb-3">
+        <label class="form-label">Anexos</label>
+        <div class="input-group mb-3">
+          <input type="file" class="form-control" id="anexoInput" name="anexos" multiple>
+          <label class="input-group-text" for="anexoInput">Selecionar</label>
+        </div>
+        <div id="anexosPreview" class="mt-2"></div>
+        <div class="form-text">Você pode selecionar múltiplos arquivos.</div>
+      </div>
+      
+      <div class="text-end">
+        <a href="{% url 'gestor:mensagens' %}" class="btn btn-secondary me-2">Cancelar</a>
+        <button type="submit" class="btn btn-primary">Enviar Mensagem</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Preview de anexos
+    const anexoInput = document.getElementById('anexoInput');
+    const anexosPreview = document.getElementById('anexosPreview');
+    
+    if (anexoInput && anexosPreview) {
+      anexoInput.addEventListener('change', function() {
+        anexosPreview.innerHTML = '';
+        
+        Array.from(this.files).forEach(file => {
+          const fileItem = document.createElement('div');
+          fileItem.className = 'alert alert-info alert-dismissible fade show py-2 mb-1';
+          fileItem.innerHTML = `
+            <i class="fas fa-paperclip me-2"></i>
+            ${file.name} (${formatFileSize(file.size)})
+            <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="Fechar"></button>
+          `;
+          anexosPreview.appendChild(fileItem);
+        });
+      });
+    }
+    
+    // Função para formatar o tamanho do arquivo
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' bytes';
+      else if (bytes < 1048576) return Math.round(bytes / 1024) + ' KB';
+      else return Math.round(bytes / 1048576 * 10) / 10 + ' MB';
+    }
+  });
+</script>
+{% endblock %}

@@ -76,7 +76,9 @@
   <a class="nav-link dropdown-toggle {% if 'mensagem' in request.resolver_match.url_name %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
      Mensagens 
     <!-- Badge para notificações não lidas -->
-    <span class="badge rounded-pill bg-danger" style="font-size: 0.7rem; position: relative; top: -1px;">3</span>
+    {% if user.mensagens_nao_lidas > 0 %}
+    <span class="badge rounded-pill bg-danger" style="font-size: 0.7rem; position: relative; top: -1px;">{{ user.mensagens_nao_lidas }}</span>
+    {% endif %}
   </a>
   <ul class="dropdown-menu dropdown-menu-dark">
     <li><a class="dropdown-item" href="{% url 'gestor:mensagens' %}">
@@ -85,24 +87,7 @@
     <li><a class="dropdown-item" href="{% url 'gestor:nova_mensagem' %}">
         Nova Mensagem
     </a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><h6 class="dropdown-header">Mensagens Recentes</h6></li>
-    <li>
-      <a class="dropdown-item d-flex align-items-center" href="#">
-        <div class="flex-shrink-0">
-          <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
-            <span class="text-white" style="font-size: 0.8rem;">PR</span>
-          </div>
-        </div>
-        <div class="ms-2 text-truncate" style="max-width: 200px;">
-          <div class="small fw-bold">Projeto Evento Corporativo</div>
-          <div class="text-light small">João Silva: Precisamos ajustar...</div>
-        </div>
-      </a>
-    </li>
   </ul>
 </li>
-
-
 
 {% endblock %}

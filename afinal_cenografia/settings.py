@@ -1,3 +1,5 @@
+# settings.py
+
 from pathlib import Path
 import os
 import dj_database_url
@@ -99,6 +101,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'afinal_cenografia.middleware.MensagensNotificacaoMiddleware',
 ]
 
 ROOT_URLCONF = 'afinal_cenografia.urls'

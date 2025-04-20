@@ -37,6 +37,9 @@ from .projeto import (
     excluir_arquivo, mensagens, nova_mensagem, mensagens_projeto
 )
 
+# Importe as views de mensagens
+from .mensagens import mensagens, nova_mensagem, mensagens_projeto
+
 __all__ = [
     # Base
     'GestorLoginView', 'home', 'empresa_list', 'empresa_create', 'empresa_update',
@@ -58,6 +61,9 @@ __all__ = [
     # Feira RAG
     'briefing_vincular_feira', 'briefing_responder_pergunta', 'feira_reset_data_confirm', 
     'feira_reset_data', 'feira_search_unified',
+
+    # Mensagens
+    'mensagem', 'nova_mensagem', 'mensagens_projeto',
     
     # Feira Chunks
     'feira_blocos_list', 'feira_chunk_get', 'feira_chunk_update', 'feira_chunk_delete', 
