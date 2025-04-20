@@ -1,3 +1,5 @@
+#cliente/urls.py
+
 from django.urls import path
 from projetos import views as projeto_views
 from cliente.views.briefing import validar_briefing

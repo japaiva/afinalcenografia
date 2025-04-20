@@ -1,3 +1,5 @@
+#core/models.py
+
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
@@ -340,3 +342,46 @@ class Agente(models.Model):
         db_table = 'agentes'
         verbose_name = 'Agente'
         verbose_name_plural = 'Agentes'
+
+# Em core/models.py
+from django.db import models
+from django.conf import settings
+from core.storage import MinioStorage
+
+class Mensagem(models.Model):
+    projeto = models.ForeignKey('projetos.Projeto', on_delete=models.CASCADE, related_name='mensagens')
+    # Usando a forma simplificada de referência
+    remetente = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='mensagens_enviadas')
+    destinatario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, 
+                                     related_name='mensagens_recebidas', null=True, blank=True)
+    conteudo = models.TextField()
+    data_envio = models.DateTimeField(auto_now_add=True)
+    lida = models.BooleanField(default=False)
+    destacada = models.BooleanField(default=False)
+    
+    class Meta:
+        ordering = ['-data_envio']
+        verbose_name = 'Mensagem'
+        verbose_name_plural = 'Mensagens'
+    
+    def __str__(self):
+        return f"Mensagem de {self.remetente} - {self.data_envio.strftime('%d/%m/%Y %H:%M')}"
+    
+    def marcar_como_lida(self):
+        self.lida = True
+        self.save(update_fields=['lida'])
+
+class AnexoMensagem(models.Model):
+    mensagem = models.ForeignKey(Mensagem, on_delete=models.CASCADE, related_name='anexos')
+    arquivo = models.FileField(upload_to='mensagens/anexos/', storage=MinioStorage())
+    nome_original = models.CharField(max_length=255)
+    tipo_arquivo = models.CharField(max_length=100, blank=True, null=True)
+    tamanho = models.PositiveIntegerField(default=0)  # Tamanho em bytes
+    data_upload = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.nome_original
+    
+    class Meta:
+        verbose_name = 'Anexo de Mensagem'
+        verbose_name_plural = 'Anexos de Mensagens'

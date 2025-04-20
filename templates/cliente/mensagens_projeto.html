@@ -1,0 +1,287 @@
+{% extends 'cliente/base_cliente.html' %}
+
+{% block title %}Mensagens: {{ projeto.nome }} | Portal do Cliente | Afinal Cenografia{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">
+      <i class="fas fa-comment me-2"></i> Mensagens: {{ projeto.nome }}
+    </h5>
+    <div>
+      <a href="{% url 'cliente:projeto_detail' pk=projeto.pk %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-eye me-1"></i> Voltar ao Projeto
+      </a>
+    </div>
+  </div>
+  
+  <div class="card-body p-0">
+    <!-- Barra de informações do projeto (compacta) -->
+    <div class="bg-light border-bottom p-3">
+      <div class="row align-items-center">
+        <div class="col-md-6">
+          <div class="d-flex align-items-center">
+            <div class="
+              {% if 'corporativo' in projeto.requisitos|lower %}bg-primary
+              {% elif 'social' in projeto.requisitos|lower %}bg-purple
+              {% elif 'tv' in projeto.requisitos|lower %}bg-success
+              {% elif 'varejo' in projeto.requisitos|lower %}bg-danger
+              {% elif 'teatro' in projeto.requisitos|lower %}bg-warning
+              {% else %}bg-secondary{% endif %}
+              rounded-circle d-flex align-items-center justify-content-center text-white me-3" 
+              style="width: 48px; height: 48px; font-size: 1rem;">
+              <i class="fas 
+              {% if 'corporativo' in projeto.requisitos|lower %}fa-building
+              {% elif 'social' in projeto.requisitos|lower %}fa-glass-cheers
+              {% elif 'tv' in projeto.requisitos|lower %}fa-theater-masks
+              {% elif 'varejo' in projeto.requisitos|lower %}fa-store
+              {% elif 'teatro' in projeto.requisitos|lower %}fa-theater-masks
+              {% else %}fa-project-diagram{% endif %}"></i>
+            </div>
+            <div>
+              <h6 class="fw-bold mb-0">{{ projeto.nome }}</h6>
+              <div class="text-muted">
+                Empresa: {{ projeto.empresa.nome }}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="d-flex flex-wrap gap-2 justify-content-end">
+            <span class="badge 
+              {% if projeto.status == 'pendente' %}bg-info
+              {% elif projeto.status == 'ativo' %}bg-primary
+              {% elif projeto.status == 'pausado' %}bg-warning text-dark
+              {% elif projeto.status == 'concluido' %}bg-success
+              {% elif projeto.status == 'cancelado' %}bg-danger
+              {% else %}bg-secondary{% endif %}">
+              {{ projeto.get_status_display }}
+            </span>
+            
+            {% if projeto.tem_briefing %}
+            <span class="badge 
+              {% if projeto.briefing_status == 'nao_iniciado' %}bg-secondary
+              {% elif projeto.briefing_status == 'em_andamento' %}bg-primary
+              {% elif projeto.briefing_status == 'enviado' %}bg-info
+              {% elif projeto.briefing_status == 'aprovado' %}bg-success
+              {% elif projeto.briefing_status == 'reprovado' %}bg-danger
+              {% else %}bg-secondary{% endif %}">
+              Briefing: {{ projeto.get_briefing_status_display }}
+            </span>
+            {% endif %}
+            
+            {% if projeto.prazo_entrega %}
+            <span class="badge bg-dark">
+              Prazo: {{ projeto.prazo_entrega|date:"d/m/Y" }}
+            </span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Área de mensagens -->
+    <div class="chat-container p-4" style="height: 500px; overflow-y: auto;" id="chat-container">
+      {% if mensagens %}
+        {% for mensagem in mensagens %}
+          <div class="chat-message {% if mensagem.remetente == request.user %}cliente-message{% else %}gestor-message{% endif %} mb-4">
+            <div class="d-flex align-items-center mb-2">
+              {% if mensagem.remetente != request.user %}
+                <div class="bg-dark rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                  {{ mensagem.remetente.get_full_name|default:mensagem.remetente.username|slice:":1"|upper }}
+                </div>
+                <span class="ms-2 fw-medium">{{ mensagem.remetente.get_full_name|default:mensagem.remetente.username }}</span>
+              {% else %}
+                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                  {{ mensagem.remetente.get_full_name|default:mensagem.remetente.username|slice:":1"|upper }}
+                </div>
+                <span class="ms-2 fw-medium">Você</span>
+              {% endif %}
+              <small class="text-muted ms-auto">{{ mensagem.data_envio|date:"d/m H:i" }}</small>
+            </div>
+            
+            <div class="chat-bubble {% if mensagem.remetente == request.user %}cliente-bubble{% else %}gestor-bubble{% endif %}">
+              {{ mensagem.conteudo|linebreaks }}
+              
+              {% if mensagem.anexos.exists %}
+              <div class="mt-2">
+                {% for anexo in mensagem.anexos.all %}
+                <div class="bg-light rounded p-2 border mb-1">
+                  <i class="fas 
+                    {% if 'pdf' in anexo.tipo_arquivo %}fa-file-pdf text-danger
+                    {% elif 'image' in anexo.tipo_arquivo %}fa-file-image text-primary
+                    {% elif 'word' in anexo.tipo_arquivo %}fa-file-word text-primary
+                    {% elif 'excel' in anexo.tipo_arquivo %}fa-file-excel text-success
+                    {% elif 'zip' in anexo.tipo_arquivo %}fa-file-archive text-warning
+                    {% else %}fa-file text-secondary
+                    {% endif %} me-2"></i>
+                  <span>{{ anexo.nome_original }}</span>
+                  <a href="{{ anexo.arquivo.url }}" class="btn btn-sm btn-link p-0 ms-2" download="{{ anexo.nome_original }}">
+                    <i class="fas fa-download"></i>
+                  </a>
+                </div>
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="text-center py-5">
+          <div class="mb-3">
+            <i class="fas fa-comments fa-3x text-muted"></i>
+          </div>
+          <h5>Nenhuma mensagem disponível</h5>
+          <p class="text-muted">Inicie uma conversa sobre este projeto.</p>
+        </div>
+      {% endif %}
+    </div>
+    
+    <!-- Formulário para enviar mensagens -->
+    <div class="border-top p-3">
+      <form id="mensagemForm" method="post" action="{% url 'cliente:mensagens_projeto' projeto_id=projeto.id %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="row">
+          <div class="col-12">
+            <div class="input-group">
+              <button class="btn btn-outline-secondary" type="button" id="anexoBotao">
+                <i class="fas fa-paperclip"></i>
+                <input type="file" name="anexos" multiple style="display: none;" id="anexoInput">
+              </button>
+              <textarea class="form-control" name="mensagem" id="mensagemInput" rows="2" placeholder="Digite sua mensagem..." required style="resize: none;"></textarea>
+              <button class="btn btn-primary px-4" type="submit">
+                <i class="fas fa-paper-plane"></i>
+              </button>
+            </div>
+            <div id="anexosPreview" class="mt-2"></div>
+            <div class="form-text text-end">
+              <small class="text-muted">Pressione Enter para enviar ou Shift+Enter para quebrar linha</small>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Estilos para a interface de chat */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-message {
+  max-width: 80%;
+  margin-bottom: 15px;
+}
+
+.cliente-message {
+  align-self: flex-end;
+}
+
+.gestor-message {
+  align-self: flex-start;
+}
+
+.chat-bubble {
+  padding: 12px 18px;
+  border-radius: 18px;
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.cliente-bubble {
+  background-color: #e9f3ff;
+  border: 1px solid #cce5ff;
+  border-bottom-right-radius: 5px;
+}
+
+.gestor-bubble {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-bottom-left-radius: 5px;
+}
+
+/* Garante que as mensagens sejam exibidas corretamente em telas pequenas */
+@media (max-width: 768px) {
+  .chat-message {
+    max-width: 95%;
+  }
+}
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Scroll para o fim do chat ao carregar
+    const chatContainer = document.getElementById('chat-container');
+    if (chatContainer) {
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+    
+    // Anexos
+    const anexoBotao = document.getElementById('anexoBotao');
+    const anexoInput = document.getElementById('anexoInput');
+    const anexosPreview = document.getElementById('anexosPreview');
+    
+    if (anexoBotao && anexoInput) {
+      anexoBotao.addEventListener('click', function() {
+        anexoInput.click();
+      });
+      
+      anexoInput.addEventListener('change', function() {
+        anexosPreview.innerHTML = '';
+        
+        Array.from(this.files).forEach(file => {
+          const fileItem = document.createElement('div');
+          fileItem.className = 'alert alert-info alert-dismissible fade show py-2 mb-1';
+          fileItem.innerHTML = `
+            <i class="fas fa-paperclip me-2"></i>
+            ${file.name} (${formatFileSize(file.size)})
+            <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="Fechar"></button>
+          `;
+          anexosPreview.appendChild(fileItem);
+        });
+      });
+    }
+    
+    // Formulário de mensagem
+    const mensagemForm = document.getElementById('mensagemForm');
+    const mensagemInput = document.getElementById('mensagemInput');
+    
+    if (mensagemForm && mensagemInput) {
+      // Envio do formulário
+      mensagemForm.addEventListener('submit', function() {
+        const submitButton = this.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        setTimeout(() => { submitButton.disabled = false; }, 1000);
+      });
+      
+      // Permitir Enter para enviar, Shift+Enter para quebrar linha
+      mensagemInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          mensagemForm.submit();
+        }
+      });
+      
+      // Auto-resize do textarea
+      mensagemInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+      });
+      
+      // Foco no campo de mensagem ao carregar
+      mensagemInput.focus();
+    }
+    
+    // Função para formatar o tamanho do arquivo
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' bytes';
+      else if (bytes < 1048576) return Math.round(bytes / 1024) + ' KB';
+      else return Math.round(bytes / 1048576 * 10) / 10 + ' MB';
+    }
+  });
+</script>
+{% endblock %}

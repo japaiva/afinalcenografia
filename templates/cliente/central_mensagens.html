@@ -10,9 +10,9 @@
       <i class="fas fa-comments me-2"></i> Central de Mensagens
     </h5>
     <div>
-      <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#novaMensagemModal">
+      <a href="{% url 'cliente:nova_mensagem' %}" class="btn btn-sm btn-primary">
         <i class="fas fa-plus me-1"></i> Nova Mensagem
-      </button>
+      </a>
       <div class="btn-group ms-2">
         <button class="btn btn-sm btn-outline-light active">Todas</button>
         <button class="btn btn-sm btn-outline-light">Não lidas</button>
@@ -36,211 +36,282 @@
             </div>
           </div>
           
-          <!-- Conversa ativa -->
-          <a href="#" class="list-group-item list-group-item-action active py-3">
-            <div class="d-flex w-100 align-items-center">
-              <div class="flex-shrink-0">
-                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
-                  <span class="text-white">SE</span>
+          {% if conversas %}
+            {% for conversa in conversas %}
+              <!-- Conversa -->
+              <a href="{% url 'cliente:mensagens_projeto' projeto_id=conversa.id %}" 
+                 class="list-group-item list-group-item-action py-3 {% if projeto_atual and projeto_atual.id == conversa.id %}active{% endif %}">
+                <div class="d-flex w-100 align-items-center">
+                  <div class="flex-shrink-0">
+                    <div class="{% if projeto_atual and projeto_atual.id == conversa.id %}bg-primary{% else %}bg-secondary{% endif %} rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                      <span class="text-white">{{ conversa.nome|slice:":2"|upper }}</span>
+                    </div>
+                  </div>
+                  <div class="ms-3 flex-grow-1">
+                    <div class="d-flex w-100 justify-content-between">
+                      <h6 class="mb-1">{{ conversa.nome }}</h6>
+                      <small>
+                        {% if conversa.ultima_mensagem.date == today_date %}
+                          {{ conversa.ultima_mensagem|time:"H:i" }}
+                        {% elif conversa.ultima_mensagem.date == yesterday_date %}
+                          Ontem
+                        {% else %}
+                          {{ conversa.ultima_mensagem|date:"d/m/Y" }}
+                        {% endif %}
+                      </small>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                      <span class="text-truncate" style="max-width: 150px;">
+                        {% with ultima=conversa.mensagens.last %}
+                          {% if ultima %}
+                            {% if ultima.remetente == request.user %}
+                              Você: {{ ultima.conteudo|truncatechars:20 }}
+                            {% else %}
+                              {{ ultima.remetente.first_name|default:ultima.remetente.username }}: {{ ultima.conteudo|truncatechars:20 }}
+                            {% endif %}
+                          {% else %}
+                            Sem mensagens
+                          {% endif %}
+                        {% endwith %}
+                      </span>
+                      {% if conversa.mensagens_nao_lidas > 0 %}
+                        <span class="badge rounded-pill bg-danger">{{ conversa.mensagens_nao_lidas }}</span>
+                      {% endif %}
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div class="ms-3 flex-grow-1">
-                <div class="d-flex w-100 justify-content-between">
-                  <h6 class="mb-1">Stand Expo 2025</h6>
-                  <small>10:30</small>
-                </div>
-                <div class="d-flex justify-content-between">
-                  <span class="text-truncate" style="max-width: 150px;">Afinal Cenografia: Recebemos seu...</span>
-                  <span class="badge rounded-pill bg-danger">2</span>
-                </div>
-              </div>
+              </a>
+            {% endfor %}
+          {% else %}
+            <div class="p-4 text-center text-muted">
+              <i class="fas fa-inbox fa-3x mb-3"></i>
+              <p>Você ainda não possui conversas.</p>
+              <a href="{% url 'cliente:nova_mensagem' %}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus me-1"></i> Iniciar Nova Conversa
+              </a>
             </div>
-          </a>
+          {% endif %}
           
-          <!-- Outras conversas -->
-          <a href="#" class="list-group-item list-group-item-action py-3">
-            <div class="d-flex w-100 align-items-center">
-              <div class="flex-shrink-0">
-                <div class="bg-success rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
-                  <span class="text-white">QS</span>
-                </div>
-              </div>
-              <div class="ms-3 flex-grow-1">
-                <div class="d-flex w-100 justify-content-between">
-                  <h6 class="mb-1">Quiosque Shopping</h6>
-                  <small>Ontem</small>
-                </div>
-                <div class="text-muted text-truncate" style="max-width: 200px;">Você: Confirmamos o recebimento...</div>
-              </div>
-            </div>
-          </a>
         </div>
       </div>
       
       <!-- Área de Mensagens -->
       <div class="col-md-8">
-        <div class="d-flex flex-column h-100">
-          <!-- Cabeçalho da conversa -->
-          <div class="p-3 border-bottom bg-light">
-            <div class="d-flex justify-content-between align-items-center">
-              <div class="d-flex align-items-center">
-                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
-                  <span class="text-white">SE</span>
-                </div>
-                <div class="ms-3">
-                  <h5 class="mb-0">Stand Expo 2025</h5>
-                  <div class="text-muted small">
-                    <span class="badge bg-success me-1">Ativo</span>
-                    <span>Última atualização: Hoje, 10:30</span>
+        {% if projeto_atual %}
+          <div class="d-flex flex-column h-100">
+            <!-- Cabeçalho da conversa -->
+            <div class="p-3 border-bottom bg-light">
+              <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                  <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                    <span class="text-white">{{ projeto_atual.nome|slice:":2"|upper }}</span>
+                  </div>
+                  <div class="ms-3">
+                    <h5 class="mb-0">{{ projeto_atual.nome }}</h5>
+                    <div class="text-muted small">
+                      <span class="badge bg-success me-1">Ativo</span>
+                      <span>Última atualização: 
+                        {% with ultima=projeto_atual.mensagens.last %}
+                          {% if ultima %}
+                            {% if ultima.data_envio.date == today_date %}
+                              Hoje, {{ ultima.data_envio|time:"H:i" }}
+                            {% elif ultima.data_envio.date == yesterday_date %}
+                              Ontem, {{ ultima.data_envio|time:"H:i" }}
+                            {% else %}
+                              {{ ultima.data_envio|date:"d/m/Y H:i" }}
+                            {% endif %}
+                          {% else %}
+                            Nenhuma mensagem
+                          {% endif %}
+                        {% endwith %}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div>
-                <button class="btn btn-outline-secondary btn-sm">
-                  <i class="fas fa-file-alt me-1"></i> Ver Projeto
-                </button>
-                <button class="btn btn-outline-secondary btn-sm ms-1" data-bs-toggle="dropdown">
-                  <i class="fas fa-ellipsis-v"></i>
-                </button>
-                <div class="dropdown-menu dropdown-menu-end">
-                  <a class="dropdown-item" href="#"><i class="fas fa-paperclip me-2"></i> Ver Arquivos</a>
-                  <a class="dropdown-item" href="#"><i class="fas fa-star me-2"></i> Marcar como Importante</a>
-                  <a class="dropdown-item" href="#"><i class="fas fa-archive me-2"></i> Arquivar Conversa</a>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Mensagens -->
-          <div class="flex-grow-1 p-3 overflow-auto" style="max-height: 55vh;">
-            <!-- Data -->
-            <div class="text-center my-3">
-              <span class="badge bg-secondary text-white">Hoje, 01 de Abril, 2025</span>
-            </div>
-            
-            <!-- Mensagem enviada -->
-            <div class="d-flex justify-content-end mb-3">
-              <div class="me-2">
-                <div class="bg-primary text-white rounded p-3" style="max-width: 80%;">
-                  <div class="d-flex justify-content-between align-items-center mb-1">
-                    <span class="fw-bold">Você</span>
-                    <small class="text-white-50">10:15</small>
+                <div>
+                  <a href="{% url 'cliente:projeto_detail' pk=projeto_atual.id %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-file-alt me-1"></i> Ver Projeto
+                  </a>
+                  <button class="btn btn-outline-secondary btn-sm ms-1" data-bs-toggle="dropdown">
+                    <i class="fas fa-ellipsis-v"></i>
+                  </button>
+                  <div class="dropdown-menu dropdown-menu-end">
+                    <a class="dropdown-item" href="#"><i class="fas fa-paperclip me-2"></i> Ver Arquivos</a>
+                    <a class="dropdown-item" href="#"><i class="fas fa-star me-2"></i> Marcar como Importante</a>
+                    <a class="dropdown-item" href="#"><i class="fas fa-archive me-2"></i> Arquivar Conversa</a>
                   </div>
-                  <p class="mb-0">Bom dia! Precisamos ajustar alguns detalhes no projeto do stand. Principalmente na questão da iluminação e dos materiais a serem utilizados.</p>
-                </div>
-                <div class="bg-primary text-white rounded p-3 mt-2" style="max-width: 80%;">
-                  <div class="d-flex justify-content-between align-items-center mb-1">
-                    <span class="fw-bold">Você</span>
-                    <small class="text-white-50">10:16</small>
-                  </div>
-                  <p class="mb-0">O cliente solicitou uma mudança na paleta de cores. Segue em anexo as novas especificações.</p>
-                  <div class="mt-2 bg-light rounded p-2 border text-dark">
-                    <i class="fas fa-file-pdf text-danger me-2"></i>
-                    <span>novas_especificacoes_stand.pdf</span>
-                    <button class="btn btn-sm btn-link p-0 ms-2">
-                      <i class="fas fa-download"></i>
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div class="flex-shrink-0">
-                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                  <span class="text-white">SE</span>
                 </div>
               </div>
             </div>
             
-            <!-- Mensagem recebida -->
-            <div class="d-flex mb-3">
-              <div class="flex-shrink-0">
-                <div class="bg-dark rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                  <span class="text-white">AC</span>
-                </div>
-              </div>
-              <div class="ms-2">
-                <div class="bg-light rounded p-3" style="max-width: 80%;">
-                  <div class="d-flex justify-content-between align-items-center mb-1">
-                    <span class="fw-bold">Afinal Cenografia</span>
-                    <small class="text-muted">10:20</small>
+            <!-- Mensagens -->
+            <div class="flex-grow-1 p-3 overflow-auto" style="max-height: 55vh;" id="mensagensContainer">
+              {% if mensagens %}
+                {% with last_date=None %}
+                  {% for mensagem in mensagens %}
+                    {% if last_date != mensagem.data_envio.date %}
+                      <!-- Data -->
+                      <div class="text-center my-3">
+                        <span class="badge bg-secondary text-white">
+                          {% if mensagem.data_envio.date == today_date %}
+                            Hoje, {{ mensagem.data_envio|date:"d" }} de {{ mensagem.data_envio|date:"F" }}, {{ mensagem.data_envio|date:"Y" }}
+                          {% elif mensagem.data_envio.date == yesterday_date %}
+                            Ontem, {{ mensagem.data_envio|date:"d" }} de {{ mensagem.data_envio|date:"F" }}, {{ mensagem.data_envio|date:"Y" }}
+                          {% else %}
+                            {{ mensagem.data_envio|date:"d" }} de {{ mensagem.data_envio|date:"F" }}, {{ mensagem.data_envio|date:"Y" }}
+                          {% endif %}
+                        </span>
+                      </div>
+                      {% with last_date=mensagem.data_envio.date %}{% endwith %}
+                    {% endif %}
+                    
+                    {% if mensagem.remetente == request.user %}
+                      <!-- Mensagem enviada -->
+                      <div class="d-flex justify-content-end mb-3">
+                        <div class="me-2">
+                          <div class="bg-primary text-white rounded p-3" style="max-width: 80%;">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                              <span class="fw-bold">Você</span>
+                              <small class="text-white-50">{{ mensagem.data_envio|time:"H:i" }}</small>
+                            </div>
+                            <p class="mb-0">{{ mensagem.conteudo|linebreaksbr }}</p>
+                            
+                            {% if mensagem.anexos.all %}
+                              <div class="mt-2">
+                                {% for anexo in mensagem.anexos.all %}
+                                  <div class="bg-light rounded p-2 border text-dark mb-1">
+                                    <i class="fas fa-paperclip me-2"></i>
+                                    <span>{{ anexo.nome_original }}</span>
+                                    <a href="{{ anexo.arquivo.url }}" class="btn btn-sm btn-link p-0 ms-2" download>
+                                      <i class="fas fa-download"></i>
+                                    </a>
+                                  </div>
+                                {% endfor %}
+                              </div>
+                            {% endif %}
+                          </div>
+                        </div>
+                        <div class="flex-shrink-0">
+                          <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            <span class="text-white">{{ request.user.first_name|slice:":1"|upper }}{{ request.user.last_name|slice:":1"|upper|default:"U" }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    {% else %}
+                      <!-- Mensagem recebida -->
+                      <div class="d-flex mb-3">
+                        <div class="flex-shrink-0">
+                          <div class="bg-dark rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            <span class="text-white">{{ mensagem.remetente.first_name|slice:":1"|upper }}{{ mensagem.remetente.last_name|slice:":1"|upper|default:"A" }}</span>
+                          </div>
+                        </div>
+                        <div class="ms-2">
+                          <div class="bg-light rounded p-3" style="max-width: 80%;">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                              <span class="fw-bold">{{ mensagem.remetente.first_name }} {{ mensagem.remetente.last_name }}</span>
+                              <small class="text-muted">{{ mensagem.data_envio|time:"H:i" }}</small>
+                            </div>
+                            <p class="mb-0">{{ mensagem.conteudo|linebreaksbr }}</p>
+                            
+                            {% if mensagem.anexos.all %}
+                              <div class="mt-2">
+                                {% for anexo in mensagem.anexos.all %}
+                                  <div class="bg-light rounded p-2 border text-dark mb-1">
+                                    <i class="fas fa-paperclip me-2"></i>
+                                    <span>{{ anexo.nome_original }}</span>
+                                    <a href="{{ anexo.arquivo.url }}" class="btn btn-sm btn-link p-0 ms-2" download>
+                                      <i class="fas fa-download"></i>
+                                    </a>
+                                  </div>
+                                {% endfor %}
+                              </div>
+                            {% endif %}
+                          </div>
+                        </div>
+                      </div>
+                    {% endif %}
+                  {% endfor %}
+                {% endwith %}
+              {% else %}
+                {% if projeto_atual %}
+                  <div class="text-center my-5 py-5">
+                    <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">Ainda não existem mensagens nesta conversa.</p>
+                    <p class="text-muted">Envie uma mensagem para iniciar!</p>
                   </div>
-                  <p class="mb-0">Bom dia! Recebido o material. Vamos analisar as mudanças solicitadas e retornamos em breve com um parecer técnico sobre as alterações.</p>
-                </div>
-              </div>
+                {% endif %}
+              {% endif %}
             </div>
             
-            <!-- Mensagem enviada -->
-            <div class="d-flex justify-content-end mb-3">
-              <div class="me-2">
-                <div class="bg-primary text-white rounded p-3" style="max-width: 80%;">
-                  <div class="d-flex justify-content-between align-items-center mb-1">
-                    <span class="fw-bold">Você</span>
-                    <small class="text-white-50">10:30</small>
-                  </div>
-                  <p class="mb-0">Perfeito! O cliente está com certa urgência, se possível precisamos dessas informações até amanhã. Podemos agendar uma chamada para discutir os detalhes às 15h?</p>
+            <!-- Área de input -->
+            <div class="p-3 border-top">
+              <form method="post" enctype="multipart/form-data" action="{% url 'cliente:mensagens_projeto' projeto_id=projeto_atual.id %}">
+                {% csrf_token %}
+                <div class="input-group">
+                  <label for="anexosInput" class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Anexar arquivo">
+                    <i class="fas fa-paperclip"></i>
+                    <input type="file" id="anexosInput" name="anexos" multiple style="display: none;">
+                  </label>
+                  <input type="text" class="form-control" name="mensagem" placeholder="Digite sua mensagem..." required>
+                  <button class="btn btn-primary" type="submit">
+                    <i class="fas fa-paper-plane"></i>
+                  </button>
                 </div>
-              </div>
-              <div class="flex-shrink-0">
-                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                  <span class="text-white">SE</span>
-                </div>
-              </div>
+                <div id="anexosPreview" class="mt-2"></div>
+              </form>
             </div>
           </div>
-          
-          <!-- Área de input -->
-          <div class="p-3 border-top">
-            <form>
-              <div class="input-group">
-                <button class="btn btn-outline-secondary" type="button" data-bs-toggle="tooltip" title="Anexar arquivo">
-                  <i class="fas fa-paperclip"></i>
-                </button>
-                <input type="text" class="form-control" placeholder="Digite sua mensagem...">
-                <button class="btn btn-primary" type="button">
-                  <i class="fas fa-paper-plane"></i>
-                </button>
-              </div>
-            </form>
+        {% else %}
+          <!-- Nenhum projeto selecionado -->
+          <div class="d-flex flex-column justify-content-center align-items-center h-100 text-center p-4">
+            <i class="fas fa-comments fa-4x text-muted mb-3"></i>
+            <h4>Central de Mensagens</h4>
+            <p class="text-muted">Selecione uma conversa ou inicie uma nova para começar a enviar mensagens.</p>
+            <a href="{% url 'cliente:nova_mensagem' %}" class="btn btn-primary mt-2">
+              <i class="fas fa-plus me-1"></i> Nova Mensagem
+            </a>
           </div>
-        </div>
+        {% endif %}
       </div>
     </div>
   </div>
 </div>
 
-<!-- Modal Nova Mensagem -->
-<div class="modal fade" id="novaMensagemModal" tabindex="-1" aria-labelledby="novaMensagemModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="novaMensagemModalLabel"><i class="fas fa-paper-plane me-2"></i> Nova Mensagem</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-      </div>
-      <div class="modal-body">
-        <div class="mb-3">
-          <label for="projetoSelect" class="form-label">Projeto</label>
-          <select class="form-select" id="projetoSelect" required>
-            <option value="" selected disabled>Selecione um projeto...</option>
-            <option value="1">Stand Expo 2025</option>
-            <option value="2">Quiosque Shopping</option>
-          </select>
-        </div>
-        <div class="mb-3">
-          <label for="mensagemTextarea" class="form-label">Mensagem</label>
-          <textarea class="form-control" id="mensagemTextarea" rows="5" placeholder="Digite sua mensagem..." required></textarea>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Anexos</label>
-          <div class="input-group mb-3">
-            <input type="file" class="form-control" id="anexoInput">
-            <label class="input-group-text" for="anexoInput">Selecionar</label>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-primary">Enviar Mensagem</button>
-      </div>
-    </div>
-  </div>
-</div>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Scroll para a última mensagem
+    const mensagensContainer = document.getElementById('mensagensContainer');
+    if (mensagensContainer) {
+      mensagensContainer.scrollTop = mensagensContainer.scrollHeight;
+    }
+    
+    // Preview de anexos
+    const anexosInput = document.getElementById('anexosInput');
+    const anexosPreview = document.getElementById('anexosPreview');
+    
+    if (anexosInput && anexosPreview) {
+      anexosInput.addEventListener('change', function() {
+        anexosPreview.innerHTML = '';
+        
+        Array.from(this.files).forEach(file => {
+          const fileItem = document.createElement('div');
+          fileItem.className = 'alert alert-info alert-dismissible fade show py-2 mb-1';
+          fileItem.innerHTML = `
+            <i class="fas fa-paperclip me-2"></i>
+            ${file.name} (${formatFileSize(file.size)})
+            <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="Fechar"></button>
+          `;
+          anexosPreview.appendChild(fileItem);
+        });
+      });
+    }
+    
+    // Função para formatar o tamanho do arquivo
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' bytes';
+      else if (bytes < 1048576) return Math.round(bytes / 1024) + ' KB';
+      else return Math.round(bytes / 1048576 * 10) / 10 + ' MB';
+    }
+  });
+</script>
 {% endblock %}

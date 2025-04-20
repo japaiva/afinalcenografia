@@ -1,0 +1,42 @@
+version: '3.8'
+services:
+  afinalcenografia:
+    image: joseantoniopaiva/afinal-cenografia:latest
+    networks:
+      - interna
+      - externa
+    volumes:
+      - static_volume:/app/static
+      - media_volume:/app/media
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=postgresql://postgres:Sps2025pos@191.101.234.50:5432/Afinal
+      - SECRET_KEY=57ko_+3vyne-ckb#fws_c+38_p2pi&806xa91c@ziefo_^cl!g
+      - DEBUG=False
+      - ALLOWED_HOSTS=afinal.spsystems.pro,localhost,127.0.0.1
+      
+      # Configuração MinIO para django-storages (S3Boto3Storage)
+      - AWS_ACCESS_KEY_ID=admin
+      - AWS_SECRET_ACCESS_KEY=Sps2025min
+      - AWS_STORAGE_BUCKET_NAME=afinalusers
+      - AWS_S3_ENDPOINT_URL=https://s3.spsystems.pro
+      
+    # Comando para produção usando gunicorn
+    command: gunicorn --bind 0.0.0.0:8000 afinal_cenografia.wsgi:application
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.afinal-django.rule=Host(`afinal.spsystems.pro`)"
+        - "traefik.http.routers.afinal-django.entrypoints=websecure"
+        - "traefik.http.routers.afinal-django.tls.certresolver=le"
+        - "traefik.http.routers.afinal-django.tls=true"
+        - "traefik.http.services.afinal-django.loadbalancer.server.port=8000"
+        - "traefik.http.services.afinal-django.loadbalancer.passHostHeader=true"
+volumes:
+  static_volume:
+  media_volume:
+networks:
+  externa:
+    external: true
+  interna:
+    external: true

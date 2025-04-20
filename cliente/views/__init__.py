@@ -38,6 +38,9 @@ from .projeto import (
     verificar_manual_feira
 )
 
+# Importe as views de mensagens
+from .mensagens import mensagens, nova_mensagem, mensagens_projeto
+
 # Importações do arquivo briefing.py
 from .briefing import (
     briefing_etapa,
