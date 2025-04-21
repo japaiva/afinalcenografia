@@ -24,3 +24,25 @@ class MensagensNotificacaoMiddleware:
             request.user.mensagens_nao_lidas = mensagens_nao_lidas
         
         return response
+    
+class AppContextMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Detectar o contexto da aplicação com base na URL
+        path = request.path
+        
+        # Determinar o contexto baseado no caminho da URL
+        if '/gestor/' in path:
+            request.session['app_context'] = 'gestor'
+        elif '/cliente/' in path:
+            request.session['app_context'] = 'cliente'
+        elif '/projetista/' in path:
+            request.session['app_context'] = 'projetista'
+        elif '/admin/' in path:
+            request.session['app_context'] = 'admin'
+        # Não alterar o contexto se não estiver em uma URL específica
+        
+        response = self.get_response(request)
+        return response

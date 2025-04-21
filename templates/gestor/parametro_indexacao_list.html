@@ -8,9 +8,14 @@
     <h5 class="card-title mb-0">
       <i class="fas fa-cogs me-2"></i> Parâmetros de Indexação
     </h5>
-    <a href="{% url 'gestor:parametro_indexacao_create' %}" class="btn btn-primary btn-sm">
-      <i class="fas fa-plus me-1"></i> Novo Parâmetro
-    </a>
+    <div>
+      <a href="{% url 'gestor:parametro_indexacao_create' %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-plus me-1"></i> Novo Parâmetro
+      </a>
+      <a href="{% url 'gestor:dashboard' %}" class="btn btn-outline-secondary btn-sm me-2">
+        <i class="fas fa-arrow-left me-1"></i> Voltar
+      </a>
+    </div>
   </div>
   
   <div class="card-header bg-white">

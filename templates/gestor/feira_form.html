@@ -3,218 +3,219 @@
 {% block title %}{% if form.instance.pk %}Editar{% else %}Nova{% endif %} Feira | Portal do Gestor | Afinal Cenografia{% endblock %}
 
 {% block content %}
-
-<div class="card shadow"> <div class="card-header bg-light"> <h5 class="card-title mb-0"> <i class="fas {% if form.instance.pk %}fa-edit{% else %}fa-plus-circle{% endif %} me-2"></i> {% if form.instance.pk %}Editar{% else %}Nova{% endif %} Feira </h5> </div> <div class="card-body"> <form method="post" enctype="multipart/form-data"> {% csrf_token %}
-
-
-  {% if form.non_field_errors %}
-    <div class="alert alert-danger">
-      {% for error in form.non_field_errors %}
-        <p class="mb-0">{{ error }}</p>
-      {% endfor %}
-    </div>
-  {% endif %}
+<div class="card shadow">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">
+      <i class="fas {% if form.instance.pk %}fa-edit{% else %}fa-plus-circle{% endif %} me-2"></i>
+      {% if form.instance.pk %}Editar{% else %}Nova{% endif %} Feira
+    </h5>
+    <a href="{% url 'gestor:feira_list' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i> Voltar
+    </a>
+  </div>
   
-  <!-- Bloco Feira -->
-  <div class="card shadow mt-4">
-    <div class="card-header bg-light">
-      <h5 class="card-title mb-0">
-        <i class="fas fa-calendar-alt me-2"></i>
-        Informações da Feira
-      </h5>
-    </div>
-    <div class="card-body">
-      <div class="row g-3">
-        <div class="col-md-6">
-          <label for="{{ form.nome.id_for_label }}" class="form-label">Nome da Feira*</label>
-          {{ form.nome }}
-          {% if form.nome.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.nome.errors %}{{ error }}{% endfor %}
-            </div>
-          {% endif %}
-        </div>
-        
-        <div class="col-md-6">
-          <label for="{{ form.local.id_for_label }}" class="form-label">Local/Centro de Exposições*</label>
-          {{ form.local }}
-          {% if form.local.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.local.errors %}{{ error }}{% endfor %}
-            </div>
-          {% endif %}
-        </div>
-        
-        <div class="col-md-6">
-          <label for="{{ form.cidade.id_for_label }}" class="form-label">Cidade*</label>
-          {{ form.cidade }}
-          {% if form.cidade.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.cidade.errors %}{{ error }}{% endfor %}
-            </div>
-          {% endif %}
-        </div>
-        
-        <div class="col-md-6">
-          <label for="{{ form.estado.id_for_label }}" class="form-label">UF*</label>
-          {{ form.estado }}
-          {% if form.estado.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.estado.errors %}{{ error }}{% endfor %}
-            </div>
-          {% endif %}
-        </div>
-        
-        <div class="col-md-6">
-          <label for="{{ form.data_inicio.id_for_label }}" class="form-label">Data de Início*</label>
-          {{ form.data_inicio }}
-          {% if form.data_inicio.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.data_inicio.errors %}{{ error }}{% endfor %}
-            </div>
-          {% endif %}
-        </div>
-        
-        <div class="col-md-6">
-          <label for="{{ form.data_fim.id_for_label }}" class="form-label">Data de Término*</label>
-          {{ form.data_fim }}
-          {% if form.data_fim.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.data_fim.errors %}{{ error }}{% endfor %}
-            </div>
-          {% endif %}
-        </div>
-        
-        <div class="col-md-6">
-          <label for="{{ form.website.id_for_label }}" class="form-label">Website</label>
-          {{ form.website }}
-          {% if form.website.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.website.errors %}{{ error }}{% endfor %}
-            </div>
-          {% endif %}
-        </div>
-        
-        <div class="col-12">
-          <div class="form-check form-switch mt-2">
-            {{ form.ativa }}
-            <label class="form-check-label" for="{{ form.ativa.id_for_label }}">Feira Ativa</label>
-          </div>
-          {% if form.ativa.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.ativa.errors %}{{ error }}{% endfor %}
-            </div>
-          {% endif %}
-          <div class="form-text">
-            Apenas feiras ativas aparecem nas listas de seleção para novos projetos.
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <div class="card-body">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
 
-  <!-- Bloco Organização -->
-  <div class="card shadow mt-4">
-    <div class="card-header bg-light">
-      <h5 class="card-title mb-0">
-        <i class="fas fa-users me-2"></i>
-        Informações do Contato
-      </h5>
-    </div>
-    <div class="card-body">
-      <div class="row g-3">
-        <div class="col-md-6">
-          <label for="{{ form.contato_organizacao.id_for_label }}" class="form-label">Nome</label>
-          {{ form.contato_organizacao }}
-          {% if form.contato_organizacao.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.contato_organizacao.errors %}{{ error }}{% endfor %}
-            </div>
-          {% endif %}
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+          {% for error in form.non_field_errors %}
+            <p class="mb-0">{{ error }}</p>
+          {% endfor %}
         </div>
-        
-        <div class="col-md-6">
-          <label for="{{ form.email_organizacao.id_for_label }}" class="form-label">Email</label>
-          {{ form.email_organizacao }}
-          {% if form.email_organizacao.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.email_organizacao.errors %}{{ error }}{% endfor %}
-            </div>
-          {% endif %}
-        </div>
-        
-        <div class="col-md-6">
-          <label for="{{ form.telefone_organizacao.id_for_label }}" class="form-label">Telefone</label>
-          {{ form.telefone_organizacao }}
-          {% if form.telefone_organizacao.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.telefone_organizacao.errors %}{{ error }}{% endfor %}
-            </div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Manual da Feira (mantido como estava originalmente) -->
-  <div class="card shadow mt-4">
-    <div class="card-header bg-light">
-      <h5 class="card-title mb-0">
-        <i class="fas fa-file-pdf me-2"></i>
-        Manual da Feira*
-      </h5>
-    </div>
-    <div class="card-body">
-      <div class="row">
-        <div class="col-12">
-          {{ form.manual }}
-          {% if form.manual.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.manual.errors %}{{ error }}{% endfor %}
-            </div>
-          {% endif %}
-          {% if form.instance.manual %}
-            <div class="mt-3">
-              <p class="mb-1">Manual atual:</p>
-              <div class="d-flex align-items-center">
-                <a href="{{ form.instance.manual.url }}" target="_blank" class="btn btn-outline-info">
-                  <i class="fas fa-file-pdf me-1"></i> Visualizar Manual Atual
-                </a>
-                {% if form.instance.manual_processado %}
-                  <span class="badge bg-success ms-3">Processado</span>
-                {% else %}
-                  <span class="badge bg-warning text-dark ms-3">Processando</span>
-                {% endif %}
-              </div>
-              <div class="form-text mt-2">
-                <i class="fas fa-info-circle me-1"></i> Fazer upload de um novo arquivo substituirá o manual atual e iniciará um novo processamento.
-              </div>
-            </div>
-          {% endif %}
-        </div>
-      </div>
-      
-      {% if form.instance.pk %}
-      <div class="alert alert-info mt-3 mb-0">
-        <i class="fas fa-info-circle me-2"></i> 
-        <strong>Nota:</strong> Ao fazer upload de um novo manual, o sistema irá processá-lo automaticamente em segundo plano. Isso pode levar alguns minutos dependendo do tamanho do arquivo.
-      </div>
       {% endif %}
-    </div>
-  </div>
+      
+      <!-- Bloco Feira -->
+      <div class="card shadow mt-4">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-calendar-alt me-2"></i>
+            Informações da Feira
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="{{ form.nome.id_for_label }}" class="form-label">Nome da Feira*</label>
+              {{ form.nome }}
+              {% if form.nome.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.nome.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+            
+            <div class="col-md-6">
+              <label for="{{ form.local.id_for_label }}" class="form-label">Local/Centro de Exposições*</label>
+              {{ form.local }}
+              {% if form.local.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.local.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+            
+            <div class="col-md-6">
+              <label for="{{ form.cidade.id_for_label }}" class="form-label">Cidade*</label>
+              {{ form.cidade }}
+              {% if form.cidade.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.cidade.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+            
+            <div class="col-md-6">
+              <label for="{{ form.estado.id_for_label }}" class="form-label">UF*</label>
+              {{ form.estado }}
+              {% if form.estado.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.estado.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+            
+            <div class="col-md-6">
+              <label for="{{ form.data_inicio.id_for_label }}" class="form-label">Data de Início*</label>
+              {{ form.data_inicio }}
+              {% if form.data_inicio.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.data_inicio.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+            
+            <div class="col-md-6">
+              <label for="{{ form.data_fim.id_for_label }}" class="form-label">Data de Término*</label>
+              {{ form.data_fim }}
+              {% if form.data_fim.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.data_fim.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+            
+            <div class="col-md-6">
+              <label for="{{ form.website.id_for_label }}" class="form-label">Website</label>
+              {{ form.website }}
+              {% if form.website.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.website.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+            
+            <div class="col-12">
+              <div class="form-check form-switch mt-2">
+                {{ form.ativa }}
+                <label class="form-check-label" for="{{ form.ativa.id_for_label }}">Feira Ativa</label>
+              </div>
+              {% if form.ativa.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.ativa.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+              <div class="form-text">
+                Apenas feiras ativas aparecem nas listas de seleção para novos projetos.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-  <!-- Botões de ação -->
-  <div class="card shadow mt-4">
-    <div class="card-body py-3">
-      <div class="d-flex justify-content-between">
-        <a href="{% url 'gestor:feira_list' %}" class="btn btn-outline-secondary">
-          <i class="fas fa-arrow-left me-1"></i> Voltar
-        </a>
+      <!-- Bloco Organização -->
+      <div class="card shadow mt-4">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-users me-2"></i>
+            Informações do Contato
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="{{ form.contato_organizacao.id_for_label }}" class="form-label">Nome</label>
+              {{ form.contato_organizacao }}
+              {% if form.contato_organizacao.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.contato_organizacao.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+            
+            <div class="col-md-6">
+              <label for="{{ form.email_organizacao.id_for_label }}" class="form-label">Email</label>
+              {{ form.email_organizacao }}
+              {% if form.email_organizacao.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.email_organizacao.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+            
+            <div class="col-md-6">
+              <label for="{{ form.telefone_organizacao.id_for_label }}" class="form-label">Telefone</label>
+              {{ form.telefone_organizacao }}
+              {% if form.telefone_organizacao.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.telefone_organizacao.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual da Feira (com a remoção da indicação de processado) -->
+      <div class="card shadow mt-4">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-file-pdf me-2"></i>
+            Manual da Feira*
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-12">
+              {{ form.manual }}
+              {% if form.manual.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.manual.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+              {% if form.instance.manual %}
+                <div class="mt-3">
+                  <p class="mb-1">Manual atual:</p>
+                  <div class="d-flex align-items-center">
+                    <a href="{{ form.instance.manual.url }}" target="_blank" class="btn btn-outline-info">
+                      <i class="fas fa-file-pdf me-1"></i> Visualizar Manual Atual
+                    </a>
+                  </div>
+                  <div class="form-text mt-2">
+                    <i class="fas fa-info-circle me-1"></i> Fazer upload de um novo arquivo substituirá o manual atual.
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+          
+          {% if form.instance.pk %}
+          <div class="alert alert-info mt-3 mb-0">
+            <i class="fas fa-info-circle me-2"></i> 
+            <strong>Nota:</strong> Ao fazer upload de um novo manual, o sistema irá processá-lo automaticamente em segundo plano. Isso pode levar alguns minutos dependendo do tamanho do arquivo.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Botões de ação -->
+      <div class="d-flex justify-content-end mt-4">
         <button type="submit" class="btn btn-primary">
           <i class="fas fa-save me-1"></i> Salvar
         </button>
       </div>
-    </div>
+    </form>
   </div>
-</form>
-</div> </div> {% endblock %}
+</div>
+{% endblock %}

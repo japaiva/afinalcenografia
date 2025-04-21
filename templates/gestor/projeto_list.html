@@ -1,6 +1,6 @@
 {% extends 'gestor/base_gestor.html' %}
 
-{% block title %}Projetos | Portal do Gestor | Afinal Cenografia{% endblock %}
+{% block title %}Projetos | Portal do Gestor{% endblock %}
 
 {% block content %}
 <div class="card shadow">
@@ -8,160 +8,208 @@
     <h5 class="card-title mb-0">
       <i class="fas fa-project-diagram me-2"></i> Projetos
     </h5>
-    <div>
-      <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#filtroModal">
-        <i class="fas fa-filter me-1"></i> Filtros
-      </button>
-      <a href="{% url 'gestor:dashboard' %}" class="btn btn-outline-secondary btn-sm ms-2">
-        <i class="fas fa-arrow-left me-1"></i> Voltar
-      </a>
-    </div>
+    <a href="{% url 'gestor:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i> Voltar
+    </a>
   </div>
   
+  <!-- Filtros -->
+  <div class="card-header bg-white">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label small">Empresa</label>
+        <select name="empresa" class="form-select form-select-sm">
+          <option value="">Todas as Empresas</option>
+          {% for empresa in empresas %}
+          <option value="{{ empresa.id }}" {% if empresa_escolhida == empresa.id|stringformat:"s" %}selected{% endif %}>
+            {{ empresa.nome }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      
+      <div class="col-md-3">
+        <label class="form-label small">Feira</label>
+        <select name="feira" class="form-select form-select-sm">
+          <option value="">Todas as Feiras</option>
+          {% for feira in feiras %}
+          <option value="{{ feira.id }}" {% if feira_escolhida == feira.id|stringformat:"s" %}selected{% endif %}>
+            {{ feira.nome }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      
+      <div class="col-md-3">
+        <label class="form-label small">Status</label>
+        <select name="status" class="form-select form-select-sm">
+          <option value="">Todos os Status</option>
+          {% for status_value, status_label in status_choices %}
+          <option value="{{ status_value }}" {% if status_escolhido == status_value %}selected{% endif %}>
+            {{ status_label }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      
+      <div class="col-md-3">
+        <label class="form-label small">Busca</label>
+        <div class="input-group input-group-sm">
+          <input type="text" name="search" class="form-control" placeholder="Buscar..." value="{{ search_query|default:'' }}">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-search"></i>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+  
+  <!-- Lista de Projetos -->
   <div class="card-body">
-    <!-- Resumo de filtros ativos -->
-    <div class="d-flex flex-wrap gap-2 mb-3">
-      <span class="badge bg-light text-dark p-2">
-        Status: <strong>{% if status_escolhido %}{{ status_escolhido|title }}{% else %}Todos{% endif %}</strong>
-        {% if status_escolhido %}
-        <a href="{% url 'gestor:projeto_list' %}{% if empresa_escolhida %}?empresa={{ empresa_escolhida }}{% endif %}" class="text-decoration-none">
-          <button class="btn-close btn-close-sm ms-1" style="font-size: 0.5rem;"></button>
-        </a>
-        {% endif %}
-      </span>
-      <span class="badge bg-light text-dark p-2">
-        Empresa: <strong>{% if empresa_escolhida %}{{ empresas|dictsort:"id"|dictsortreversed:"-id"|first }}{% else %}Todas{% endif %}</strong>
-        {% if empresa_escolhida %}
-        <a href="{% url 'gestor:projeto_list' %}{% if status_escolhido %}?status={{ status_escolhido }}{% endif %}" class="text-decoration-none">
-          <button class="btn-close btn-close-sm ms-1" style="font-size: 0.5rem;"></button>
-        </a>
-        {% endif %}
-      </span>
-    </div>
-
-    <!-- Tabela de projetos -->
     <div class="table-responsive">
       <table class="table table-hover align-middle">
         <thead class="table-light">
           <tr>
-            <th scope="col" style="width: 50px;">#</th>
-            <th scope="col">Projeto</th>
-            <th scope="col">Cliente</th>
+            <th scope="col">Número</th>
+            <th scope="col">Empresa</th>
+            <th scope="col">Feira</th>
             <th scope="col">Status</th>
-            <th scope="col">Data Criação</th>
-            <th scope="col">Projetista</th>
-            <th scope="col" style="width: 150px;">Ações</th>
+            <th scope="col">Briefing</th>
+            <th scope="col">Aprovação</th>
+            <th scope="col">Entrega</th>
+            <th scope="col" class="text-end">Ações</th>
           </tr>
         </thead>
         <tbody>
           {% for projeto in projetos %}
           <tr>
-            <td>{{ forloop.counter }}</td>
+            <td>{{ projeto.numero }}</td>
             <td>
-              <div class="d-flex align-items-center">
-                <div class="
-                  {% if 'corporativo' in projeto.requisitos|lower or 'corporativo' in projeto.nome|lower %}bg-primary
-                  {% elif 'social' in projeto.requisitos|lower or 'casamento' in projeto.nome|lower %}bg-purple
-                  {% elif 'tv' in projeto.requisitos|lower or 'televisão' in projeto.nome|lower %}bg-success
-                  {% elif 'varejo' in projeto.requisitos|lower or 'loja' in projeto.nome|lower %}bg-danger
-                  {% elif 'teatro' in projeto.requisitos|lower %}bg-warning
-                  {% else %}bg-secondary{% endif %}
-                  rounded-circle d-flex align-items-center justify-content-center text-white" 
-                  style="width: 36px; height: 36px; font-size: 0.8rem; {% if 'casamento' in projeto.nome|lower %}background-color: #8557e6;{% endif %}">
-                  <i class="fas 
-                  {% if 'corporativo' in projeto.requisitos|lower or 'corporativo' in projeto.nome|lower %}fa-building
-                  {% elif 'social' in projeto.requisitos|lower or 'casamento' in projeto.nome|lower %}fa-glass-cheers
-                  {% elif 'tv' in projeto.requisitos|lower or 'televisão' in projeto.nome|lower %}fa-theater-masks
-                  {% elif 'varejo' in projeto.requisitos|lower or 'loja' in projeto.nome|lower %}fa-store
-                  {% elif 'teatro' in projeto.requisitos|lower %}fa-theater-masks
-                  {% else %}fa-project-diagram{% endif %}"></i>
-                </div>
-                <div class="ms-2">
-                  <div class="fw-bold">{{ projeto.nome }}</div>
-                  <div class="small text-muted">
-                    {% if 'corporativo' in projeto.requisitos|lower %}Evento Corporativo
-                    {% elif 'social' in projeto.requisitos|lower or 'casamento' in projeto.nome|lower %}Evento Social
-                    {% elif 'tv' in projeto.requisitos|lower %}Televisão
-                    {% elif 'varejo' in projeto.requisitos|lower or 'loja' in projeto.nome|lower %}Varejo
-                    {% elif 'teatro' in projeto.requisitos|lower %}Teatro
-                    {% else %}Outro{% endif %}
-                  </div>
-                </div>
-              </div>
+              <span class="badge bg-secondary">{{ projeto.empresa.nome }}</span>
             </td>
             <td>
-              <div class="d-flex align-items-center">
-                <div class="
-                  {% cycle 'bg-info' 'bg-warning' 'bg-secondary' 'bg-primary' 'bg-danger' %}
-                  rounded-circle d-flex align-items-center justify-content-center text-white" 
-                  style="width: 30px; height: 30px; font-size: 0.8rem;">
-                  {{ projeto.empresa.nome|slice:":2"|upper }}
-                </div>
-                <span class="ms-2">{{ projeto.empresa.nome }}</span>
-              </div>
+              {% if projeto.feira %}
+                {{ projeto.feira.nome }}
+              {% else %}
+                <span class="text-muted">Não definida</span>
+              {% endif %}
             </td>
             <td>
               <span class="badge 
-                {% if projeto.status == 'pendente' %}bg-info
-                {% elif projeto.status == 'ativo' %}bg-primary
-                {% elif projeto.status == 'pausado' %}bg-warning text-dark
-                {% elif projeto.status == 'concluido' %}bg-success
+                {% if projeto.status == 'briefing_pendente' %}bg-info
+                {% elif projeto.status == 'briefing_validado' %}bg-success
+                {% elif projeto.status == 'briefing_enviado' %}bg-info
+                {% elif projeto.status == 'projeto_em_desenvolvimento' %}bg-primary
+                {% elif projeto.status == 'projeto_enviado' %}bg-info
+                {% elif projeto.status == 'projeto_em_analise' %}bg-warning text-dark
+                {% elif projeto.status == 'projeto_aprovado' %}bg-success
+                {% elif projeto.status == 'em_producao' %}bg-danger
+                {% elif projeto.status == 'concluido' %}bg-secondary
                 {% elif projeto.status == 'cancelado' %}bg-danger
                 {% else %}bg-secondary{% endif %}">
                 {{ projeto.get_status_display }}
               </span>
-              {% if projeto.briefing_status == 'enviado' %}
-              <span class="badge bg-warning text-dark ms-1">Briefing Enviado</span>
-              {% endif %}
             </td>
-            <td>{{ projeto.created_at|date:"d/m/Y" }}</td>
             <td>
-              {% if projeto.projetista %}
-                {{ projeto.projetista.get_full_name|default:projeto.projetista.username }}
+              {% if projeto.data_briefing %}
+                {{ projeto.data_briefing|date:"d/m/Y" }}
               {% else %}
-                <span class="text-muted">Não atribuído</span>
+                <span class="text-muted">-</span>
               {% endif %}
             </td>
             <td>
+              {% if projeto.data_aprovacao %}
+                {{ projeto.data_aprovacao|date:"d/m/Y" }}
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if projeto.data_entrega %}
+                {{ projeto.data_entrega|date:"d/m/Y" }}
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
               <div class="btn-group">
                 <a href="{% url 'gestor:projeto_detail' pk=projeto.pk %}" class="btn btn-sm btn-outline-primary">
                   <i class="fas fa-eye"></i>
                 </a>
-                <a href="{% url 'gestor:mensagens_projeto' projeto_id=projeto.id %}" class="btn btn-sm btn-outline-success">
+
+                
+                <a href="{% url 'gestor:mensagens_projeto' projeto_id=projeto.id %}" class="btn btn-sm btn-outline-info">
                   <i class="fas fa-comment"></i>
-                  {% if projeto.briefing_status == 'enviado' %}
-                  <span class="badge bg-danger position-absolute" style="top: -5px; right: -5px; font-size: 0.6rem;">!</span>
-                  {% endif %}
                 </a>
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                
+                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
                   <i class="fas fa-ellipsis-v"></i>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
-                  <li><a class="dropdown-item" href="{% url 'gestor:projeto_detail' pk=projeto.pk %}"><i class="fas fa-edit me-2"></i> Editar</a></li>
-                  {% if projeto.projetista %}
-                  <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#alterarProjetistaModal" data-projeto-id="{{ projeto.id }}" data-projeto-nome="{{ projeto.nome }}"><i class="fas fa-user-edit me-2"></i> Alterar Projetista</a></li>
-                  {% else %}
-                  <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#alterarProjetistaModal" data-projeto-id="{{ projeto.id }}" data-projeto-nome="{{ projeto.nome }}"><i class="fas fa-user-plus me-2"></i> Atribuir Projetista</a></li>
+                  <li><a class="dropdown-item" href="{% url 'gestor:projeto_detail' pk=projeto.pk %}">
+                    <i class="fas fa-eye me-2"></i> Ver Detalhes
+                  </a></li>
+                  
+                  {% if projeto.has_briefing %}
+                  <li><a class="dropdown-item" href="{% url 'gestor:ver_briefing' projeto_id=projeto.id %}">
+                    <i class="fas fa-clipboard-list me-2"></i> Ver Briefing
+                  </a></li>
                   {% endif %}
+                  
+                  <li><a class="dropdown-item" href="{% url 'gestor:mensagens_projeto' projeto_id=projeto.id %}">
+                    <i class="fas fa-comment me-2"></i> Mensagens
+                  </a></li>
+                  
                   <li><hr class="dropdown-divider"></li>
-                  <li>
-                    <form action="{% url 'gestor:projeto_alterar_status' pk=projeto.pk %}" method="post" style="display: inline;">
-                      {% csrf_token %}
-                      <input type="hidden" name="status" value="cancelado">
-                      <button type="submit" class="dropdown-item text-danger"><i class="fas fa-trash me-2"></i> Cancelar Projeto</button>
-                    </form>
-                  </li>
+                  
+                  <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#alterarStatusModal{{ projeto.id }}">
+                    <i class="fas fa-exchange-alt me-2"></i> Alterar Status
+                  </a></li>
                 </ul>
+              </div>
+              
+              <!-- Modal para alterar status -->
+              <div class="modal fade" id="alterarStatusModal{{ projeto.id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">Alterar Status do Projeto #{{ projeto.numero }}</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <form action="{% url 'gestor:projeto_alterar_status' pk=projeto.pk %}" method="post">
+                      {% csrf_token %}
+                      <div class="modal-body">
+                        <div class="mb-3">
+                          <label class="form-label">Novo Status</label>
+                          <select name="status" class="form-select">
+                            {% for status_value, status_label in status_choices %}
+                            <option value="{{ status_value }}" {% if projeto.status == status_value %}selected{% endif %}>
+                              {{ status_label }}
+                            </option>
+                            {% endfor %}
+                          </select>
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label">Observação</label>
+                          <textarea name="observacao" class="form-control" rows="3" placeholder="Opcional"></textarea>
+                        </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
               </div>
             </td>
           </tr>
           {% empty %}
           <tr>
-            <td colspan="7" class="text-center py-4">
+            <td colspan="8" class="text-center py-4">
               <div class="text-muted">
-                <i class="fas fa-search fa-2x mb-3"></i>
+                <i class="fas fa-folder-open fa-2x mb-3"></i>
                 <p>Nenhum projeto encontrado.</p>
-                <p class="small">Tente ajustar os filtros ou criar um novo projeto.</p>
               </div>
             </td>
           </tr>
@@ -169,205 +217,49 @@
         </tbody>
       </table>
     </div>
-    
-    <!-- Paginação -->
-    {% if projetos.paginator.num_pages > 1 %}
-    <nav aria-label="Paginação de projetos">
-      <ul class="pagination justify-content-center mt-4">
+  </div>
+  
+  <!-- Paginação -->
+  {% if projetos.paginator.num_pages > 1 %}
+  <div class="card-footer bg-white">
+    <nav aria-label="Navegação de páginas">
+      <ul class="pagination pagination-sm justify-content-center mb-0">
         {% if projetos.has_previous %}
-        <li class="page-item">
-          <a class="page-link" href="?page=1{% if status_escolhido %}&status={{ status_escolhido }}{% endif %}{% if empresa_escolhida %}&empresa={{ empresa_escolhida }}{% endif %}" tabindex="-1">Primeira</a>
-        </li>
-        <li class="page-item">
-          <a class="page-link" href="?page={{ projetos.previous_page_number }}{% if status_escolhido %}&status={{ status_escolhido }}{% endif %}{% if empresa_escolhida %}&empresa={{ empresa_escolhida }}{% endif %}">Anterior</a>
-        </li>
+          <li class="page-item">
+            <a class="page-link" href="?page=1&status={{ status_escolhido }}&empresa={{ empresa_escolhida }}&feira={{ feira_escolhida }}&search={{ search_query|urlencode }}">«</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ projetos.previous_page_number }}&status={{ status_escolhido }}&empresa={{ empresa_escolhida }}&feira={{ feira_escolhida }}&search={{ search_query|urlencode }}">‹</a>
+          </li>
         {% else %}
-        <li class="page-item disabled">
-          <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Primeira</a>
-        </li>
-        <li class="page-item disabled">
-          <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Anterior</a>
-        </li>
+          <li class="page-item disabled"><span class="page-link">«</span></li>
+          <li class="page-item disabled"><span class="page-link">‹</span></li>
         {% endif %}
         
         {% for i in projetos.paginator.page_range %}
-          {% if i > projetos.number|add:"-3" and i < projetos.number|add:"3" %}
-            {% if i == projetos.number %}
-            <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
-            {% else %}
-            <li class="page-item"><a class="page-link" href="?page={{ i }}{% if status_escolhido %}&status={{ status_escolhido }}{% endif %}{% if empresa_escolhida %}&empresa={{ empresa_escolhida }}{% endif %}">{{ i }}</a></li>
-            {% endif %}
+          {% if projetos.number == i %}
+            <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+          {% elif i > projetos.number|add:'-3' and i < projetos.number|add:'3' %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ i }}&status={{ status_escolhido }}&empresa={{ empresa_escolhida }}&feira={{ feira_escolhida }}&search={{ search_query|urlencode }}">{{ i }}</a>
+            </li>
           {% endif %}
         {% endfor %}
         
         {% if projetos.has_next %}
-        <li class="page-item">
-          <a class="page-link" href="?page={{ projetos.next_page_number }}{% if status_escolhido %}&status={{ status_escolhido }}{% endif %}{% if empresa_escolhida %}&empresa={{ empresa_escolhida }}{% endif %}">Próximo</a>
-        </li>
-        <li class="page-item">
-          <a class="page-link" href="?page={{ projetos.paginator.num_pages }}{% if status_escolhido %}&status={{ status_escolhido }}{% endif %}{% if empresa_escolhida %}&empresa={{ empresa_escolhida }}{% endif %}">Última</a>
-        </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ projetos.next_page_number }}&status={{ status_escolhido }}&empresa={{ empresa_escolhida }}&feira={{ feira_escolhida }}&search={{ search_query|urlencode }}">›</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ projetos.paginator.num_pages }}&status={{ status_escolhido }}&empresa={{ empresa_escolhida }}&feira={{ feira_escolhida }}&search={{ search_query|urlencode }}">»</a>
+          </li>
         {% else %}
-        <li class="page-item disabled">
-          <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Próximo</a>
-        </li>
-        <li class="page-item disabled">
-          <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Última</a>
-        </li>
+          <li class="page-item disabled"><span class="page-link">›</span></li>
+          <li class="page-item disabled"><span class="page-link">»</span></li>
         {% endif %}
       </ul>
     </nav>
-    {% endif %}
   </div>
+  {% endif %}
 </div>
-
-<!-- Modal de Filtros -->
-<div class="modal fade" id="filtroModal" tabindex="-1" aria-labelledby="filtroModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="filtroModalLabel"><i class="fas fa-filter me-2"></i> Filtrar Projetos</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-      </div>
-      <form method="get" action="{% url 'gestor:projeto_list' %}">
-        <div class="modal-body">
-          <div class="row g-3">
-            <!-- Status -->
-            <div class="col-md-6">
-              <label class="form-label">Status do Projeto</label>
-              <select class="form-select" name="status">
-                <option value="" {% if not status_escolhido %}selected{% endif %}>Todos os Status</option>
-                {% for status_value, status_label in projeto_status_choices %}
-                <option value="{{ status_value }}" {% if status_escolhido == status_value %}selected{% endif %}>{{ status_label }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            
-            <!-- Empresa -->
-            <div class="col-md-6">
-              <label for="filtroEmpresa" class="form-label">Empresa</label>
-              <select class="form-select" id="filtroEmpresa" name="empresa">
-                <option value="" {% if not empresa_escolhida %}selected{% endif %}>Todas as Empresas</option>
-                {% for empresa in empresas %}
-                <option value="{{ empresa.id }}" {% if empresa_escolhida == empresa.id|stringformat:"i" %}selected{% endif %}>{{ empresa.nome }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            
-            <!-- Briefing Status -->
-            <div class="col-md-6">
-              <label for="filtroBriefingStatus" class="form-label">Status do Briefing</label>
-              <select class="form-select" id="filtroBriefingStatus" name="briefing_status">
-                <option value="" selected>Todos</option>
-                <option value="nao_iniciado">Não Iniciado</option>
-                <option value="em_andamento">Em Andamento</option>
-                <option value="enviado">Enviado</option>
-                <option value="aprovado">Aprovado</option>
-                <option value="reprovado">Reprovado</option>
-              </select>
-            </div>
-            
-            <!-- Data Criação -->
-            <div class="col-md-6">
-              <label class="form-label">Período de Criação</label>
-              <div class="row g-2">
-                <div class="col-md-6">
-                  <input type="date" class="form-control" name="data_inicio" placeholder="Data Inicial">
-                </div>
-                <div class="col-md-6">
-                  <input type="date" class="form-control" name="data_fim" placeholder="Data Final">
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <a href="{% url 'gestor:projeto_list' %}" class="btn btn-outline-secondary">Limpar Filtros</a>
-          <button type="submit" class="btn btn-primary">Aplicar Filtros</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<!-- Modal para Alterar Projetista -->
-<div class="modal fade" id="alterarProjetistaModal" tabindex="-1" aria-labelledby="alterarProjetistaModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="alterarProjetistaModalLabel"><i class="fas fa-user-edit me-2"></i> Atribuir Projetista</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-      </div>
-      <div class="modal-body">
-        <p>Selecione o projetista para atribuir ao projeto <strong id="projetoNome"></strong>:</p>
-        
-        <div class="list-group">
-          {% for projetista in projetistas %}
-          <a href="#" class="list-group-item list-group-item-action select-projetista" data-projetista-id="{{ projetista.id }}">
-            <div class="d-flex align-items-center">
-              {% if projetista.foto_perfil %}
-              <img src="{{ projetista.foto_perfil.url }}" alt="{{ projetista.get_full_name }}" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">
-              {% else %}
-              <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white me-3" style="width: 40px; height: 40px;">
-                {{ projetista.get_full_name|default:projetista.username|slice:":1"|upper }}
-              </div>
-              {% endif %}
-              <div>
-                <h6 class="mb-0">{{ projetista.get_full_name|default:projetista.username }}</h6>
-                <small class="text-muted">{{ projetista.email }}</small>
-              </div>
-            </div>
-          </a>
-          {% empty %}
-          <div class="alert alert-info mb-0">
-            Nenhum projetista disponível. Cadastre projetistas primeiro.
-          </div>
-          {% endfor %}
-        </div>
-        
-        <form id="atribuirProjetistaForm" method="post" class="d-none">
-          {% csrf_token %}
-          <input type="hidden" id="projetistaId" name="usuario_id">
-          <input type="hidden" id="projetoId" name="projeto_id">
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Configuração do modal de alteração de projetista
-    const alterarProjetistaModal = document.getElementById('alterarProjetistaModal');
-    if (alterarProjetistaModal) {
-      alterarProjetistaModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        const projetoId = button.getAttribute('data-projeto-id');
-        const projetoNome = button.getAttribute('data-projeto-nome');
-        
-        document.getElementById('projetoNome').textContent = projetoNome;
-        document.getElementById('projetoId').value = projetoId;
-      });
-      
-      // Manipulador para seleção de projetista
-      document.querySelectorAll('.select-projetista').forEach(item => {
-        item.addEventListener('click', function(e) {
-          e.preventDefault();
-          const projetistaId = this.getAttribute('data-projetista-id');
-          document.getElementById('projetistaId').value = projetistaId;
-          
-          // Construir URL para redirecionamento
-          const projetoId = document.getElementById('projetoId').value;
-          const form = document.getElementById('atribuirProjetistaForm');
-          form.action = '/gestor/projeto/' + projetoId + '/atribuir/' + projetistaId + '/';
-          form.submit();
-        });
-      });
-    }
-  });
-</script>
 {% endblock %}

@@ -33,8 +33,7 @@ from .feira_chunk import (
 # Imports do projeto
 from .projeto import (
     projeto_list, projeto_detail, projeto_atribuir, projeto_alterar_status,
-    ver_briefing, aprovar_briefing, reprovar_briefing, upload_arquivo,
-    excluir_arquivo, mensagens, nova_mensagem, mensagens_projeto
+    ver_briefing
 )
 
 # Importe as views de mensagens
@@ -71,6 +70,5 @@ __all__ = [
     
     # Projeto
     'projeto_list', 'projeto_detail', 'projeto_atribuir', 'projeto_alterar_status',
-    'ver_briefing', 'aprovar_briefing', 'reprovar_briefing', 'upload_arquivo',
-    'excluir_arquivo', 'mensagens', 'nova_mensagem', 'mensagens_projeto'
+    'ver_briefing', 'mensagens', 'nova_mensagem', 'mensagens_projeto'
 ]

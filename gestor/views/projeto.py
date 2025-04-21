@@ -6,26 +6,43 @@ from django.contrib import messages
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
+from django.db.models import Q
 
-from core.models import Usuario, Empresa
-from projetos.models import Projeto, ProjetoReferencia
-from projetos.models.briefing import Briefing, BriefingConversation, BriefingValidacao, BriefingArquivoReferencia
+from core.models import Usuario, Empresa, Feira, FeiraManualQA
+from projetos.models import (
+    Projeto, ProjetoReferencia, ProjetoMarco, 
+    Mensagem, AnexoMensagem,
+    Briefing, BriefingConversation, BriefingValidacao, BriefingArquivoReferencia
+)
+
 
 @login_required
 def projeto_list(request):
     """
-    Lista de todos os projetos para o gestor
+    Lista de todos os projetos para o gestor com filtros avançados
     """
     projetos_list = Projeto.objects.all().order_by('-created_at')
     
+    # Filtros aprimorados
     status = request.GET.get('status')
     empresa_id = request.GET.get('empresa')
+    feira_id = request.GET.get('feira')
+    search = request.GET.get('search')
     
     if status:
         projetos_list = projetos_list.filter(status=status)
     if empresa_id:
         projetos_list = projetos_list.filter(empresa_id=empresa_id)
+    if feira_id:
+        projetos_list = projetos_list.filter(feira_id=feira_id)
+    if search:
+        projetos_list = projetos_list.filter(
+            Q(nome__icontains=search) | 
+            Q(numero__icontains=search) |
+            Q(empresa__nome__icontains=search)
+        )
     
+    # Paginação
     paginator = Paginator(projetos_list, 10)
     page = request.GET.get('page', 1)
     
@@ -36,13 +53,22 @@ def projeto_list(request):
     except EmptyPage:
         projetos = paginator.page(paginator.num_pages)
     
+    # Opções de filtro
     empresas = Empresa.objects.all().order_by('nome')
+    feiras = Feira.objects.filter(ativa=True).order_by('-data_inicio')
+    
+    # Status disponíveis (alinhados com o novo modelo)
+    status_choices = Projeto.STATUS_CHOICES
     
     context = {
         'projetos': projetos,
         'empresas': empresas,
+        'feiras': feiras,
+        'status_choices': status_choices,
         'status_escolhido': status,
         'empresa_escolhida': empresa_id,
+        'feira_escolhida': feira_id,
+        'search_query': search,
     }
     
     return render(request, 'gestor/projeto_list.html', context)
@@ -53,16 +79,155 @@ def projeto_detail(request, pk):
     Detalhes de um projeto específico
     """
     projeto = get_object_or_404(Projeto, pk=pk)
-    projetistas = Usuario.objects.filter(nivel='projetista', is_active=True).order_by('username')
-    arquivos = projeto.arquivos.all()
+    
+    # Remover esta linha:
+    # projetistas = Usuario.objects.filter(nivel='projetista', is_active=True).order_by('username')
+    
+    # Obter informações mais detalhadas
+    briefings = projeto.briefings.all().order_by('-versao')
+    marcos = projeto.marcos.all().order_by('-data')
+    mensagens = projeto.mensagens.all().order_by('-data_envio')[:5]  # Últimas 5 mensagens
+    plantas = projeto.plantas.all()
+    referencias = projeto.referencias.all()
     
     context = {
         'projeto': projeto,
-        'projetistas': projetistas,
-        'arquivos': arquivos,
+        # Remover esta linha:
+        # 'projetistas': projetistas,
+        'briefings': briefings,
+        'marcos': marcos,
+        'mensagens': mensagens,
+        'plantas': plantas,
+        'referencias': referencias,
     }
     
     return render(request, 'gestor/projeto_detail.html', context)
+
+@login_required
+def ver_briefing(request, projeto_id, versao=None):
+    """
+    Permite ao gestor visualizar o briefing de um projeto
+    """
+    projeto = get_object_or_404(Projeto, pk=projeto_id)
+    
+    # Buscar todas as versões do briefing
+    briefings = projeto.briefings.all().order_by('-versao')
+    
+    if not briefings.exists():
+        messages.error(request, 'Este projeto não possui um briefing.')
+        return redirect('gestor:projeto_detail', pk=projeto_id)
+    
+    # Se não especificou versão, pega a mais recente
+    if versao is None:
+        briefing = briefings.first()
+    else:
+        briefing = get_object_or_404(Briefing, projeto=projeto, versao=versao)
+    
+    validacoes = BriefingValidacao.objects.filter(briefing=briefing)
+    arquivos = BriefingArquivoReferencia.objects.filter(briefing=briefing)
+    conversas = BriefingConversation.objects.filter(briefing=briefing).order_by('timestamp')
+    
+    context = {
+        'projeto': projeto,
+        'briefing': briefing,
+        'briefings': briefings,  # Todas as versões
+        'validacoes': validacoes,
+        'arquivos': arquivos,
+        'conversas': conversas,
+        'todas_aprovadas': all(v.status == 'aprovado' for v in validacoes),
+    }
+    
+    return render(request, 'gestor/ver_briefing.html', context)
+
+@login_required
+def projeto_alterar_status(request, pk):
+    """
+    Alterar o status de um projeto e registrar o marco correspondente
+    """
+    projeto = get_object_or_404(Projeto, pk=pk)
+    
+    if request.method == 'POST':
+        novo_status = request.POST.get('status')
+        observacao = request.POST.get('observacao', '')
+        
+        if novo_status in [s[0] for s in Projeto.STATUS_CHOICES]:
+            status_antigo = projeto.status
+            projeto.status = novo_status
+            projeto.save()
+            
+            # Mapeia status para tipos de marco
+            status_marco_map = {
+                'briefing_validado': 'validacao_briefing',
+                'projeto_em_desenvolvimento': 'inicio_desenvolvimento',
+                'projeto_enviado': 'envio_projeto',
+                'projeto_em_analise': 'analise_projeto',
+                'projeto_aprovado': 'aprovacao_projeto',
+                'em_producao': 'inicio_producao',
+                'concluido': 'entrega_estande',
+                'cancelado': 'cancelamento',
+            }
+            
+            # Se o status mapeia para um marco, cria o registro
+            if novo_status in status_marco_map:
+                ProjetoMarco.objects.create(
+                    projeto=projeto,
+                    tipo=status_marco_map[novo_status],
+                    observacao=observacao or f'Status alterado de {status_antigo} para {novo_status}',
+                    registrado_por=request.user
+                )
+            
+            # Atualiza métricas do projeto
+            projeto.atualizar_metricas()
+            
+            messages.success(request, f'Status do projeto alterado para {projeto.get_status_display()} com sucesso.')
+        else:
+            messages.error(request, 'Status inválido.')
+        
+    return redirect('gestor:projeto_detail', pk=projeto.pk)
+
+@login_required
+def mensagens_projeto(request, projeto_id):
+    """
+    Mensagens de um projeto específico
+    """
+    projeto = get_object_or_404(Projeto, pk=projeto_id)
+    
+    # Obter todas as mensagens do projeto
+    mensagens_list = projeto.mensagens.all().order_by('-data_envio')
+    
+    # Formulário para enviar nova mensagem
+    if request.method == 'POST':
+        conteudo = request.POST.get('conteudo')
+        
+        if conteudo:
+            # Determinar o destinatário (cliente do projeto)
+            destinatario = Usuario.objects.filter(empresa=projeto.empresa).first()
+            
+            mensagem = Mensagem.objects.create(
+                projeto=projeto,
+                remetente=request.user,
+                destinatario=destinatario,
+                conteudo=conteudo
+            )
+            
+            # Se tiver arquivos anexos
+            for arquivo in request.FILES.getlist('anexos'):
+                anexo = AnexoMensagem.objects.create(
+                    mensagem=mensagem,
+                    arquivo=arquivo,
+                    nome_original=arquivo.name,
+                    tipo_arquivo=arquivo.content_type,
+                    tamanho=arquivo.size
+                )
+            
+            messages.success(request, "Mensagem enviada com sucesso.")
+            return redirect('gestor:mensagens_projeto', projeto_id=projeto.id)
+    
+    context = {
+        'projeto': projeto,
+        'mensagens': mensagens_list,
+    }
+    return render(request, 'gestor/mensagens_projeto.html', context)
 
 @login_required
 def projeto_atribuir(request, pk, usuario_id):
@@ -77,164 +242,6 @@ def projeto_atribuir(request, pk, usuario_id):
     
     messages.success(request, f'Projeto atribuído a {projetista.get_full_name() or projetista.username} com sucesso.')
     return redirect('gestor:projeto_detail', pk=projeto.pk)
-
-@login_required
-def projeto_alterar_status(request, pk):
-    """
-    Alterar o status de um projeto
-    """
-    projeto = get_object_or_404(Projeto, pk=pk)
-    
-    if request.method == 'POST':
-        novo_status = request.POST.get('status')
-        if novo_status in [s[0] for s in Projeto.STATUS_CHOICES]:
-            projeto.status = novo_status
-            projeto.save()
-            messages.success(request, f'Status do projeto alterado para {projeto.get_status_display()} com sucesso.')
-        else:
-            messages.error(request, 'Status inválido.')
-        
-    return redirect('gestor:projeto_detail', pk=projeto.pk)
-
-@login_required
-def ver_briefing(request, projeto_id):
-    """
-    Permite ao gestor visualizar o briefing de um projeto
-    """
-    projeto = get_object_or_404(Projeto, pk=projeto_id)
-    
-    try:
-        briefing = Briefing.objects.get(projeto=projeto)
-    except Briefing.DoesNotExist:
-        messages.error(request, 'Este projeto não possui um briefing.')
-        return redirect('gestor:projeto_detail', pk=projeto_id)
-    
-    validacoes = BriefingValidacao.objects.filter(briefing=briefing)
-    arquivos = BriefingArquivoReferencia.objects.filter(briefing=briefing)
-    conversas = BriefingConversation.objects.filter(briefing=briefing).order_by('timestamp')
-    
-    context = {
-        'projeto': projeto,
-        'briefing': briefing,
-        'validacoes': validacoes,
-        'arquivos': arquivos,
-        'conversas': conversas,
-        'todas_aprovadas': all(v.status == 'aprovado' for v in validacoes),
-    }
-    
-    return render(request, 'gestor/ver_briefing.html', context)
-
-@login_required
-@require_POST
-def aprovar_briefing(request, projeto_id):
-    """
-    Aprova o briefing de um projeto
-    """
-    projeto = get_object_or_404(Projeto, pk=projeto_id)
-    
-    try:
-        briefing = Briefing.objects.get(projeto=projeto)
-    except Briefing.DoesNotExist:
-        messages.error(request, 'Este projeto não possui um briefing.')
-        return redirect('gestor:projeto_detail', pk=projeto_id)
-    
-    briefing.status = 'aprovado'
-    briefing.save()
-    
-    projeto.briefing_status = 'aprovado'
-    projeto.status = 'ativo'
-    projeto.save()
-    
-    comentario = request.POST.get('comentario', '')
-    if comentario:
-        BriefingConversation.objects.create(
-            briefing=briefing,
-            mensagem=f"Briefing aprovado: {comentario}",
-            origem='gestor',
-            etapa=briefing.etapa_atual
-        )
-    
-    messages.success(request, f'Briefing do projeto "{projeto.nome}" aprovado com sucesso!')
-    return redirect('gestor:projeto_detail', pk=projeto_id)
-
-@login_required
-@require_POST
-def reprovar_briefing(request, projeto_id):
-    """
-    Reprova o briefing de um projeto e solicita ajustes
-    """
-    projeto = get_object_or_404(Projeto, pk=projeto_id)
-    
-    try:
-        briefing = Briefing.objects.get(projeto=projeto)
-    except Briefing.DoesNotExist:
-        messages.error(request, 'Este projeto não possui um briefing.')
-        return redirect('gestor:projeto_detail', pk=projeto_id)
-    
-    comentario = request.POST.get('comentario', '')
-    if not comentario:
-        messages.error(request, 'É necessário informar os motivos da reprovação.')
-        return redirect('gestor:ver_briefing', projeto_id=projeto_id)
-    
-    briefing.status = 'revisao'
-    briefing.save()
-    
-    projeto.briefing_status = 'reprovado'
-    projeto.save()
-    
-    BriefingConversation.objects.create(
-        briefing=briefing,
-        mensagem=f"Solicitação de ajustes: {comentario}",
-        origem='gestor',
-        etapa=briefing.etapa_atual
-    )
-    
-    messages.warning(request, f'Foram solicitados ajustes no briefing do projeto "{projeto.nome}".')
-    return redirect('gestor:projeto_detail', pk=projeto_id)
-
-@login_required
-@require_POST
-def upload_arquivo(request, projeto_id):
-    """
-    Faz upload de um arquivo para um projeto
-    """
-    projeto = get_object_or_404(Projeto, pk=projeto_id)
-    
-    if 'arquivo' not in request.FILES:
-        messages.error(request, 'Nenhum arquivo foi enviado.')
-        return redirect('gestor:projeto_detail', pk=projeto_id)
-    
-    arquivo = request.FILES['arquivo']
-    tipo = request.POST.get('tipo', 'outro')
-    descricao = request.POST.get('descricao', '')
-    
-    novo_arquivo = ArquivoReferencia.objects.create(
-        projeto=projeto,
-        nome=arquivo.name,
-        arquivo=arquivo,
-        tipo=tipo,
-        descricao=descricao,
-        uploaded_by=request.user
-    )
-    
-    messages.success(request, f'Arquivo "{arquivo.name}" enviado com sucesso.')
-    return redirect('gestor:projeto_detail', pk=projeto_id)
-
-@login_required
-@require_POST
-def excluir_arquivo(request, arquivo_id):
-    """
-    Exclui um arquivo de referência
-    """
-    arquivo = get_object_or_404(ArquivoReferencia, pk=arquivo_id)
-    
-    if request.user.nivel not in ['admin', 'gestor']:
-        return JsonResponse({'success': False, 'error': 'Permissão negada'}, status=403)
-    
-    projeto_id = arquivo.projeto.id
-    arquivo.delete()
-    
-    return JsonResponse({'success': True})
 
 @login_required
 def mensagens(request):
@@ -275,34 +282,6 @@ def nova_mensagem(request):
         'projetos': projetos,
     }
     return render(request, 'gestor/nova_mensagem.html', context)
-
-@login_required
-def mensagens_projeto(request, projeto_id):
-    """
-    Mensagens de um projeto específico
-    """
-    projeto = get_object_or_404(Projeto, pk=projeto_id)
-    
-    mensagens_lista = [
-        {
-            'remetente': projeto.cliente.get_full_name() or projeto.cliente.username,
-            'conteudo': 'Precisamos de ajustes no projeto.',
-            'data': projeto.updated_at,
-            'is_cliente': True
-        },
-        {
-            'remetente': 'Você',
-            'conteudo': 'Claro, vamos analisar e retornar em breve.',
-            'data': projeto.updated_at,
-            'is_cliente': False
-        }
-    ]
-    
-    context = {
-        'projeto': projeto,
-        'mensagens': mensagens_lista,
-    }
-    return render(request, 'gestor/mensagens_projeto.html', context)
 
 @login_required
 def feira_qa_progress(request, pk):

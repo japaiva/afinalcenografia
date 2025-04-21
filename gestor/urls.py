@@ -36,14 +36,8 @@ urlpatterns = [
     path('projetos/<int:pk>/', views.projeto_detail, name='projeto_detail'),
     path('projetos/<int:pk>/atribuir/<int:usuario_id>/', views.projeto_atribuir, name='projeto_atribuir'),
     path('projetos/<int:pk>/alterar-status/', views.projeto_alterar_status, name='projeto_alterar_status'),
-    path('projetos/<int:projeto_id>/briefing/', views.ver_briefing, name='ver_briefing'),
-    path('projetos/<int:projeto_id>/briefing/aprovar/', views.aprovar_briefing, name='aprovar_briefing'),
-    path('projetos/<int:projeto_id>/briefing/reprovar/', views.reprovar_briefing, name='reprovar_briefing'),    
-    path('projetos/<int:projeto_id>/upload/', views.upload_arquivo, name='upload_arquivo'),
-    
-    # Para excluir arquivos
-    path('arquivos/<int:arquivo_id>/excluir/', views.excluir_arquivo, name='excluir_arquivo'),
-    
+    path('projetos/<int:projeto_id>/briefing/', views.ver_briefing, name='ver_briefing'), 
+ 
     # Sistema de Mensagens
     path('mensagens/', views.mensagens, name='mensagens'),
     path('mensagens/nova/', views.nova_mensagem, name='nova_mensagem'),
@@ -70,8 +64,7 @@ urlpatterns = [
     path('feiras/<int:pk>/search/', views.feira_search, name='feira_search'),
     path('feiras/<int:pk>/reprocess/', views.feira_reprocess, name='feira_reprocess'),
     
-    # IMPORTANTE: Padronizar para usar somente um formato de URL para progresso
-    # Manter apenas uma URL para evitar confusão
+
     path('feiras/<int:pk>/progress/', views.feira_progress, name='feira_progress'),
     
     # FEIRAS (QA)
