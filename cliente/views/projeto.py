@@ -1,4 +1,4 @@
-# views/projeto.py
+# clientes/views/projeto.py
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -9,7 +9,7 @@ from django.views.decorators.http import require_POST
 
 from core.models import Usuario, Empresa, Feira
 from projetos.models import Projeto, ProjetoPlanta, ProjetoReferencia
-from projetos.forms import ProjetoForm
+from projetos.forms import ProjetoForm, ProjetoPlantaForm, ProjetoReferenciaForm
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
@@ -369,7 +369,7 @@ def iniciar_briefing(request, projeto_id):
         return redirect('briefing:briefing_etapa', projeto_id=projeto.id, etapa=projeto.briefing.etapa_atual)
     
     # Cria um novo briefing para o projeto
-    from briefing.models import Briefing, BriefingValidacao
+    from .briefing import Briefing, BriefingValidacao
     
     briefing = Briefing.objects.create(projeto=projeto)
     

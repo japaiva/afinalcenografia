@@ -1,8 +1,13 @@
+# projetos/admin.py
+
 from django.contrib import admin
+from projetos.models.projeto import Projeto, ProjetoPlanta, ProjetoReferencia
 from projetos.models.briefing import (
     Briefing, BriefingConversation, BriefingArquivoReferencia, BriefingValidacao
 )
+from projetos.models.mensagem import Mensagem, AnexoMensagem
 
+# === Inlines para Briefing ===
 class BriefingConversationInline(admin.TabularInline):
     model = BriefingConversation
     extra = 0
@@ -22,60 +27,79 @@ class BriefingArquivoReferenciaInline(admin.TabularInline):
 
 @admin.register(Briefing)
 class BriefingAdmin(admin.ModelAdmin):
-    list_display = ['projeto', 'status', 'etapa_atual', 'progresso', 'validado_por_ia', 'updated_at']
-    list_filter = ['status', 'validado_por_ia']
+    list_display = ['projeto', 'versao', 'status', 'etapa_atual', 'progresso', 'created_at', 'updated_at']
+    list_filter = ['status']
     search_fields = ['projeto__nome']
-    readonly_fields = ['created_at', 'updated_at', 'progresso']
+    readonly_fields = ['versao', 'progresso', 'created_at', 'updated_at']
     fieldsets = [
         ('Informações Gerais', {
-            'fields': ['projeto', 'status', 'etapa_atual', 'progresso', 'validado_por_ia', 'created_at', 'updated_at']
+            'fields': ['projeto', 'versao', 'status', 'etapa_atual', 'progresso', 'created_at', 'updated_at']
         }),
-        ('Informações Básicas', {
-            'fields': ['categoria', 'descricao_detalhada', 'objetivos']
-        }),
-        ('Detalhes Técnicos', {
-            'fields': ['dimensoes', 'altura', 'paleta_cores']
-        }),
-        ('Materiais e Acabamentos', {
-            'fields': ['materiais_preferidos', 'acabamentos']
-        }),
-        ('Requisitos Técnicos', {
-            'fields': ['iluminacao', 'eletrica', 'mobiliario']
-        }),
+        # Outros fieldsets conforme campos do briefing
     ]
     inlines = [BriefingValidacaoInline, BriefingArquivoReferenciaInline, BriefingConversationInline]
 
-    # projetos/admin.py
-
-from django.contrib import admin
-from projetos.models.briefing import (
-    Briefing, BriefingConversation, BriefingArquivoReferencia, BriefingValidacao
-)
-from projetos.models.projeto import Projeto, ProjetoPlanta, ProjetoReferencia
-
+# === Inlines para Projeto ===
 class ProjetoPlantaInline(admin.TabularInline):
     model = ProjetoPlanta
     extra = 0
-    
+
 class ProjetoReferenciaInline(admin.TabularInline):
     model = ProjetoReferencia
     extra = 0
 
+class BriefingInline(admin.TabularInline):
+    model = Briefing
+    fields = ('versao', 'status', 'etapa_atual', 'progresso')
+    readonly_fields = ('versao', 'progresso')
+    extra = 0
+
 @admin.register(Projeto)
 class ProjetoAdmin(admin.ModelAdmin):
-    list_display = ['nome', 'empresa', 'cliente', 'feira', 'status', 'briefing_status', 'created_at']
-    list_filter = ['status', 'briefing_status', 'empresa', 'feira']
-    search_fields = ['nome', 'cliente__username', 'empresa__nome', 'feira__nome']
-    inlines = [ProjetoPlantaInline, ProjetoReferenciaInline]
+    list_display = ['numero', 'nome', 'criado_por', 'empresa', 'status', 'created_at']
+    list_filter = ['status', 'empresa', 'feira']
+    search_fields = ['numero', 'nome', 'criado_por__username', 'empresa__nome', 'feira__nome']
+    readonly_fields = ['numero', 'created_at', 'updated_at']
     fieldsets = [
         ('Informações Básicas', {
-            'fields': ['nome', 'descricao', 'empresa', 'cliente', 'status', 'orcamento', 'progresso']
+            'fields': [
+                'numero', 'nome', 'descricao',
+                'empresa', 'criado_por', 'status',
+                'orcamento', 'progresso'
+            ]
         }),
         ('Feira', {
-            'fields': ['feira', 'local_evento', 'cidade_evento', 'estado_evento']
+            'fields': [
+                'feira', 'local_evento',
+                'cidade_evento', 'estado_evento'
+            ]
         }),
-        ('Briefing', {
-            'fields': ['tem_briefing', 'briefing_status']
+        # Seção de briefing removida
+    ]
+    inlines = [ProjetoPlantaInline, ProjetoReferenciaInline, BriefingInline]
+
+# === Admin para Mensagem e AnexoMensagem ===
+class AnexoMensagemInline(admin.TabularInline):
+    model = AnexoMensagem
+    extra = 0
+    readonly_fields = ['nome_original', 'tipo_arquivo', 'tamanho', 'data_upload']
+    fields = ['arquivo', 'nome_original', 'tipo_arquivo', 'tamanho', 'data_upload']
+
+@admin.register(Mensagem)
+class MensagemAdmin(admin.ModelAdmin):
+    list_display = ['projeto', 'briefing', 'remetente', 'destinatario', 'data_envio', 'lida']
+    list_filter = ['lida']
+    search_fields = ['conteudo', 'remetente__username', 'destinatario__username', 'projeto__nome']
+    readonly_fields = ['data_envio']
+    fieldsets = [
+        ('Informações da Mensagem', {
+            'fields': ['projeto', 'briefing', 'remetente', 'destinatario', 'conteudo', 'data_envio', 'lida', 'destacada']
         }),
     ]
-    readonly_fields = ['created_at', 'updated_at']
+    inlines = [AnexoMensagemInline]
+
+# Se quiser visualizar/anexar AnexoMensagem isoladamente:
+@admin.register(AnexoMensagem)
+class AnexoMensagemAdmin(admin.ModelAdmin):
+    list_display = ['mensagem', 'nome_original', 'tipo_arquivo', 'tamanho', 'data_upload']
+    search_fields = ['nome_original', 'tipo_arquivo', 'mensagem__conteudo']
