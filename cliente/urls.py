@@ -43,4 +43,6 @@ urlpatterns = [
     path('mensagens/', views.mensagens, name='mensagens'),
     path('mensagens/nova/', views.nova_mensagem, name='nova_mensagem'),
     path('mensagens/projeto/<int:projeto_id>/', views.mensagens_projeto, name='mensagens_projeto'),
+
+    path('projetos/<int:pk>/aprovar/', views.aprovar_projeto, name='aprovar_projeto'),
 ]

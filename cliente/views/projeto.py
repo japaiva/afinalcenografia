@@ -8,12 +8,13 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
 from core.models import Usuario, Empresa, Feira
-from projetos.models import Projeto, ProjetoPlanta, ProjetoReferencia
-from projetos.forms import ProjetoForm, ProjetoPlantaForm, ProjetoReferenciaForm
+from projetos.models import Projeto, ProjetoMarco
+from projetos.forms import ProjetoForm
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
+from django.utils import timezone
 
 @login_required
 def dashboard(request):
@@ -84,7 +85,7 @@ def projeto_list(request):
 @login_required
 def projeto_detail(request, pk):
     """
-    Detalhes de um projeto específico
+    Detalhes de um projeto específico no portal do cliente
     """
     # Obtém a empresa do usuário logado
     empresa = request.user.empresa
@@ -96,15 +97,59 @@ def projeto_detail(request, pk):
     plantas = projeto.plantas.all()
     referencias = projeto.referencias.all()
     
+    # Obtém marcos do projeto ordenados por data
+    marcos = projeto.marcos.all().order_by('data')
+    
+    # Obtém mensagens não lidas
+    mensagens_nao_lidas = 0
+    if hasattr(projeto, 'mensagens'):
+        mensagens_nao_lidas = projeto.mensagens.filter(
+            destinatario=request.user, 
+            lida=False
+        ).count()
+    
     context = {
         'empresa': empresa,
         'projeto': projeto,
         'plantas': plantas,
         'referencias': referencias,
+        'marcos': marcos,
+        'mensagens_nao_lidas': mensagens_nao_lidas,
     }
-    return render(request, 'projetos/projeto_detail.html', context)
+    return render(request, 'cliente/projeto_detail.html', context)
 
-# projetos/views/projeto.py (para cliente)
+@login_required
+def aprovar_projeto(request, pk):
+    """
+    View para aprovar um projeto
+    """
+    # Obtém a empresa do usuário logado
+    empresa = request.user.empresa
+    
+    # Obtém o projeto específico
+    projeto = get_object_or_404(Projeto, pk=pk, empresa=empresa)
+    
+    if request.method == 'POST':
+        # Atualiza o status do projeto
+        projeto.status = 'projeto_aprovado'
+        projeto.data_aprovacao_projeto = timezone.now()
+        projeto.save(update_fields=['status', 'data_aprovacao_projeto'])
+        
+        # Registra o marco de aprovação do projeto
+        ProjetoMarco.objects.create(
+            projeto=projeto,
+            tipo='aprovacao_projeto',
+            observacao='Projeto aprovado pelo cliente',
+            registrado_por=request.user
+        )
+        
+        # Atualiza as métricas do projeto
+        projeto.atualizar_metricas()
+        
+        messages.success(request, 'Projeto aprovado com sucesso!')
+        return redirect('cliente:projeto_detail', pk=projeto.id)
+    
+    return render(request, 'cliente/aprovar_projeto.html', {'projeto': projeto})
 
 @login_required
 def projeto_create(request):
@@ -119,23 +164,33 @@ def projeto_create(request):
         if form.is_valid():
             projeto = form.save(commit=False)
             projeto.empresa = empresa
-            projeto.cliente = request.user
+            projeto.criado_por = request.user
             
-            # Se a feira for selecionada, os campos serão preenchidos automaticamente
-            # pelo método save() no modelo Projeto
+            # Define o status como briefing_pendente
+            projeto.status = 'briefing_pendente'
+            
+            # Usa o nome da feira como nome do projeto
+            if projeto.feira:
+                projeto.nome = projeto.feira.nome
+            
+            # Salva o projeto
             projeto.save()
             
-            messages.success(request, 'Projeto criado com sucesso!')
+            # Cria um marco para registrar a criação do projeto
+            from projetos.models import ProjetoMarco
+            ProjetoMarco.objects.create(
+                projeto=projeto,
+                tipo='criacao_projeto',
+                observacao='Projeto criado pelo cliente',
+                registrado_por=request.user
+            )
             
-            # Verificar se a feira foi selecionada
-            if not projeto.feira:
-                # Se não houver feira, redirecionar para selecionar
-                return redirect('cliente:selecionar_feira', projeto_id=projeto.id)
-            else:
-                # Se já tiver feira, ir para detalhes do projeto
-                return redirect('cliente:projeto_detail', pk=projeto.id)
+            messages.success(request, 'Projeto criado com sucesso!')
+            return redirect('cliente:projeto_detail', pk=projeto.id)
     else:
         form = ProjetoForm()
+        # Inicializar campos ocultos com valores padrão
+        form.initial['status'] = 'briefing_pendente'
     
     context = {
         'empresa': empresa,
@@ -224,135 +279,6 @@ def projeto_delete(request, pk):
         'projeto': projeto,
     }
     return render(request, 'projetos/projeto_confirm_delete.html', context)
-
-@login_required
-def upload_planta(request, projeto_id):
-    """
-    View para fazer upload de uma planta
-    """
-    # Obtém a empresa do usuário logado
-    empresa = request.user.empresa
-    
-    # Obtém o projeto
-    projeto = get_object_or_404(Projeto, pk=projeto_id, empresa=empresa)
-    
-    if request.method == 'POST':
-        form = ProjetoPlantaForm(request.POST, request.FILES)
-        if form.is_valid():
-            planta = form.save(commit=False)
-            planta.projeto = projeto
-            planta.save()
-            
-            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                # Resposta para requisições AJAX
-                return JsonResponse({
-                    'success': True,
-                    'planta': {
-                        'id': planta.id,
-                        'nome': planta.nome,
-                        'tipo': planta.get_tipo_display(),
-                        'url': planta.arquivo.url,
-                    }
-                })
-            
-            messages.success(request, 'Planta adicionada com sucesso.')
-            return redirect('projetos:projeto_detail', pk=projeto.id)
-    else:
-        form = ProjetoPlantaForm()
-    
-    context = {
-        'empresa': empresa,
-        'projeto': projeto,
-        'form': form,
-    }
-    return render(request, 'projetos/upload_planta.html', context)
-
-@login_required
-def upload_referencia(request, projeto_id):
-    """
-    View para fazer upload de uma referência
-    """
-    # Obtém a empresa do usuário logado
-    empresa = request.user.empresa
-    
-    # Obtém o projeto
-    projeto = get_object_or_404(Projeto, pk=projeto_id, empresa=empresa)
-    
-    if request.method == 'POST':
-        form = ProjetoReferenciaForm(request.POST, request.FILES)
-        if form.is_valid():
-            referencia = form.save(commit=False)
-            referencia.projeto = projeto
-            referencia.save()
-            
-            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                # Resposta para requisições AJAX
-                return JsonResponse({
-                    'success': True,
-                    'referencia': {
-                        'id': referencia.id,
-                        'nome': referencia.nome,
-                        'tipo': referencia.get_tipo_display(),
-                        'url': referencia.arquivo.url,
-                    }
-                })
-            
-            messages.success(request, 'Referência adicionada com sucesso.')
-            return redirect('projetos:projeto_detail', pk=projeto.id)
-    else:
-        form = ProjetoReferenciaForm()
-    
-    context = {
-        'empresa': empresa,
-        'projeto': projeto,
-        'form': form,
-    }
-    return render(request, 'projetos/upload_referencia.html', context)
-
-@login_required
-@require_POST
-def delete_planta(request, planta_id):
-    """
-    View para excluir uma planta
-    """
-    # Obtém a empresa do usuário logado
-    empresa = request.user.empresa
-    
-    # Obtém a planta, garantindo que pertence a um projeto da mesma empresa
-    planta = get_object_or_404(ProjetoPlanta, pk=planta_id, projeto__empresa=empresa)
-    projeto_id = planta.projeto.id
-    
-    planta.delete()
-    
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        # Resposta para requisições AJAX
-        return JsonResponse({'success': True})
-    
-    messages.success(request, 'Planta excluída com sucesso.')
-    return redirect('projetos:projeto_detail', pk=projeto_id)
-
-@login_required
-@require_POST
-def delete_referencia(request, referencia_id):
-    """
-    View para excluir uma referência
-    """
-    # Obtém a empresa do usuário logado
-    empresa = request.user.empresa
-    
-    # Obtém a referência, garantindo que pertence a um projeto da mesma empresa
-    referencia = get_object_or_404(ProjetoReferencia, pk=referencia_id, projeto__empresa=empresa)
-    projeto_id = referencia.projeto.id
-    
-    referencia.delete()
-    
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        # Resposta para requisições AJAX
-        return JsonResponse({'success': True})
-    
-    messages.success(request, 'Referência excluída com sucesso.')
-    return redirect('projetos:projeto_detail', pk=projeto_id)
-
 
 @login_required
 def iniciar_briefing(request, projeto_id):
@@ -520,3 +446,39 @@ class ProjetoDeleteView(LoginRequiredMixin, DeleteView):
         context = super().get_context_data(**kwargs)
         context['empresa'] = self.request.user.empresa
         return context
+    
+
+# projetos/views/projeto.py
+
+@login_required
+def aprovar_projeto(request, pk):
+    """
+    View para aprovar um projeto
+    """
+    # Obtém a empresa do usuário logado
+    empresa = request.user.empresa
+    
+    # Obtém o projeto específico
+    projeto = get_object_or_404(Projeto, pk=pk, empresa=empresa)
+    
+    if request.method == 'POST':
+        # Atualiza o status do projeto
+        projeto.status = 'projeto_aprovado'
+        projeto.data_aprovacao_projeto = timezone.now()
+        projeto.save()
+        
+        # Registra o marco de aprovação do projeto
+        ProjetoMarco.objects.create(
+            projeto=projeto,
+            tipo='aprovacao_projeto',
+            observacao='Projeto aprovado pelo cliente',
+            registrado_por=request.user
+        )
+        
+        # Atualiza as métricas do projeto
+        projeto.atualizar_metricas()
+        
+        messages.success(request, 'Projeto aprovado com sucesso!')
+        return redirect('cliente:projeto_detail', pk=projeto.id)
+    
+    return render(request, 'projetos/aprovar_projeto.html', {'projeto': projeto})

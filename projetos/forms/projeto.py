@@ -1,5 +1,3 @@
-#forms/projeto.py
-
 from django import forms
 from django.forms.widgets import Input
 from projetos.models import Projeto, ProjetoPlanta, ProjetoReferencia
@@ -42,57 +40,50 @@ class ProjetoForm(forms.ModelForm):
     class Meta:
         model = Projeto
         fields = [
-            'nome', 'descricao', 'orcamento', 'status',
-            # O campo feira agora é mostrado diretamente no formulário
-            'feira'
+            'nome', 'descricao', 'orcamento', 'status', 'feira'
         ]
         widgets = {
-            'nome': forms.TextInput(attrs={'class': 'form-control'}),
+            'nome': forms.HiddenInput(),  # Campo oculto, será preenchido via JavaScript
             'descricao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'orcamento': forms.TextInput(attrs={'class': 'form-control'}),
-            'status': forms.Select(attrs={'class': 'form-select'}),
+            'status': forms.HiddenInput(),  # Campo oculto, será preenchido automaticamente
             'feira': forms.Select(attrs={'class': 'form-select'}),
+        }
+        labels = {
+            'descricao': 'Objetivo',  # Altera o label de Descrição para Objetivo
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Filtrar apenas feiras ativas para o campo feira
         self.fields['feira'].queryset = Feira.objects.filter(ativa=True).order_by('-data_inicio')
-        self.fields['nome'].required = True
+        self.fields['feira'].required = True
         self.fields['orcamento'].required = True
+        self.fields['descricao'].required = True  # Tornar objetivo obrigatório
 
+        # Se for uma instância existente (edição), deixar o campo status apenas leitura
+        instance = kwargs.get('instance')
+        if instance and instance.pk:
+            self.fields['status'].widget.attrs['readonly'] = True
 
     def save(self, commit=True):
-        projeto = super().save(commit=commit)
-
-        if commit and self.cleaned_data.get('arquivos_referencia'):
-            for arquivo in self.cleaned_data['arquivos_referencia']:
-                ProjetoReferencia.objects.create(
-                    projeto=projeto,
-                    nome=arquivo.name,
-                    arquivo=arquivo,
-                    tamanho=arquivo.size
-                )
+        projeto = super().save(commit=False)
+        
+        # Para novos projetos, define o status como briefing_pendente
+        if not projeto.pk:
+            projeto.status = 'briefing_pendente'
+            
+        if commit:
+            projeto.save()
+            
+            # Salva os arquivos de referência, se houver
+            if hasattr(self, 'cleaned_data') and self.cleaned_data.get('arquivos_referencia'):
+                for arquivo in self.cleaned_data['arquivos_referencia']:
+                    ProjetoReferencia.objects.create(
+                        projeto=projeto,
+                        nome=arquivo.name,
+                        arquivo=arquivo,
+                        tamanho=arquivo.size
+                    )
 
         return projeto
-    
-# projetos/forms.py
-
-from django import forms
-from projetos.models import ProjetoPlanta
-
-class ProjetoPlantaForm(forms.ModelForm):
-    class Meta:
-        model = ProjetoPlanta
-        fields = ['nome', 'arquivo', 'tipo', 'observacoes']
-
-from django import forms
-from projetos.models import ProjetoReferencia
-
-class ProjetoReferenciaForm(forms.ModelForm):
-    class Meta:
-        model = ProjetoReferencia
-        fields = ['nome', 'arquivo', 'tipo', 'observacoes']
-        widgets = {
-            'observacoes': forms.Textarea(attrs={'rows': 3}),
-        }

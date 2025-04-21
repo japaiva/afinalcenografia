@@ -67,3 +67,54 @@
 </li>
 
 {% endblock %}
+
+{% block extra_css %}
+<!-- Estilos para Timeline de Marcos do Projeto -->
+<style>
+  .timeline {
+    position: relative;
+    padding: 0;
+    list-style: none;
+  }
+  
+  .timeline:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 18px;
+    height: 100%;
+    width: 2px;
+    background: #e9ecef;
+  }
+  
+  .timeline-item {
+    position: relative;
+    padding: 1rem 1rem 1rem 3rem;
+    border-bottom: 1px solid #e9ecef;
+  }
+  
+  .timeline-item:last-child {
+    border-bottom: 0;
+  }
+  
+  .timeline-item:before {
+    content: '';
+    position: absolute;
+    left: 12px;
+    top: 18px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #0d6efd;
+  }
+  
+  .timeline-date {
+    font-size: 0.8rem;
+    color: #6c757d;
+  }
+  
+  .timeline-content {
+    padding-top: 0.2rem;
+  }
+</style>
+{% endblock %}
