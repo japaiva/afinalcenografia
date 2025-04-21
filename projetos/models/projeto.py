@@ -4,6 +4,7 @@ from django.db import models
 from django.db.models import Max
 from core.models import Usuario, Empresa, Feira
 from core.storage import MinioStorage
+from django.utils import timezone
 
 class Projeto(models.Model):
     STATUS_CHOICES = [
@@ -25,6 +26,7 @@ class Projeto(models.Model):
         help_text="Sequência única por empresa"
     )
     nome = models.CharField(max_length=200, verbose_name="Nome do Projeto")
+
     descricao = models.TextField(blank=True, null=True, verbose_name="Descrição")
     empresa = models.ForeignKey(
         Empresa, on_delete=models.CASCADE,
@@ -64,6 +66,33 @@ class Projeto(models.Model):
         verbose_name="UF"
     )
 
+    data_envio_briefing = models.DateTimeField(
+        blank=True, null=True, verbose_name="Data de Envio do Briefing",
+        help_text="Data em que o último briefing foi enviado"
+    )
+    data_aprovacao_projeto = models.DateTimeField(
+        blank=True, null=True, verbose_name="Data de Aprovação do Projeto",
+        help_text="Data em que o projeto foi aprovado pelo cliente"
+    )
+    data_inicio_producao = models.DateTimeField(
+        blank=True, null=True, verbose_name="Data de Início da Produção",
+        help_text="Data em que a produção física do estande foi iniciada"
+    )
+    data_entrega_estande = models.DateTimeField(
+        blank=True, null=True, verbose_name="Data de Entrega do Estande",
+        help_text="Data em que o estande foi entregue finalizado"
+    )
+
+    # Campos para métricas
+    tempo_projeto = models.DurationField(
+        blank=True, null=True, verbose_name="Tempo de Projeto",
+        help_text="Tempo entre o envio do briefing e a aprovação do projeto"
+    )
+    tempo_producao = models.DurationField(
+        blank=True, null=True, verbose_name="Tempo de Produção",
+        help_text="Tempo entre a aprovação do projeto e a conclusão"
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True, verbose_name="Data de Criação"
     )
@@ -90,6 +119,19 @@ class Projeto(models.Model):
             self.cidade_evento = self.feira.cidade
             self.estado_evento = self.feira.estado
         super().save(*args, **kwargs)
+
+    def atualizar_metricas(self):
+        """Atualiza os campos de métrica baseado nas datas"""
+        # Calcula tempo de projeto
+        if self.data_envio_briefing and self.data_aprovacao_projeto:
+            self.tempo_projeto = self.data_aprovacao_projeto - self.data_envio_briefing
+        
+        # Calcula tempo de produção
+        if self.data_aprovacao_projeto and self.data_entrega_estande:
+            self.tempo_producao = self.data_entrega_estande - self.data_aprovacao_projeto
+        
+        self.save(update_fields=['tempo_projeto', 'tempo_producao'])
+
 
     @property
     def has_briefing(self):

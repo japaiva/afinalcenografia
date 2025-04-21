@@ -19,6 +19,10 @@ from projetos.models.mensagem import (
     AnexoMensagem
 )
 
+from projetos.models.marco import (
+    ProjetoMarco
+)
+
 __all__ = [
     'Projeto',
     'ProjetoPlanta',
@@ -30,4 +34,5 @@ __all__ = [
     'Mensagem',
     'AnexoMensagem',
     'ArquivoProjeto',
+    'ProjetoMarco',
 ]
