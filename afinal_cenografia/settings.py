@@ -102,6 +102,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'afinal_cenografia.middleware.MensagensNotificacaoMiddleware',
+    'afinal_cenografia.middleware.AppContextMiddleware',  
 ]
 
 ROOT_URLCONF = 'afinal_cenografia.urls'

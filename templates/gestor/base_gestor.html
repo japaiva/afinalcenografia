@@ -32,13 +32,6 @@
     <li><a class="dropdown-item" href="{% url 'gestor:usuario_list' %}">
         Usuários
     </a></li>
-    <li><a class="dropdown-item" href="{% url 'gestor:feira_list' %}">
-      Feiras e Eventos
-    </a></li>
-    
-    <!--  <li><hr class="dropdown-divider"></li>-->
-    
-    <li><hr class="dropdown-divider"></li>
     
     <li><a class="dropdown-item" href="{% url 'gestor:parametro_indexacao_list' %}">
       Parâmetros do Banco Vetorial
@@ -57,17 +50,12 @@
   </a>
   <ul class="dropdown-menu dropdown-menu-dark">
     <li><a class="dropdown-item" href="{% url 'gestor:projeto_list' %}">
-       Todos os Projetos
+       Projetos
     </a></li>
-    <li><a class="dropdown-item" href="{% url 'gestor:projeto_list' %}?status=pendente">
-       Pendentes
+    <li><a class="dropdown-item" href="{% url 'gestor:feira_list' %}">
+      Feiras e Eventos
     </a></li>
-    <li><a class="dropdown-item" href="{% url 'gestor:projeto_list' %}?status=ativo">
-      Ativos
-    </a></li>
-    <li><a class="dropdown-item" href="{% url 'gestor:projeto_list' %}?status=concluido">
-      Concluídos
-    </a></li>
+
   </ul>
 </li>
 

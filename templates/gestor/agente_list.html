@@ -8,9 +8,14 @@
     <h5 class="card-title mb-0">
       <i class="fas fa-robot me-2"></i> Agentes de IA
     </h5>
-    <a href="{% url 'gestor:agente_create' %}" class="btn btn-primary btn-sm">
-      <i class="fas fa-plus me-1"></i> Novo Agente
-    </a>
+    <div>
+      <a href="{% url 'gestor:agente_create' %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-plus me-1"></i> Novo Agente
+      </a>
+      <a href="{% url 'gestor:dashboard' %}" class="btn btn-outline-secondary btn-sm me-2">
+        <i class="fas fa-arrow-left me-1"></i> Voltar
+      </a>
+    </div>
   </div>
   
   <div class="card-body">

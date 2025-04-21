@@ -12,6 +12,19 @@ def perfil(request):
     # Obter ou criar perfil ao carregar a página
     perfil, created = PerfilUsuario.objects.get_or_create(usuario=usuario)
     
+    # Obter o contexto atual do usuário
+    app_context = request.session.get('app_context', 'home')
+    
+    # Determinar para onde voltar com base no contexto
+    if app_context == 'gestor':
+        back_url = 'gestor:dashboard'
+    elif app_context == 'cliente':
+        back_url = 'cliente:dashboard'
+    elif app_context == 'projetista':
+        back_url = 'projetista:dashboard'
+    else:
+        back_url = 'home'
+    
     if request.method == 'POST':
         # Atualizar informações básicas
         usuario.first_name = request.POST.get('first_name', '')
@@ -45,9 +58,11 @@ def perfil(request):
         perfil.save()
         
         messages.success(request, 'Perfil atualizado com sucesso!')
-        return redirect('perfil')
+        
+        # Após salvar, redirecionar para a URL de retorno
+        return redirect(back_url)
     
-    return render(request, 'perfil.html', {'usuario': usuario})
+    return render(request, 'perfil.html', {'usuario': usuario, 'back_url': back_url})
 
 def home_view(request):
     """
@@ -74,14 +89,21 @@ def logout_view(request):
     """
     View para realizar o logout do usuário.
     """
+    # Obter o contexto antes de fazer logout
+    app_context = request.session.get('app_context', 'home')
+    
+    # Realizar o logout
     logout(request)
+    
+    # Mensagem de sucesso
     messages.success(request, 'Você foi desconectado com sucesso.')
-    return redirect('home')
-
-def logout_view(request):
-    """
-    View para realizar o logout do usuário.
-    """
-    logout(request)
-    messages.success(request, 'Você foi desconectado com sucesso.')
-    return redirect('home')
+    
+    # Redirecionar com base no contexto
+    if app_context == 'gestor':
+        return redirect('gestor:login')
+    elif app_context == 'cliente':
+        return redirect('cliente:login')
+    elif app_context == 'projetista':
+        return redirect('projetista:login')
+    else:
+        return redirect('home')
