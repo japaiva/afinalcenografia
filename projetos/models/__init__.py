@@ -3,7 +3,8 @@
 from projetos.models.projeto import (
     Projeto,
     ProjetoPlanta,
-    ProjetoReferencia
+    ProjetoReferencia,
+    ArquivoProjeto
 )
 
 from projetos.models.briefing import (
@@ -12,3 +13,21 @@ from projetos.models.briefing import (
     BriefingValidacao,
     BriefingConversation
 )
+
+from projetos.models.mensagem import (
+    Mensagem,
+    AnexoMensagem
+)
+
+__all__ = [
+    'Projeto',
+    'ProjetoPlanta',
+    'ProjetoReferencia',
+    'Briefing',
+    'BriefingArquivoReferencia',
+    'BriefingValidacao',
+    'BriefingConversation',
+    'Mensagem',
+    'AnexoMensagem',
+    'ArquivoProjeto',
+]

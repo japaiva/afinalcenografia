@@ -7,8 +7,8 @@ from django.contrib import messages as django_messages
 from django.db.models import Q, Count, Max
 from django.utils import timezone
 
-from projetos.models.projeto import Projeto
-from core.models import Mensagem, AnexoMensagem, Usuario
+from projetos.models import Mensagem, AnexoMensagem,Projeto
+from core.models import Usuario
 
 @login_required
 def mensagens(request):

@@ -76,3 +76,23 @@ class ProjetoForm(forms.ModelForm):
 
         return projeto
     
+# projetos/forms.py
+
+from django import forms
+from projetos.models import ProjetoPlanta
+
+class ProjetoPlantaForm(forms.ModelForm):
+    class Meta:
+        model = ProjetoPlanta
+        fields = ['nome', 'arquivo', 'tipo', 'observacoes']
+
+from django import forms
+from projetos.models import ProjetoReferencia
+
+class ProjetoReferenciaForm(forms.ModelForm):
+    class Meta:
+        model = ProjetoReferencia
+        fields = ['nome', 'arquivo', 'tipo', 'observacoes']
+        widgets = {
+            'observacoes': forms.Textarea(attrs={'rows': 3}),
+        }

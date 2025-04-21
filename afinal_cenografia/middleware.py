@@ -11,7 +11,7 @@ class MensagensNotificacaoMiddleware:
         # Injetar contagem de mensagens não lidas para usuários autenticados
         if request.user.is_authenticated:
             # Importar aqui dentro para evitar importações circulares
-            from core.models import Mensagem
+            from projetos.models import Mensagem
             
             # Contar mensagens não lidas para este usuário
             mensagens_nao_lidas = Mensagem.objects.filter(
