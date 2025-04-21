@@ -16,7 +16,7 @@ class MensagensNotificacaoMiddleware:
             # Contar mensagens não lidas para este usuário
             mensagens_nao_lidas = Mensagem.objects.filter(
                 Q(destinatario=request.user) | 
-                (Q(projeto__cliente=request.user) & ~Q(remetente=request.user)),
+                (Q(projeto__criado_por=request.user) & ~Q(remetente=request.user)),
                 lida=False
             ).count()
             

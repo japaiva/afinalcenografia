@@ -353,6 +353,7 @@ def delete_referencia(request, referencia_id):
     messages.success(request, 'Referência excluída com sucesso.')
     return redirect('projetos:projeto_detail', pk=projeto_id)
 
+
 @login_required
 def iniciar_briefing(request, projeto_id):
     """
@@ -366,15 +367,22 @@ def iniciar_briefing(request, projeto_id):
     
     # Verifica se o projeto já tem um briefing
     if projeto.has_briefing:
-        return redirect('briefing:briefing_etapa', projeto_id=projeto.id, etapa=projeto.briefing.etapa_atual)
+        # Pega o briefing mais recente
+        briefing = projeto.briefings.first()
+        return redirect('cliente:briefing_etapa', projeto_id=projeto.id, etapa=briefing.etapa_atual)
     
     # Cria um novo briefing para o projeto
-    from .briefing import Briefing, BriefingValidacao
+    from projetos.models import Briefing, BriefingValidacao
     
-    briefing = Briefing.objects.create(projeto=projeto)
+    briefing = Briefing.objects.create(
+        projeto=projeto,
+        nome_projeto=projeto.nome,
+        orcamento=projeto.orcamento,
+        feira=projeto.feira
+    )
     
-    # Cria as validações iniciais
-    for secao in ['informacoes_basicas', 'detalhes_tecnicos', 'materiais_acabamentos', 'requisitos_tecnicos']:
+    # Cria as validações iniciais para o briefing
+    for secao in ['evento', 'estande', 'areas_estande', 'dados_complementares']:
         BriefingValidacao.objects.create(
             briefing=briefing,
             secao=secao,
@@ -382,12 +390,11 @@ def iniciar_briefing(request, projeto_id):
         )
     
     # Atualiza o status do projeto
-    projeto.tem_briefing = True
-    projeto.briefing_status = 'em_andamento'
-    projeto.save(update_fields=['tem_briefing', 'briefing_status'])
+    projeto.status = 'briefing_em_andamento'
+    projeto.save(update_fields=['status'])
     
     messages.success(request, 'Briefing iniciado com sucesso!')
-    return redirect('briefing:briefing_etapa', projeto_id=projeto.id, etapa=1)
+    return redirect('cliente:briefing_etapa', projeto_id=projeto.id, etapa=1)
 
 @login_required
 def verificar_manual_feira(request, projeto_id):

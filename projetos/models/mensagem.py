@@ -35,7 +35,6 @@ class Mensagem(models.Model):
     def __str__(self):
         return f"Mensagem de {self.remetente} em {self.data_envio:%d/%m/%Y %H:%M}"
 
-
 class AnexoMensagem(models.Model):
     mensagem = models.ForeignKey(Mensagem, on_delete=models.CASCADE, related_name='anexos')
     arquivo = models.FileField(upload_to='mensagens/anexos/', storage=MinioStorage())
@@ -44,9 +43,5 @@ class AnexoMensagem(models.Model):
     tamanho = models.PositiveIntegerField(default=0, verbose_name="Tamanho (bytes)")
     data_upload = models.DateTimeField(auto_now_add=True)
     
-    arquivo = models.FileField(
-        upload_to='mensagens/anexos/', storage=MinioStorage()
-    )
-    nome_original = models.CharField(max_length=255)
-    tipo_arquivo = models.CharField(max_length=100,
-    )
+    def __str__(self):
+        return f"Anexo: {self.nome_original} ({self.tipo_arquivo})"
