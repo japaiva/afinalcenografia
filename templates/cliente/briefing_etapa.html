@@ -7,7 +7,7 @@
 <div class="card shadow">
   <div class="card-header bg-light d-flex justify-content-between align-items-center">
     <h5 class="card-title mb-0">
-      <i class="fas fa-clipboard-list me-2"></i> Briefing de Projeto: {{ projeto.nome }}
+      <i class="fas fa-clipboard-list me-2"></i> Briefing de Projeto #{{ projeto.id }}
     </h5>
     <div class="d-flex align-items-center">
       <!-- Status de Validação condensado no header -->
@@ -25,19 +25,20 @@
         </div>
       </div>
       
-      <!-- Botões de ação -->
-      <a href="{% url 'cliente:projeto_detail' pk=projeto.id %}" class="btn btn-outline-secondary btn-sm me-1">
-        <i class="fas fa-project-diagram me-1"></i> Acessar Projeto
-      </a>
+      <!-- Botões de ação (reorganizados) -->
       {% if todas_aprovadas %}
-      <a href="{% url 'cliente:concluir_briefing' projeto_id=projeto.id %}" class="btn btn-primary btn-sm">
+      <a href="{% url 'cliente:concluir_briefing' projeto_id=projeto.id %}" class="btn btn-primary btn-sm me-2">
         <i class="fas fa-paper-plane me-1"></i> Enviar Briefing
       </a>
       {% else %}
-      <button id="validarBriefing" class="btn btn-outline-primary btn-sm" data-url="{% url 'cliente:validar_briefing' projeto_id=projeto.id %}">
+      <button id="validarBriefing" class="btn btn-outline-primary btn-sm me-2" data-url="{% url 'cliente:validar_briefing' projeto_id=projeto.id %}">
         <i class="fas fa-check-double me-1"></i> Validar Briefing
       </button>
       {% endif %}
+      
+      <a href="{% url 'cliente:projeto_detail' pk=projeto.id %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i> Voltar
+      </a>
     </div>
   </div>
   
