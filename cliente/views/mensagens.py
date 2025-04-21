@@ -13,8 +13,8 @@ from core.models import Usuario
 @login_required
 def mensagens(request):
     """Exibe a central de mensagens para o cliente."""
-    # Obtém apenas projetos do cliente atual
-    conversas = Projeto.objects.filter(cliente=request.user).annotate(
+    # Alterado para usar empresa do usuário em vez de criado_por
+    conversas = Projeto.objects.filter(empresa=request.user.empresa).annotate(
         ultima_mensagem=Max('mensagens__data_envio'),
         mensagens_nao_lidas=Count('mensagens', filter=Q(mensagens__lida=False) & ~Q(mensagens__remetente=request.user))
     ).filter(ultima_mensagem__isnull=False).order_by('-ultima_mensagem')
@@ -25,7 +25,8 @@ def mensagens(request):
     projeto_atual = None
     
     if projeto_id:
-        projeto_atual = get_object_or_404(Projeto, id=projeto_id, cliente=request.user)
+        # Alterado para usar empresa do usuário em vez de cliente
+        projeto_atual = get_object_or_404(Projeto, id=projeto_id, empresa=request.user.empresa)
         mensagens_lista = Mensagem.objects.filter(projeto=projeto_atual).order_by('data_envio')
         
         # Marca mensagens como lidas
@@ -50,7 +51,7 @@ def nova_mensagem(request):
         conteudo = request.POST.get('mensagem')
         
         if projeto_id and conteudo:
-            projeto = get_object_or_404(Projeto, id=projeto_id, cliente=request.user)
+            projeto = get_object_or_404(Projeto, id=projeto_id, empresa=request.user.empresa)
             
             # Criar a mensagem
             mensagem = Mensagem(
@@ -92,8 +93,8 @@ def nova_mensagem(request):
             django_messages.success(request, 'Mensagem enviada com sucesso!')
             return redirect('cliente:mensagens')
     
-    # Buscar projetos do cliente para o formulário
-    projetos = Projeto.objects.filter(cliente=request.user).order_by('-created_at')
+    # Buscar projetos da empresa do usuário para o formulário
+    projetos = Projeto.objects.filter(empresa=request.user.empresa).order_by('-created_at')
     
     return render(request, 'cliente/nova_mensagem.html', {
         'projetos': projetos,
@@ -102,7 +103,8 @@ def nova_mensagem(request):
 @login_required
 def mensagens_projeto(request, projeto_id):
     """Exibe e gerencia mensagens específicas de um projeto para o cliente."""
-    projeto = get_object_or_404(Projeto, id=projeto_id, cliente=request.user)
+    # Alterado para usar empresa do usuário em vez de criado_por
+    projeto = get_object_or_404(Projeto, id=projeto_id, empresa=request.user.empresa)
     
     # Processar nova mensagem
     if request.method == 'POST':

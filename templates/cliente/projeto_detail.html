@@ -10,14 +10,16 @@
       <i class="fas fa-project-diagram me-2"></i> Detalhes do Projeto
     </h5>
     <div>
-      {% if projeto.briefing_status == 'nao_iniciado' %}
+      {% if not projeto.has_briefing %}
         <a href="{% url 'cliente:iniciar_briefing' projeto_id=projeto.id %}" class="btn btn-success btn-sm">
           <i class="fas fa-clipboard-list me-1"></i> Iniciar Briefing
         </a>
-      {% elif projeto.briefing_status == 'em_andamento' %}
-        <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=projeto.briefing.etapa_atual %}" class="btn btn-primary btn-sm">
+      {% else %}
+        {% with projeto.briefings.first as briefing %}
+        <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=briefing.etapa_atual %}" class="btn btn-primary btn-sm">
           <i class="fas fa-edit me-1"></i> Acessar Briefing
         </a>
+        {% endwith %}
       {% endif %}
       <a href="{% url 'cliente:projeto_update' pk=projeto.pk %}" class="btn btn-outline-primary btn-sm ms-1">
         <i class="fas fa-edit me-1"></i> Editar
@@ -195,77 +197,80 @@
             <h6 class="card-title mb-0">Status do Briefing</h6>
           </div>
           <div class="card-body">
-            {% if projeto.has_briefing or projeto.tem_briefing %}
+            {% if projeto.has_briefing %}
+              {% with projeto.briefings.first as briefing %}
               <div class="text-center mb-3">
                 <div class="mb-2">
-                  {% if projeto.briefing_status == 'em_andamento' %}
+                  {% if projeto.status == 'briefing_em_andamento' %}
                     <i class="fas fa-edit text-primary" style="font-size: 3rem;"></i>
-                  {% elif projeto.briefing_status == 'enviado' %}
+                  {% elif projeto.status == 'briefing_enviado' %}
                     <i class="fas fa-paper-plane text-info" style="font-size: 3rem;"></i>
-                  {% elif projeto.briefing_status == 'aprovado' %}
+                  {% elif projeto.status == 'briefing_validado' %}
                     <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
-                  {% elif projeto.briefing_status == 'reprovado' %}
+                  {% elif briefing.status == 'validado' or briefing.status == 'enviado' %}
+                    <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+                  {% elif briefing.status == 'revisao' %}
                     <i class="fas fa-times-circle text-danger" style="font-size: 3rem;"></i>
+                  {% else %}
+                    <i class="fas fa-edit text-primary" style="font-size: 3rem;"></i>
                   {% endif %}
                 </div>
                 <h5>
-                  {% if projeto.briefing_status == 'em_andamento' %}
+                  {% if projeto.status == 'briefing_em_andamento' or briefing.status == 'rascunho' or briefing.status == 'em_validacao' %}
                     Briefing em Andamento
-                  {% elif projeto.briefing_status == 'enviado' %}
+                  {% elif projeto.status == 'briefing_enviado' or briefing.status == 'enviado' %}
                     Briefing Enviado
-                  {% elif projeto.briefing_status == 'aprovado' %}
+                  {% elif projeto.status == 'briefing_validado' or briefing.status == 'validado' %}
                     Briefing Aprovado
-                  {% elif projeto.briefing_status == 'reprovado' %}
+                  {% elif briefing.status == 'revisao' %}
                     Briefing Precisa de Ajustes
+                  {% else %}
+                    Briefing em Andamento
                   {% endif %}
                 </h5>
               </div>
               
-              <!-- Utilize hasattr para verificar se o briefing está associado -->
-              {% if projeto.briefing %}
-                <div class="progress mb-3" style="height: 10px;">
-                  <div class="progress-bar 
-                    {% if projeto.briefing_status == 'aprovado' %}bg-success
-                    {% elif projeto.briefing_status == 'enviado' %}bg-info
-                    {% elif projeto.briefing_status == 'reprovado' %}bg-danger
-                    {% else %}bg-primary{% endif %}" 
-                    role="progressbar" style="width: {{ projeto.briefing.progresso }}%;" 
-                    aria-valuenow="{{ projeto.briefing.progresso }}" aria-valuemin="0" aria-valuemax="100">
-                  </div>
+              <div class="progress mb-3" style="height: 10px;">
+                <div class="progress-bar 
+                  {% if briefing.status == 'validado' or briefing.status == 'aprovado' %}bg-success
+                  {% elif briefing.status == 'enviado' %}bg-info
+                  {% elif briefing.status == 'revisao' %}bg-danger
+                  {% else %}bg-primary{% endif %}" 
+                  role="progressbar" style="width: {{ briefing.progresso }}%;" 
+                  aria-valuenow="{{ briefing.progresso }}" aria-valuemin="0" aria-valuemax="100">
                 </div>
-                
-                <div class="d-grid">
-                  {% if projeto.briefing_status == 'em_andamento' %}
-                    <!-- Desab
-                    <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=projeto.briefing.etapa_atual %}" class="btn btn-primary">
-                      <i class="fas fa-edit me-1"></i> Acessar Briefing
-                    </a>
-                    -->
-                  {% elif projeto.briefing_status == 'enviado' %}
-                    <a href="#" class="btn btn-outline-info disabled">
-                      <i class="fas fa-hourglass me-1"></i> Aguardando Análise
-                    </a>
-                  {% elif projeto.briefing_status == 'aprovado' %}
-                    <a href="#" class="btn btn-outline-success disabled">
-                      <i class="fas fa-check-circle me-1"></i> Briefing Aprovado
-                    </a>
-                  {% elif projeto.briefing_status == 'reprovado' %}
-                    <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=1 %}" class="btn btn-danger">
-                      <i class="fas fa-exclamation-triangle me-1"></i> Revisar Briefing
-                    </a>
-                  {% endif %}
-                </div>
-                
-                {% if projeto.briefing_status == 'enviado' %}
-                  <div class="alert alert-info mt-3 mb-0">
-                    <small><i class="fas fa-info-circle me-1"></i> Seu briefing está sendo analisado pela equipe. Você receberá uma notificação quando for aprovado.</small>
-                  </div>
-                {% elif projeto.briefing_status == 'reprovado' %}
-                  <div class="alert alert-danger mt-3 mb-0">
-                    <small><i class="fas fa-exclamation-circle me-1"></i> Existem itens que precisam ser ajustados no briefing. Por favor, revise as informações.</small>
-                  </div>
+              </div>
+              
+              <div class="d-grid">
+                {% if briefing.status == 'rascunho' or briefing.status == 'em_validacao' %}
+                  <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=briefing.etapa_atual %}" class="btn btn-primary">
+                    <i class="fas fa-edit me-1"></i> Acessar Briefing
+                  </a>
+                {% elif briefing.status == 'enviado' %}
+                  <a href="#" class="btn btn-outline-info disabled">
+                    <i class="fas fa-hourglass me-1"></i> Aguardando Análise
+                  </a>
+                {% elif briefing.status == 'validado' or briefing.status == 'aprovado' %}
+                  <a href="#" class="btn btn-outline-success disabled">
+                    <i class="fas fa-check-circle me-1"></i> Briefing Aprovado
+                  </a>
+                {% elif briefing.status == 'revisao' %}
+                  <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=1 %}" class="btn btn-danger">
+                    <i class="fas fa-exclamation-triangle me-1"></i> Revisar Briefing
+                  </a>
                 {% endif %}
+              </div>
+              
+              {% if briefing.status == 'enviado' %}
+                <div class="alert alert-info mt-3 mb-0">
+                  <small><i class="fas fa-info-circle me-1"></i> Seu briefing está sendo analisado pela equipe. Você receberá uma notificação quando for aprovado.</small>
+                </div>
+              {% elif briefing.status == 'revisao' %}
+                <div class="alert alert-danger mt-3 mb-0">
+                  <small><i class="fas fa-exclamation-circle me-1"></i> Existem itens que precisam ser ajustados no briefing. Por favor, revise as informações.</small>
+                </div>
               {% endif %}
+              {% endwith %}
             {% else %}
               <div class="text-center mb-3">
                 <div class="mb-2">
@@ -304,12 +309,18 @@
                 <div class="d-flex justify-content-between">
                   <div>
                     <i class="fas fa-calendar-alt 
-                      {% if projeto.briefing_status == 'enviado' or projeto.briefing_status == 'aprovado' %}text-success{% else %}text-muted{% endif %} me-2"></i> 
+                      {% if projeto.status == 'briefing_enviado' or projeto.status == 'briefing_validado' %}text-success{% else %}text-muted{% endif %} me-2"></i> 
                     Envio do Briefing
                   </div>
                   <div>
-                    {% if projeto.briefing_status == 'enviado' or projeto.briefing_status == 'aprovado' %}
-                      {{ projeto.briefing.updated_at|date:"d/m/Y" }}
+                    {% if projeto.has_briefing %}
+                      {% with projeto.briefings.first as briefing %}
+                      {% if briefing.status == 'enviado' or briefing.status == 'validado' %}
+                        {{ briefing.updated_at|date:"d/m/Y" }}
+                      {% else %}
+                        Pendente
+                      {% endif %}
+                      {% endwith %}
                     {% else %}
                       Pendente
                     {% endif %}
@@ -360,10 +371,12 @@
               <a href="{% url 'cliente:projeto_update' pk=projeto.pk %}" class="list-group-item list-group-item-action">
                 <i class="fas fa-edit text-primary me-2"></i> Editar Informações
               </a>
-              {% if projeto.has_briefing or projeto.tem_briefing %}
-                <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=projeto.briefing.etapa_atual %}" class="list-group-item list-group-item-action">
+              {% if projeto.has_briefing %}
+                {% with projeto.briefings.first as briefing %}
+                <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=briefing.etapa_atual %}" class="list-group-item list-group-item-action">
                   <i class="fas fa-clipboard-list text-success me-2"></i> Ver Briefing
                 </a>
+                {% endwith %}
               {% else %}
                 <a href="{% url 'cliente:iniciar_briefing' projeto_id=projeto.id %}" class="list-group-item list-group-item-action">
                   <i class="fas fa-clipboard-list text-success me-2"></i> Iniciar Briefing
