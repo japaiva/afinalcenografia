@@ -1,3 +1,5 @@
+#project/models/marco.py
+
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
@@ -57,8 +59,9 @@ class ProjetoMarco(models.Model):
         
         if is_new:
             # Mapeia tipos de marco para status do projeto
+
             status_map = {
-                'criacao_projeto': 'pendente',
+                'criacao_projeto': 'briefing_pendente',  # Alterado de 'pendente'
                 'envio_briefing': 'briefing_enviado',
                 'validacao_briefing': 'briefing_validado',
                 'inicio_desenvolvimento': 'projeto_em_desenvolvimento',
@@ -67,7 +70,7 @@ class ProjetoMarco(models.Model):
                 'aprovacao_projeto': 'projeto_aprovado',
                 'inicio_producao': 'em_producao',
                 'entrega_estande': 'concluido',
-                'cancelamento': 'projeto_cancelado'
+                'cancelamento': 'cancelado'  # Alterado de 'projeto_cancelado'
             }
             
             if self.tipo in status_map:

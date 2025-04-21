@@ -16,16 +16,15 @@
         <form method="post" {% if form.is_multipart %}enctype="multipart/form-data"{% endif %} class="row g-3" id="projetoForm">
           {% csrf_token %}
           
-          <!-- Nome do Projeto -->
+          <!-- Número do Projeto (apenas para edição) -->
+          {% if form.instance.pk %}
           <div class="col-12">
-            <label for="{{ form.nome.id_for_label }}" class="form-label">Nome do Evento/Feira*</label>
-            {{ form.nome }}
-            {% if form.nome.errors %}
-              <div class="text-danger small">{{ form.nome.errors.0 }}</div>
-            {% endif %}
+            <label class="form-label">Número do Projeto</label>
+            <input type="text" class="form-control" value="{{ form.instance.numero }}" readonly>
           </div>
+          {% endif %}
           
-          <!-- Feira - NOVO CAMPO -->
+          <!-- Feira - Campo obrigatório -->
           <div class="col-12">
             <label for="{{ form.feira.id_for_label }}" class="form-label">Feira*</label>
             {{ form.feira }}
@@ -44,28 +43,30 @@
             {% endif %}
           </div>
           
-          <!-- Descrição -->
+          <!-- Objetivo (em vez de Descrição) -->
           <div class="col-12">
-            <label for="{{ form.descricao.id_for_label }}" class="form-label">Descrição</label>
+            <label for="{{ form.descricao.id_for_label }}" class="form-label">Objetivo*</label>
             {{ form.descricao }}
             {% if form.descricao.errors %}
               <div class="text-danger small">{{ form.descricao.errors.0 }}</div>
             {% endif %}
           </div>
           
-          <!-- Status para edição -->
+          <!-- Status (apenas mostrar, não editável) -->
           {% if form.instance.pk %}
           <div class="col-12">
-            <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
-            {{ form.status }}
-            {% if form.status.errors %}
-              <div class="text-danger small">{{ form.status.errors.0 }}</div>
-            {% endif %}
+            <label class="form-label">Status</label>
+            <input type="text" class="form-control" value="{{ form.instance.get_status_display }}" readonly>
+            <!-- Campo original escondido para manter o valor -->
+            <div style="display:none;">{{ form.status }}</div>
           </div>
           {% else %}
           <!-- Use o próprio campo status mas escondido -->
           <div style="display:none;">{{ form.status }}</div>
           {% endif %}
+          
+          <!-- Campo nome escondido para validação (será preenchido com nome da feira) -->
+          <div style="display:none;">{{ form.nome }}</div>
           
           <!-- Campos não exibidos mas mantidos para evitar erros de validação -->
           {% for field in form %}
@@ -95,12 +96,45 @@ document.addEventListener('DOMContentLoaded', function() {
   {% if not form.instance.pk %}
   const statusField = form.querySelector('[name="status"]');
   if (statusField) {
-    statusField.value = 'pendente';
+    statusField.value = 'briefing_pendente';  // Alterado para o novo status padrão
+  }
+  
+  // Preencher automaticamente o nome com base na feira selecionada
+  const feiraField = form.querySelector('[name="feira"]');
+  const nomeField = form.querySelector('[name="nome"]');
+  
+  if (feiraField && nomeField) {
+    // Inicialmente, preencher com a feira já selecionada
+    if (feiraField.value) {
+      const feiraOption = feiraField.options[feiraField.selectedIndex];
+      nomeField.value = feiraOption.text;
+    }
+    
+    // Atualizar quando a feira for alterada
+    feiraField.addEventListener('change', function() {
+      if (this.value) {
+        const feiraOption = this.options[this.selectedIndex];
+        nomeField.value = feiraOption.text;
+      } else {
+        nomeField.value = '';
+      }
+    });
   }
   {% endif %}
 
   // Previne múltiplos envios
   form.addEventListener('submit', function(event) {
+    // Verificar se todos os campos obrigatórios estão preenchidos
+    const feira = form.querySelector('[name="feira"]').value;
+    const orcamento = form.querySelector('[name="orcamento"]').value;
+    const objetivo = form.querySelector('[name="descricao"]').value;
+    
+    if (!feira || !orcamento || !objetivo) {
+      event.preventDefault();
+      alert('Por favor, preencha todos os campos obrigatórios.');
+      return false;
+    }
+    
     const submitButton = form.querySelector('button[type="submit"]');
     submitButton.disabled = true;
     submitButton.innerHTML = 'Processando...';
@@ -117,6 +151,22 @@ document.addEventListener('DOMContentLoaded', function() {
       unformatOnSubmit: true
     });
   }
+  
+  // Formatar campos de data
+  const camposData = document.querySelectorAll('input[type="datetime-local"]');
+  camposData.forEach(function(campo) {
+    if (campo.value && !campo.value.includes('T')) {
+      // Formatar data armazenada para formato datetime-local
+      const data = new Date(campo.value);
+      const ano = data.getFullYear();
+      const mes = String(data.getMonth() + 1).padStart(2, '0');
+      const dia = String(data.getDate()).padStart(2, '0');
+      const hora = String(data.getHours()).padStart(2, '0');
+      const minuto = String(data.getMinutes()).padStart(2, '0');
+      
+      campo.value = `${ano}-${mes}-${dia}T${hora}:${minuto}`;
+    }
+  });
 });
 </script>
 {% endblock %}

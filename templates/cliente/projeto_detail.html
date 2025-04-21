@@ -1,513 +1,421 @@
 {% extends 'cliente/base_cliente.html' %}
 {% load formatadores %}
 
-{% block title %}Detalhes do Projeto | Portal do Cliente | Afinal Cenografia{% endblock %}
+{% block title %}Projeto #{{ projeto.numero }} | Portal do Cliente{% endblock %}
 
 {% block content %}
-<div class="card shadow">
-  <div class="card-header bg-light d-flex justify-content-between align-items-center">
-    <h5 class="card-title mb-0">
-      <i class="fas fa-project-diagram me-2"></i> Detalhes do Projeto
-    </h5>
-    <div>
-      {% if not projeto.has_briefing %}
-        <a href="{% url 'cliente:iniciar_briefing' projeto_id=projeto.id %}" class="btn btn-success btn-sm">
-          <i class="fas fa-clipboard-list me-1"></i> Iniciar Briefing
+<div class="container-fluid py-3">
+  <div class="card shadow mb-4">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center">
+        <i class="fas fa-project-diagram me-2"></i>
+        <h4 class="mb-0">Projeto #{{ projeto.numero }}</h4>
+      </div>
+      <div>
+        <a href="{% url 'cliente:projeto_list' %}" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-1"></i> Voltar
         </a>
-      {% else %}
-        {% with projeto.briefings.first as briefing %}
-        <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=briefing.etapa_atual %}" class="btn btn-primary btn-sm">
-          <i class="fas fa-edit me-1"></i> Acessar Briefing
-        </a>
-        {% endwith %}
-      {% endif %}
-      <a href="{% url 'cliente:projeto_update' pk=projeto.pk %}" class="btn btn-outline-primary btn-sm ms-1">
-        <i class="fas fa-edit me-1"></i> Editar
-      </a>
-      <a href="{% url 'cliente:projeto_list' %}" class="btn btn-outline-secondary btn-sm ms-1">
-        <i class="fas fa-arrow-left me-1"></i> Voltar
-      </a>
+      </div>
     </div>
   </div>
-  
-  <div class="card-body">
-    <div class="row">
-      <!-- Informações básicas -->
-      <div class="col-md-8">
-        <div class="card mb-3">
-          <div class="card-header bg-light">
-            <h6 class="card-title mb-0">Informações Básicas</h6>
+
+  <div class="row">
+    <!-- COLUNA ESQUERDA (MAIOR) -->
+    <div class="col-md-8">
+      <!-- INFORMAÇÕES GERAIS -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i> Informações Gerais</h5>
+        </div>
+        <div class="card-body">
+          <div class="row mb-2">
+            <div class="col-md-6">
+              <strong>Número:</strong> {{ projeto.numero }}
+            </div>
+            <div class="col-md-6">
+              <strong>Status:</strong>
+              <span class="badge 
+                {% if projeto.status == 'briefing_pendente' %}bg-info
+                {% elif projeto.status == 'briefing_em_andamento' %}bg-warning text-dark
+                {% elif projeto.status == 'briefing_validado' %}bg-success
+                {% elif projeto.status == 'briefing_enviado' %}bg-info
+                {% elif projeto.status == 'projeto_em_desenvolvimento' %}bg-primary
+                {% elif projeto.status == 'projeto_enviado' %}bg-info
+                {% elif projeto.status == 'projeto_em_analise' %}bg-warning text-dark
+                {% elif projeto.status == 'projeto_aprovado' %}bg-success
+                {% elif projeto.status == 'em_producao' %}bg-danger
+                {% elif projeto.status == 'concluido' %}bg-secondary
+                {% elif projeto.status == 'cancelado' %}bg-danger
+                {% else %}bg-secondary{% endif %}">
+                {{ projeto.get_status_display }}
+              </span>
+            </div>
           </div>
-          <div class="card-body">
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <label class="form-label fw-bold">Nome</label>
-                <p class="border-bottom pb-2">{{ projeto.nome }}</p>
-              </div>
-              <div class="col-md-6 mb-3">
-                <label class="form-label fw-bold">Status</label>
-                <p class="border-bottom pb-2">
-                  <span class="badge 
-                    {% if projeto.status == 'pendente' %}bg-info
-                    {% elif projeto.status == 'em_analise' %}bg-primary
-                    {% elif projeto.status == 'aprovado' %}bg-success
-                    {% elif projeto.status == 'em_producao' %}bg-warning text-dark
-                    {% elif projeto.status == 'concluido' %}bg-secondary
-                    {% elif projeto.status == 'cancelado' %}bg-danger
-                    {% else %}bg-secondary{% endif %}">
-                    {{ projeto.get_status_display }}
-                  </span>
-                </p>
-              </div>
-              <div class="col-12 mb-3">
-                <label class="form-label fw-bold">Descrição</label>
-                <p class="border-bottom pb-2">{{ projeto.descricao|default:"-" }}</p>
-              </div>
-              <div class="col-md-6 mb-3">
-                <label class="form-label fw-bold">Data de Início</label>
-                <p class="border-bottom pb-2">{{ projeto.data_inicio|date:"d/m/Y"|default:"-" }}</p>
-              </div>
-              <div class="col-md-6 mb-3">
-                <label class="form-label fw-bold">Prazo de Entrega</label>
-                <p class="border-bottom pb-2">{{ projeto.prazo_entrega|date:"d/m/Y"|default:"-" }}</p>
-              </div>
-              <div class="col-md-6 mb-3">
-                <label class="form-label fw-bold">Orçamento</label>
-                {% load formatadores %}
-                <p class="border-bottom pb-2">{{ projeto.orcamento|moeda_brasileira }}</p>
-              </div>
-              <div class="col-md-6 mb-3">
-                <label class="form-label fw-bold">Progresso</label>
-                <div class="progress mb-2" style="height: 10px;">
-                  <div class="progress-bar bg-success" role="progressbar" style="width: {{ projeto.progresso|default:0 }}%;" aria-valuenow="{{ projeto.progresso|default:0 }}" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-                <small class="text-muted">{{ projeto.progresso|default:0 }}% concluído</small>
-              </div>
+          
+          <div class="row mb-2">
+            <div class="col-md-12">
+              <strong>Orçamento:</strong> {{ projeto.orcamento|moeda_brasileira }}
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-12">
+              <strong>Objetivo:</strong> {{ projeto.descricao|default:"Não informado" }}
             </div>
           </div>
         </div>
-
-        <!-- Informações da Feira -->
-        <div class="card mb-3">
-          <div class="card-header bg-light">
-            <h6 class="card-title mb-0">Informações da Feira</h6>
+      </div>
+      
+      <!-- INFORMAÇÕES DA FEIRA -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0"><i class="fas fa-calendar-alt me-2"></i> Informações da Feira</h5>
+        </div>
+        <div class="card-body">
+          {% if projeto.feira %}
+          <div class="row mb-2">
+            <div class="col-12">
+              <strong>Nome:</strong> {{ projeto.feira.nome }}
+            </div>
           </div>
-          <div class="card-body">
-            {% if projeto.feira %}
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label class="form-label fw-bold">Nome da Feira</label>
-                  <p class="border-bottom pb-2">{{ projeto.feira.nome }}</p>
+          
+          <div class="row mb-2">
+            <div class="col-md-12">
+              <strong>Local:</strong> {{ projeto.feira.local|default:"Não informado" }}
+            </div>
+          </div>
+          
+          <div class="row mb-2">
+            <div class="col-md-6">
+              <strong>Cidade:</strong> {{ projeto.feira.cidade|default:"Não informada" }}
+            </div>
+            <div class="col-md-6">
+              <strong>UF:</strong> {{ projeto.feira.estado|default:"--" }}
+            </div>
+          </div>
+          
+          <div class="row mb-2">
+            <div class="col-md-6">
+              <strong>Início:</strong>
+              {% if projeto.feira.data_inicio %}
+                {{ projeto.feira.data_inicio|date:"d/m/Y" }}
+              {% else %}
+                Não informada
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <strong>Fim:</strong>
+              {% if projeto.feira.data_fim %}
+                {{ projeto.feira.data_fim|date:"d/m/Y" }}
+              {% else %}
+                Não informada
+              {% endif %}
+            </div>
+          </div>
+          
+          {% if projeto.feira.manual %}
+          <div class="row">
+            <div class="col-12">
+              <a href="{{ projeto.feira.manual.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                <i class="fas fa-file-pdf me-1"></i> Baixar Manual da Feira
+              </a>
+            </div>
+          </div>
+          {% endif %}
+          
+          {% else %}
+          <div class="alert alert-warning mb-0">
+            <i class="fas fa-exclamation-triangle me-2"></i> Este projeto não possui feira associada.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      
+      <!-- CONSULTA -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0"><i class="fas fa-search me-2"></i> Consulta</h5>
+        </div>
+        <div class="card-body">
+          <ul class="nav nav-tabs" id="consultaTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="briefing-tab" data-bs-toggle="tab" data-bs-target="#briefing-content" type="button" role="tab" aria-controls="briefing-content" aria-selected="true">Briefing</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="projeto-tab" data-bs-toggle="tab" data-bs-target="#projeto-content" type="button" role="tab" aria-controls="projeto-content" aria-selected="false">Projeto</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="fotos-tab" data-bs-toggle="tab" data-bs-target="#fotos-content" type="button" role="tab" aria-controls="fotos-content" aria-selected="false">Fotos</button>
+            </li>
+          </ul>
+          
+          <div class="tab-content pt-3" id="consultaTabsContent">
+            <!-- BRIEFING TAB -->
+            <div class="tab-pane fade show active" id="briefing-content" role="tabpanel" aria-labelledby="briefing-tab">
+              {% if projeto.has_briefing %}
+                {% with briefing=projeto.briefings.first %}
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h6 class="mb-0">Briefing v{{ briefing.versao }}</h6>
+                  <span class="badge 
+                    {% if briefing.status == 'rascunho' %}bg-secondary
+                    {% elif briefing.status == 'validado' %}bg-success
+                    {% elif briefing.status == 'em_validacao' %}bg-warning text-dark
+                    {% elif briefing.status == 'enviado' %}bg-primary
+                    {% elif briefing.status == 'revisao' %}bg-info
+                    {% elif briefing.status == 'aprovado' %}bg-success
+                    {% endif %}">
+                    {{ briefing.get_status_display }}
+                  </span>
                 </div>
-                <div class="col-md-6 mb-3">
-                  <label class="form-label fw-bold">Local</label>
-                  <p class="border-bottom pb-2">{{ projeto.feira.local }}</p>
+                
+                <div class="progress mb-3" style="height: 20px;">
+                  <div class="progress-bar bg-success" role="progressbar" style="width: {{ briefing.progresso }}%;" aria-valuenow="{{ briefing.progresso }}" aria-valuemin="0" aria-valuemax="100">{{ briefing.progresso }}%</div>
                 </div>
-                <div class="col-md-6 mb-3">
-                  <label class="form-label fw-bold">Cidade/Estado</label>
-                  <p class="border-bottom pb-2">{{ projeto.feira.cidade }}/{{ projeto.feira.estado }}</p>
-                </div>
-                <div class="col-md-6 mb-3">
-                  <label class="form-label fw-bold">Data</label>
-                  <p class="border-bottom pb-2">{{ projeto.feira.data_inicio|date:"d/m/Y" }} a {{ projeto.feira.data_fim|date:"d/m/Y" }}</p>
-                </div>
-                <div class="col-12">
-                  <div class="d-grid">
-                    {% if projeto.feira.manual %}
-                      <a href="{{ projeto.feira.manual.url }}" class="btn btn-outline-info btn-sm" target="_blank">
-                        <i class="fas fa-file-pdf me-1"></i> Baixar Manual da Feira
-                      </a>
-                    {% else %}
-                      <button class="btn btn-outline-secondary btn-sm" disabled>
-                        <i class="fas fa-file-pdf me-1"></i> Manual não disponível
-                      </button>
-                    {% endif %}
-                  </div>
-                </div>
-              </div>
-            {% else %}
-              <div class="text-center py-3">
-                <i class="fas fa-calendar-times text-muted fa-2x mb-2"></i>
-                <p class="mb-1">Nenhuma feira associada a este projeto.</p>
-                <a href="{% url 'cliente:projeto_update' pk=projeto.pk %}" class="btn btn-outline-primary btn-sm">
-                  <i class="fas fa-plus me-1"></i> Associar Feira
+                
+                <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=briefing.etapa_atual %}" class="btn btn-primary btn-sm">
+                  <i class="fas fa-clipboard-list me-1"></i> Ver Briefing
                 </a>
-              </div>
-            {% endif %}
-          </div>
-        </div>
-
-        
-        <!-- Requisitos específicos -->
-        <div class="card mb-3">
-          <div class="card-header bg-light">
-            <h6 class="card-title mb-0">Requisitos Específicos</h6>
-          </div>
-          <div class="card-body">
-            <p>{{ projeto.requisitos|default:"Nenhum requisito específico informado."|linebreaks }}</p>
-          </div>
-        </div>
-        
-        <!-- Arquivos de referência -->
-        <div class="card mb-3">
-          <div class="card-header bg-light d-flex justify-content-between align-items-center">
-            <h6 class="card-title mb-0">Arquivos de Referência</h6>
-            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
-              <i class="fas fa-upload me-1"></i> Adicionar Arquivo
-            </button>
-          </div>
-          <div class="card-body">
-            {% if projeto.arquivos_referencia %}
-              <div class="d-flex flex-wrap gap-2">
-                {% for arquivo in projeto.arquivos_referencia.all %}
-                  <div class="position-relative arquivo-item" data-id="{{ arquivo.id }}" style="width: 120px;">
-                    {% if arquivo.tipo == 'imagem' %}
-                      <a href="{{ arquivo.arquivo.url }}" target="_blank" class="d-block">
-                        <img src="{{ arquivo.arquivo.url }}" alt="{{ arquivo.nome }}" class="img-thumbnail" style="width: 120px; height: 120px; object-fit: cover;">
+                {% endwith %}
+              {% else %}
+                <div class="alert alert-info mb-3">
+                  <i class="fas fa-info-circle me-2"></i> Este projeto ainda não possui briefing.
+                </div>
+                
+                <a href="{% url 'cliente:iniciar_briefing' projeto_id=projeto.id %}" class="btn btn-primary btn-sm">
+                  <i class="fas fa-plus me-1"></i> Iniciar Briefing
+                </a>
+              {% endif %}
+            </div>
+            
+            <!-- PROJETO TAB -->
+            <div class="tab-pane fade" id="projeto-content" role="tabpanel" aria-labelledby="projeto-tab">
+              {% if projeto.status == 'projeto_enviado' or projeto.status == 'projeto_em_analise' or projeto.status == 'projeto_aprovado' or projeto.status == 'em_producao' or projeto.status == 'concluido' %}
+                <div class="mb-3">
+                  <h6>Arquivos do Projeto</h6>
+                  <ul class="list-group">
+                    {% for arquivo in projeto.arquivos.all %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                      <div>
+                        <i class="fas fa-file me-2"></i>
+                        {{ arquivo.nome_original }}
+                      </div>
+                      <a href="{{ arquivo.arquivo.url }}" class="btn btn-sm btn-outline-secondary" target="_blank">
+                        <i class="fas fa-download"></i>
                       </a>
-                    {% else %}
-                      <a href="{{ arquivo.arquivo.url }}" target="_blank" class="d-block text-decoration-none">
-                        <div class="bg-light border text-center p-2" style="width: 120px; height: 120px;">
-                          <i class="fas 
-                            {% if arquivo.tipo == 'planta' %}fa-map
-                            {% elif arquivo.tipo == 'documento' %}fa-file-alt
-                            {% else %}fa-file{% endif %} fa-3x my-2 text-secondary"></i>
-                          <p class="small text-truncate mb-0 text-dark">{{ arquivo.nome }}</p>
-                        </div>
-                      </a>
-                    {% endif %}
-                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 excluir-arquivo" style="font-size: 0.7rem; padding: 0.1rem 0.3rem;" data-url="{% url 'cliente:excluir_arquivo_referencia' arquivo_id=arquivo.id %}">
-                      <i class="fas fa-times"></i>
-                    </button>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-center text-muted">
+                      Nenhum arquivo disponível
+                    </li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              {% else %}
+                <div class="alert alert-info mb-0">
+                  <i class="fas fa-info-circle me-2"></i> O projeto executivo ainda não foi enviado.
+                </div>
+              {% endif %}
+            </div>
+            
+            <!-- FOTOS TAB -->
+            <div class="tab-pane fade" id="fotos-content" role="tabpanel" aria-labelledby="fotos-tab">
+              {% if projeto.status == 'em_producao' or projeto.status == 'concluido' %}
+                <div class="row">
+                  {% for foto in projeto.fotos.all %}
+                  <div class="col-md-4 mb-3">
+                    <div class="card">
+                      <img src="{{ foto.arquivo.url }}" class="card-img-top" alt="{{ foto.descricao }}">
+                      <div class="card-body p-2">
+                        <p class="card-text small">{{ foto.descricao }}</p>
+                      </div>
+                    </div>
                   </div>
-                {% endfor %}
-              </div>
+                  {% empty %}
+                  <div class="col-12 text-center text-muted py-3">
+                    Nenhuma foto disponível
+                  </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <div class="alert alert-info mb-0">
+                  <i class="fas fa-info-circle me-2"></i> Fotos estarão disponíveis quando a produção iniciar.
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- COLUNA DIREITA (MENOR) -->
+    <div class="col-md-4">
+      <!-- AÇÕES (Movido para cima) -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0"><i class="fas fa-cogs me-2"></i> Ações</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            {% if projeto.has_briefing %}
+              <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=1 %}" class="btn btn-outline-primary">
+                <i class="fas fa-clipboard-list me-2"></i> Acessar Briefing
+              </a>
             {% else %}
-              <p class="text-muted">Nenhum arquivo de referência enviado. Clique em "Adicionar Arquivo" para enviar.</p>
+              <a href="{% url 'cliente:iniciar_briefing' projeto_id=projeto.id %}" class="btn btn-outline-primary">
+                <i class="fas fa-clipboard-list me-2"></i> Iniciar Briefing
+              </a>
+            {% endif %}
+            
+            <a href="{% url 'cliente:mensagens_projeto' projeto_id=projeto.id %}" class="btn btn-outline-primary">
+              <i class="fas fa-comment me-2"></i> Enviar Mensagem
+            </a>
+            
+            {% if projeto.status == 'projeto_enviado' %}
+              <a href="{% url 'cliente:aprovar_projeto' pk=projeto.id %}" class="btn btn-outline-success">
+                <i class="fas fa-check-circle me-2"></i> Aprovar Projeto
+              </a>
+            {% endif %}
+            
+            <a href="{% url 'cliente:projeto_update' pk=projeto.id %}" class="btn btn-outline-secondary">
+              <i class="fas fa-edit me-2"></i> Editar Projeto
+            </a>
+            
+            <!-- Excluir Projeto - Apenas disponível se ainda não houver produção -->
+            {% if projeto.status != 'em_producao' and projeto.status != 'concluido' %}
+              <a href="{% url 'cliente:projeto_delete' pk=projeto.id %}" class="btn btn-outline-danger">
+                <i class="fas fa-trash me-2"></i> Excluir Projeto
+              </a>
             {% endif %}
           </div>
         </div>
       </div>
       
-      <!-- Status do Briefing e Cronograma -->
-      <div class="col-md-4">
-        <!-- Status do Briefing -->
-        <div class="card mb-3">
-          <div class="card-header bg-light">
-            <h6 class="card-title mb-0">Status do Briefing</h6>
-          </div>
-          <div class="card-body">
-            {% if projeto.has_briefing %}
-              {% with projeto.briefings.first as briefing %}
-              <div class="text-center mb-3">
-                <div class="mb-2">
-                  {% if projeto.status == 'briefing_em_andamento' %}
-                    <i class="fas fa-edit text-primary" style="font-size: 3rem;"></i>
-                  {% elif projeto.status == 'briefing_enviado' %}
-                    <i class="fas fa-paper-plane text-info" style="font-size: 3rem;"></i>
-                  {% elif projeto.status == 'briefing_validado' %}
-                    <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
-                  {% elif briefing.status == 'validado' or briefing.status == 'enviado' %}
-                    <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
-                  {% elif briefing.status == 'revisao' %}
-                    <i class="fas fa-times-circle text-danger" style="font-size: 3rem;"></i>
-                  {% else %}
-                    <i class="fas fa-edit text-primary" style="font-size: 3rem;"></i>
-                  {% endif %}
-                </div>
-                <h5>
-                  {% if projeto.status == 'briefing_em_andamento' or briefing.status == 'rascunho' or briefing.status == 'em_validacao' %}
-                    Briefing em Andamento
-                  {% elif projeto.status == 'briefing_enviado' or briefing.status == 'enviado' %}
-                    Briefing Enviado
-                  {% elif projeto.status == 'briefing_validado' or briefing.status == 'validado' %}
-                    Briefing Aprovado
-                  {% elif briefing.status == 'revisao' %}
-                    Briefing Precisa de Ajustes
-                  {% else %}
-                    Briefing em Andamento
-                  {% endif %}
-                </h5>
+      <!-- CRONOGRAMA -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0"><i class="fas fa-calendar me-2"></i> Cronograma</h5>
+        </div>
+        <div class="card-body">
+          <ul class="list-group">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                Inclusão Projeto
               </div>
-              
-              <div class="progress mb-3" style="height: 10px;">
-                <div class="progress-bar 
-                  {% if briefing.status == 'validado' or briefing.status == 'aprovado' %}bg-success
-                  {% elif briefing.status == 'enviado' %}bg-info
-                  {% elif briefing.status == 'revisao' %}bg-danger
-                  {% else %}bg-primary{% endif %}" 
-                  role="progressbar" style="width: {{ briefing.progresso }}%;" 
-                  aria-valuenow="{{ briefing.progresso }}" aria-valuemin="0" aria-valuemax="100">
-                </div>
-              </div>
-              
-              <div class="d-grid">
-                {% if briefing.status == 'rascunho' or briefing.status == 'em_validacao' %}
-                  <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=briefing.etapa_atual %}" class="btn btn-primary">
-                    <i class="fas fa-edit me-1"></i> Acessar Briefing
-                  </a>
-                {% elif briefing.status == 'enviado' %}
-                  <a href="#" class="btn btn-outline-info disabled">
-                    <i class="fas fa-hourglass me-1"></i> Aguardando Análise
-                  </a>
-                {% elif briefing.status == 'validado' or briefing.status == 'aprovado' %}
-                  <a href="#" class="btn btn-outline-success disabled">
-                    <i class="fas fa-check-circle me-1"></i> Briefing Aprovado
-                  </a>
-                {% elif briefing.status == 'revisao' %}
-                  <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=1 %}" class="btn btn-danger">
-                    <i class="fas fa-exclamation-triangle me-1"></i> Revisar Briefing
-                  </a>
+              <span>
+                {% if projeto.created_at %}
+                  {{ projeto.created_at|date:"d/m/Y" }}
+                {% else %}
+                  -
                 {% endif %}
+              </span>
+            </li>
+            
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                Envio Briefing
               </div>
-              
-              {% if briefing.status == 'enviado' %}
-                <div class="alert alert-info mt-3 mb-0">
-                  <small><i class="fas fa-info-circle me-1"></i> Seu briefing está sendo analisado pela equipe. Você receberá uma notificação quando for aprovado.</small>
-                </div>
-              {% elif briefing.status == 'revisao' %}
-                <div class="alert alert-danger mt-3 mb-0">
-                  <small><i class="fas fa-exclamation-circle me-1"></i> Existem itens que precisam ser ajustados no briefing. Por favor, revise as informações.</small>
-                </div>
-              {% endif %}
-              {% endwith %}
-            {% else %}
-              <div class="text-center mb-3">
-                <div class="mb-2">
-                  <i class="fas fa-clipboard text-secondary" style="font-size: 3rem;"></i>
-                </div>
-                <h5>Briefing Não Iniciado</h5>
+              <span>
+                {% if projeto.data_envio_briefing %}
+                  {{ projeto.data_envio_briefing|date:"d/m/Y" }}
+                {% else %}
+                  -
+                {% endif %}
+              </span>
+            </li>
+            
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                Retorno Projeto
               </div>
-              
-              <p class="text-muted text-center">Para que possamos iniciar o projeto, é necessário preencher o briefing com informações detalhadas.</p>
-              
-              <div class="d-grid">
-                <a href="{% url 'cliente:iniciar_briefing' projeto_id=projeto.id %}" class="btn btn-success">
-                  <i class="fas fa-clipboard-list me-1"></i> Iniciar Briefing
-                </a>
-              </div>
-            {% endif %}
-          </div>
-        </div>
-        
-        <!-- Cronograma -->
-        <div class="card mb-3">
-          <div class="card-header bg-light">
-            <h6 class="card-title mb-0">Cronograma</h6>
-          </div>
-          <div class="card-body">
-            <ul class="list-group list-group-flush">
-              <li class="list-group-item px-0">
-                <div class="d-flex justify-content-between">
-                  <div>
-                    <i class="fas fa-calendar-plus text-primary me-2"></i> Criação
-                  </div>
-                  <div>{{ projeto.created_at|date:"d/m/Y" }}</div>
-                </div>
-              </li>
-              <li class="list-group-item px-0">
-                <div class="d-flex justify-content-between">
-                  <div>
-                    <i class="fas fa-calendar-alt 
-                      {% if projeto.status == 'briefing_enviado' or projeto.status == 'briefing_validado' %}text-success{% else %}text-muted{% endif %} me-2"></i> 
-                    Envio do Briefing
-                  </div>
-                  <div>
-                    {% if projeto.has_briefing %}
-                      {% with projeto.briefings.first as briefing %}
-                      {% if briefing.status == 'enviado' or briefing.status == 'validado' %}
-                        {{ briefing.updated_at|date:"d/m/Y" }}
-                      {% else %}
-                        Pendente
-                      {% endif %}
-                      {% endwith %}
-                    {% else %}
-                      Pendente
-                    {% endif %}
-                  </div>
-                </div>
-              </li>
-              <li class="list-group-item px-0">
-                <div class="d-flex justify-content-between">
-                  <div>
-                    <i class="fas fa-tasks {% if projeto.status == 'em_producao' or projeto.status == 'concluido' %}text-success{% else %}text-muted{% endif %} me-2"></i> 
-                    Início da Produção
-                  </div>
-                  <div>
-                    {% if projeto.status == 'em_producao' or projeto.status == 'concluido' %}
-                      {{ projeto.data_inicio|date:"d/m/Y" }}
-                    {% else %}
-                      Pendente
-                    {% endif %}
-                  </div>
-                </div>
-              </li>
-              <li class="list-group-item px-0">
-                <div class="d-flex justify-content-between">
-                  <div>
-                    <i class="fas fa-check-circle {% if projeto.status == 'concluido' %}text-success{% else %}text-muted{% endif %} me-2"></i> 
-                    Conclusão
-                  </div>
-                  <div>
-                    {% if projeto.status == 'concluido' %}
-                      {{ projeto.updated_at|date:"d/m/Y" }}
-                    {% else %}
-                      Pendente
-                    {% endif %}
-                  </div>
-                </div>
-              </li>
-            </ul>
-          </div>
-        </div>
-        
-        <!-- Ações -->
-        <div class="card mb-3">
-          <div class="card-header bg-light">
-            <h6 class="card-title mb-0">Ações</h6>
-          </div>
-          <div class="card-body p-0">
-            <div class="list-group list-group-flush">
-              <a href="{% url 'cliente:projeto_update' pk=projeto.pk %}" class="list-group-item list-group-item-action">
-                <i class="fas fa-edit text-primary me-2"></i> Editar Informações
-              </a>
-              {% if projeto.has_briefing %}
-                {% with projeto.briefings.first as briefing %}
-                <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=briefing.etapa_atual %}" class="list-group-item list-group-item-action">
-                  <i class="fas fa-clipboard-list text-success me-2"></i> Ver Briefing
-                </a>
+              <span>
+                {% with retorno_projeto=projeto.marcos.filter.first %}
+                {% if retorno_projeto %}
+                  {{ retorno_projeto.data|date:"d/m/Y" }}
+                {% else %}
+                  -
+                {% endif %}
                 {% endwith %}
-              {% else %}
-                <a href="{% url 'cliente:iniciar_briefing' projeto_id=projeto.id %}" class="list-group-item list-group-item-action">
-                  <i class="fas fa-clipboard-list text-success me-2"></i> Iniciar Briefing
-                </a>
-              {% endif %}
-              <a href="#" class="list-group-item list-group-item-action" data-bs-toggle="modal" data-bs-target="#uploadModal">
-                <i class="fas fa-upload text-info me-2"></i> Adicionar Arquivo
-              </a>
-              <a href="#" class="list-group-item list-group-item-action">
-                <i class="fas fa-comment text-info me-2"></i> Enviar Mensagem
-              </a>
-              <a href="{% url 'cliente:projeto_delete' pk=projeto.pk %}" class="list-group-item list-group-item-action text-danger">
-                <i class="fas fa-trash-alt me-2"></i> Excluir Projeto
-              </a>
-            </div>
-          </div>
+              </span>
+            </li>
+            
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                Aprov. Projeto
+              </div>
+              <span>
+                {% if projeto.data_aprovacao_projeto %}
+                  {{ projeto.data_aprovacao_projeto|date:"d/m/Y" }}
+                {% else %}
+                  -
+                {% endif %}
+              </span>
+            </li>
+            
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                Início Produção
+              </div>
+              <span>
+                {% if projeto.data_inicio_producao %}
+                  {{ projeto.data_inicio_producao|date:"d/m/Y" }}
+                {% else %}
+                  -
+                {% endif %}
+              </span>
+            </li>
+            
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                Entrega Estande
+              </div>
+              <span>
+                {% if projeto.data_entrega_estande %}
+                  {{ projeto.data_entrega_estande|date:"d/m/Y" }}
+                {% else %}
+                  -
+                {% endif %}
+              </span>
+            </li>
+          </ul>
+        </div>
+      </div>
+      
+      <!-- MÉTRICAS (reformatado para ficar igual ao cronograma) -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0"><i class="fas fa-chart-line me-2"></i> Métricas</h5>
+        </div>
+        <div class="card-body">
+          <ul class="list-group">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                Tempo Projeto
+              </div>
+              <span>
+                {% if projeto.tempo_projeto %}
+                  {{ projeto.tempo_projeto|duration_format }}
+                {% else %}
+                  -
+                {% endif %}
+              </span>
+            </li>
+            
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                Tempo Produção
+              </div>
+              <span>
+                {% if projeto.tempo_producao %}
+                  {{ projeto.tempo_producao|duration_format }}
+                {% else %}
+                  -
+                {% endif %}
+              </span>
+            </li>
+          </ul>
         </div>
       </div>
     </div>
   </div>
 </div>
-
-<!-- Modal de Upload de Arquivo -->
-<div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="uploadModalLabel"><i class="fas fa-upload me-2"></i> Adicionar Arquivo</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-      </div>
-      <div class="modal-body">
-        <form id="uploadForm">
-          <div class="mb-3">
-            <label for="arquivo" class="form-label">Selecione o arquivo</label>
-            <input type="file" class="form-control" id="arquivo" name="arquivo">
-          </div>
-          <div class="mb-3">
-            <label for="tipo" class="form-label">Tipo de arquivo</label>
-            <select class="form-select" id="tipo" name="tipo">
-              <option value="imagem">Imagem</option>
-              <option value="planta">Planta</option>
-              <option value="documento">Documento</option>
-              <option value="outro">Outro</option>
-            </select>
-          </div>
-          <div class="mb-3">
-            <label for="descricao" class="form-label">Descrição (opcional)</label>
-            <textarea class="form-control" id="descricao" name="descricao" rows="2"></textarea>
-            <div class="form-text">Uma breve descrição do conteúdo do arquivo.</div>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-primary" id="uploadButton" data-url="{% url 'cliente:upload_arquivo_referencia' projeto_id=projeto.id %}">
-          <i class="fas fa-upload me-1"></i> Enviar Arquivo
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-{% block extra_js %}
-<script>
-$(document).ready(function() {
-  // Handle file upload
-  $('#uploadButton').on('click', function() {
-    const url = $(this).data('url');
-    const fileInput = $('#arquivo')[0];
-    const tipoInput = $('#tipo').val();
-    const descricaoInput = $('#descricao').val();
-    
-    if (fileInput.files.length === 0) {
-      alert('Selecione um arquivo para upload');
-      return;
-    }
-    
-    const formData = new FormData();
-    formData.append('arquivo', fileInput.files[0]);
-    formData.append('tipo', tipoInput);
-    formData.append('descricao', descricaoInput);
-    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-    
-    $.ajax({
-      url: url,
-      type: 'POST',
-      data: formData,
-      processData: false,
-      contentType: false,
-      success: function(response) {
-        // Hide modal
-        $('#uploadModal').modal('hide');
-        
-        // Reload page to show the new file
-        location.reload();
-      },
-      error: function(xhr, status, error) {
-        alert('Erro ao fazer upload: ' + error);
-      }
-    });
-  });
-  
-  // Handle delete file
-  $('.excluir-arquivo').on('click', function(e) {
-    e.preventDefault();
-    
-    const url = $(this).data('url');
-    const arquivoItem = $(this).closest('.arquivo-item');
-    
-    if (confirm('Tem certeza que deseja excluir este arquivo?')) {
-      $.ajax({
-        url: url,
-        type: 'POST',
-        data: {
-          csrfmiddlewaretoken: '{{ csrf_token }}'
-        },
-        success: function(response) {
-          arquivoItem.remove();
-          
-          // If there are no more files, update the message
-          if ($('.arquivo-item').length === 0) {
-            $('.card-body:has(.d-flex.flex-wrap.gap-2)').html('<p class="text-muted">Nenhum arquivo de referência enviado. Clique em "Adicionar Arquivo" para enviar.</p>');
-          }
-        },
-        error: function(xhr, status, error) {
-          alert('Erro ao excluir arquivo: ' + error);
-        }
-      });
-    }
-  });
-});
-</script>
-{% endblock %}
 {% endblock %}

@@ -8,8 +8,7 @@ from django.utils import timezone
 
 class Projeto(models.Model):
     STATUS_CHOICES = [
-        ('pendente', 'Pendente'),
-        ('briefing_em_andamento', 'Briefing em Andamento'),
+        ('briefing_pendente', 'Briefing Pendente'),
         ('briefing_validado', 'Briefing Validado'),
         ('briefing_enviado', 'Briefing Enviado'),
         ('projeto_em_desenvolvimento', 'Projeto em Desenvolvimento'),
@@ -18,7 +17,7 @@ class Projeto(models.Model):
         ('projeto_aprovado', 'Projeto Aprovado'),
         ('em_producao', 'Em Produção'),
         ('concluido', 'Concluído'),
-        ('projeto_cancelado', 'Cancelado'),
+        ('cancelado', 'Cancelado'),
     ]
 
     numero = models.PositiveIntegerField(

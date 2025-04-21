@@ -30,11 +30,8 @@ from .projeto import (
     projeto_update as projeto_update_view,
     projeto_delete as projeto_delete_view,
     selecionar_feira,
-    upload_planta,
-    upload_referencia,
-    delete_planta,
-    delete_referencia,
     iniciar_briefing,
+    aprovar_projeto,
     verificar_manual_feira
 )
 
