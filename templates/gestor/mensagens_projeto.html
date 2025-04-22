@@ -1,143 +1,164 @@
 {% extends 'gestor/base_gestor.html' %}
 
-{% block title %}Mensagens: {{ projeto.nome }} | Portal do Gestor | Afinal Cenografia{% endblock %}
+{% block title %}Mensagens do Projeto #{{ projeto.numero }} | Portal do Gestor | Afinal Cenografia{% endblock %}
 
 {% block content %}
 <div class="card shadow">
   <div class="card-header bg-light d-flex justify-content-between align-items-center">
     <h5 class="card-title mb-0">
-      <i class="fas fa-comment me-2"></i> Mensagens: {{ projeto.nome }}
+      <i class="fas fa-comment me-2"></i> Mensagens do Projeto #{{ projeto.numero }}
     </h5>
     <div>
-      <a href="{% url 'gestor:projeto_detail' pk=projeto.pk %}" class="btn btn-outline-secondary btn-sm">
-        <i class="fas fa-eye me-1"></i> Voltar ao Projeto
+      <a href="{% url 'gestor:mensagens' %}" class="btn btn-outline-primary btn-sm me-2">
+        <i class="fas fa-comments me-1"></i> Central de Mensagens
+      </a>
+      <a href="{% url 'gestor:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i> Voltar
       </a>
     </div>
   </div>
   
   <div class="card-body p-0">
-    <!-- Novo layout com apenas uma coluna para informações do projeto -->
     <!-- Barra de informações do projeto (compacta) -->
-    <div class="bg-light border-bottom p-3">
+    <div class="bg-light border-bottom p-2">
       <div class="row align-items-center">
-        <div class="col-md-6">
-          <div class="d-flex align-items-center">
-            <div class="
-              {% if 'corporativo' in projeto.requisitos|lower %}bg-primary
-              {% elif 'social' in projeto.requisitos|lower %}bg-purple
-              {% elif 'tv' in projeto.requisitos|lower %}bg-success
-              {% elif 'varejo' in projeto.requisitos|lower %}bg-danger
-              {% elif 'teatro' in projeto.requisitos|lower %}bg-warning
-              {% else %}bg-secondary{% endif %}
-              rounded-circle d-flex align-items-center justify-content-center text-white me-3" 
-              style="width: 48px; height: 48px; font-size: 1rem;">
-              <i class="fas 
-              {% if 'corporativo' in projeto.requisitos|lower %}fa-building
-              {% elif 'social' in projeto.requisitos|lower %}fa-glass-cheers
-              {% elif 'tv' in projeto.requisitos|lower %}fa-theater-masks
-              {% elif 'varejo' in projeto.requisitos|lower %}fa-store
-              {% elif 'teatro' in projeto.requisitos|lower %}fa-theater-masks
-              {% else %}fa-project-diagram{% endif %}"></i>
-            </div>
-            <div>
-              <h6 class="fw-bold mb-0">{{ projeto.nome }}</h6>
-              <div class="text-muted">
-                Cliente: {{ projeto.cliente.get_full_name|default:projeto.cliente.username }} | 
-                Empresa: {{ projeto.empresa.nome }}
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="d-flex flex-wrap gap-2">
-            <span class="badge 
-              {% if projeto.status == 'pendente' %}bg-info
-              {% elif projeto.status == 'ativo' %}bg-primary
-              {% elif projeto.status == 'pausado' %}bg-warning text-dark
-              {% elif projeto.status == 'concluido' %}bg-success
-              {% elif projeto.status == 'cancelado' %}bg-danger
-              {% else %}bg-secondary{% endif %}">
-              {{ projeto.get_status_display }}
-            </span>
-            
-            {% if projeto.tem_briefing %}
-            <span class="badge 
-              {% if projeto.briefing_status == 'nao_iniciado' %}bg-secondary
-              {% elif projeto.briefing_status == 'em_andamento' %}bg-primary
-              {% elif projeto.briefing_status == 'enviado' %}bg-info
-              {% elif projeto.briefing_status == 'aprovado' %}bg-success
-              {% elif projeto.briefing_status == 'reprovado' %}bg-danger
-              {% else %}bg-secondary{% endif %}">
-              Briefing: {{ projeto.get_briefing_status_display }}
-            </span>
-            {% endif %}
-            
-            <span class="badge bg-secondary">
-              Criado: {{ projeto.created_at|date:"d/m/Y" }}
-            </span>
-            
-            {% if projeto.prazo_entrega %}
-            <span class="badge bg-dark">
-              Prazo: {{ projeto.prazo_entrega|date:"d/m/Y" }}
-            </span>
+        <div class="col-md-8">
+          <div class="fw-bold">{{ projeto.nome }}</div>
+          <div class="small text-muted">
+            <i class="fas fa-building me-1"></i> <strong>Cliente:</strong> {{ projeto.empresa.nome }}
+            {% if projeto.feira %}
+              • <i class="fas fa-map-marker-alt me-1"></i> {{ projeto.feira.local }} 
+              • <i class="fas fa-calendar me-1"></i> {{ projeto.feira.data_inicio|date:"d/m/Y" }} a {{ projeto.feira.data_fim|date:"d/m/Y" }}
             {% endif %}
           </div>
         </div>
-        <div class="col-md-2 text-end">
-          <div class="dropdown">
-            <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-              <i class="fas fa-cog me-1"></i> Ações
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li>
-                <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#alterarProjetistaModal" data-projeto-id="{{ projeto.id }}" data-projeto-nome="{{ projeto.nome }}">
-                  {% if projeto.projetista %}
-                  <i class="fas fa-user-edit me-2"></i> Alterar Projetista
-                  {% else %}
-                  <i class="fas fa-user-plus me-2"></i> Atribuir Projetista
-                  {% endif %}
-                </button>
-              </li>
-              <li>
-                <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#alterarStatusModal" data-projeto-id="{{ projeto.id }}">
-                  <i class="fas fa-tasks me-2"></i> Alterar Status
-                </button>
-              </li>
-              <li><hr class="dropdown-divider"></li>
-              <li>
-                <a href="{% url 'gestor:projeto_detail' pk=projeto.pk %}" class="dropdown-item">
-                  <i class="fas fa-eye me-2"></i> Ver Detalhes do Projeto
-                </a>
-              </li>
-            </ul>
-          </div>
+        <div class="col-md-4 text-end">
+          <span class="badge 
+            {% if projeto.status == 'pendente' %}bg-info
+            {% elif projeto.status == 'ativo' %}bg-primary
+            {% elif projeto.status == 'pausado' %}bg-warning text-dark
+            {% elif projeto.status == 'concluido' %}bg-success
+            {% elif projeto.status == 'cancelado' %}bg-danger
+            {% else %}bg-secondary{% endif %}">
+            {{ projeto.get_status_display }}
+          </span>
         </div>
       </div>
     </div>
     
-    <!-- Área de mensagens - agora com largura total -->
+    <!-- Formulário para enviar mensagens -->
+    <div class="border-bottom p-3">
+      <form id="mensagemForm" method="post" action="{% url 'gestor:mensagens_projeto' projeto_id=projeto.id %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="input-group">
+          <button class="btn btn-outline-secondary" type="button" id="anexoBotao">
+            <i class="fas fa-paperclip"></i>
+            <input type="file" name="anexos" multiple style="display: none;" id="anexoInput">
+          </button>
+          <textarea class="form-control" name="mensagem" id="mensagemInput" rows="1" placeholder="Digite sua mensagem..." required style="resize: none;"></textarea>
+          <button class="btn btn-primary px-3" type="submit">
+            <i class="fas fa-paper-plane"></i>
+          </button>
+        </div>
+        <div id="anexosPreview" class="mt-2"></div>
+      </form>
+    </div>
+    
+    <!-- Área de mensagens -->
     <div class="chat-container p-4" style="height: 500px; overflow-y: auto;" id="chat-container">
       {% if mensagens %}
-        {% for mensagem in mensagens reversed %}
-          <div class="chat-message {% if mensagem.is_cliente %}cliente-message{% else %}gestor-message{% endif %} mb-4">
-            <div class="d-flex align-items-center mb-2">
-              {% if mensagem.is_cliente %}
-                <div class="bg-info rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 32px; height: 32px; font-size: 0.8rem;">
-                  {{ projeto.cliente.get_full_name|default:projeto.cliente.username|slice:":1"|upper }}
+        {% for mensagem in mensagens %}
+          {% if mensagem.remetente.nivel == 'cliente' %}
+            <!-- Mensagem do cliente (à esquerda) -->
+            <div class="chat-message cliente-message mb-4" style="align-self: flex-start; max-width: 80%;">
+              <div class="d-flex align-items-center mb-2">
+                <div class="bg-dark rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                  {{ mensagem.remetente.get_full_name|default:mensagem.remetente.username|default:"C"|slice:":1"|upper }}
                 </div>
-                <span class="ms-2 fw-medium">{{ mensagem.remetente }}</span>
-              {% else %}
-                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 32px; height: 32px; font-size: 0.8rem;">
-                  {{ mensagem.remetente|slice:":1"|upper }}
+                <span class="ms-2 fw-medium">
+                  {% if mensagem.remetente %}
+                    {{ mensagem.remetente.get_full_name|default:mensagem.remetente.username }}
+                  {% else %}
+                    Cliente
+                  {% endif %}
+                </span>
+                <small class="text-muted ms-auto">{{ mensagem.data_envio|date:"d/m H:i" }}</small>
+              </div>
+              <div class="chat-bubble" style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 18px; border-bottom-left-radius: 5px; padding: 12px 18px;">
+                {{ mensagem.conteudo|linebreaks }}
+                
+                {% if mensagem.anexos.exists %}
+                <div class="mt-2">
+                  {% for anexo in mensagem.anexos.all %}
+                  <div class="bg-light rounded p-2 border mb-1">
+                    <i class="fas 
+                      {% if 'pdf' in anexo.tipo_arquivo %}fa-file-pdf text-danger
+                      {% elif 'image' in anexo.tipo_arquivo %}fa-file-image text-primary
+                      {% elif 'word' in anexo.tipo_arquivo %}fa-file-word text-primary
+                      {% elif 'excel' in anexo.tipo_arquivo %}fa-file-excel text-success
+                      {% elif 'zip' in anexo.tipo_arquivo %}fa-file-archive text-warning
+                      {% else %}fa-file text-secondary
+                      {% endif %} me-2"></i>
+                    <span>{{ anexo.nome_original|default:"Arquivo" }}</span>
+                    <a href="{{ anexo.arquivo.url }}" class="btn btn-sm btn-link p-0 ms-2" download="{{ anexo.nome_original|default:'arquivo' }}">
+                      <i class="fas fa-download"></i>
+                    </a>
+                  </div>
+                  {% endfor %}
                 </div>
-                <span class="ms-2 fw-medium">{{ mensagem.remetente }}</span>
-              {% endif %}
-              <small class="text-muted ms-auto">{{ mensagem.data|date:"d/m H:i" }}</small>
+                {% endif %}
+              </div>
             </div>
-            <div class="chat-bubble">
-              {{ mensagem.conteudo|linebreaks }}
+          {% else %}
+            <!-- Mensagem do gestor (à direita) -->
+            <div class="chat-message gestor-message mb-4" style="align-self: flex-end; margin-left: auto; max-width: 80%;">
+              <div class="d-flex align-items-center mb-2 justify-content-end">
+                <small class="text-muted me-auto">{{ mensagem.data_envio|date:"d/m H:i" }}</small>
+                {% if mensagem.remetente == request.user %}
+                  <span class="ms-2 fw-medium">Você</span>
+                {% else %}
+                  <span class="ms-2 fw-medium">
+                    {% if mensagem.remetente %}
+                      {{ mensagem.remetente.get_full_name|default:mensagem.remetente.username }}
+                    {% else %}
+                      Gestor
+                    {% endif %}
+                  </span>
+                {% endif %}
+                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white ms-2" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                  {% if mensagem.remetente %}
+                    {{ mensagem.remetente.get_full_name|default:mensagem.remetente.username|default:"G"|slice:":1"|upper }}
+                  {% else %}
+                    G
+                  {% endif %}
+                </div>
+              </div>
+              <div class="chat-bubble" style="background-color: #e9f3ff; border: 1px solid #cce5ff; border-radius: 18px; border-bottom-right-radius: 5px; padding: 12px 18px;">
+                {{ mensagem.conteudo|linebreaks }}
+                
+                {% if mensagem.anexos.exists %}
+                <div class="mt-2">
+                  {% for anexo in mensagem.anexos.all %}
+                  <div class="bg-light rounded p-2 border mb-1">
+                    <i class="fas 
+                      {% if 'pdf' in anexo.tipo_arquivo %}fa-file-pdf text-danger
+                      {% elif 'image' in anexo.tipo_arquivo %}fa-file-image text-primary
+                      {% elif 'word' in anexo.tipo_arquivo %}fa-file-word text-primary
+                      {% elif 'excel' in anexo.tipo_arquivo %}fa-file-excel text-success
+                      {% elif 'zip' in anexo.tipo_arquivo %}fa-file-archive text-warning
+                      {% else %}fa-file text-secondary
+                      {% endif %} me-2"></i>
+                    <span>{{ anexo.nome_original|default:"Arquivo" }}</span>
+                    <a href="{{ anexo.arquivo.url }}" class="btn btn-sm btn-link p-0 ms-2" download="{{ anexo.nome_original|default:'arquivo' }}">
+                      <i class="fas fa-download"></i>
+                    </a>
+                  </div>
+                  {% endfor %}
+                </div>
+                {% endif %}
+              </div>
             </div>
-          </div>
+          {% endif %}
         {% endfor %}
       {% else %}
         <div class="text-center py-5">
@@ -149,124 +170,6 @@
         </div>
       {% endif %}
     </div>
-    
-    <!-- Formulário para enviar mensagens - largura total -->
-    <div class="border-top p-3">
-      <form id="mensagemForm" method="post" action="{% url 'gestor:mensagens_projeto' projeto_id=projeto.id %}">
-        {% csrf_token %}
-        <div class="row">
-          <div class="col-12">
-            <div class="input-group">
-              <textarea class="form-control" name="mensagem" id="mensagemInput" rows="2" placeholder="Digite sua mensagem..." required style="resize: none;"></textarea>
-              <button class="btn btn-primary px-4" type="submit">
-                <i class="fas fa-paper-plane"></i>
-              </button>
-            </div>
-            <div class="form-text text-end">
-              <small class="text-muted">Pressione Enter para enviar ou Shift+Enter para quebrar linha</small>
-            </div>
-          </div>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<!-- Modal para Alterar Projetista -->
-<div class="modal fade" id="alterarProjetistaModal" tabindex="-1" aria-labelledby="alterarProjetistaModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="alterarProjetistaModalLabel"><i class="fas fa-user-edit me-2"></i> Atribuir Projetista</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-      </div>
-      <div class="modal-body">
-        <p>Selecione o projetista para atribuir ao projeto <strong id="projetoNome">{{ projeto.nome }}</strong>:</p>
-        
-        {% if projetistas %}
-        <div class="list-group">
-          {% for projetista in projetistas %}
-          <a href="{% url 'gestor:projeto_atribuir' pk=projeto.pk usuario_id=projetista.id %}" class="list-group-item list-group-item-action">
-            <div class="d-flex align-items-center">
-              {% if projetista.foto_perfil %}
-              <img src="{{ projetista.foto_perfil.url }}" alt="{{ projetista.get_full_name }}" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">
-              {% else %}
-              <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white me-3" style="width: 40px; height: 40px;">
-                {{ projetista.get_full_name|default:projetista.username|slice:":1"|upper }}
-              </div>
-              {% endif %}
-              <div>
-                <h6 class="mb-0">{{ projetista.get_full_name|default:projetista.username }}</h6>
-                <small class="text-muted">{{ projetista.email }}</small>
-              </div>
-            </div>
-          </a>
-          {% endfor %}
-        </div>
-        {% else %}
-        <div class="alert alert-info mb-0">
-          Nenhum projetista disponível. Cadastre projetistas primeiro.
-        </div>
-        {% endif %}
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Modal para Alterar Status -->
-<div class="modal fade" id="alterarStatusModal" tabindex="-1" aria-labelledby="alterarStatusModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="alterarStatusModalLabel"><i class="fas fa-tasks me-2"></i> Alterar Status do Projeto</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-      </div>
-      <form action="{% url 'gestor:projeto_alterar_status' pk=projeto.pk %}" method="post">
-        {% csrf_token %}
-        <div class="modal-body">
-          <p>Selecione o novo status para o projeto <strong>{{ projeto.nome }}</strong>:</p>
-          
-          <div class="btn-group-vertical w-100" role="group">
-            <input type="radio" class="btn-check" name="status" id="status-pendente" value="pendente" {% if projeto.status == 'pendente' %}checked{% endif %}>
-            <label class="btn btn-outline-info text-start" for="status-pendente">
-              <i class="fas fa-hourglass-start me-2"></i> Pendente
-              <small class="d-block text-muted">Projeto aguardando análise inicial</small>
-            </label>
-            
-            <input type="radio" class="btn-check" name="status" id="status-ativo" value="ativo" {% if projeto.status == 'ativo' %}checked{% endif %}>
-            <label class="btn btn-outline-primary text-start" for="status-ativo">
-              <i class="fas fa-play-circle me-2"></i> Ativo
-              <small class="d-block text-muted">Projeto em andamento</small>
-            </label>
-            
-            <input type="radio" class="btn-check" name="status" id="status-pausado" value="pausado" {% if projeto.status == 'pausado' %}checked{% endif %}>
-            <label class="btn btn-outline-warning text-start" for="status-pausado">
-              <i class="fas fa-pause-circle me-2"></i> Pausado
-              <small class="d-block text-muted">Projeto temporariamente interrompido</small>
-            </label>
-            
-            <input type="radio" class="btn-check" name="status" id="status-concluido" value="concluido" {% if projeto.status == 'concluido' %}checked{% endif %}>
-            <label class="btn btn-outline-success text-start" for="status-concluido">
-              <i class="fas fa-check-circle me-2"></i> Concluído
-              <small class="d-block text-muted">Projeto finalizado com sucesso</small>
-            </label>
-            
-            <input type="radio" class="btn-check" name="status" id="status-cancelado" value="cancelado" {% if projeto.status == 'cancelado' %}checked{% endif %}>
-            <label class="btn btn-outline-danger text-start" for="status-cancelado">
-              <i class="fas fa-times-circle me-2"></i> Cancelado
-              <small class="d-block text-muted">Projeto cancelado</small>
-            </label>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Salvar Alterações</button>
-        </div>
-      </form>
-    </div>
   </div>
 </div>
 
@@ -274,7 +177,7 @@
 /* Estilos para a interface de chat */
 .chat-container {
   display: flex;
-  flex-direction: column-reverse;
+  flex-direction: column; /* Alterado: exibir na ordem em que estão na lista (mais recentes primeiro) */
 }
 
 .chat-message {
@@ -290,26 +193,6 @@
   align-self: flex-end;
 }
 
-.chat-bubble {
-  padding: 12px 18px;
-  border-radius: 18px;
-  position: relative;
-  display: inline-block;
-  max-width: 100%;
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
-}
-
-.cliente-message .chat-bubble {
-  border-bottom-left-radius: 5px;
-}
-
-.gestor-message .chat-bubble {
-  background-color: #e9f3ff;
-  border: 1px solid #cce5ff;
-  border-bottom-right-radius: 5px;
-}
-
 /* Garante que as mensagens sejam exibidas corretamente em telas pequenas */
 @media (max-width: 768px) {
   .chat-message {
@@ -320,23 +203,29 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Scroll para o fim do chat ao carregar
-    const chatContainer = document.getElementById('chat-container');
-    if (chatContainer) {
-      chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
+    // Anexos
+    const anexoBotao = document.getElementById('anexoBotao');
+    const anexoInput = document.getElementById('anexoInput');
+    const anexosPreview = document.getElementById('anexosPreview');
     
-    // Configuração do modal de alteração de projetista
-    const alterarProjetistaModal = document.getElementById('alterarProjetistaModal');
-    if (alterarProjetistaModal) {
-      alterarProjetistaModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        if (button) {
-          const projetoNome = button.getAttribute('data-projeto-nome');
-          if (projetoNome) {
-            document.getElementById('projetoNome').textContent = projetoNome;
-          }
-        }
+    if (anexoBotao && anexoInput) {
+      anexoBotao.addEventListener('click', function() {
+        anexoInput.click();
+      });
+      
+      anexoInput.addEventListener('change', function() {
+        anexosPreview.innerHTML = '';
+        
+        Array.from(this.files).forEach(file => {
+          const fileItem = document.createElement('div');
+          fileItem.className = 'alert alert-info alert-dismissible fade show py-2 mb-1';
+          fileItem.innerHTML = `
+            <i class="fas fa-paperclip me-2"></i>
+            ${file.name} (${formatFileSize(file.size)})
+            <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="Fechar"></button>
+          `;
+          anexosPreview.appendChild(fileItem);
+        });
       });
     }
     
@@ -368,6 +257,13 @@
       
       // Foco no campo de mensagem ao carregar
       mensagemInput.focus();
+    }
+    
+    // Função para formatar o tamanho do arquivo
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' bytes';
+      else if (bytes < 1048576) return Math.round(bytes / 1024) + ' KB';
+      else return Math.round(bytes / 1048576 * 10) / 10 + ' MB';
     }
   });
 </script>

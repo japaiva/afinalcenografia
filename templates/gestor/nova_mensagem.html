@@ -5,13 +5,42 @@
 
 {% block content %}
 <div class="card shadow-sm">
-  <div class="card-header bg-dark text-white">
+  <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
     <h5 class="mb-0">
       <i class="fas fa-paper-plane me-2"></i> Nova Mensagem
     </h5>
+    <a href="{% url 'gestor:mensagens' %}" class="btn btn-sm btn-outline-light">
+      <i class="fas fa-arrow-left me-1"></i> Voltar
+    </a>
   </div>
   
   <div class="card-body">
+    <!-- Filtro por empresa -->
+    <div class="mb-4">
+      <form method="get" action="{% url 'gestor:nova_mensagem' %}" id="filtroEmpresaForm">
+        <div class="row g-2 align-items-center">
+          <div class="col-auto">
+            <label for="empresaSelect" class="col-form-label">Filtrar por cliente:</label>
+          </div>
+          <div class="col-md-4">
+            <select class="form-select" id="empresaSelect" name="empresa_id">
+              <option value="">Todos os clientes</option>
+              {% for empresa in empresas %}
+                <option value="{{ empresa.id }}" {% if empresa_filtro_id == empresa.id|stringformat:"s" %}selected{% endif %}>
+                  {{ empresa.nome }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-auto">
+            <button type="submit" class="btn btn-outline-secondary">
+              <i class="fas fa-filter me-1"></i> Filtrar
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+    
     <form method="post" enctype="multipart/form-data" action="{% url 'gestor:nova_mensagem' %}">
       {% csrf_token %}
       
@@ -20,9 +49,17 @@
         <select class="form-select" id="projetoSelect" name="projeto" required>
           <option value="" selected disabled>Selecione um projeto...</option>
           {% for projeto in projetos %}
-            <option value="{{ projeto.id }}">{{ projeto.nome }} - {{ projeto.cliente.empresa.nome }}</option>
+            <option value="{{ projeto.id }}">
+              #{{ projeto.numero }} - {{ projeto.nome }} ({{ projeto.empresa.nome }})
+            </option>
           {% endfor %}
         </select>
+        <small class="form-text text-muted">
+          Selecione o projeto para o qual deseja enviar uma mensagem.
+          {% if empresa_filtro_id %}
+            Mostrando apenas projetos do cliente selecionado.
+          {% endif %}
+        </small>
       </div>
       
       <div class="mb-3">
@@ -41,7 +78,6 @@
       </div>
       
       <div class="text-end">
-        <a href="{% url 'gestor:mensagens' %}" class="btn btn-secondary me-2">Cancelar</a>
         <button type="submit" class="btn btn-primary">Enviar Mensagem</button>
       </div>
     </form>
@@ -50,6 +86,14 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
+    // Auto-submit ao selecionar empresa
+    const empresaSelect = document.getElementById('empresaSelect');
+    if (empresaSelect) {
+      empresaSelect.addEventListener('change', function() {
+        document.getElementById('filtroEmpresaForm').submit();
+      });
+    }
+    
     // Preview de anexos
     const anexoInput = document.getElementById('anexoInput');
     const anexosPreview = document.getElementById('anexosPreview');

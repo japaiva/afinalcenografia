@@ -62,7 +62,13 @@
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-bold">Criado por</label>
-                <p class="border-bottom pb-2">{{ projeto.criado_por.get_full_name|default:projeto.criado_por.username }}</p>
+                <p class="border-bottom pb-2">
+                  {% if projeto.criado_por %}
+                    {{ projeto.criado_por.get_full_name|default:projeto.criado_por.username }}
+                  {% else %}
+                    <span class="text-muted">Não disponível</span>
+                  {% endif %}
+                </p>
               </div>
               <div class="col-md-12 mb-3">
                 <label class="form-label fw-bold">Objetivo</label>
@@ -226,7 +232,7 @@
                     <td>{{ briefing.created_at|date:"d/m/Y" }}</td>
                     <td>{{ briefing.updated_at|date:"d/m/Y" }}</td>
                     <td class="text-end">
-                      <a href="{% url 'gestor:ver_briefing' projeto_id=projeto.id versao=briefing.versao %}" class="btn btn-sm btn-outline-primary">
+                      <a href="{% url 'gestor:ver_briefing' projeto_id=projeto.id %}" class="btn btn-sm btn-outline-primary">
                         <i class="fas fa-eye"></i>
                       </a>
                     </td>
@@ -387,11 +393,27 @@
           <div class="card-body">
             <div class="d-flex align-items-center mb-3">
               <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white me-3" style="width: 50px; height: 50px;">
-                {{ projeto.criado_por.get_full_name|default:projeto.criado_por.username|slice:":1"|upper }}
+                {% if projeto.criado_por %}
+                  {{ projeto.criado_por.get_full_name|default:projeto.criado_por.username|slice:":1"|upper }}
+                {% else %}
+                  ?
+                {% endif %}
               </div>
               <div>
-                <h6 class="mb-0">{{ projeto.criado_por.get_full_name|default:projeto.criado_por.username }}</h6>
-                <small class="text-muted">{{ projeto.criado_por.email }}</small>
+                <h6 class="mb-0">
+                  {% if projeto.criado_por %}
+                    {{ projeto.criado_por.get_full_name|default:projeto.criado_por.username }}
+                  {% else %}
+                    <span class="text-muted">Usuário não disponível</span>
+                  {% endif %}
+                </h6>
+                <small class="text-muted">
+                  {% if projeto.criado_por %}
+                    {{ projeto.criado_por.email }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </small>
               </div>
             </div>
             
@@ -542,7 +564,13 @@
               {% for mensagem in mensagens %}
               <div class="list-group-item border-0 border-bottom">
                 <div class="d-flex justify-content-between align-items-center">
-                  <small class="fw-bold">{{ mensagem.remetente.get_full_name|default:mensagem.remetente.username }}</small>
+                  <small class="fw-bold">
+                    {% if mensagem.remetente %}
+                      {{ mensagem.remetente.get_full_name|default:mensagem.remetente.username }}
+                    {% else %}
+                      Usuário
+                    {% endif %}
+                  </small>
                   <small class="text-muted">{{ mensagem.data_envio|date:"d/m/Y H:i" }}</small>
                 </div>
                 <p class="mb-0 mt-1 small">{{ mensagem.conteudo|truncatechars:100 }}</p>
@@ -617,96 +645,6 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
           <button type="submit" class="btn btn-primary">Salvar Alterações</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<!-- Modal para atribuir/alterar projetista - Será implementado posteriormente -->
-<!--
-<div class="modal fade" id="atribuirProjetistaModal" tabindex="-1" aria-labelledby="atribuirProjetistaModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="atribuirProjetistaModalLabel">
-          {% if projeto.projetista %}
-            <i class="fas fa-user-edit me-2"></i> Alterar Projetista
-          {% else %}
-            <i class="fas fa-user-plus me-2"></i> Atribuir Projetista
-          {% endif %}
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-      </div>
-      <div class="modal-body">
-        <p>Selecione o projetista para atribuir ao projeto <strong>#{{ projeto.numero }}</strong>:</p>
-        
-        {% if projetistas %}
-        <div class="list-group">
-          {% for projetista in projetistas %}
-          <a href="{% url 'gestor:projeto_atribuir' pk=projeto.pk usuario_id=projetista.id %}" class="list-group-item list-group-item-action">
-            <div class="d-flex align-items-center">
-              <div class="bg-success rounded-circle d-flex align-items-center justify-content-center text-white me-3" style="width: 40px; height: 40px;">
-                {{ projetista.get_full_name|default:projetista.username|slice:":1"|upper }}
-              </div>
-              <div>
-                <h6 class="mb-0">{{ projetista.get_full_name|default:projetista.username }}</h6>
-                <small class="text-muted">{{ projetista.email }}</small>
-              </div>
-            </div>
-          </a>
-          {% endfor %}
-        </div>
-        {% else %}
-        <div class="alert alert-info mb-0">
-          Nenhum projetista disponível. Cadastre projetistas primeiro.
-        </div>
-        {% endif %}
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-      </div>
-    </div>
-  </div>
-</div>
--->
-
-<!-- Modal para upload de arquivo -->
-<div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="uploadModalLabel"><i class="fas fa-upload me-2"></i> Adicionar Arquivo</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-      </div>
-      <form action="{% url 'gestor:upload_arquivo' projeto_id=projeto.id %}" method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        <div class="modal-body">
-          <div class="mb-3">
-            <label for="arquivo" class="form-label">Selecione o arquivo</label>
-            <input type="file" class="form-control" id="arquivo" name="arquivo" required>
-          </div>
-          <div class="mb-3">
-            <label for="tipo" class="form-label">Tipo de arquivo</label>
-            <select class="form-select" id="tipo" name="tipo" required>
-              <option value="">Selecione...</option>
-              <option value="imagem">Imagem</option>
-              <option value="planta">Planta</option>
-              <option value="documento">Documento</option>
-              <option value="projeto">Arquivo de Projeto</option>
-              <option value="outro">Outro</option>
-            </select>
-          </div>
-          <div class="mb-3">
-            <label for="descricao" class="form-label">Descrição (opcional)</label>
-            <textarea class="form-control" id="descricao" name="descricao" rows="2"></textarea>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn btn-primary">
-            <i class="fas fa-upload me-1"></i> Enviar Arquivo
-          </button>
         </div>
       </form>
     </div>
