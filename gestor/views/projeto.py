@@ -186,50 +186,6 @@ def projeto_alterar_status(request, pk):
     return redirect('gestor:projeto_detail', pk=projeto.pk)
 
 @login_required
-def mensagens_projeto(request, projeto_id):
-    """
-    Mensagens de um projeto específico
-    """
-    projeto = get_object_or_404(Projeto, pk=projeto_id)
-    
-    # Obter todas as mensagens do projeto
-    mensagens_list = projeto.mensagens.all().order_by('-data_envio')
-    
-    # Formulário para enviar nova mensagem
-    if request.method == 'POST':
-        conteudo = request.POST.get('conteudo')
-        
-        if conteudo:
-            # Determinar o destinatário (cliente do projeto)
-            destinatario = Usuario.objects.filter(empresa=projeto.empresa).first()
-            
-            mensagem = Mensagem.objects.create(
-                projeto=projeto,
-                remetente=request.user,
-                destinatario=destinatario,
-                conteudo=conteudo
-            )
-            
-            # Se tiver arquivos anexos
-            for arquivo in request.FILES.getlist('anexos'):
-                anexo = AnexoMensagem.objects.create(
-                    mensagem=mensagem,
-                    arquivo=arquivo,
-                    nome_original=arquivo.name,
-                    tipo_arquivo=arquivo.content_type,
-                    tamanho=arquivo.size
-                )
-            
-            messages.success(request, "Mensagem enviada com sucesso.")
-            return redirect('gestor:mensagens_projeto', projeto_id=projeto.id)
-    
-    context = {
-        'projeto': projeto,
-        'mensagens': mensagens_list,
-    }
-    return render(request, 'gestor/mensagens_projeto.html', context)
-
-@login_required
 def projeto_atribuir(request, pk, usuario_id):
     """
     Atribuir um projetista a um projeto
@@ -243,45 +199,6 @@ def projeto_atribuir(request, pk, usuario_id):
     messages.success(request, f'Projeto atribuído a {projetista.get_full_name() or projetista.username} com sucesso.')
     return redirect('gestor:projeto_detail', pk=projeto.pk)
 
-@login_required
-def mensagens(request):
-    """
-    Central de mensagens do gestor
-    """
-    projetos = Projeto.objects.all().order_by('-updated_at')
-    
-    conversas = [
-        {
-            'projeto': projeto,
-            'cliente': projeto.cliente,
-            'empresa': projeto.empresa,
-            'ultima_mensagem': f"Últimas atualizações sobre {projeto.nome}",
-            'data': projeto.updated_at,
-            'nao_lidas': 0
-        } for projeto in projetos[:5]
-    ]
-    
-    context = {
-        'conversas': conversas,
-        'projetos': projetos,
-    }
-    return render(request, 'gestor/central_mensagens.html', context)
-
-@login_required
-def nova_mensagem(request):
-    """
-    Criação de nova mensagem
-    """
-    projetos = Projeto.objects.all().order_by('-updated_at')
-    
-    if request.method == 'POST':
-        messages.success(request, 'Mensagem enviada com sucesso!')
-        return redirect('gestor:mensagens')
-    
-    context = {
-        'projetos': projetos,
-    }
-    return render(request, 'gestor/nova_mensagem.html', context)
 
 @login_required
 def feira_qa_progress(request, pk):
