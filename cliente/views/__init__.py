@@ -36,7 +36,11 @@ from .projeto import (
 )
 
 # Importe as views de mensagens
-from .mensagens import mensagens, nova_mensagem, mensagens_projeto
+from .mensagens import (
+    mensagens, 
+    nova_mensagem, 
+    mensagens_projeto
+)
 
 # Importações do arquivo briefing.py
 from .briefing import (

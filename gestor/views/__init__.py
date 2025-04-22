@@ -37,7 +37,7 @@ from .projeto import (
 )
 
 # Importe as views de mensagens
-from .mensagens import mensagens, nova_mensagem, mensagens_projeto
+from .mensagens import mensagens, nova_mensagem, mensagens_projeto,limpar_mensagens
 
 __all__ = [
     # Base
@@ -62,7 +62,7 @@ __all__ = [
     'feira_reset_data', 'feira_search_unified',
 
     # Mensagens
-    'mensagem', 'nova_mensagem', 'mensagens_projeto',
+    'mensagem', 'nova_mensagem', 'mensagens_projeto','limpar_mensagens',
     
     # Feira Chunks
     'feira_blocos_list', 'feira_chunk_get', 'feira_chunk_update', 'feira_chunk_delete', 

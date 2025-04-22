@@ -3,12 +3,51 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from django.contrib import messages as django_messages
+from django.contrib import messages
 from django.db.models import Q, Count, Max
 from django.utils import timezone
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 
 from projetos.models import Mensagem, AnexoMensagem,Projeto
 from core.models import Usuario, Empresa
+
+@login_required
+def limpar_mensagens(request, projeto_id):
+    """
+    View para excluir todas as mensagens de um projeto específico.
+    Requer confirmação explícita via POST.
+    """
+    projeto = get_object_or_404(Projeto, pk=projeto_id)
+    
+    # Verifica se é uma requisição POST e se a confirmação foi fornecida
+    if request.method == 'POST' and request.POST.get('confirmar'):
+        # Obtém todas as mensagens do projeto
+        mensagens_projeto = Mensagem.objects.filter(projeto=projeto)
+        
+        # Conta quantas mensagens serão excluídas
+        quantidade = mensagens_projeto.count()
+        
+        # Exclui os anexos associados às mensagens
+        anexos = AnexoMensagem.objects.filter(mensagem__projeto=projeto)
+        anexos_count = anexos.count()
+        anexos.delete()
+        
+        # Exclui as mensagens
+        mensagens_projeto.delete()
+        
+        # Adiciona mensagem de sucesso
+        messages.success(
+            request, 
+            f'Foram excluídas {quantidade} mensagens e {anexos_count} anexos do projeto #{projeto.numero}.'
+        )
+        
+        # Redireciona para a página de detalhes do projeto
+        return HttpResponseRedirect(reverse('gestor:projeto_detail', args=[projeto.id]))
+    
+    # Se não for POST ou não tiver confirmação, redireciona para a página do projeto
+    messages.error(request, 'Ação cancelada ou confirmação não fornecida.')
+    return HttpResponseRedirect(reverse('gestor:projeto_detail', args=[projeto.id]))
 
 @login_required
 def mensagens(request):

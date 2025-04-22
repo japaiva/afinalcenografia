@@ -132,42 +132,42 @@
               {% endif %}
             </td>
             <td class="text-end">
-              <div class="btn-group">
-                <a href="{% url 'gestor:projeto_detail' pk=projeto.pk %}" class="btn btn-sm btn-outline-primary">
-                  <i class="fas fa-eye"></i>
-                </a>
-
-                
-                <a href="{% url 'gestor:mensagens_projeto' projeto_id=projeto.id %}" class="btn btn-sm btn-outline-info">
-                  <i class="fas fa-comment"></i>
-                </a>
-                
-                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-                  <i class="fas fa-ellipsis-v"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                  <li><a class="dropdown-item" href="{% url 'gestor:projeto_detail' pk=projeto.pk %}">
-                    <i class="fas fa-eye me-2"></i> Ver Detalhes
-                  </a></li>
+              <td class="text-end">
+                <div class="btn-group">
+                  <a href="{% url 'gestor:projeto_detail' pk=projeto.pk %}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-eye"></i>
+                  </a>
                   
                   {% if projeto.has_briefing %}
-                  <li><a class="dropdown-item" href="{% url 'gestor:ver_briefing' projeto_id=projeto.id %}">
-                    <i class="fas fa-clipboard-list me-2"></i> Ver Briefing
-                  </a></li>
+                  <a href="{% url 'gestor:ver_briefing' projeto_id=projeto.id %}" class="btn btn-sm btn-outline-success">
+                    <i class="fas fa-clipboard-list"></i>
+                  </a>
                   {% endif %}
                   
-                  <li><a class="dropdown-item" href="{% url 'gestor:mensagens_projeto' projeto_id=projeto.id %}">
-                    <i class="fas fa-comment me-2"></i> Mensagens
-                  </a></li>
+                  <a href="{% url 'gestor:mensagens_projeto' projeto_id=projeto.id %}" class="btn btn-sm btn-outline-info">
+                    <i class="fas fa-comment"></i>
+                  </a>
                   
-                  <li><hr class="dropdown-divider"></li>
-                  
-                  <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#alterarStatusModal{{ projeto.id }}">
-                    <i class="fas fa-exchange-alt me-2"></i> Alterar Status
-                  </a></li>
-                </ul>
-              </div>
-              
+                  <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                    <i class="fas fa-ellipsis-v"></i>
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="{% url 'gestor:projeto_detail' pk=projeto.pk %}">
+                      <i class="fas fa-eye me-2"></i> Ver Detalhes
+                    </a></li>
+                    
+                    <li><a class="dropdown-item" href="{% url 'gestor:mensagens_projeto' projeto_id=projeto.id %}">
+                      <i class="fas fa-comment me-2"></i> Mensagens
+                    </a></li>
+                    
+                    <li><hr class="dropdown-divider"></li>
+                    
+                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#alterarStatusModal{{ projeto.id }}">
+                      <i class="fas fa-exchange-alt me-2"></i> Alterar Status
+                    </a></li>
+                  </ul>
+                </div>
+
               <!-- Modal para alterar status -->
               <div class="modal fade" id="alterarStatusModal{{ projeto.id }}" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog">

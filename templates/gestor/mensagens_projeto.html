@@ -9,10 +9,7 @@
       <i class="fas fa-comment me-2"></i> Mensagens do Projeto #{{ projeto.numero }}
     </h5>
     <div>
-      <a href="{% url 'gestor:mensagens' %}" class="btn btn-outline-primary btn-sm me-2">
-        <i class="fas fa-comments me-1"></i> Central de Mensagens
-      </a>
-      <a href="{% url 'gestor:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+      <a href="{% url 'gestor:projeto_detail' pk=projeto.id %}" class="btn btn-outline-secondary btn-sm">
         <i class="fas fa-arrow-left me-1"></i> Voltar
       </a>
     </div>
