@@ -10,12 +10,13 @@
     </h5>
     <div>
       <a href="{% url 'gestor:projeto_detail' pk=projeto.pk %}" class="btn btn-outline-secondary btn-sm">
-        <i class="fas fa-arrow-left me-1"></i> Voltar ao Projeto
+        <i class="fas fa-arrow-left me-1"></i> Voltar
       </a>
     </div>
   </div>
   
   <div class="card-body">
+ 
     <!-- Status do briefing -->
     <div class="alert 
       {% if briefing.status == 'rascunho' %}alert-secondary
@@ -37,16 +38,6 @@
           <p class="mb-0">
             Última atualização: {{ briefing.updated_at|date:"d/m/Y H:i" }}
           </p>
-        </div>
-        <div class="ms-auto">
-          {% if briefing.status == 'enviado' %}
-            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#aprovarBriefingModal">
-              <i class="fas fa-check-circle me-1"></i> Aprovar
-            </button>
-            <button class="btn btn-danger ms-2" data-bs-toggle="modal" data-bs-target="#reprovarBriefingModal">
-              <i class="fas fa-times-circle me-1"></i> Solicitar Ajustes
-            </button>
-          {% endif %}
         </div>
       </div>
     </div>
@@ -252,85 +243,6 @@
     </div>
   </div>
   
-  <div class="card-footer bg-light">
-    <div class="d-flex justify-content-between align-items-center">
-      <div>
-        {% if briefing.status == 'enviado' %}
-          <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#aprovarBriefingModal">
-            <i class="fas fa-check-circle me-1"></i> Aprovar Briefing
-          </button>
-          <button class="btn btn-danger ms-2" data-bs-toggle="modal" data-bs-target="#reprovarBriefingModal">
-            <i class="fas fa-times-circle me-1"></i> Solicitar Ajustes
-          </button>
-        {% endif %}
-      </div>
-      <div>
-        <a href="{% url 'gestor:projeto_detail' pk=projeto.pk %}" class="btn btn-outline-secondary">
-          <i class="fas fa-arrow-left me-1"></i> Voltar ao Projeto
-        </a>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Modal para aprovar briefing -->
-<div class="modal fade" id="aprovarBriefingModal" tabindex="-1" aria-labelledby="aprovarBriefingModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="aprovarBriefingModalLabel">Aprovar Briefing</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-      </div>
-      <form action="{% url 'gestor:aprovar_briefing' projeto_id=projeto.id %}" method="post">
-        {% csrf_token %}
-        <div class="modal-body">
-          <p>Você está prestes a aprovar o briefing do projeto <strong>{{ projeto.nome }}</strong>.</p>
-          <p>Após a aprovação, o projeto avançará para a fase de produção.</p>
-          
-          <div class="mb-3">
-            <label for="comentario_aprovacao" class="form-label">Comentário (opcional)</label>
-            <textarea class="form-control" id="comentario_aprovacao" name="comentario" rows="3" placeholder="Adicione uma mensagem para o cliente..."></textarea>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn btn-success">
-            <i class="fas fa-check-circle me-1"></i> Aprovar Briefing
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<!-- Modal para reprovar briefing -->
-<div class="modal fade" id="reprovarBriefingModal" tabindex="-1" aria-labelledby="reprovarBriefingModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="reprovarBriefingModalLabel">Solicitar Ajustes no Briefing</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-      </div>
-      <form action="{% url 'gestor:reprovar_briefing' projeto_id=projeto.id %}" method="post">
-        {% csrf_token %}
-        <div class="modal-body">
-          <p>Você está solicitando ajustes no briefing do projeto <strong>{{ projeto.nome }}</strong>.</p>
-          <p>Por favor, informe quais pontos precisam ser revisados pelo cliente.</p>
-          
-          <div class="mb-3">
-            <label for="comentario_reprovacao" class="form-label">Comentário <span class="text-danger">*</span></label>
-            <textarea class="form-control" id="comentario_reprovacao" name="comentario" rows="5" placeholder="Explique detalhadamente quais itens precisam ser ajustados..." required></textarea>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn btn-danger">
-            <i class="fas fa-times-circle me-1"></i> Solicitar Ajustes
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
 </div>
 
 <style>

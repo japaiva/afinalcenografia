@@ -1,86 +1,109 @@
 {% extends 'gestor/base_gestor.html' %}
 
-{% block title %}Dashboard | Portal do Gestor | {{ block.super }}{% endblock %}
+{% block title %}Dashboard | Portal do Gestor{% endblock %}
 
 {% block content %}
-
-<!-- Cards informativos -->
-<div class="row">
-  <!-- Empresas -->
-  <div class="col-md-6 col-lg-4 mb-4">
-    <div class="card shadow h-100">
-      <div class="card-body">
-        <h5 class="card-title text-primary">
-          <i class="fas fa-building me-2"></i> Empresas
-        </h5>
-        <div class="display-4 fw-bold my-3">{{ total_empresas }}</div>
-        <p class="card-text text-muted">Total empresas ativas no sistema (exemplo).</p>
+<!-- Banner de boas-vindas -->
+<div class="card shadow mb-4">
+  <div class="card-body bg-light">
+    <div class="row align-items-center">
+      <div class="col-md-2 text-center">
+        <div class="display-1 fw-bold text-primary">G</div>
       </div>
-      <div class="card-footer bg-transparent">
-        <a href="{% url 'gestor:empresa_list' %}" class="btn btn-sm btn-outline-primary">Ver empresas</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- Usuários -->
-  <div class="col-md-6 col-lg-4 mb-4">
-    <div class="card shadow h-100">
-      <div class="card-body">
-        <h5 class="card-title text-success">
-          <i class="fas fa-users me-2"></i> Usuários
-        </h5>
-        <div class="display-4 fw-bold my-3">{{ total_usuarios }}</div>
-        <p class="card-text text-muted">Total de usuários ativos no sistema (exemplo).</p>
-      </div>
-      <div class="card-footer bg-transparent">
-        <a href="{% url 'gestor:usuario_list' %}" class="btn btn-sm btn-outline-success">Ver usuários</a>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-md-6 col-lg-4 mb-4">
-    <div class="card shadow h-100">
-      <div class="card-body">
-        <h5 class="card-title text-warning">
-          <i class="fas fa-project-diagram me-2"></i> Projetos
-        </h5>
-        <div class="display-4 fw-bold my-3">{{ total_projetos }}</div>
-        <p class="card-text text-muted">Projetos de cenografia no sistema.</p>
-      </div>
-      <div class="card-footer bg-transparent">
-        <a href="{% url 'gestor:projeto_list' %}" class="btn btn-sm btn-outline-warning">Ver projetos</a>
-      </div>
-    </div>
-  </div>
-
-<!-- Ações rápidas -->
-<div class="row">
-  <div class="col-12 mb-4">
-    <div class="card shadow">
-      <div class="card-header bg-light">
-        <h5 class="card-title mb-0">
-          <i class="fas fa-bolt me-2"></i> Ações Rápidas
-        </h5>
-      </div>
-      <div class="card-body">
-        <!-- Substituição da estrutura de grid para melhor uso do espaço -->
-        <div class="d-flex flex-wrap gap-3 justify-content-start">
-          {% if user.nivel == 'admin' or user.nivel == 'gestor' %}
-            <a href="{% url 'gestor:empresa_create' %}" class="btn btn-outline-primary flex-grow-1" style="min-width: 200px; max-width: 300px;">
-              <i class="fas fa-building me-2"></i> Nova Empresa
-            </a>
-            
-            <a href="{% url 'gestor:usuario_create' %}" class="btn btn-outline-success flex-grow-1" style="min-width: 200px; max-width: 300px;">
-              <i class="fas fa-user-plus me-2"></i> Novo Usuário
-            </a>
-          {% endif %}
-          
-          <a href="{% url 'perfil' %}" class="btn btn-outline-info flex-grow-1" style="min-width: 200px; max-width: 300px;">
-            <i class="fas fa-id-card me-2"></i> Meu Perfil
-          </a>
-        </div>
+      <div class="col-md-10">
+        <h2 class="mb-2">Bem-vindo, {{ user.first_name }}!</h2>
+        <p class="text-muted mb-0">Portal do Gestor • Último acesso: {{ user.last_login|date:"d/m/Y H:i" }}</p>
       </div>
     </div>
   </div>
 </div>
+
+<!-- Ações Rápidas -->
+<div class="card shadow">
+  <div class="card-header bg-white">
+    <h4 class="card-title mb-0">
+      <i class="fas fa-bolt text-primary me-2"></i> Ações Rápidas
+    </h4>
+  </div>
+  
+  <div class="card-body p-4">
+    <div class="row g-4">
+      <!-- Projetos -->
+      <div class="col-md-4">
+        <a href="{% url 'gestor:projeto_list' %}" class="text-decoration-none">
+          <div class="card h-100 border-0 shadow-sm hover-card">
+            <div class="card-body text-center p-4">
+              <div class="icon-circle bg-primary text-white mb-3">
+                <i class="fas fa-project-diagram fa-2x"></i>
+              </div>
+              <h5 class="card-title">Projetos</h5>
+            </div>
+          </div>
+        </a>
+      </div>
+      
+      <!-- Feiras -->
+      <div class="col-md-4">
+        <a href="{% url 'gestor:feira_list' %}" class="text-decoration-none">
+          <div class="card h-100 border-0 shadow-sm hover-card">
+            <div class="card-body text-center p-4">
+              <div class="icon-circle bg-success text-white mb-3">
+                <i class="fas fa-calendar-alt fa-2x"></i>
+              </div>
+              <h5 class="card-title">Feiras e Eventos</h5>
+            </div>
+          </div>
+        </a>
+      </div>
+      
+      <!-- Mensagens -->
+      <div class="col-md-4">
+        <a href="{% url 'gestor:mensagens' %}" class="text-decoration-none">
+          <div class="card h-100 border-0 shadow-sm hover-card">
+            <div class="card-body text-center p-4">
+              <div class="icon-circle bg-info text-white mb-3">
+                <i class="fas fa-envelope fa-2x"></i>
+              </div>
+              <h5 class="card-title">Mensagens</h5>
+              {% if user.mensagens_nao_lidas > 0 %}
+                <span class="position-absolute top-0 end-0 translate-middle badge rounded-pill bg-danger mt-3 me-3">
+                  {{ user.mensagens_nao_lidas }}
+                  <span class="visually-hidden">mensagens não lidas</span>
+                </span>
+              {% endif %}
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .icon-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    transition: transform 0.3s ease;
+  }
+  
+  .hover-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+  }
+  
+  .hover-card:hover .icon-circle {
+    transform: scale(1.1);
+  }
+</style>
 {% endblock %}

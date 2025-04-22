@@ -42,6 +42,7 @@ urlpatterns = [
     path('mensagens/', views.mensagens, name='mensagens'),
     path('mensagens/nova/', views.nova_mensagem, name='nova_mensagem'),
     path('mensagens/projeto/<int:projeto_id>/', views.mensagens_projeto, name='mensagens_projeto'),
+    path('mensagens/projeto/<int:projeto_id>/limpar/', views.limpar_mensagens, name='limpar_mensagens'),  # Nova URL  
 
     # Para os parâmetros do banco vetorial 
     path('parametros-banco-vetorial/', views.parametro_indexacao_list, name='parametro_indexacao_list'),
