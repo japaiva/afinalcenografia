@@ -6,102 +6,46 @@ from django.utils import timezone
 from django.conf import settings
 from core.storage import MinioStorage
 
-class Empresa(models.Model):
-    nome = models.CharField(max_length=100)
-    cnpj = models.CharField(max_length=18, unique=True)
-    endereco = models.CharField(max_length=200, blank=True, null=True)
-    telefone = models.CharField(max_length=20, blank=True, null=True)
-    email = models.EmailField(blank=True, null=True)
-    logo = models.ImageField(upload_to='logos/', blank=True, null=True, storage=MinioStorage())
-    ativa = models.BooleanField(default=True)
-    data_cadastro = models.DateTimeField(auto_now_add=True)
-    
-    def __str__(self):
-        return self.nome
-    
-    class Meta:
-        db_table = 'empresas'
-        verbose_name = 'Empresa'
-        verbose_name_plural = 'Empresas'
-
-
-class Usuario(AbstractUser):
-    NIVEL_CHOICES = [
-        ('admin', 'Admin'),
-        ('gestor', 'Gestor'),
-        ('projetista', 'Projetista'),
-        ('cliente', 'Cliente'),
-    ]
-
-    # Desabilitar relacionamentos explicitamente
-    groups = None  # Remove o relacionamento com grupos
-    user_permissions = None  # Remove o relacionamento com permissões individuais
-    
-    nivel = models.CharField(max_length=20, choices=NIVEL_CHOICES)
-    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, related_name='usuarios', null=True, blank=True)
-    is_superuser = models.BooleanField(default=False)
-    last_name = models.CharField(max_length=150, blank=True)
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
-    date_joined = models.DateTimeField(default=timezone.now)
-    telefone = models.CharField(max_length=20, blank=True, null=True)
-    
-    # Removido o campo foto_perfil para evitar duplicação
-    # foto_perfil = models.ImageField(upload_to='perfil/', blank=True, null=True)
-
-    def __str__(self):
-        return self.username
-    
-    class Meta:
-        db_table = 'usuarios'
-        verbose_name = 'Usuário'
-        verbose_name_plural = 'Usuários'
-
-class Parametro(models.Model):
-    parametro = models.CharField(max_length=50)
-    valor = models.FloatField()
-
-    def __str__(self):
-        return self.parametro
-    
-    class Meta:
-        db_table = 'parametros'
-
-
-class PerfilUsuario(models.Model):
-    usuario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='perfil')
-    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, null=True, blank=True)
-    telefone = models.CharField(max_length=20, blank=True, null=True)
-    nivel = models.CharField(
-        max_length=20,
-        choices=[
-            ('admin', 'Administrador'),
-            ('gestor', 'Gestor'),
-            ('projetista', 'Projetista'),
-            ('cliente', 'Cliente')
-        ],
-        default='cliente'
-    )
-    foto = models.ImageField(upload_to='fotos_perfil/', null=True, blank=True, storage=MinioStorage())
-    
-    def __str__(self):
-        return f"{self.usuario.username} - {self.get_nivel_display()}"
-
-# Feiras
 from django.db import models
+from django.utils import timezone
+from core.storage import MinioStorage
+
+from django.db import models
+from django.utils import timezone
 from core.storage import MinioStorage
 
 class Feira(models.Model):
+    # Bloco Evento
     nome = models.CharField(max_length=255, verbose_name="Nome da Feira")
-    local = models.CharField(max_length=255, verbose_name="Local/Centro de Exposições")
+    local = models.TextField(verbose_name="Local/Endereço Completo")
+    data_horario = models.TextField(verbose_name="Data e Horário", help_text="Ex: Dia 06 a 08/04 – das 10h00 às 20h00")
+    publico_alvo = models.CharField(max_length=255, verbose_name="Público-alvo", blank=True, null=True)
+    eventos_simultaneos = models.CharField(max_length=255, verbose_name="Eventos Simultâneos", blank=True, null=True)
+    promotora = models.CharField(max_length=255, verbose_name="Promotora/Organizadora", blank=True, null=True)
+    
+    # Bloco Montagem
+    periodo_montagem = models.TextField(verbose_name="Período Montagem", blank=True, null=True)
+    portao_acesso = models.CharField(max_length=255, verbose_name="Portão de Acesso", blank=True, null=True)
+    periodo_desmontagem = models.TextField(verbose_name="Período Desmontagem", blank=True, null=True)
+    
+    # Bloco Normas
+    altura_estande = models.CharField(max_length=255, verbose_name="Altura Estande", blank=True, null=True)
+    palcos = models.TextField(verbose_name="Regras para Palcos", blank=True, null=True)
+    piso_elevado = models.TextField(verbose_name="Regras para Piso Elevado", blank=True, null=True)
+    mezanino = models.TextField(verbose_name="Regras para Mezanino", blank=True, null=True)
+    iluminacao = models.TextField(verbose_name="Regras para Iluminação", blank=True, null=True)
+    outros = models.TextField(verbose_name="Outras Regras", blank=True, null=True)
+    materiais = models.TextField(verbose_name="Materiais Permitidos/Proibidos", blank=True, null=True)
+    
+    # Bloco Credenciamento
+    credenciamento = models.TextField(verbose_name="Datas Credenciamento", blank=True, null=True)
+    
+    # Campos para Controle e Manutenção (manter os existentes)
     cidade = models.CharField(max_length=100, verbose_name="Cidade")
     estado = models.CharField(max_length=2, verbose_name="UF")
     data_inicio = models.DateField(verbose_name="Data de Início")
     data_fim = models.DateField(verbose_name="Data de Término")
     website = models.URLField(blank=True, null=True, verbose_name="Website da Feira")
-    contato_organizacao = models.CharField(max_length=255, blank=True, null=True, verbose_name="Contato da Organização")
-    email_organizacao = models.EmailField(blank=True, null=True, verbose_name="Email da Organização")
-    telefone_organizacao = models.CharField(max_length=20, blank=True, null=True, verbose_name="Telefone da Organização")
     manual = models.FileField(upload_to='manuais_feira/', storage=MinioStorage(), verbose_name="Manual da Feira")
     ativa = models.BooleanField(default=True, verbose_name="Ativa")
     
@@ -208,6 +152,87 @@ class Feira(models.Model):
         verbose_name = 'Feira'
         verbose_name_plural = 'Feiras'
         ordering = ['-data_inicio']
+
+class Empresa(models.Model):
+    nome = models.CharField(max_length=100)
+    cnpj = models.CharField(max_length=18, unique=True)
+    endereco = models.CharField(max_length=200, blank=True, null=True)
+    telefone = models.CharField(max_length=20, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    logo = models.ImageField(upload_to='logos/', blank=True, null=True, storage=MinioStorage())
+    ativa = models.BooleanField(default=True)
+    data_cadastro = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.nome
+    
+    class Meta:
+        db_table = 'empresas'
+        verbose_name = 'Empresa'
+        verbose_name_plural = 'Empresas'
+
+
+class Usuario(AbstractUser):
+    NIVEL_CHOICES = [
+        ('admin', 'Admin'),
+        ('gestor', 'Gestor'),
+        ('projetista', 'Projetista'),
+        ('cliente', 'Cliente'),
+    ]
+
+    # Desabilitar relacionamentos explicitamente
+    groups = None  # Remove o relacionamento com grupos
+    user_permissions = None  # Remove o relacionamento com permissões individuais
+    
+    nivel = models.CharField(max_length=20, choices=NIVEL_CHOICES)
+    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, related_name='usuarios', null=True, blank=True)
+    is_superuser = models.BooleanField(default=False)
+    last_name = models.CharField(max_length=150, blank=True)
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    date_joined = models.DateTimeField(default=timezone.now)
+    telefone = models.CharField(max_length=20, blank=True, null=True)
+    
+    # Removido o campo foto_perfil para evitar duplicação
+    # foto_perfil = models.ImageField(upload_to='perfil/', blank=True, null=True)
+
+    def __str__(self):
+        return self.username
+    
+    class Meta:
+        db_table = 'usuarios'
+        verbose_name = 'Usuário'
+        verbose_name_plural = 'Usuários'
+
+class Parametro(models.Model):
+    parametro = models.CharField(max_length=50)
+    valor = models.FloatField()
+
+    def __str__(self):
+        return self.parametro
+    
+    class Meta:
+        db_table = 'parametros'
+
+
+class PerfilUsuario(models.Model):
+    usuario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='perfil')
+    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, null=True, blank=True)
+    telefone = models.CharField(max_length=20, blank=True, null=True)
+    nivel = models.CharField(
+        max_length=20,
+        choices=[
+            ('admin', 'Administrador'),
+            ('gestor', 'Gestor'),
+            ('projetista', 'Projetista'),
+            ('cliente', 'Cliente')
+        ],
+        default='cliente'
+    )
+    foto = models.ImageField(upload_to='fotos_perfil/', null=True, blank=True, storage=MinioStorage())
+    
+    def __str__(self):
+        return f"{self.usuario.username} - {self.get_nivel_display()}"
 
 class FeiraManualChunk(models.Model):
     feira = models.ForeignKey(Feira, on_delete=models.CASCADE, related_name='chunks_manual')
