@@ -53,10 +53,12 @@ def feira_create(request):
             feira = form.save()
             messages.success(request, f'Feira "{feira.nome}" cadastrada com sucesso.')
             
-            # Iniciar processamento em background
-            thread = threading.Thread(target=processar_manual_background, args=(feira.id,))
-            thread.daemon = True
-            thread.start()
+            # Iniciar processamento em background apenas se houver manual
+            if feira.manual:
+                thread = threading.Thread(target=processar_manual_background, args=(feira.id,))
+                thread.daemon = True
+                thread.start()
+                messages.info(request, "O manual será processado em segundo plano. Isso pode levar alguns minutos.")
             
             return redirect('gestor:feira_list')
     else:
@@ -76,19 +78,32 @@ def feira_update(request, pk):
             messages.success(request, f'Feira "{feira.nome}" atualizada com sucesso.')
             
             if manual_alterado:
-                feira.manual_processado = False
-                feira.save(update_fields=['manual_processado'])
+                # Reset do processamento apenas se o manual foi alterado
+                feira.reset_processamento()
                 
                 # Iniciar processamento em background
                 thread = threading.Thread(target=processar_manual_background, args=(feira.id,))
                 thread.daemon = True
                 thread.start()
+                
+                messages.info(request, "O novo manual será processado em segundo plano. Isso pode levar alguns minutos.")
             
-            return redirect('gestor:feira_list')
+            # Verificar a página de retorno (detalhes ou lista)
+            next_page = request.POST.get('next', 'list')
+            if next_page == 'detail':
+                return redirect('gestor:feira_detail', pk=feira.id)
+            else:
+                return redirect('gestor:feira_list')
     else:
         form = FeiraForm(instance=feira)
     
-    return render(request, 'gestor/feira_form.html', {'form': form})
+    # Adicionar o ID da feira para uso pelo JavaScript
+    context = {
+        'form': form,
+        'feira_id': pk,
+    }
+    
+    return render(request, 'gestor/feira_form.html', context)
 
 @login_required
 def feira_toggle_status(request, pk):
@@ -99,7 +114,12 @@ def feira_toggle_status(request, pk):
     status = "ativada" if feira.ativa else "desativada"
     messages.success(request, f'Feira "{feira.nome}" {status} com sucesso.')
     
-    return redirect('gestor:feira_list')
+    # Verificar se deve voltar para a lista ou para detalhes
+    referer = request.META.get('HTTP_REFERER', '')
+    if 'detail' in referer:
+        return redirect('gestor:feira_detail', pk=feira.id)
+    else:
+        return redirect('gestor:feira_list')
 
 @login_required
 def feira_search(request, pk):
@@ -179,9 +199,6 @@ def feira_reprocess(request, pk):
     else:
         return redirect('gestor:feira_detail', pk=feira.id)
     
-# Adicione esta linha nas importações
-
-
 @login_required
 def feira_progress(request, pk):
     """
@@ -250,5 +267,4 @@ def feira_detail(request, pk):
         'qa_processando': qa_processando,
     }
     
-    return render(request, 'gestor/feira_detail.html', context)
-    
+    return render(request, 'gestor/feira_detail.html', context)   

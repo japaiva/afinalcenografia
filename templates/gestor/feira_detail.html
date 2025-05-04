@@ -24,165 +24,334 @@
   </div>
 
   <div class="card-body">
-    <div class="row" style="max-width: 100%; margin: 0;">
-      <!-- COLUNA 1 -->
-      <div class="col-md-6">
-        <div class="card mb-3">
-          <div class="card-header bg-light">
-            <h6 class="card-title mb-0">Informações Gerais</h6>
-          </div>
-          <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-              <li class="list-group-item"><strong>Nome:</strong> {{ feira.nome }}</li>
-              <li class="list-group-item"><strong>Local:</strong> {{ feira.local }}</li>
-              <li class="list-group-item"><strong>Cidade/UF:</strong> {{ feira.cidade }}/{{ feira.estado }}</li>
-              <li class="list-group-item"><strong>Período:</strong> {{ feira.data_inicio|date:"d/m/Y" }} a {{ feira.data_fim|date:"d/m/Y" }}</li>
-              <li class="list-group-item"><strong>Website:</strong>
-                {% if feira.website %}
-                  <a href="{{ feira.website }}" target="_blank">{{ feira.website }}</a>
-                {% else %}-{% endif %}
-              </li>
-              <li class="list-group-item">
-                <strong>Status:</strong>
-                <span class="badge {% if feira.ativa %}bg-success{% else %}bg-danger{% endif %}">
-                  {% if feira.ativa %}Ativa{% else %}Inativa{% endif %}
-                </span>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="card mb-3">
-          <div class="card-header bg-light">
-            <h6 class="card-title mb-0">Contato</h6>
-          </div>
-          <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-              <li class="list-group-item"><strong>Nome:</strong> {{ feira.contato_organizacao|default:"-" }}</li>
-              <li class="list-group-item"><strong>Email:</strong> {{ feira.email_organizacao|default:"-" }}</li>
-              <li class="list-group-item"><strong>Telefone:</strong> {{ feira.telefone_organizacao|default:"-" }}</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <!-- COLUNA 2 -->
-      <div class="col-md-6">
-        {% if feira.manual %}
-        <div class="card">
-          <div class="card-header bg-light">
-            <h6 class="card-title mb-0">Processamento do Manual</h6>
-          </div>
-          <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-              <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div><strong>Blocos:</strong> {{ feira.chunks_total|default:"0" }} chunks</div>
-              </li>
-              <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div><strong>Q&A:</strong> <span id="qa-count">{{ qa_count|default:"0" }}</span> perguntas</div>
-              </li>
-            </ul>
-            <div class="p-3 d-flex flex-wrap gap-2">
-              <form id="process-manual-form" method="post" action="{% url 'gestor:feira_reprocess' feira.id %}" class="me-2">
-                {% csrf_token %}
-                <button type="submit" id="process-manual-button" class="btn btn-primary" {% if feira.chunks_processamento_status == 'processando' %}disabled{% endif %}>
-                  <i class="fas {% if feira.chunks_processamento_status == 'processando' %}fa-spinner fa-spin{% else %}fa-sync-alt{% endif %} me-1"></i> 
-                  {% if feira.chunks_processamento_status == 'processando' %}
-                    Processando...
-                  {% elif feira.chunks_processados %}
-                    Reprocessar Blocos
-                  {% else %}
-                    Processar Blocos
-                  {% endif %}
-                </button>
-              </form>
-              <form id="process-qa-form" method="post" action="{% url 'gestor:feira_qa_regenerate' feira.id %}" class="me-2">
-                {% csrf_token %}
-                <button type="submit" id="process-qa-button" class="btn btn-success" {% if not feira.chunks_processados or qa_processando %}disabled{% endif %}>
-                  <i class="fas {% if qa_processando %}fa-spinner fa-spin{% else %}fa-comment-dots{% endif %} me-1"></i> 
-                  {% if qa_processando %}
-                    Processando...
-                  {% elif qa_count > 0 %}
-                    Reprocessar Q&A
-                  {% else %}
-                    Gerar Q&A
-                  {% endif %}
-                </button>
-              </form>
+    <!-- Abas para organizar as informações -->
+    <ul class="nav nav-tabs mb-3" id="feiraInfoTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="eventos-tab" data-bs-toggle="tab" data-bs-target="#eventos" type="button" role="tab" aria-controls="eventos" aria-selected="true">
+          <i class="fas fa-calendar-day me-1"></i> Evento
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="montagem-tab" data-bs-toggle="tab" data-bs-target="#montagem" type="button" role="tab" aria-controls="montagem" aria-selected="false">
+          <i class="fas fa-tools me-1"></i> Montagem
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="normas-tab" data-bs-toggle="tab" data-bs-target="#normas" type="button" role="tab" aria-controls="normas" aria-selected="false">
+          <i class="fas fa-clipboard-list me-1"></i> Normas
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="credenciamento-tab" data-bs-toggle="tab" data-bs-target="#credenciamento" type="button" role="tab" aria-controls="credenciamento" aria-selected="false">
+          <i class="fas fa-id-card me-1"></i> Credenciamento
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual" type="button" role="tab" aria-controls="manual" aria-selected="false">
+          <i class="fas fa-file-pdf me-1"></i> Manual
+        </button>
+      </li>
+    </ul>
+    
+    <!-- Conteúdo das abas -->
+    <div class="tab-content" id="feiraInfoTabsContent">
+      <!-- Aba Evento - Agora em um único bloco conforme solicitado -->
+      <div class="tab-pane fade show active" id="eventos" role="tabpanel" aria-labelledby="eventos-tab">
+        <div class="row">
+          <div class="col-md-12">
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="card-title mb-0">
+                  <i class="fas fa-calendar-alt me-2"></i>
+                  Informações do Evento
+                </h6>
+              </div>
+              <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                  <li class="list-group-item"><strong>Evento:</strong> {{ feira.nome }}</li>
+                  <li class="list-group-item"><strong>Local:</strong> <span class="text-pre-wrap">{{ feira.local }}</span></li>
+                  <li class="list-group-item"><strong>Cidade/UF:</strong> {{ feira.cidade }}/{{ feira.estado }}</li>
+                  <li class="list-group-item"><strong>Data e Horário:</strong> <span class="text-pre-wrap">{{ feira.data_horario|default:"-" }}</span></li>
+                  <li class="list-group-item"><strong>Período:</strong> {{ feira.data_inicio|date:"d/m/Y" }} a {{ feira.data_fim|date:"d/m/Y" }}</li>
+                  <li class="list-group-item"><strong>Público-alvo:</strong> {{ feira.publico_alvo|default:"-" }}</li>
+                  <li class="list-group-item"><strong>Eventos Simultâneos:</strong> {{ feira.eventos_simultaneos|default:"-" }}</li>
+                  <li class="list-group-item"><strong>Promotora:</strong> {{ feira.promotora|default:"-" }}</li>
+                  <li class="list-group-item">
+                    <strong>Status:</strong>
+                    <span class="badge {% if feira.ativa %}bg-success{% else %}bg-danger{% endif %}">
+                      {% if feira.ativa %}Ativa{% else %}Inativa{% endif %}
+                    </span>
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
-
-        {% if feira.chunks_processados %}
-        <div class="card mt-3">
-          <div class="card-header bg-light">
-            <h6 class="card-title mb-0">Consultas ao Banco Vetorial</h6>
+      </div>
+      
+      <!-- Aba Montagem -->
+      <div class="tab-pane fade" id="montagem" role="tabpanel" aria-labelledby="montagem-tab">
+        <div class="row">
+          <div class="col-md-12">
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="card-title mb-0">
+                  <i class="fas fa-tools me-2"></i>
+                  Informações de Montagem
+                </h6>
+              </div>
+              <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                  <li class="list-group-item">
+                    <h6>Período Montagem:</h6>
+                    <div class="text-pre-wrap">{{ feira.periodo_montagem|default:"Não informado" }}</div>
+                  </li>
+                  <li class="list-group-item">
+                    <h6>Portão Acesso:</h6>
+                    {{ feira.portao_acesso|default:"Não informado" }}
+                  </li>
+                  <li class="list-group-item">
+                    <h6>Período Desmontagem:</h6>
+                    <div class="text-pre-wrap">{{ feira.periodo_desmontagem|default:"Não informado" }}</div>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
-          <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-              <li class="list-group-item">
-                <div class="d-flex flex-wrap gap-2 pt-2 pb-2">
-                  <a href="{% url 'gestor:feira_blocos_list' feira.id %}" class="btn btn-outline-primary">
-                    <i class="fas fa-file-alt me-1"></i> Consulta Blocos Manual
+        </div>
+      </div>
+      
+      <!-- Aba Normas - Agora em um único bloco conforme solicitado -->
+      <div class="tab-pane fade" id="normas" role="tabpanel" aria-labelledby="normas-tab">
+        <div class="row">
+          <div class="col-md-12">
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="card-title mb-0">
+                  <i class="fas fa-clipboard-list me-2"></i>
+                  Normas e Regras
+                </h6>
+              </div>
+              <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                  <li class="list-group-item">
+                    <h6>Altura Estande:</h6>
+                    <div class="text-pre-wrap">{{ feira.altura_estande|default:"Não informado" }}</div>
+                  </li>
+                  <li class="list-group-item">
+                    <h6>Palcos:</h6>
+                    <div class="text-pre-wrap">{{ feira.palcos|default:"Não informado" }}</div>
+                  </li>
+                  <li class="list-group-item">
+                    <h6>Piso Elevado:</h6>
+                    <div class="text-pre-wrap">{{ feira.piso_elevado|default:"Não informado" }}</div>
+                  </li>
+                  <li class="list-group-item">
+                    <h6>Mezanino:</h6>
+                    <div class="text-pre-wrap">{{ feira.mezanino|default:"Não informado" }}</div>
+                  </li>
+                  <li class="list-group-item">
+                    <h6>Iluminação:</h6>
+                    <div class="text-pre-wrap">{{ feira.iluminacao|default:"Não informado" }}</div>
+                  </li>
+                  <li class="list-group-item">
+                    <h6>Materiais:</h6>
+                    <div class="text-pre-wrap">{{ feira.materiais|default:"Não informado" }}</div>
+                  </li>
+                  <li class="list-group-item">
+                    <h6>Outras Regras:</h6>
+                    <div class="text-pre-wrap">{{ feira.outros|default:"Não informado" }}</div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Aba Credenciamento -->
+      <div class="tab-pane fade" id="credenciamento" role="tabpanel" aria-labelledby="credenciamento-tab">
+        <div class="row">
+          <div class="col-md-12">
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="card-title mb-0">
+                  <i class="fas fa-id-card me-2"></i>
+                  Datas de Credenciamento
+                </h6>
+              </div>
+              <div class="card-body">
+                {% if feira.credenciamento %}
+                  <div class="text-pre-wrap">{{ feira.credenciamento }}</div>
+                {% else %}
+                  <p class="text-muted">Não há informações de credenciamento cadastradas.</p>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Aba Manual -->
+      <div class="tab-pane fade" id="manual" role="tabpanel" aria-labelledby="manual-tab">
+        <div class="row">
+          <div class="col-md-6">
+            {% if feira.manual %}
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="card-title mb-0">
+                  <i class="fas fa-file-pdf me-2"></i>
+                  Manual da Feira
+                </h6>
+              </div>
+              <div class="card-body">
+                <div class="d-flex flex-column">
+                  <a href="{{ feira.manual.url }}" target="_blank" class="btn btn-outline-primary mb-3">
+                    <i class="fas fa-file-pdf me-1"></i> Visualizar Manual Completo
                   </a>
-                  <a href="{% url 'gestor:feira_qa_list' feira.id %}" class="btn btn-outline-success">
-                    <i class="fas fa-question-circle me-1"></i> Consulta QA Manual
-                  </a>
+                  
+                  <div class="alert alert-info">
+                    <strong>Informações do Processamento:</strong>
+                    <ul class="mb-0 mt-2">
+                      <li>Total de Páginas: {{ feira.total_paginas|default:"0" }}</li>
+                      <li>Blocos Extraídos: {{ feira.chunks_total|default:"0" }}</li>
+                      <li>Status: 
+                        <span class="badge {% if feira.chunks_processados %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                          {% if feira.chunks_processados %}Processado{% else %}{{ feira.chunks_processamento_status|title }}{% endif %}
+                        </span>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
-              </li>
-            </ul>
+              </div>
+            </div>
+            {% else %}
+            <div class="alert alert-warning mt-3">
+              <i class="fas fa-exclamation-triangle me-1"></i> Esta feira não possui um manual cadastrado.
+            </div>
+            {% endif %}
+          </div>
+          
+          <div class="col-md-6">
+            {% if feira.manual %}
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="card-title mb-0">Gerenciamento do Manual</h6>
+              </div>
+              <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div><strong>Blocos:</strong> {{ feira.chunks_total|default:"0" }} chunks</div>
+                  </li>
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div><strong>Q&A:</strong> <span id="qa-count">{{ qa_count|default:"0" }}</span> perguntas</div>
+                  </li>
+                </ul>
+                <div class="p-3 d-flex flex-wrap gap-2">
+                  <form id="process-manual-form" method="post" action="{% url 'gestor:feira_reprocess' feira.id %}" class="me-2">
+                    {% csrf_token %}
+                    <button type="submit" id="process-manual-button" class="btn btn-primary" {% if feira.chunks_processamento_status == 'processando' %}disabled{% endif %}>
+                      <i class="fas {% if feira.chunks_processamento_status == 'processando' %}fa-spinner fa-spin{% else %}fa-sync-alt{% endif %} me-1"></i> 
+                      {% if feira.chunks_processamento_status == 'processando' %}
+                        Processando...
+                      {% elif feira.chunks_processados %}
+                        Reprocessar Blocos
+                      {% else %}
+                        Processar Blocos
+                      {% endif %}
+                    </button>
+                  </form>
+                  <form id="process-qa-form" method="post" action="{% url 'gestor:feira_qa_regenerate' feira.id %}" class="me-2">
+                    {% csrf_token %}
+                    <button type="submit" id="process-qa-button" class="btn btn-success" {% if not feira.chunks_processados or qa_processando %}disabled{% endif %}>
+                      <i class="fas {% if qa_processando %}fa-spinner fa-spin{% else %}fa-comment-dots{% endif %} me-1"></i> 
+                      {% if qa_processando %}
+                        Processando...
+                      {% elif qa_count > 0 %}
+                        Reprocessar Q&A
+                      {% else %}
+                        Gerar Q&A
+                      {% endif %}
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+            
+            {% if feira.chunks_processados %}
+            <div class="card mt-3">
+              <div class="card-header bg-light">
+                <h6 class="card-title mb-0">Consultas ao Banco Vetorial</h6>
+              </div>
+              <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                  <li class="list-group-item">
+                    <div class="d-flex flex-wrap gap-2 pt-2 pb-2">
+                      <a href="{% url 'gestor:feira_blocos_list' feira.id %}" class="btn btn-outline-primary">
+                        <i class="fas fa-file-alt me-1"></i> Consulta Blocos Manual
+                      </a>
+                      <a href="{% url 'gestor:feira_qa_list' feira.id %}" class="btn btn-outline-success">
+                        <i class="fas fa-question-circle me-1"></i> Consulta QA Manual
+                      </a>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            {% endif %}
           </div>
         </div>
-        {% endif %}
-        {% else %}
-        <div class="alert alert-warning mt-3">
-          <i class="fas fa-exclamation-triangle me-1"></i> Esta feira não possui um manual cadastrado.
+        
+        {% if feira.chunks_processados %}
+        <div class="row mt-4">
+          <div class="col-12">
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="card-title mb-0">Consultar Manual</h6>
+              </div>
+              <div class="card-body">
+                <form id="manualSearchForm" class="mb-3">
+                  <div class="input-group">
+                    <input type="text" id="manualSearchQuery" class="form-control" placeholder="Digite sua pergunta sobre o manual...">
+                    <button type="submit" class="btn btn-primary">
+                      <i class="fas fa-search me-1"></i> Consultar
+                    </button>
+                  </div>
+                </form>
+                <div id="manualSearchResults" class="d-none">
+                  <hr>
+                  <h6 class="text-primary">Resposta:</h6>
+                  <div id="searchResponseContainer" class="p-3 bg-light rounded mb-3"></div>
+                  <div id="searchContextsContainer">
+                    <h6 class="text-secondary">Contextos utilizados:</h6>
+                    <div id="searchContextsList" class="mt-2"></div>
+                  </div>
+                </div>
+                <div id="manualSearchLoading" class="text-center d-none">
+                  <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Carregando...</span>
+                  </div>
+                  <p>Consultando o manual, por favor aguarde...</p>
+                </div>
+                <div id="manualSearchError" class="alert alert-danger d-none"></div>
+              </div>
+            </div>
+          </div>
         </div>
         {% endif %}
       </div>
     </div>
-
-    {% if feira.chunks_processados %}
-    <div class="row mt-4">
-      <div class="col-12">
-        <div class="card mb-3">
-          <div class="card-header bg-light">
-            <h6 class="card-title mb-0">Consultar Manual</h6>
-          </div>
-          <div class="card-body">
-            <form id="manualSearchForm" class="mb-3">
-              <div class="input-group">
-                <input type="text" id="manualSearchQuery" class="form-control" placeholder="Digite sua pergunta sobre o manual...">
-                <button type="submit" class="btn btn-primary">
-                  <i class="fas fa-search me-1"></i> Consultar
-                </button>
-              </div>
-            </form>
-            <div id="manualSearchResults" class="d-none">
-              <hr>
-              <h6 class="text-primary">Resposta:</h6>
-              <div id="searchResponseContainer" class="p-3 bg-light rounded mb-3"></div>
-              <div id="searchContextsContainer">
-                <h6 class="text-secondary">Contextos utilizados:</h6>
-                <div id="searchContextsList" class="mt-2"></div>
-              </div>
-            </div>
-            <div id="manualSearchLoading" class="text-center d-none">
-              <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Carregando...</span>
-              </div>
-              <p>Consultando o manual, por favor aguarde...</p>
-            </div>
-            <div id="manualSearchError" class="alert alert-danger d-none"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    {% endif %}
   </div>
 </div>
 
 {% csrf_token %}
 <script src="{% static 'js/feira_detail.js' %}?v=2"></script>
 <script src="{% static 'js/feira_progress_tracker.js' %}?v=1"></script>
+
+<style>
+  .text-pre-wrap {
+    white-space: pre-wrap;
+  }
+</style>
 {% endblock %}

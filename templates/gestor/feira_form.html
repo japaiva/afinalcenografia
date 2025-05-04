@@ -9,13 +9,20 @@
       <i class="fas {% if form.instance.pk %}fa-edit{% else %}fa-plus-circle{% endif %} me-2"></i>
       {% if form.instance.pk %}Editar{% else %}Nova{% endif %} Feira
     </h5>
-    <a href="{% url 'gestor:feira_list' %}" class="btn btn-outline-secondary btn-sm">
-      <i class="fas fa-arrow-left me-1"></i> Voltar
-    </a>
+    <div>
+      {% if form.instance.pk and form.instance.manual %}
+      <button id="extractDataBtn" type="button" class="btn btn-success btn-sm me-2">
+        <i class="fas fa-robot me-1"></i> Extrair Dados
+      </button>
+      {% endif %}
+      <a href="{% url 'gestor:feira_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i> Voltar
+      </a>
+    </div>
   </div>
   
   <div class="card-body">
-    <form method="post" enctype="multipart/form-data">
+    <form method="post" enctype="multipart/form-data" id="feiraForm">
       {% csrf_token %}
 
       {% if form.non_field_errors %}
@@ -26,18 +33,18 @@
         </div>
       {% endif %}
       
-      <!-- Bloco Feira -->
+      <!-- BLOCO EVENTO -->
       <div class="card shadow mt-4">
         <div class="card-header bg-light">
           <h5 class="card-title mb-0">
             <i class="fas fa-calendar-alt me-2"></i>
-            Informações da Feira
+            Informações do Evento
           </h5>
         </div>
         <div class="card-body">
           <div class="row g-3">
-            <div class="col-md-6">
-              <label for="{{ form.nome.id_for_label }}" class="form-label">Nome da Feira*</label>
+            <div class="col-md-12">
+              <label for="{{ form.nome.id_for_label }}" class="form-label">Evento*</label>
               {{ form.nome }}
               {% if form.nome.errors %}
                 <div class="text-danger small mt-1">
@@ -46,9 +53,10 @@
               {% endif %}
             </div>
             
-            <div class="col-md-6">
-              <label for="{{ form.local.id_for_label }}" class="form-label">Local/Centro de Exposições*</label>
+            <div class="col-md-12">
+              <label for="{{ form.local.id_for_label }}" class="form-label">Local*</label>
               {{ form.local }}
+              <div class="form-text">Local e endereço completo</div>
               {% if form.local.errors %}
                 <div class="text-danger small mt-1">
                   {% for error in form.local.errors %}{{ error }}{% endfor %}
@@ -56,56 +64,95 @@
               {% endif %}
             </div>
             
-            <div class="col-md-6">
-              <label for="{{ form.cidade.id_for_label }}" class="form-label">Cidade*</label>
-              {{ form.cidade }}
-              {% if form.cidade.errors %}
+            <div class="col-md-12">
+              <label for="{{ form.data_horario.id_for_label }}" class="form-label">Data e Horário*</label>
+              {{ form.data_horario }}
+              <div class="form-text">Informe data início, final e horários</div>
+              {% if form.data_horario.errors %}
                 <div class="text-danger small mt-1">
-                  {% for error in form.cidade.errors %}{{ error }}{% endfor %}
+                  {% for error in form.data_horario.errors %}{{ error }}{% endfor %}
                 </div>
               {% endif %}
             </div>
             
-            <div class="col-md-6">
-              <label for="{{ form.estado.id_for_label }}" class="form-label">UF*</label>
-              {{ form.estado }}
-              {% if form.estado.errors %}
+            <div class="col-md-12">
+              <label for="{{ form.publico_alvo.id_for_label }}" class="form-label">Público-alvo</label>
+              {{ form.publico_alvo }}
+              {% if form.publico_alvo.errors %}
                 <div class="text-danger small mt-1">
-                  {% for error in form.estado.errors %}{{ error }}{% endfor %}
+                  {% for error in form.publico_alvo.errors %}{{ error }}{% endfor %}
                 </div>
               {% endif %}
             </div>
             
-            <div class="col-md-6">
-              <label for="{{ form.data_inicio.id_for_label }}" class="form-label">Data de Início*</label>
-              {{ form.data_inicio }}
-              {% if form.data_inicio.errors %}
+            <div class="col-md-12">
+              <label for="{{ form.eventos_simultaneos.id_for_label }}" class="form-label">Eventos Simultâneos</label>
+              {{ form.eventos_simultaneos }}
+              {% if form.eventos_simultaneos.errors %}
                 <div class="text-danger small mt-1">
-                  {% for error in form.data_inicio.errors %}{{ error }}{% endfor %}
+                  {% for error in form.eventos_simultaneos.errors %}{{ error }}{% endfor %}
                 </div>
               {% endif %}
             </div>
             
-            <div class="col-md-6">
-              <label for="{{ form.data_fim.id_for_label }}" class="form-label">Data de Término*</label>
-              {{ form.data_fim }}
-              {% if form.data_fim.errors %}
+            <div class="col-md-12">
+              <label for="{{ form.promotora.id_for_label }}" class="form-label">Promotora</label>
+              {{ form.promotora }}
+              {% if form.promotora.errors %}
                 <div class="text-danger small mt-1">
-                  {% for error in form.data_fim.errors %}{{ error }}{% endfor %}
+                  {% for error in form.promotora.errors %}{{ error }}{% endfor %}
                 </div>
               {% endif %}
             </div>
-            
-            <div class="col-md-6">
-              <label for="{{ form.website.id_for_label }}" class="form-label">Website</label>
-              {{ form.website }}
-              {% if form.website.errors %}
-                <div class="text-danger small mt-1">
-                  {% for error in form.website.errors %}{{ error }}{% endfor %}
-                </div>
-              {% endif %}
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="{{ form.cidade.id_for_label }}" class="form-label">Cidade*</label>
+                {{ form.cidade }}
+                {% if form.cidade.errors %}
+                  <div class="text-danger small mt-1">
+                    {% for error in form.cidade.errors %}{{ error }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <div class="col-md-6">
+                <label for="{{ form.estado.id_for_label }}" class="form-label">UF*</label>
+                {{ form.estado }}
+                {% if form.estado.errors %}
+                  <div class="text-danger small mt-1">
+                    {% for error in form.estado.errors %}{{ error }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
             </div>
             
+            
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="{{ form.data_inicio.id_for_label }}" class="form-label">Data de Início*</label>
+                {{ form.data_inicio }}
+                {% if form.data_inicio.errors %}
+                  <div class="text-danger small mt-1">
+                    {% for error in form.data_inicio.errors %}{{ error }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+              
+              <div class="col-md-6">
+                <label for="{{ form.data_fim.id_for_label }}" class="form-label">Data de Término*</label>
+                {{ form.data_fim }}
+                {% if form.data_fim.errors %}
+                  <div class="text-danger small mt-1">
+                    {% for error in form.data_fim.errors %}{{ error }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+  
+
+   
             <div class="col-12">
               <div class="form-check form-switch mt-2">
                 {{ form.ativa }}
@@ -124,42 +171,44 @@
         </div>
       </div>
 
-      <!-- Bloco Organização -->
+      <!-- BLOCO MONTAGEM -->
       <div class="card shadow mt-4">
         <div class="card-header bg-light">
           <h5 class="card-title mb-0">
-            <i class="fas fa-users me-2"></i>
-            Informações do Contato
+            <i class="fas fa-tools me-2"></i>
+            Informações de Montagem
           </h5>
         </div>
         <div class="card-body">
           <div class="row g-3">
-            <div class="col-md-6">
-              <label for="{{ form.contato_organizacao.id_for_label }}" class="form-label">Nome</label>
-              {{ form.contato_organizacao }}
-              {% if form.contato_organizacao.errors %}
+            <div class="col-md-12">
+              <label for="{{ form.periodo_montagem.id_for_label }}" class="form-label">Período Montagem</label>
+              {{ form.periodo_montagem }}
+              <div class="form-text">Informe data início, final e horários</div>
+              {% if form.periodo_montagem.errors %}
                 <div class="text-danger small mt-1">
-                  {% for error in form.contato_organizacao.errors %}{{ error }}{% endfor %}
+                  {% for error in form.periodo_montagem.errors %}{{ error }}{% endfor %}
                 </div>
               {% endif %}
             </div>
             
-            <div class="col-md-6">
-              <label for="{{ form.email_organizacao.id_for_label }}" class="form-label">Email</label>
-              {{ form.email_organizacao }}
-              {% if form.email_organizacao.errors %}
+            <div class="col-md-12">
+              <label for="{{ form.portao_acesso.id_for_label }}" class="form-label">Portão Acesso</label>
+              {{ form.portao_acesso }}
+              {% if form.portao_acesso.errors %}
                 <div class="text-danger small mt-1">
-                  {% for error in form.email_organizacao.errors %}{{ error }}{% endfor %}
+                  {% for error in form.portao_acesso.errors %}{{ error }}{% endfor %}
                 </div>
               {% endif %}
             </div>
             
-            <div class="col-md-6">
-              <label for="{{ form.telefone_organizacao.id_for_label }}" class="form-label">Telefone</label>
-              {{ form.telefone_organizacao }}
-              {% if form.telefone_organizacao.errors %}
+            <div class="col-md-12">
+              <label for="{{ form.periodo_desmontagem.id_for_label }}" class="form-label">Período Desmontagem</label>
+              {{ form.periodo_desmontagem }}
+              <div class="form-text">Informe data início, final e horários</div>
+              {% if form.periodo_desmontagem.errors %}
                 <div class="text-danger small mt-1">
-                  {% for error in form.telefone_organizacao.errors %}{{ error }}{% endfor %}
+                  {% for error in form.periodo_desmontagem.errors %}{{ error }}{% endfor %}
                 </div>
               {% endif %}
             </div>
@@ -167,7 +216,121 @@
         </div>
       </div>
 
-      <!-- Manual da Feira (com a remoção da indicação de processado) -->
+      <!-- BLOCO NORMAS -->
+      <div class="card shadow mt-4">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-clipboard-list me-2"></i>
+            Normas e Regras
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-12">
+              <label for="{{ form.altura_estande.id_for_label }}" class="form-label">Altura Estande</label>
+              {{ form.altura_estande }}
+              <div class="form-text">Informe mínimo e máximo e observações como limites para paredes de materiais específicos</div>
+              {% if form.altura_estande.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.altura_estande.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+            
+            <div class="col-md-12">
+              <label for="{{ form.palcos.id_for_label }}" class="form-label">Palcos</label>
+              {{ form.palcos }}
+              <div class="form-text">Regras específicas para palcos</div>
+              {% if form.palcos.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.palcos.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+            
+            <div class="col-md-12">
+              <label for="{{ form.piso_elevado.id_for_label }}" class="form-label">Piso Elevado</label>
+              {{ form.piso_elevado }}
+              <div class="form-text">Regras específicas para piso elevado</div>
+              {% if form.piso_elevado.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.piso_elevado.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+            
+            <div class="col-md-12">
+              <label for="{{ form.mezanino.id_for_label }}" class="form-label">Mezanino</label>
+              {{ form.mezanino }}
+              <div class="form-text">Regras específicas para mezanino</div>
+              {% if form.mezanino.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.mezanino.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+            
+            <div class="col-md-12">
+              <label for="{{ form.iluminacao.id_for_label }}" class="form-label">Iluminação</label>
+              {{ form.iluminacao }}
+              <div class="form-text">Regras específicas para iluminação</div>
+              {% if form.iluminacao.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.iluminacao.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+            
+            <div class="col-md-12">
+              <label for="{{ form.outros.id_for_label }}" class="form-label">Outros</label>
+              {{ form.outros }}
+              <div class="form-text">Regras não cobertas acima</div>
+              {% if form.outros.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.outros.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+            
+            <div class="col-md-12">
+              <label for="{{ form.materiais.id_for_label }}" class="form-label">Materiais</label>
+              {{ form.materiais }}
+              <div class="form-text">Materiais permitidos ou proibidos</div>
+              {% if form.materiais.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.materiais.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BLOCO CREDENCIAMENTO -->
+      <div class="card shadow mt-4">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-id-card me-2"></i>
+            Credenciamento
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-12">
+              <label for="{{ form.credenciamento.id_for_label }}" class="form-label">Datas Limite</label>
+              {{ form.credenciamento }}
+              <div class="form-text">Datas limite para cada item</div>
+              {% if form.credenciamento.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.credenciamento.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual da Feira -->
       <div class="card shadow mt-4">
         <div class="card-header bg-light">
           <h5 class="card-title mb-0">
@@ -218,4 +381,97 @@
     </form>
   </div>
 </div>
+
+<!-- Modal de Extração RAG -->
+<div class="modal fade" id="ragExtractionModal" tabindex="-1" aria-labelledby="ragExtractionModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="ragExtractionModalLabel">Extração de Dados via RAG</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <div id="ragExtractionStatus" class="alert alert-info">
+          <span id="ragStatusText">Consultando informações no manual da feira...</span>
+          <div class="progress mt-2">
+            <div id="ragProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+          </div>
+        </div>
+        <div id="ragExtractionResults" class="d-none">
+          <h6>Dados extraídos:</h6>
+          <table class="table table-sm">
+            <tbody id="ragResultsTable">
+              <!-- Resultados serão adicionados aqui -->
+            </tbody>
+          </table>
+        </div>
+        <div id="ragExtractionError" class="alert alert-danger d-none">
+          Ocorreu um erro durante a extração de dados.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+        <button type="button" id="applyRagResultsBtn" class="btn btn-primary d-none">
+          <i class="fas fa-check me-1"></i> Aplicar Dados
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Script para extrair dados via RAG -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Botão para extrair dados via RAG
+    const extractDataBtn = document.getElementById('extractDataBtn');
+    if (extractDataBtn) {
+      extractDataBtn.addEventListener('click', function() {
+        // Abrir modal de extração
+        const modal = new bootstrap.Modal(document.getElementById('ragExtractionModal'));
+        modal.show();
+        
+        // Aqui será implementada a lógica para consultar a API RAG e extrair dados
+        // Por enquanto, apenas simulamos um progresso
+        simulateRagExtraction();
+      });
+    }
+    
+    function simulateRagExtraction() {
+      const progressBar = document.getElementById('ragProgressBar');
+      const statusText = document.getElementById('ragStatusText');
+      const resultsDiv = document.getElementById('ragExtractionResults');
+      const applyBtn = document.getElementById('applyRagResultsBtn');
+      
+      let progress = 0;
+      const interval = setInterval(function() {
+        progress += 10;
+        progressBar.style.width = progress + '%';
+        
+        if (progress >= 100) {
+          clearInterval(interval);
+          statusText.textContent = "Extração concluída!";
+          document.getElementById('ragExtractionStatus').classList.remove('alert-info');
+          document.getElementById('ragExtractionStatus').classList.add('alert-success');
+          resultsDiv.classList.remove('d-none');
+          applyBtn.classList.remove('d-none');
+          
+          // Simular resultados encontrados
+          const resultsTable = document.getElementById('ragResultsTable');
+          resultsTable.innerHTML = `
+            <tr><td><strong>Evento:</strong></td><td>Exemplo de evento extraído</td></tr>
+            <tr><td><strong>Local:</strong></td><td>Exemplo de local extraído</td></tr>
+            <tr><td><strong>Data e Horário:</strong></td><td>Exemplo de data e horário extraídos</td></tr>
+          `;
+        }
+      }, 200);
+      
+      // Botão para aplicar os resultados
+      document.getElementById('applyRagResultsBtn').addEventListener('click', function() {
+        // Aqui seria implementada a lógica para preencher o formulário com os dados extraídos
+        alert('Esta funcionalidade será implementada posteriormente.');
+        bootstrap.Modal.getInstance(document.getElementById('ragExtractionModal')).hide();
+      });
+    }
+  });
+</script>
 {% endblock %}
