@@ -39,6 +39,8 @@ from .projeto import (
 # Importe as views de mensagens
 from .mensagens import mensagens, nova_mensagem, mensagens_projeto,limpar_mensagens
 
+from .feira_extracao import feira_extrair_dados, feira_aplicar_dados
+
 __all__ = [
     # Base
     'GestorLoginView', 'home', 'empresa_list', 'empresa_create', 'empresa_update',
@@ -63,7 +65,10 @@ __all__ = [
 
     # Mensagens
     'mensagem', 'nova_mensagem', 'mensagens_projeto','limpar_mensagens',
-    
+
+    # Feira Extração
+    'feira_extrair_dados', 'feira_aplicar_dados',
+
     # Feira Chunks
     'feira_blocos_list', 'feira_chunk_get', 'feira_chunk_update', 'feira_chunk_delete', 
     'feira_chunk_add', 'feira_chunk_regenerate_vector',

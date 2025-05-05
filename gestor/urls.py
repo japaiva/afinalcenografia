@@ -1,6 +1,7 @@
 # gestor/urls.py
 
 from django.urls import path
+from gestor.views import feira_extracao
 from . import views
 
 app_name = 'gestor'
@@ -92,4 +93,8 @@ urlpatterns = [
     path('feiras/chunk/delete/', views.feira_chunk_delete, name='feira_chunk_delete'),
     path('feiras/<int:feira_id>/chunk/add/', views.feira_chunk_add, name='feira_chunk_add'),
     path('feiras/chunk/regenerate-vector/', views.feira_chunk_regenerate_vector, name='feira_chunk_regenerate_vector'),
+
+    # Extração de dados
+    path('feiras/<int:pk>/extrair-dados/', feira_extracao.feira_extrair_dados, name='feira_extrair_dados'),
+    path('feiras/<int:pk>/aplicar-dados/', feira_extracao.feira_aplicar_dados, name='feira_aplicar_dados'),
 ]
