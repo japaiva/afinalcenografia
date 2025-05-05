@@ -66,17 +66,23 @@ def feira_create(request):
     
     return render(request, 'gestor/feira_form.html', {'form': form})
 
-@login_required
 def feira_update(request, pk):
     feira = get_object_or_404(Feira, pk=pk)
     
+    # Debug para verificar se as datas estão presentes
+    #print(f"DEBUG - Feira {pk}: data_inicio={feira.data_inicio}, data_fim={feira.data_fim}")
+    
     if request.method == 'POST':
+        # Debug para ver os dados recebidos do POST
+        #print(f"DEBUG - POST data: {request.POST}")
+        
         form = FeiraForm(request.POST, request.FILES, instance=feira)
         if form.is_valid():
             manual_alterado = 'manual' in request.FILES
             feira = form.save()
-            messages.success(request, f'Feira "{feira.nome}" atualizada com sucesso.')
-            
+            # Debug após salvar
+            #print(f"DEBUG - Feira salva: data_inicio={feira.data_inicio}, data_fim={feira.data_fim}")
+
             if manual_alterado:
                 # Reset do processamento apenas se o manual foi alterado
                 feira.reset_processamento()
