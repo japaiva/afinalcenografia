@@ -419,59 +419,39 @@
   </div>
 </div>
 
-<!-- Script para extrair dados via RAG -->
+<!-- Referência ao script externo -->
+{% load static %}
+<script src="{% static 'js/feira_extracao.js' %}"></script>
+
+<!-- Adicionar ID da feira como data attribute -->
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Botão para extrair dados via RAG
-    const extractDataBtn = document.getElementById('extractDataBtn');
-    if (extractDataBtn) {
-      extractDataBtn.addEventListener('click', function() {
-        // Abrir modal de extração
-        const modal = new bootstrap.Modal(document.getElementById('ragExtractionModal'));
-        modal.show();
-        
-        // Aqui será implementada a lógica para consultar a API RAG e extrair dados
-        // Por enquanto, apenas simulamos um progresso
-        simulateRagExtraction();
-      });
-    }
+    // Configurar o ID da feira para o script de extração
+    const feiraForm = document.getElementById('feiraForm');
+    {% if form.instance.pk %}
+      feiraForm.dataset.feiraId = '{{ form.instance.pk }}';
+    {% endif %}
     
-    function simulateRagExtraction() {
-      const progressBar = document.getElementById('ragProgressBar');
-      const statusText = document.getElementById('ragStatusText');
-      const resultsDiv = document.getElementById('ragExtractionResults');
-      const applyBtn = document.getElementById('applyRagResultsBtn');
-      
-      let progress = 0;
-      const interval = setInterval(function() {
-        progress += 10;
-        progressBar.style.width = progress + '%';
-        
-        if (progress >= 100) {
-          clearInterval(interval);
-          statusText.textContent = "Extração concluída!";
-          document.getElementById('ragExtractionStatus').classList.remove('alert-info');
-          document.getElementById('ragExtractionStatus').classList.add('alert-success');
-          resultsDiv.classList.remove('d-none');
-          applyBtn.classList.remove('d-none');
-          
-          // Simular resultados encontrados
-          const resultsTable = document.getElementById('ragResultsTable');
-          resultsTable.innerHTML = `
-            <tr><td><strong>Evento:</strong></td><td>Exemplo de evento extraído</td></tr>
-            <tr><td><strong>Local:</strong></td><td>Exemplo de local extraído</td></tr>
-            <tr><td><strong>Data e Horário:</strong></td><td>Exemplo de data e horário extraídos</td></tr>
-          `;
-        }
-      }, 200);
-      
-      // Botão para aplicar os resultados
-      document.getElementById('applyRagResultsBtn').addEventListener('click', function() {
-        // Aqui seria implementada a lógica para preencher o formulário com os dados extraídos
-        alert('Esta funcionalidade será implementada posteriormente.');
-        bootstrap.Modal.getInstance(document.getElementById('ragExtractionModal')).hide();
-      });
-    }
+    // Verificar se o Q&A está processado para habilitar/desabilitar o botão
+    {% if form.instance.pk and form.instance.manual %}
+      const extractDataBtn = document.getElementById('extractDataBtn');
+      if (extractDataBtn) {
+        fetch('{% url "gestor:feira_qa_progress" form.instance.pk %}')
+          .then(response => response.json())
+          .then(data => {
+            if (data.success && data.processed) {
+              extractDataBtn.disabled = false;
+              extractDataBtn.title = 'Extrair dados do Q&A para preencher o formulário';
+            } else {
+              extractDataBtn.disabled = true;
+              extractDataBtn.title = 'Processe o Q&A da feira primeiro para habilitar a extração';
+            }
+          })
+          .catch(error => {
+            console.error('Erro ao verificar status do Q&A:', error);
+          });
+      }
+    {% endif %}
   });
 </script>
 {% endblock %}

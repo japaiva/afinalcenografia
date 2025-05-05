@@ -5,15 +5,6 @@ from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 from django.conf import settings
 from core.storage import MinioStorage
-
-from django.db import models
-from django.utils import timezone
-from core.storage import MinioStorage
-
-from django.db import models
-from django.utils import timezone
-from core.storage import MinioStorage
-
 class Feira(models.Model):
     # Bloco Evento
     nome = models.CharField(max_length=255, verbose_name="Nome da Feira")
@@ -251,6 +242,8 @@ class FeiraManualChunk(models.Model):
         verbose_name = 'Chunk de Manual de Feira'
         verbose_name_plural = 'Chunks de Manuais de Feira'
 
+# Adicionar ao modelo FeiraManualQA em core/models.py
+
 class FeiraManualQA(models.Model):
     """
     Modelo para armazenar perguntas e respostas extraídas do manual da feira
@@ -261,7 +254,13 @@ class FeiraManualQA(models.Model):
     context = models.TextField(verbose_name="Contexto Original", help_text="Trecho do manual de onde a resposta foi extraída")
     similar_questions = models.JSONField(verbose_name="Perguntas Similares", default=list, blank=True)
     
-    # Para tracking e análise
+    # Novo campo para associação com campo do cadastro
+    campo_relacionado = models.CharField(max_length=100, verbose_name="Campo Relacionado", blank=True, null=True,
+                                        help_text="Nome do campo do cadastro ao qual esta pergunta está relacionada")
+    confianca_extracao = models.FloatField(default=0.0, verbose_name="Confiança da Extração", 
+                                        help_text="Nível de confiança para extração automática (0.0 a 1.0)")
+    
+    # Campos existentes
     chunk_id = models.CharField(max_length=100, null=True, blank=True, verbose_name="ID do Chunk de Origem")
     embedding_id = models.CharField(max_length=100, null=True, blank=True, verbose_name="ID do Embedding")
     score = models.FloatField(null=True, blank=True, verbose_name="Pontuação de Relevância")
@@ -278,7 +277,6 @@ class FeiraManualQA(models.Model):
         verbose_name = 'Par Pergunta-Resposta'
         verbose_name_plural = 'Pares Pergunta-Resposta'
         ordering = ['-created_at']
-
 
 # Parâmetros Banco Vetorial e Agentes
 
@@ -367,4 +365,41 @@ class Agente(models.Model):
         db_table = 'agentes'
         verbose_name = 'Agente'
         verbose_name_plural = 'Agentes'
-
+class CampoPergunta(models.Model):
+    """
+    Define perguntas padrão para extrair informações de campos específicos.
+    """
+    CAMPOS_CHOICES = [
+        ('nome', 'Nome da Feira'),
+        ('local', 'Local/Endereço Completo'),
+        ('data_horario', 'Data e Horário'),
+        ('publico_alvo', 'Público-alvo'),
+        ('eventos_simultaneos', 'Eventos Simultâneos'),
+        ('promotora', 'Promotora/Organizadora'),
+        ('periodo_montagem', 'Período Montagem'),
+        ('portao_acesso', 'Portão de Acesso'),
+        ('periodo_desmontagem', 'Período Desmontagem'),
+        ('altura_estande', 'Altura Estande'),
+        ('palcos', 'Regras para Palcos'),
+        ('piso_elevado', 'Regras para Piso Elevado'),
+        ('mezanino', 'Regras para Mezanino'),
+        ('iluminacao', 'Regras para Iluminação'),
+        ('outros', 'Outras Regras'),
+        ('materiais', 'Materiais Permitidos/Proibidos'),
+        ('credenciamento', 'Datas Credenciamento'),
+    ]
+    
+    campo = models.CharField(max_length=100, choices=CAMPOS_CHOICES, verbose_name="Campo de Cadastro")
+    pergunta = models.TextField(verbose_name="Pergunta")
+    ativa = models.BooleanField(default=True, verbose_name="Ativa")
+    prioridade = models.IntegerField(default=1, verbose_name="Prioridade", 
+                                     help_text="Maior valor = maior prioridade")
+    
+    def __str__(self):
+        return f"{self.get_campo_display()}: {self.pergunta[:50]}..."
+    
+    class Meta:
+        db_table = 'campo_perguntas'
+        verbose_name = 'Pergunta para Campo'
+        verbose_name_plural = 'Perguntas para Campos'
+        ordering = ['campo', '-prioridade']
