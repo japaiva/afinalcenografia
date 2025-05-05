@@ -1,9 +1,8 @@
+# core/forms.py
 from django import forms
 from core.models import Usuario, Parametro, Empresa, Feira, ParametroIndexacao, Agente
 from django.contrib.auth.hashers import make_password
-from django import forms
-from core.models import Feira
-
+from core.utils.view_utils import CustomDateInput  # Importe a classe
 class FeiraForm(forms.ModelForm):
     class Meta:
         model = Feira
@@ -34,8 +33,8 @@ class FeiraForm(forms.ModelForm):
             # Campos de controle mantidos
             'cidade': forms.TextInput(attrs={'class': 'form-control'}),
             'estado': forms.TextInput(attrs={'class': 'form-control'}),
-            'data_inicio': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'data_fim': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'data_inicio': CustomDateInput(attrs={'class': 'form-control'}),
+            'data_fim': CustomDateInput(attrs={'class': 'form-control'}),
             'ativa': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             
             # Bloco Montagem - período montagem e desmontagem ajustados para mesmo tamanho do mezanino (3 linhas)
