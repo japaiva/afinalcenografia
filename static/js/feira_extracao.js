@@ -234,11 +234,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
-    
+
     function formatFieldName(campo) {
         // Mapeamento de nomes de campos
         const fieldMap = {
             'nome': 'Nome da Feira',
+            'descricao': 'Descrição do Evento',
+            'website': 'Site da Feira',
             'local': 'Local/Endereço',
             'data_horario': 'Data e Horário',
             'publico_alvo': 'Público-alvo',
@@ -252,8 +254,11 @@ document.addEventListener('DOMContentLoaded', function() {
             'piso_elevado': 'Regras para Piso Elevado',
             'mezanino': 'Regras para Mezanino',
             'iluminacao': 'Regras para Iluminação',
-            'outros': 'Outras Regras',
-            'materiais': 'Materiais Permitidos/Proibidos',
+            'materiais_permitidos_proibidos': 'Materiais Permitidos/Proibidos',
+            'visibilidade_obrigatoria': 'Visibilidade Obrigatória',
+            'paredes_vidro': 'Paredes de Vidro',
+            'estrutura_aerea': 'Estrutura Aérea',
+            'documentos': 'Documentos para Credenciamento',
             'credenciamento': 'Datas Credenciamento'
         };
         

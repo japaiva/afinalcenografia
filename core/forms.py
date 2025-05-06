@@ -2,30 +2,41 @@
 from django import forms
 from core.models import Usuario, Parametro, Empresa, Feira, ParametroIndexacao, Agente
 from django.contrib.auth.hashers import make_password
+from core.utils.view_utils import CustomDateInput 
+
+# core/forms.py
+from django import forms
+from core.models import Usuario, Parametro, Empresa, Feira, ParametroIndexacao, Agente
+from django.contrib.auth.hashers import make_password
 from core.utils.view_utils import CustomDateInput  # Importe a classe
+
 class FeiraForm(forms.ModelForm):
     class Meta:
         model = Feira
         fields = [
-            # Bloco Evento
-            'nome', 'local', 'data_horario', 'publico_alvo', 'eventos_simultaneos', 'promotora',
+            # Bloco Evento (renomeado)
+            'nome', 'descricao', 'website', 'local', 'data_horario', 'publico_alvo', 
+            'eventos_simultaneos', 'promotora',
             # Campos controle mantidos no bloco Evento
-            'cidade', 'estado', 'data_inicio', 'data_fim', 'website', 'ativa',
-            # Bloco Montagem
+            'cidade', 'estado', 'data_inicio', 'data_fim', 'ativa',
+            # Bloco Montagem e Desmontagem (renomeado)
             'periodo_montagem', 'portao_acesso', 'periodo_desmontagem',
-            # Bloco Normas
-            'altura_estande', 'palcos', 'piso_elevado', 'mezanino', 'iluminacao', 'outros', 'materiais',
+            # Bloco Normas Técnicas (renomeado)
+            'altura_estande', 'palcos', 'piso_elevado', 'mezanino', 'iluminacao', 
+            'materiais_permitidos_proibidos', 'visibilidade_obrigatoria', 
+            'paredes_vidro', 'estrutura_aerea',
             # Bloco Credenciamento
-            'credenciamento',
+            'documentos', 'credenciamento',
             # Manual
             'manual'
         ]
         widgets = {
             # Bloco Evento
             'nome': forms.TextInput(attrs={'class': 'form-control'}),
+            'descricao': forms.TextInput(attrs={'class': 'form-control'}),
+            'website': forms.URLInput(attrs={'class': 'form-control'}),
             'local': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'data_horario': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-            # Campos ajustados para apenas uma linha
             'publico_alvo': forms.TextInput(attrs={'class': 'form-control'}),
             'eventos_simultaneos': forms.TextInput(attrs={'class': 'form-control'}),
             'promotora': forms.TextInput(attrs={'class': 'form-control'}),
@@ -37,21 +48,24 @@ class FeiraForm(forms.ModelForm):
             'data_fim': CustomDateInput(attrs={'class': 'form-control'}),
             'ativa': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             
-            # Bloco Montagem - período montagem e desmontagem ajustados para mesmo tamanho do mezanino (3 linhas)
+            # Bloco Montagem e Desmontagem
             'periodo_montagem': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'portao_acesso': forms.TextInput(attrs={'class': 'form-control'}),
             'periodo_desmontagem': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             
-            # Bloco Normas
+            # Bloco Normas Técnicas
             'altura_estande': forms.TextInput(attrs={'class': 'form-control'}),
             'palcos': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'piso_elevado': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'mezanino': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'iluminacao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'outros': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'materiais': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'materiais_permitidos_proibidos': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'visibilidade_obrigatoria': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'paredes_vidro': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'estrutura_aerea': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             
             # Bloco Credenciamento
+            'documentos': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'credenciamento': forms.Textarea(attrs={'class': 'form-control', 'rows': 5}),
         }
 class UsuarioForm(forms.ModelForm):

@@ -33,12 +33,12 @@
       </li>
       <li class="nav-item" role="presentation">
         <button class="nav-link" id="montagem-tab" data-bs-toggle="tab" data-bs-target="#montagem" type="button" role="tab" aria-controls="montagem" aria-selected="false">
-          <i class="fas fa-tools me-1"></i> Montagem
+          <i class="fas fa-tools me-1"></i> Montagem e Desmontagem
         </button>
       </li>
       <li class="nav-item" role="presentation">
         <button class="nav-link" id="normas-tab" data-bs-toggle="tab" data-bs-target="#normas" type="button" role="tab" aria-controls="normas" aria-selected="false">
-          <i class="fas fa-clipboard-list me-1"></i> Normas
+          <i class="fas fa-clipboard-list me-1"></i> Normas Técnicas
         </button>
       </li>
       <li class="nav-item" role="presentation">
@@ -55,7 +55,7 @@
     
     <!-- Conteúdo das abas -->
     <div class="tab-content" id="feiraInfoTabsContent">
-      <!-- Aba Evento - Agora em um único bloco conforme solicitado -->
+      <!-- Aba Evento - Formato atualizado para ficar consistente com as outras abas -->
       <div class="tab-pane fade show active" id="eventos" role="tabpanel" aria-labelledby="eventos-tab">
         <div class="row">
           <div class="col-md-12">
@@ -63,24 +63,62 @@
               <div class="card-header bg-light">
                 <h6 class="card-title mb-0">
                   <i class="fas fa-calendar-alt me-2"></i>
-                  Informações do Evento
+                  Evento
                 </h6>
               </div>
               <div class="card-body p-0">
                 <ul class="list-group list-group-flush">
-                  <li class="list-group-item"><strong>Evento:</strong> {{ feira.nome }}</li>
-                  <li class="list-group-item"><strong>Local:</strong> <span class="text-pre-wrap">{{ feira.local }}</span></li>
-                  <li class="list-group-item"><strong>Cidade/UF:</strong> {{ feira.cidade }}/{{ feira.estado }}</li>
-                  <li class="list-group-item"><strong>Data e Horário:</strong> <span class="text-pre-wrap">{{ feira.data_horario|default:"-" }}</span></li>
-                  <li class="list-group-item"><strong>Período:</strong> {{ feira.data_inicio|date:"d/m/Y" }} a {{ feira.data_fim|date:"d/m/Y" }}</li>
-                  <li class="list-group-item"><strong>Público-alvo:</strong> {{ feira.publico_alvo|default:"-" }}</li>
-                  <li class="list-group-item"><strong>Eventos Simultâneos:</strong> {{ feira.eventos_simultaneos|default:"-" }}</li>
-                  <li class="list-group-item"><strong>Promotora:</strong> {{ feira.promotora|default:"-" }}</li>
                   <li class="list-group-item">
-                    <strong>Status:</strong>
-                    <span class="badge {% if feira.ativa %}bg-success{% else %}bg-danger{% endif %}">
-                      {% if feira.ativa %}Ativa{% else %}Inativa{% endif %}
-                    </span>
+                    <h6>Evento:</h6>
+                    <div>{{ feira.nome }}</div>
+                  </li>
+                  <li class="list-group-item">
+                    <h6>Descrição:</h6>
+                    <div class="text-pre-wrap">{{ feira.descricao|default:"Não informado" }}</div>
+                  </li>
+
+                  <li class="list-group-item">
+                    <h6>Local:</h6>
+                    <div class="text-pre-wrap">{{ feira.local }}</div>
+                  </li>
+
+                  <li class="list-group-item">
+                    <h6>Datas e Horários:</h6>
+                    <div class="text-pre-wrap">{{ feira.data_horario|default:"Não informado" }}</div>
+                  </li>
+
+                  <li class="list-group-item">
+                    <h6>Público-alvo:</h6>
+                    <div>{{ feira.publico_alvo|default:"Não informado" }}</div>
+                  </li>
+                  <li class="list-group-item">
+                    <h6>Eventos Simultâneos:</h6>
+                    <div>{{ feira.eventos_simultaneos|default:"Não informado" }}</div>
+                  </li>
+                  <li class="list-group-item">
+                    <h6>Promotora:</h6>
+                    <div>{{ feira.promotora|default:"Não informado" }}</div>
+                  </li>
+                  <li class="list-group-item">
+                    <h6>Site:</h6>
+                    <div>{% if feira.website %}<a href="{{ feira.website }}" target="_blank">{{ feira.website }}</a>{% else %}Não informado{% endif %}</div>
+                  </li>
+                  <li class="list-group-item">
+                    <h6>Cidade/UF:</h6>
+                    <div>{{ feira.cidade }}/{{ feira.estado }}</div>
+                  </li>
+                  <li class="list-group-item">
+                    <h6>Período:</h6>
+                    <div>{{ feira.data_inicio|date:"d/m/Y" }} a {{ feira.data_fim|date:"d/m/Y" }}</div>
+                  </li>
+
+                  <li class="list-group-item">
+                    <h6>Status:</h6>
+                    <div>
+                      <span class="badge {% if feira.ativa %}bg-success{% else %}bg-danger{% endif %}">
+                        {% if feira.ativa %}Ativa{% else %}Inativa{% endif %}
+                      </span>
+                    </div>
                   </li>
                 </ul>
               </div>
@@ -88,8 +126,9 @@
           </div>
         </div>
       </div>
+
       
-      <!-- Aba Montagem -->
+      <!-- Aba Montagem e Desmontagem -->
       <div class="tab-pane fade" id="montagem" role="tabpanel" aria-labelledby="montagem-tab">
         <div class="row">
           <div class="col-md-12">
@@ -97,7 +136,7 @@
               <div class="card-header bg-light">
                 <h6 class="card-title mb-0">
                   <i class="fas fa-tools me-2"></i>
-                  Informações de Montagem
+                  Montagem e Desmontagem
                 </h6>
               </div>
               <div class="card-body p-0">
@@ -121,7 +160,7 @@
         </div>
       </div>
       
-      <!-- Aba Normas - Agora em um único bloco conforme solicitado -->
+      <!-- Aba Normas Técnicas -->
       <div class="tab-pane fade" id="normas" role="tabpanel" aria-labelledby="normas-tab">
         <div class="row">
           <div class="col-md-12">
@@ -129,7 +168,7 @@
               <div class="card-header bg-light">
                 <h6 class="card-title mb-0">
                   <i class="fas fa-clipboard-list me-2"></i>
-                  Normas e Regras
+                  Normas Técnicas
                 </h6>
               </div>
               <div class="card-body p-0">
@@ -154,13 +193,22 @@
                     <h6>Iluminação:</h6>
                     <div class="text-pre-wrap">{{ feira.iluminacao|default:"Não informado" }}</div>
                   </li>
+
                   <li class="list-group-item">
-                    <h6>Materiais:</h6>
-                    <div class="text-pre-wrap">{{ feira.materiais|default:"Não informado" }}</div>
+                    <h6>Visibilidade Obrigatória:</h6>
+                    <div class="text-pre-wrap">{{ feira.visibilidade_obrigatoria|default:"Não informado" }}</div>
                   </li>
                   <li class="list-group-item">
-                    <h6>Outras Regras:</h6>
-                    <div class="text-pre-wrap">{{ feira.outros|default:"Não informado" }}</div>
+                    <h6>Paredes de Vidro:</h6>
+                    <div class="text-pre-wrap">{{ feira.paredes_vidro|default:"Não informado" }}</div>
+                  </li>
+                  <li class="list-group-item">
+                    <h6>Estrutura Aérea:</h6>
+                    <div class="text-pre-wrap">{{ feira.estrutura_aerea|default:"Não informado" }}</div>
+                  </li>
+                  <li class="list-group-item">
+                    <h6>Materiais Permitidos e Proibidos:</h6>
+                    <div class="text-pre-wrap">{{ feira.materiais_permitidos_proibidos|default:"Não informado" }}</div>
                   </li>
                 </ul>
               </div>
@@ -177,15 +225,20 @@
               <div class="card-header bg-light">
                 <h6 class="card-title mb-0">
                   <i class="fas fa-id-card me-2"></i>
-                  Datas de Credenciamento
+                  Credenciamento
                 </h6>
               </div>
-              <div class="card-body">
-                {% if feira.credenciamento %}
-                  <div class="text-pre-wrap">{{ feira.credenciamento }}</div>
-                {% else %}
-                  <p class="text-muted">Não há informações de credenciamento cadastradas.</p>
-                {% endif %}
+              <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                  <li class="list-group-item">
+                    <h6>Documentos:</h6>
+                    <div class="text-pre-wrap">{{ feira.documentos|default:"Não informado" }}</div>
+                  </li>
+                  <li class="list-group-item">
+                    <h6>Datas Limite:</h6>
+                    <div class="text-pre-wrap">{{ feira.credenciamento|default:"Não informado" }}</div>
+                  </li>
+                </ul>
               </div>
             </div>
           </div>

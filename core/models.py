@@ -5,83 +5,78 @@ from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 from django.conf import settings
 from core.storage import MinioStorage
+from django.core.validators import MinValueValidator, MaxValueValidator
+import uuid
+import os
+
 class Feira(models.Model):
-    # Bloco Evento
-    nome = models.CharField(max_length=255, verbose_name="Nome da Feira")
-    local = models.TextField(verbose_name="Local/Endereço Completo")
-    data_horario = models.TextField(verbose_name="Data e Horário", help_text="Ex: Dia 06 a 08/04 – das 10h00 às 20h00")
-    publico_alvo = models.CharField(max_length=255, verbose_name="Público-alvo", blank=True, null=True)
-    eventos_simultaneos = models.CharField(max_length=255, verbose_name="Eventos Simultâneos", blank=True, null=True)
-    promotora = models.CharField(max_length=255, verbose_name="Promotora/Organizadora", blank=True, null=True)
+    # Campos gerais e identificação
+    id = models.AutoField(primary_key=True)
+    nome = models.CharField(max_length=200)
+    descricao = models.TextField(blank=True, null=True, verbose_name="Descrição")
+    local = models.TextField()
+    data_horario = models.TextField()
+    cidade = models.CharField(max_length=100)
+    estado = models.CharField(max_length=2)
+    data_inicio = models.DateField()
+    data_fim = models.DateField()
+    ativa = models.BooleanField(default=True)
+    website = models.URLField(blank=True, null=True, verbose_name="Website")
     
-    # Bloco Montagem
-    periodo_montagem = models.TextField(verbose_name="Período Montagem", blank=True, null=True)
-    portao_acesso = models.CharField(max_length=255, verbose_name="Portão de Acesso", blank=True, null=True)
-    periodo_desmontagem = models.TextField(verbose_name="Período Desmontagem", blank=True, null=True)
+    # Campos de informações adicionais sobre o evento
+    publico_alvo = models.CharField(max_length=200, blank=True, null=True, verbose_name="Público-alvo")
+    eventos_simultaneos = models.CharField(max_length=200, blank=True, null=True, verbose_name="Eventos Simultâneos")
+    promotora = models.CharField(max_length=200, blank=True, null=True)
     
-    # Bloco Normas
-    altura_estande = models.CharField(max_length=255, verbose_name="Altura Estande", blank=True, null=True)
-    palcos = models.TextField(verbose_name="Regras para Palcos", blank=True, null=True)
-    piso_elevado = models.TextField(verbose_name="Regras para Piso Elevado", blank=True, null=True)
-    mezanino = models.TextField(verbose_name="Regras para Mezanino", blank=True, null=True)
-    iluminacao = models.TextField(verbose_name="Regras para Iluminação", blank=True, null=True)
-    outros = models.TextField(verbose_name="Outras Regras", blank=True, null=True)
-    materiais = models.TextField(verbose_name="Materiais Permitidos/Proibidos", blank=True, null=True)
+    # Bloco Montagem e Desmontagem
+    periodo_montagem = models.TextField(blank=True, null=True, verbose_name="Período Montagem")
+    portao_acesso = models.CharField(max_length=200, blank=True, null=True, verbose_name="Portão de Acesso")
+    periodo_desmontagem = models.TextField(blank=True, null=True, verbose_name="Período Desmontagem")
+    
+    # Bloco Normas Técnicas
+    altura_estande = models.TextField(blank=True, null=True, verbose_name="Altura Estande")
+    palcos = models.TextField(blank=True, null=True)
+    piso_elevado = models.TextField(blank=True, null=True, verbose_name="Piso Elevado")
+    mezanino = models.TextField(blank=True, null=True)
+    iluminacao = models.TextField(blank=True, null=True, verbose_name="Iluminação")
+    materiais_permitidos_proibidos = models.TextField(blank=True, null=True, verbose_name="Materiais Permitidos e Proibidos")
+    visibilidade_obrigatoria = models.TextField(blank=True, null=True, verbose_name="Visibilidade Obrigatória")
+    paredes_vidro = models.TextField(blank=True, null=True, verbose_name="Paredes de Vidro")
+    estrutura_aerea = models.TextField(blank=True, null=True, verbose_name="Estrutura Aérea")
     
     # Bloco Credenciamento
-    credenciamento = models.TextField(verbose_name="Datas Credenciamento", blank=True, null=True)
+    documentos = models.TextField(blank=True, null=True, verbose_name="Documentos")
+    credenciamento = models.TextField(blank=True, null=True)
     
-    # Campos para Controle e Manutenção (manter os existentes)
-    cidade = models.CharField(max_length=100, verbose_name="Cidade")
-    estado = models.CharField(max_length=2, verbose_name="UF")
-    data_inicio = models.DateField(verbose_name="Data de Início")
-    data_fim = models.DateField(verbose_name="Data de Término")
-    website = models.URLField(blank=True, null=True, verbose_name="Website da Feira")
-    manual = models.FileField(upload_to='manuais_feira/', storage=MinioStorage(), verbose_name="Manual da Feira")
-    ativa = models.BooleanField(default=True, verbose_name="Ativa")
+    # Arquivo do manual
+    def manual_upload_path(instance, filename):
+        # Gerar caminho para o arquivo com UUID para evitar colisões
+        ext = filename.split('.')[-1]
+        filename = f"{uuid.uuid4()}.{ext}"
+        return os.path.join('manuais', filename)
     
-    # Campo para o namespace base
-    namespace_base = models.CharField(max_length=100, blank=True, null=True, verbose_name="Namespace Base no Pinecone")
+    manual = models.FileField(upload_to=manual_upload_path, blank=True, null=True)
     
-    # Campos para o banco de dados de chunks
-    chunks_processados = models.BooleanField(default=False, verbose_name="Chunks Processados")
-    chunks_total = models.IntegerField(default=0, verbose_name="Total de Chunks")
-    chunks_processamento_status = models.CharField(
-        max_length=20,
-        choices=[
-            ('pendente', 'Pendente'),
-            ('processando', 'Processando'),
-            ('concluido', 'Concluído'),
-            ('erro', 'Erro')
-        ],
-        default='pendente',
-        verbose_name="Status de Processamento de Chunks"
-    )
-    chunks_progresso = models.IntegerField(default=0, verbose_name="Progresso de Chunks (%)")
-
-    # Campos para o banco de dados de Q&A
-    qa_processado = models.BooleanField(default=False, verbose_name="Q&A Processado")
-    qa_total = models.IntegerField(default=0, verbose_name="Total de Q&A")
-    qa_processamento_status = models.CharField(
-        max_length=20,
-        choices=[
-            ('pendente', 'Pendente'),
-            ('processando', 'Processando'),
-            ('concluido', 'Concluído'),
-            ('erro', 'Erro')
-        ],
-        default='pendente',
-        verbose_name="Status de Processamento de Q&A"
-    )
-    qa_progresso = models.IntegerField(default=0, verbose_name="Progresso de Q&A (%)")
-
-    # Campo para mensagens de erro (pode ser usado para ambos os processos)
-    mensagem_erro = models.TextField(blank=True, null=True, verbose_name="Mensagem de Erro")
-
-    # Campos adicionais para controle geral
-    ultima_atualizacao = models.DateTimeField(auto_now=True, verbose_name="Última Atualização")
-    total_paginas = models.IntegerField(default=0, verbose_name="Total de Páginas")
-
+    # Campos de controle de processamento
+    namespace_base = models.CharField(max_length=100, blank=True, null=True)
+    chunks_processados = models.BooleanField(default=False)
+    chunks_processamento_status = models.CharField(max_length=20, default='pendente')
+    chunks_progresso = models.IntegerField(default=0)
+    chunks_total = models.IntegerField(default=0)
+    total_paginas = models.IntegerField(default=0)
+    mensagem_erro = models.TextField(blank=True, null=True)
+    
+    # Campos de controle para QA
+    qa_processado = models.BooleanField(default=False)
+    qa_processamento_status = models.CharField(max_length=20, default='pendente')
+    qa_progresso = models.IntegerField(default=0)
+    qa_total = models.IntegerField(default=0)
+    qa_mensagem_erro = models.TextField(blank=True, null=True)
+    
+    # Controle de alterações
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    
     def __str__(self):
         return f"{self.nome} ({self.cidade}/{self.estado})"
 
@@ -143,7 +138,6 @@ class Feira(models.Model):
         verbose_name = 'Feira'
         verbose_name_plural = 'Feiras'
         ordering = ['-data_inicio']
-
 class Empresa(models.Model):
     nome = models.CharField(max_length=100)
     cnpj = models.CharField(max_length=18, unique=True)
@@ -371,6 +365,8 @@ class CampoPergunta(models.Model):
     """
     CAMPOS_CHOICES = [
         ('nome', 'Nome da Feira'),
+        ('descricao', 'Descrição do Evento'),
+        ('website', 'Site da Feira'),
         ('local', 'Local/Endereço Completo'),
         ('data_horario', 'Data e Horário'),
         ('publico_alvo', 'Público-alvo'),
@@ -384,8 +380,11 @@ class CampoPergunta(models.Model):
         ('piso_elevado', 'Regras para Piso Elevado'),
         ('mezanino', 'Regras para Mezanino'),
         ('iluminacao', 'Regras para Iluminação'),
-        ('outros', 'Outras Regras'),
-        ('materiais', 'Materiais Permitidos/Proibidos'),
+        ('materiais_permitidos_proibidos', 'Materiais Permitidos/Proibidos'),
+        ('visibilidade_obrigatoria', 'Visibilidade Obrigatória'),
+        ('paredes_vidro', 'Paredes de Vidro'),
+        ('estrutura_aerea', 'Estrutura Aérea'),
+        ('documentos', 'Documentos para Credenciamento'),
         ('credenciamento', 'Datas Credenciamento'),
     ]
     
