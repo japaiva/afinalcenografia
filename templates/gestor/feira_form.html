@@ -38,7 +38,7 @@
         <div class="card-header bg-light">
           <h5 class="card-title mb-0">
             <i class="fas fa-calendar-alt me-2"></i>
-            Informações do Evento
+            Evento
           </h5>
         </div>
         <div class="card-body">
@@ -54,9 +54,22 @@
             </div>
             
             <div class="col-md-12">
+              <label for="{{ form.descricao.id_for_label }}" class="form-label">Descrição</label>
+              {{ form.descricao }}
+              <div class="form-text">Nome completo do evento</div>
+              {% if form.descricao.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.descricao.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+            
+
+            
+            <div class="col-md-12">
               <label for="{{ form.local.id_for_label }}" class="form-label">Local*</label>
               {{ form.local }}
-              <div class="form-text">Local e endereço completo</div>
+              <div class="form-text">Local e endereço completo, incluir detalhes sobre pavilhões se houver</div>
               {% if form.local.errors %}
                 <div class="text-danger small mt-1">
                   {% for error in form.local.errors %}{{ error }}{% endfor %}
@@ -65,9 +78,9 @@
             </div>
             
             <div class="col-md-12">
-              <label for="{{ form.data_horario.id_for_label }}" class="form-label">Data e Horário*</label>
+              <label for="{{ form.data_horario.id_for_label }}" class="form-label">Datas e Horários*</label>
               {{ form.data_horario }}
-              <div class="form-text">Informe data início, final e horários</div>
+              <div class="form-text">Informe detalhes sobre datas e horários de funcionamento</div>
               {% if form.data_horario.errors %}
                 <div class="text-danger small mt-1">
                   {% for error in form.data_horario.errors %}{{ error }}{% endfor %}
@@ -105,6 +118,16 @@
               {% endif %}
             </div>
 
+            <div class="col-md-12">
+              <label for="{{ form.website.id_for_label }}" class="form-label">Site</label>
+              {{ form.website }}
+              {% if form.website.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.website.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
             <div class="row g-3">
               <div class="col-md-6">
                 <label for="{{ form.cidade.id_for_label }}" class="form-label">Cidade*</label>
@@ -127,8 +150,6 @@
               </div>
             </div>
             
-            
-
             <div class="row g-3">
               <div class="col-md-6">
                 <label for="{{ form.data_inicio.id_for_label }}" class="form-label">Data de Início*</label>
@@ -150,9 +171,7 @@
                 {% endif %}
               </div>
             </div>
-  
-
-   
+            
             <div class="col-12">
               <div class="form-check form-switch mt-2">
                 {{ form.ativa }}
@@ -171,12 +190,12 @@
         </div>
       </div>
 
-      <!-- BLOCO MONTAGEM -->
+      <!-- BLOCO MONTAGEM E DESMONTAGEM -->
       <div class="card shadow mt-4">
         <div class="card-header bg-light">
           <h5 class="card-title mb-0">
             <i class="fas fa-tools me-2"></i>
-            Informações de Montagem
+            Montagem e Desmontagem
           </h5>
         </div>
         <div class="card-body">
@@ -216,12 +235,12 @@
         </div>
       </div>
 
-      <!-- BLOCO NORMAS -->
+      <!-- BLOCO NORMAS TÉCNICAS -->
       <div class="card shadow mt-4">
         <div class="card-header bg-light">
           <h5 class="card-title mb-0">
             <i class="fas fa-clipboard-list me-2"></i>
-            Normas e Regras
+            Normas Técnicas
           </h5>
         </div>
         <div class="card-body">
@@ -281,27 +300,52 @@
               {% endif %}
             </div>
             
+
+            
             <div class="col-md-12">
-              <label for="{{ form.outros.id_for_label }}" class="form-label">Outros</label>
-              {{ form.outros }}
-              <div class="form-text">Regras não cobertas acima</div>
-              {% if form.outros.errors %}
+              <label for="{{ form.visibilidade_obrigatoria.id_for_label }}" class="form-label">Visibilidade Obrigatória</label>
+              {{ form.visibilidade_obrigatoria }}
+              <div class="form-text">Requisitos de visibilidade entre estandes</div>
+              {% if form.visibilidade_obrigatoria.errors %}
                 <div class="text-danger small mt-1">
-                  {% for error in form.outros.errors %}{{ error }}{% endfor %}
+                  {% for error in form.visibilidade_obrigatoria.errors %}{{ error }}{% endfor %}
                 </div>
               {% endif %}
             </div>
             
             <div class="col-md-12">
-              <label for="{{ form.materiais.id_for_label }}" class="form-label">Materiais</label>
-              {{ form.materiais }}
-              <div class="form-text">Materiais permitidos ou proibidos</div>
-              {% if form.materiais.errors %}
+              <label for="{{ form.paredes_vidro.id_for_label }}" class="form-label">Paredes de Vidro</label>
+              {{ form.paredes_vidro }}
+              <div class="form-text">Normas específicas para utilização de paredes de vidro</div>
+              {% if form.paredes_vidro.errors %}
                 <div class="text-danger small mt-1">
-                  {% for error in form.materiais.errors %}{{ error }}{% endfor %}
+                  {% for error in form.paredes_vidro.errors %}{{ error }}{% endfor %}
                 </div>
               {% endif %}
             </div>
+            
+            <div class="col-md-12">
+              <label for="{{ form.estrutura_aerea.id_for_label }}" class="form-label">Estrutura Aérea</label>
+              {{ form.estrutura_aerea }}
+              <div class="form-text">Normas para estruturas suspensas e elementos aéreos</div>
+              {% if form.estrutura_aerea.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.estrutura_aerea.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="col-md-12">
+              <label for="{{ form.materiais_permitidos_proibidos.id_for_label }}" class="form-label">Materiais Permitidos e Proibidos</label>
+              {{ form.materiais_permitidos_proibidos }}
+              <div class="form-text">Especifique os materiais permitidos e proibidos na montagem</div>
+              {% if form.materiais_permitidos_proibidos.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.materiais_permitidos_proibidos.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
           </div>
         </div>
       </div>
@@ -316,6 +360,17 @@
         </div>
         <div class="card-body">
           <div class="row g-3">
+            <div class="col-md-12">
+              <label for="{{ form.documentos.id_for_label }}" class="form-label">Documentos</label>
+              {{ form.documentos }}
+              <div class="form-text">Documentos necessários para credenciamento</div>
+              {% if form.documentos.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.documentos.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+            
             <div class="col-md-12">
               <label for="{{ form.credenciamento.id_for_label }}" class="form-label">Datas Limite</label>
               {{ form.credenciamento }}
