@@ -1,0 +1,628 @@
+{% extends 'cliente/briefing_base.html' %}
+{% load static %}
+
+{% block etapa_content %}
+<!-- ETAPA 3: ÁREAS DO ESTANDE - Divisões Funcionais -->
+<form id="briefingForm" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger">
+      {% for error in form.non_field_errors %}
+        <p class="mb-0">{{ error }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+  
+  <!-- Área de Exposição -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Área de Exposição</h5>
+      <button type="button" class="btn btn-sm btn-light" id="add_area_exposicao">
+        <i class="fas fa-plus"></i> Adicionar Área
+      </button>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-12 mb-3">
+          <div class="form-check form-switch">
+            {{ form.tem_area_exposicao }}
+            <label class="form-check-label" for="{{ form.tem_area_exposicao.id_for_label }}">
+              Incluir Áreas de Exposição
+            </label>
+          </div>
+        </div>
+      </div>
+      
+      <div id="areas_exposicao_container" style="display: {% if form.tem_area_exposicao.value %}block{% else %}none{% endif %};">
+        <!-- Container para áreas de exposição dinâmicas -->
+        <div class="areas_exposicao_list">
+          <!-- Renderizar áreas existentes ou criar uma padrão -->
+          {% for area in areas_exposicao %}
+            <div class="area-exposicao-item card mb-3">
+              <div class="card-header d-flex justify-content-between align-items-center bg-light">
+                <h6 class="mb-0">Área de Exposição {{ forloop.counter }}</h6>
+                <button type="button" class="btn btn-sm btn-danger remove-area-btn">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <!-- Checkboxes para itens da área de exposição -->
+                  <div class="col-md-6 mb-3">
+                    <div class="form-check">
+                      <input type="checkbox" class="form-check-input" name="area_exposicao-{{ forloop.counter0 }}-tem_lounge" 
+                             id="area_exposicao-{{ forloop.counter0 }}-tem_lounge" {% if area.tem_lounge %}checked{% endif %}>
+                      <label class="form-check-label" for="area_exposicao-{{ forloop.counter0 }}-tem_lounge">
+                        Lounge
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 mb-3">
+                    <div class="form-check">
+                      <input type="checkbox" class="form-check-input" name="area_exposicao-{{ forloop.counter0 }}-tem_vitrine_exposicao" 
+                             id="area_exposicao-{{ forloop.counter0 }}-tem_vitrine_exposicao" {% if area.tem_vitrine_exposicao %}checked{% endif %}>
+                      <label class="form-check-label" for="area_exposicao-{{ forloop.counter0 }}-tem_vitrine_exposicao">
+                        Vitrine para Exposição
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 mb-3">
+                    <div class="form-check">
+                      <input type="checkbox" class="form-check-input" name="area_exposicao-{{ forloop.counter0 }}-tem_balcao_recepcao" 
+                             id="area_exposicao-{{ forloop.counter0 }}-tem_balcao_recepcao" {% if area.tem_balcao_recepcao %}checked{% endif %}>
+                      <label class="form-check-label" for="area_exposicao-{{ forloop.counter0 }}-tem_balcao_recepcao">
+                        Balcão Recepção
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 mb-3">
+                    <div class="form-check">
+                      <input type="checkbox" class="form-check-input" name="area_exposicao-{{ forloop.counter0 }}-tem_mesas_atendimento" 
+                             id="area_exposicao-{{ forloop.counter0 }}-tem_mesas_atendimento" {% if area.tem_mesas_atendimento %}checked{% endif %}>
+                      <label class="form-check-label" for="area_exposicao-{{ forloop.counter0 }}-tem_mesas_atendimento">
+                        Mesas de Atendimento
+                      </label>
+                    </div>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <div class="form-check">
+                      <input type="checkbox" class="form-check-input" name="area_exposicao-{{ forloop.counter0 }}-tem_balcao_cafe" 
+                             id="area_exposicao-{{ forloop.counter0 }}-tem_balcao_cafe" {% if area.tem_balcao_cafe %}checked{% endif %}>
+                      <label class="form-check-label" for="area_exposicao-{{ forloop.counter0 }}-tem_balcao_cafe">
+                        Balcão para Café/Bar
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 mb-3">
+                    <div class="form-check">
+                      <input type="checkbox" class="form-check-input" name="area_exposicao-{{ forloop.counter0 }}-tem_balcao_vitrine" 
+                             id="area_exposicao-{{ forloop.counter0 }}-tem_balcao_vitrine" {% if area.tem_balcao_vitrine %}checked{% endif %}>
+                      <label class="form-check-label" for="area_exposicao-{{ forloop.counter0 }}-tem_balcao_vitrine">
+                        Balcão Vitrine
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 mb-3">
+                    <div class="form-check">
+                      <input type="checkbox" class="form-check-input" name="area_exposicao-{{ forloop.counter0 }}-tem_caixa_vendas" 
+                             id="area_exposicao-{{ forloop.counter0 }}-tem_caixa_vendas" {% if area.tem_caixa_vendas %}checked{% endif %}>
+                      <label class="form-check-label" for="area_exposicao-{{ forloop.counter0 }}-tem_caixa_vendas">
+                        Caixa para Vendas
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Metragem (m²)</label>
+                    <div class="input-group">
+                      <input type="number" class="form-control" name="area_exposicao-{{ forloop.counter0 }}-metragem" 
+                             id="area_exposicao-{{ forloop.counter0 }}-metragem" step="0.01" value="{{ area.metragem|default:'' }}">
+                      <span class="input-group-text">m²</span>
+                    </div>
+                  </div>
+                  
+                  <div class="col-12 mb-3">
+                    <label class="form-label">Equipamentos</label>
+                    <textarea class="form-control" name="area_exposicao-{{ forloop.counter0 }}-equipamentos" 
+                              id="area_exposicao-{{ forloop.counter0 }}-equipamentos" rows="3">{{ area.equipamentos|default:'' }}</textarea>
+                  </div>
+                  
+                  <div class="col-12 mb-3">
+                    <label class="form-label">Observações</label>
+                    <textarea class="form-control" name="area_exposicao-{{ forloop.counter0 }}-observacoes" 
+                              id="area_exposicao-{{ forloop.counter0 }}-observacoes" rows="3">{{ area.observacoes|default:'' }}</textarea>
+                    <div class="form-text">Descreva como você imagina a área de exposição</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Sala de Reunião -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Sala de Reunião</h5>
+      <button type="button" class="btn btn-sm btn-light" id="add_sala_reuniao">
+        <i class="fas fa-plus"></i> Adicionar Sala
+      </button>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-12 mb-3">
+          <div class="form-check form-switch">
+            {{ form.tem_sala_reuniao }}
+            <label class="form-check-label" for="{{ form.tem_sala_reuniao.id_for_label }}">
+              Incluir Salas de Reunião
+            </label>
+          </div>
+        </div>
+      </div>
+      
+      <div id="salas_reuniao_container" style="display: {% if form.tem_sala_reuniao.value %}block{% else %}none{% endif %};">
+        <!-- Container para salas de reunião dinâmicas -->
+        <div class="salas_reuniao_list">
+          <!-- Renderizar salas existentes ou criar uma padrão -->
+          {% for sala in salas_reuniao %}
+            <div class="sala-reuniao-item card mb-3">
+              <div class="card-header d-flex justify-content-between align-items-center bg-light">
+                <h6 class="mb-0">Sala de Reunião {{ forloop.counter }}</h6>
+                <button type="button" class="btn btn-sm btn-danger remove-sala-btn">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Capacidade (pessoas)</label>
+                    <input type="number" class="form-control" name="sala_reuniao-{{ forloop.counter0 }}-capacidade" 
+                           id="sala_reuniao-{{ forloop.counter0 }}-capacidade" value="{{ sala.capacidade|default:'' }}">
+                  </div>
+                  
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Metragem (m²)</label>
+                    <div class="input-group">
+                      <input type="number" class="form-control" name="sala_reuniao-{{ forloop.counter0 }}-metragem" 
+                             id="sala_reuniao-{{ forloop.counter0 }}-metragem" step="0.01" value="{{ sala.metragem|default:'' }}">
+                      <span class="input-group-text">m²</span>
+                    </div>
+                  </div>
+                  
+                  <div class="col-12 mb-3">
+                    <label class="form-label">Equipamentos da Sala</label>
+                    <textarea class="form-control" name="sala_reuniao-{{ forloop.counter0 }}-equipamentos" 
+                              id="sala_reuniao-{{ forloop.counter0 }}-equipamentos" rows="3">{{ sala.equipamentos|default:'' }}</textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Copa -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0">Copa</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-12 mb-3">
+          <div class="form-check form-switch">
+            {{ form.tem_copa }}
+            <label class="form-check-label" for="{{ form.tem_copa.id_for_label }}">
+              Incluir Copa
+            </label>
+          </div>
+        </div>
+      </div>
+      
+      <div id="copa_div" style="display: {% if form.tem_copa.value %}block{% else %}none{% endif %};">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label for="{{ copa_form.metragem.id_for_label }}" class="form-label">
+              Metragem (m²)
+            </label>
+            <div class="input-group">
+              {{ copa_form.metragem }}
+              <span class="input-group-text">m²</span>
+            </div>
+          </div>
+          
+          <div class="col-12 mb-3">
+            <label for="{{ copa_form.equipamentos.id_for_label }}" class="form-label">
+              Equipamentos da Copa
+            </label>
+            {{ copa_form.equipamentos }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Depósito -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0">Depósito</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-12 mb-3">
+          <div class="form-check form-switch">
+            {{ form.tem_deposito }}
+            <label class="form-check-label" for="{{ form.tem_deposito.id_for_label }}">
+              Incluir Depósito
+            </label>
+          </div>
+        </div>
+      </div>
+      
+      <div id="deposito_div" style="display: {% if form.tem_deposito.value %}block{% else %}none{% endif %};">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label for="{{ deposito_form.metragem.id_for_label }}" class="form-label">
+              Metragem (m²)
+            </label>
+            <div class="input-group">
+              {{ deposito_form.metragem }}
+              <span class="input-group-text">m²</span>
+            </div>
+          </div>
+          
+          <div class="col-12 mb-3">
+            <label for="{{ deposito_form.equipamentos.id_for_label }}" class="form-label">
+              Equipamentos do Depósito
+            </label>
+            {{ deposito_form.equipamentos }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Campo oculto para contar áreas -->
+  <input type="hidden" id="num_areas_exposicao" name="num_areas_exposicao" value="{{ num_areas_exposicao }}">
+  <input type="hidden" id="num_salas_reuniao" name="num_salas_reuniao" value="{{ num_salas_reuniao }}">
+  
+  <!-- Botões de navegação -->
+  <div class="d-flex justify-content-between mt-4">
+    {% if pode_voltar %}
+    <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=etapa|add:'-1' %}" class="btn btn-outline-secondary">
+      <i class="fas fa-chevron-left me-1"></i> Anterior
+    </a>
+    {% else %}
+    <button class="btn btn-outline-secondary" disabled>
+      <i class="fas fa-chevron-left me-1"></i> Anterior
+    </button>
+    {% endif %}
+    
+    {% if pode_avancar %}
+    <button type="submit" name="avancar" value="1" class="btn btn-primary">
+      Próximo <i class="fas fa-chevron-right ms-1"></i>
+    </button>
+    {% else %}
+    <button type="submit" name="concluir" value="1" class="btn btn-success">
+      Concluir <i class="fas fa-check ms-1"></i>
+    </button>
+    {% endif %}
+  </div>
+</form>
+{% endblock %}
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Controles de visibilidade para cada seção
+    
+    // Área de exposição
+    const temAreaExposicaoCheck = document.getElementById('{{ form.tem_area_exposicao.id_for_label }}');
+    const areasExposicaoContainer = document.getElementById('areas_exposicao_container');
+    const addAreaExposicaoBtn = document.getElementById('add_area_exposicao');
+    let numAreasExposicao = {{ num_areas_exposicao|default:1 }};
+    
+    if (temAreaExposicaoCheck && areasExposicaoContainer) {
+      temAreaExposicaoCheck.addEventListener('change', function() {
+        areasExposicaoContainer.style.display = this.checked ? 'block' : 'none';
+      });
+    }
+    
+    // Adicionar nova área de exposição
+    if (addAreaExposicaoBtn) {
+      addAreaExposicaoBtn.addEventListener('click', function() {
+        if (!temAreaExposicaoCheck.checked) {
+          temAreaExposicaoCheck.checked = true;
+          areasExposicaoContainer.style.display = 'block';
+        }
+        
+        numAreasExposicao++;
+        document.getElementById('num_areas_exposicao').value = numAreasExposicao;
+        
+        const areasList = document.querySelector('.areas_exposicao_list');
+        const newArea = document.createElement('div');
+        newArea.className = 'area-exposicao-item card mb-3';
+        newArea.innerHTML = `
+          <div class="card-header d-flex justify-content-between align-items-center bg-light">
+            <h6 class="mb-0">Área de Exposição ${numAreasExposicao}</h6>
+            <button type="button" class="btn btn-sm btn-danger remove-area-btn">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <!-- Checkboxes para itens da área de exposição -->
+              <div class="col-md-6 mb-3">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" name="area_exposicao-${numAreasExposicao-1}-tem_lounge" id="area_exposicao-${numAreasExposicao-1}-tem_lounge">
+                  <label class="form-check-label" for="area_exposicao-${numAreasExposicao-1}-tem_lounge">
+                    Lounge
+                  </label>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-3">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" name="area_exposicao-${numAreasExposicao-1}-tem_vitrine_exposicao" id="area_exposicao-${numAreasExposicao-1}-tem_vitrine_exposicao">
+                  <label class="form-check-label" for="area_exposicao-${numAreasExposicao-1}-tem_vitrine_exposicao">
+                    Vitrine para Exposição
+                  </label>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-3">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" name="area_exposicao-${numAreasExposicao-1}-tem_balcao_recepcao" id="area_exposicao-${numAreasExposicao-1}-tem_balcao_recepcao">
+                  <label class="form-check-label" for="area_exposicao-${numAreasExposicao-1}-tem_balcao_recepcao">
+                    Balcão Recepção
+                  </label>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-3">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" name="area_exposicao-${numAreasExposicao-1}-tem_mesas_atendimento" id="area_exposicao-${numAreasExposicao-1}-tem_mesas_atendimento">
+                  <label class="form-check-label" for="area_exposicao-${numAreasExposicao-1}-tem_mesas_atendimento">
+                    Mesas de Atendimento
+                  </label>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-3">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" name="area_exposicao-${numAreasExposicao-1}-tem_balcao_cafe" id="area_exposicao-${numAreasExposicao-1}-tem_balcao_cafe">
+                  <label class="form-check-label" for="area_exposicao-${numAreasExposicao-1}-tem_balcao_cafe">
+                    Balcão para Café/Bar
+                  </label>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-3">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" name="area_exposicao-${numAreasExposicao-1}-tem_balcao_vitrine" id="area_exposicao-${numAreasExposicao-1}-tem_balcao_vitrine">
+                  <label class="form-check-label" for="area_exposicao-${numAreasExposicao-1}-tem_balcao_vitrine">
+                    Balcão Vitrine
+                  </label>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-3">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" name="area_exposicao-${numAreasExposicao-1}-tem_caixa_vendas" id="area_exposicao-${numAreasExposicao-1}-tem_caixa_vendas">
+                  <label class="form-check-label" for="area_exposicao-${numAreasExposicao-1}-tem_caixa_vendas">
+                    Caixa para Vendas
+                  </label>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Metragem (m²)</label>
+                <div class="input-group">
+                  <input type="number" class="form-control" name="area_exposicao-${numAreasExposicao-1}-metragem" id="area_exposicao-${numAreasExposicao-1}-metragem" step="0.01">
+                  <span class="input-group-text">m²</span>
+                </div>
+              </div>
+              
+              <div class="col-12 mb-3">
+                <label class="form-label">Equipamentos</label>
+                <textarea class="form-control" name="area_exposicao-${numAreasExposicao-1}-equipamentos" id="area_exposicao-${numAreasExposicao-1}-equipamentos" rows="3"></textarea>
+                <div class="form-text">LED, TVs, etc.</div>
+              </div>
+              
+              <div class="col-12 mb-3">
+                <label class="form-label">Observações</label>
+                <textarea class="form-control" name="area_exposicao-${numAreasExposicao-1}-observacoes" id="area_exposicao-${numAreasExposicao-1}-observacoes" rows="3"></textarea>
+                <div class="form-text">Descreva como você imagina a área de exposição</div>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        areasList.appendChild(newArea);
+        
+        // Adicionar event listener para o botão de remover
+        const removeBtn = newArea.querySelector('.remove-area-btn');
+        removeBtn.addEventListener('click', function() {
+          newArea.remove();
+          renumerarAreas();
+        });
+      });
+    }
+    
+    // Adicionar eventos de remoção para áreas existentes
+    document.querySelectorAll('.remove-area-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        if (document.querySelectorAll('.area-exposicao-item').length > 1) {
+          this.closest('.area-exposicao-item').remove();
+          renumerarAreas();
+        } else {
+          alert('É necessário manter pelo menos uma área de exposição.');
+        }
+      });
+    });
+    
+    // Renumerar áreas após remover
+    function renumerarAreas() {
+      const areas = document.querySelectorAll('.area-exposicao-item');
+      numAreasExposicao = areas.length;
+      document.getElementById('num_areas_exposicao').value = numAreasExposicao;
+      
+      areas.forEach((area, index) => {
+        const titulo = area.querySelector('h6');
+        titulo.textContent = `Área de Exposição ${index + 1}`;
+        
+        // Atualizar os IDs e names dos campos (opcional)
+        const inputs = area.querySelectorAll('input, textarea');
+        inputs.forEach(input => {
+          const nameParts = input.name.split('-');
+          if (nameParts.length === 3) {
+            const fieldName = nameParts[2];
+            input.name = `area_exposicao-${index}-${fieldName}`;
+            input.id = `area_exposicao-${index}-${fieldName}`;
+            
+            // Atualizar labels se necessário
+            const label = area.querySelector(`label[for="area_exposicao-${nameParts[1]}-${fieldName}"]`);
+            if (label) {
+              label.setAttribute('for', `area_exposicao-${index}-${fieldName}`);
+            }
+          }
+        });
+      });
+    }
+    // Salas de Reunião
+    const temSalaReuniaoCheck = document.getElementById('{{ form.tem_sala_reuniao.id_for_label }}');
+    const salasReuniaoContainer = document.getElementById('salas_reuniao_container');
+    const addSalaReuniaoBtn = document.getElementById('add_sala_reuniao');
+    let numSalasReuniao = {{ num_salas_reuniao|default:1 }};
+    
+    if (temSalaReuniaoCheck && salasReuniaoContainer) {
+      temSalaReuniaoCheck.addEventListener('change', function() {
+        salasReuniaoContainer.style.display = this.checked ? 'block' : 'none';
+      });
+    }
+    
+    // Adicionar nova sala de reunião
+    if (addSalaReuniaoBtn) {
+      addSalaReuniaoBtn.addEventListener('click', function() {
+        if (!temSalaReuniaoCheck.checked) {
+          temSalaReuniaoCheck.checked = true;
+          salasReuniaoContainer.style.display = 'block';
+        }
+        
+        numSalasReuniao++;
+        document.getElementById('num_salas_reuniao').value = numSalasReuniao;
+        
+        const salasList = document.querySelector('.salas_reuniao_list');
+        const newSala = document.createElement('div');
+        newSala.className = 'sala-reuniao-item card mb-3';
+        newSala.innerHTML = `
+          <div class="card-header d-flex justify-content-between align-items-center bg-light">
+            <h6 class="mb-0">Sala de Reunião ${numSalasReuniao}</h6>
+            <button type="button" class="btn btn-sm btn-danger remove-sala-btn">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Capacidade (pessoas)</label>
+                <input type="number" class="form-control" name="sala_reuniao-${numSalasReuniao-1}-capacidade" id="sala_reuniao-${numSalasReuniao-1}-capacidade">
+              </div>
+              
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Metragem (m²)</label>
+                <div class="input-group">
+                  <input type="number" class="form-control" name="sala_reuniao-${numSalasReuniao-1}-metragem" id="sala_reuniao-${numSalasReuniao-1}-metragem" step="0.01">
+                  <span class="input-group-text">m²</span>
+                </div>
+              </div>
+              
+              <div class="col-12 mb-3">
+                <label class="form-label">Equipamentos da Sala</label>
+                <textarea class="form-control" name="sala_reuniao-${numSalasReuniao-1}-equipamentos" id="sala_reuniao-${numSalasReuniao-1}-equipamentos" rows="3"></textarea>
+                <div class="form-text">Prateleira, TV, Armário, etc.</div>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        salasList.appendChild(newSala);
+        
+        // Adicionar event listener para o botão de remover
+        const removeBtn = newSala.querySelector('.remove-sala-btn');
+        removeBtn.addEventListener('click', function() {
+          newSala.remove();
+          renumerarSalas();
+        });
+      });
+    }
+    
+    // Adicionar eventos de remoção para salas existentes
+    document.querySelectorAll('.remove-sala-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        if (document.querySelectorAll('.sala-reuniao-item').length > 1) {
+          this.closest('.sala-reuniao-item').remove();
+          renumerarSalas();
+        } else {
+          alert('É necessário manter pelo menos uma sala de reunião.');
+        }
+      });
+    });
+    
+    // Renumerar salas após remover
+    function renumerarSalas() {
+      const salas = document.querySelectorAll('.sala-reuniao-item');
+      numSalasReuniao = salas.length;
+      document.getElementById('num_salas_reuniao').value = numSalasReuniao;
+      
+      salas.forEach((sala, index) => {
+        const titulo = sala.querySelector('h6');
+        titulo.textContent = `Sala de Reunião ${index + 1}`;
+        
+        // Atualizar os IDs e names dos campos
+        const inputs = sala.querySelectorAll('input, textarea');
+        inputs.forEach(input => {
+          const nameParts = input.name.split('-');
+          if (nameParts.length === 3) {
+            const fieldName = nameParts[2];
+            input.name = `sala_reuniao-${index}-${fieldName}`;
+            input.id = `sala_reuniao-${index}-${fieldName}`;
+            
+            // Atualizar labels se necessário
+            const label = sala.querySelector(`label[for="sala_reuniao-${nameParts[1]}-${fieldName}"]`);
+            if (label) {
+              label.setAttribute('for', `sala_reuniao-${index}-${fieldName}`);
+            }
+          }
+        });
+      });
+    }
+    
+    // Copa
+    const temCopaCheck = document.getElementById('{{ form.tem_copa.id_for_label }}');
+    const copaDiv = document.getElementById('copa_div');
+    
+    if (temCopaCheck && copaDiv) {
+      temCopaCheck.addEventListener('change', function() {
+        copaDiv.style.display = this.checked ? 'block' : 'none';
+      });
+    }
+    
+    // Depósito
+    const temDepositoCheck = document.getElementById('{{ form.tem_deposito.id_for_label }}');
+    const depositoDiv = document.getElementById('deposito_div');
+    
+    if (temDepositoCheck && depositoDiv) {
+      temDepositoCheck.addEventListener('change', function() {
+        depositoDiv.style.display = this.checked ? 'block' : 'none';
+      });
+    }
+  });
+</script>
+{% endblock %}

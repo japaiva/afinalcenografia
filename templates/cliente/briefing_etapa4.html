@@ -1,0 +1,318 @@
+{% extends 'cliente/briefing_base.html' %}
+{% load static %}
+
+{% block etapa_content %}
+<!-- ETAPA 4: DADOS COMPLEMENTARES - Referências Visuais -->
+<form id="briefingForm" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger">
+      {% for error in form.non_field_errors %}
+        <p class="mb-0">{{ error }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+  
+  <!-- Referências Visuais -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0">Referências Visuais</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-12 mb-3">
+          <label for="{{ form.referencias_dados.id_for_label }}" class="form-label">
+            Detalhamento
+          </label>
+          {{ form.referencias_dados }}
+          <div class="form-text text-muted">Descreva referências de estandes anteriores ou estilos desejados</div>
+          {% if form.referencias_dados.errors %}
+            <div class="form-text text-danger">
+              {% for error in form.referencias_dados.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Upload de arquivos de referência -->
+        <div class="col-md-12 mb-3">
+          <label class="form-label">Arquivos - Upload de referências</label>
+          <div class="input-group" id="uploadForm">
+            <input type="file" class="form-control" id="arquivo" name="arquivo">
+            <input type="hidden" id="tipo" name="tipo" value="referencia">
+            <button class="btn btn-outline-primary" type="button" id="uploadButtonReferencia" data-url="{% url 'cliente:upload_arquivo_referencia' projeto_id=projeto.id %}">
+              <i class="fas fa-upload"></i>
+            </button>
+          </div>
+          
+          <div id="arquivosReferenciaContainer" class="d-flex flex-wrap gap-2 mt-2">
+            {% for arquivo in arquivos %}
+              {% if arquivo.tipo == 'referencia' %}
+              <div class="position-relative arquivo-item" data-id="{{ arquivo.id }}" style="width: 100px;">
+                <img src="{{ arquivo.arquivo.url }}" alt="{{ arquivo.nome }}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
+                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 excluir-arquivo" style="font-size: 0.7rem; padding: 0.1rem 0.3rem;" data-url="{% url 'cliente:excluir_arquivo_referencia' arquivo_id=arquivo.id %}">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Materiais de Campanha -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0">Materiais de Campanha</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-12 mb-3">
+          <label for="{{ form.campanha_dados.id_for_label }}" class="form-label">
+            Detalhamento
+          </label>
+          {{ form.campanha_dados }}
+          <div class="form-text text-muted">Informações sobre a campanha atual e como deve ser aplicada no estande</div>
+          {% if form.campanha_dados.errors %}
+            <div class="form-text text-danger">
+              {% for error in form.campanha_dados.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Upload de arquivos de campanha -->
+        <div class="col-md-12 mb-3">
+          <label class="form-label">Arquivos - Upload de materiais de campanha</label>
+          <div class="input-group" id="uploadFormCampanha">
+            <input type="file" class="form-control" id="arquivoCampanha" name="arquivo">
+            <input type="hidden" id="tipoCampanha" name="tipo" value="campanha">
+            <button class="btn btn-outline-primary" type="button" id="uploadButtonCampanha" data-url="{% url 'cliente:upload_arquivo_referencia' projeto_id=projeto.id %}">
+              <i class="fas fa-upload"></i>
+            </button>
+          </div>
+          
+          <div id="arquivosCampanhaContainer" class="d-flex flex-wrap gap-2 mt-2">
+            {% for arquivo in arquivos %}
+              {% if arquivo.tipo == 'campanha' %}
+              <div class="position-relative arquivo-item" data-id="{{ arquivo.id }}" style="width: 100px;">
+                <img src="{{ arquivo.arquivo.url }}" alt="{{ arquivo.nome }}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
+                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 excluir-arquivo" style="font-size: 0.7rem; padding: 0.1rem 0.3rem;" data-url="{% url 'cliente:excluir_arquivo_referencia' arquivo_id=arquivo.id %}">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Informações Complementares -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0">Informações Complementares</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-12 mb-3">
+          <label for="{{ form.logotipo.id_for_label }}" class="form-label">
+            Detalhamento - Dados
+          </label>
+          {{ form.logotipo }}
+          <div class="form-text text-muted">Coloque aqui qualquer outra informação ou arquivo que possa ser útil para o projeto</div>
+          {% if form.logotipo.errors %}
+            <div class="form-text text-danger">
+              {% for error in form.logotipo.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Upload de outros arquivos -->
+        <div class="col-md-12 mb-3">
+          <label class="form-label">Referências Visuais - Upload de arquivos</label>
+          <div class="input-group" id="uploadFormOutros">
+            <input type="file" class="form-control" id="arquivoOutros" name="arquivo">
+            <input type="hidden" id="tipoOutros" name="tipo" value="imagem">
+            <button class="btn btn-outline-primary" type="button" id="uploadButtonOutros" data-url="{% url 'cliente:upload_arquivo_referencia' projeto_id=projeto.id %}">
+              <i class="fas fa-upload"></i>
+            </button>
+          </div>
+          
+          <div id="arquivosOutrosContainer" class="d-flex flex-wrap gap-2 mt-2">
+            {% for arquivo in arquivos %}
+              {% if arquivo.tipo != 'referencia' and arquivo.tipo != 'campanha' %}
+              <div class="position-relative arquivo-item" data-id="{{ arquivo.id }}" style="width: 100px;">
+                {% if arquivo.tipo == 'imagem' or arquivo.tipo == 'logo' %}
+                <img src="{{ arquivo.arquivo.url }}" alt="{{ arquivo.nome }}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
+                {% else %}
+                <div class="bg-light border text-center p-2" style="width: 100px; height: 100px;">
+                  <i class="fas 
+                    {% if arquivo.tipo == 'planta' %}fa-map
+                    {% elif arquivo.tipo == 'documento' %}fa-file-alt
+                    {% else %}fa-file{% endif %} fa-3x my-2"></i>
+                  <p class="small text-truncate mb-0">{{ arquivo.nome }}</p>
+                </div>
+                {% endif %}
+                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 excluir-arquivo" style="font-size: 0.7rem; padding: 0.1rem 0.3rem;" data-url="{% url 'cliente:excluir_arquivo_referencia' arquivo_id=arquivo.id %}">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Botões de navegação -->
+  <div class="d-flex justify-content-between mt-4">
+    {% if pode_voltar %}
+    <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=etapa|add:'-1' %}" class="btn btn-outline-secondary">
+      <i class="fas fa-chevron-left me-1"></i> Anterior
+    </a>
+    {% else %}
+    <button class="btn btn-outline-secondary" disabled>
+      <i class="fas fa-chevron-left me-1"></i> Anterior
+    </button>
+    {% endif %}
+    
+    {% if pode_avancar %}
+    <button type="submit" name="avancar" value="1" class="btn btn-primary">
+      Próximo <i class="fas fa-chevron-right ms-1"></i>
+    </button>
+    {% else %}
+    <button type="submit" name="concluir" value="1" class="btn btn-success">
+      Concluir <i class="fas fa-check ms-1"></i>
+    </button>
+    {% endif %}
+  </div>
+</form>
+{% endblock %}
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Função para gerenciar uploads
+    function setupUpload(buttonId, fileInputId, typeInputId, containerId, tipoValor) {
+      const uploadButton = document.getElementById(buttonId);
+      const fileInput = document.getElementById(fileInputId);
+      const tipoInput = document.getElementById(typeInputId);
+      const container = document.getElementById(containerId);
+      
+      if (uploadButton) {
+        uploadButton.addEventListener('click', function() {
+          const url = this.dataset.url;
+          
+          if (fileInput.files.length === 0) {
+            alert('Selecione um arquivo para upload');
+            return;
+          }
+          
+          const formData = new FormData();
+          formData.append('arquivo', fileInput.files[0]);
+          formData.append('tipo', tipoValor);
+          formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+          
+          fetch(url, {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin'
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              // Adicionar arquivo ao container apropriado
+              const isImage = data.arquivo.tipo.includes('Imagem') || 
+                data.arquivo.tipo.includes('Referência') || 
+                data.arquivo.tipo.includes('Logo') || 
+                data.arquivo.tipo.includes('Campanha');
+              
+              if (isImage) {
+                // Para imagens, mostrar thumbnail
+                const itemHtml = `
+                  <div class="position-relative arquivo-item" data-id="${data.arquivo.id}" style="width: 100px;">
+                    <img src="${data.arquivo.url}" alt="${data.arquivo.nome}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
+                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 excluir-arquivo" style="font-size: 0.7rem; padding: 0.1rem 0.3rem;" data-url="{% url 'cliente:excluir_arquivo_referencia' arquivo_id=0 %}".replace('0', data.arquivo.id)>
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                `;
+                container.insertAdjacentHTML('beforeend', itemHtml);
+              } else {
+                // Para outros arquivos, mostrar ícone
+                const icone = data.arquivo.tipo.includes('Planta') ? 'fa-map' : 
+                            data.arquivo.tipo.includes('Documento') ? 'fa-file-alt' : 'fa-file';
+                
+                const itemHtml = `
+                  <div class="position-relative arquivo-item" data-id="${data.arquivo.id}" style="width: 100px;">
+                    <div class="bg-light border text-center p-2" style="width: 100px; height: 100px;">
+                      <i class="fas ${icone} fa-3x my-2"></i>
+                      <p class="small text-truncate mb-0">${data.arquivo.nome}</p>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 excluir-arquivo" style="font-size: 0.7rem; padding: 0.1rem 0.3rem;" data-url="{% url 'cliente:excluir_arquivo_referencia' arquivo_id=0 %}".replace('0', data.arquivo.id)>
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                `;
+                container.insertAdjacentHTML('beforeend', itemHtml);
+              }
+              
+              // Limpar campo de arquivo
+              fileInput.value = '';
+            } else {
+              alert('Erro ao enviar arquivo: ' + data.error);
+            }
+          })
+          .catch(error => {
+            alert('Erro ao enviar arquivo: ' + error);
+          });
+        });
+      }
+    }
+    
+    // Configurar os três botões de upload
+    setupUpload('uploadButtonReferencia', 'arquivo', 'tipo', 'arquivosReferenciaContainer', 'referencia');
+    setupUpload('uploadButtonCampanha', 'arquivoCampanha', 'tipoCampanha', 'arquivosCampanhaContainer', 'campanha');
+    setupUpload('uploadButtonOutros', 'arquivoOutros', 'tipoOutros', 'arquivosOutrosContainer', 'imagem');
+    
+    // Handling para exclusão de arquivos
+    document.addEventListener('click', function(e) {
+      if (e.target.closest('.excluir-arquivo')) {
+        const button = e.target.closest('.excluir-arquivo');
+        const url = button.dataset.url;
+        const arquivoItem = button.closest('.arquivo-item');
+        
+        if (confirm('Tem certeza que deseja excluir este arquivo?')) {
+          fetch(url, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': '{{ csrf_token }}'
+            },
+            credentials: 'same-origin'
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              arquivoItem.remove();
+            } else {
+              alert('Erro ao excluir arquivo: ' + data.error);
+            }
+          })
+          .catch(error => {
+            alert('Erro ao excluir arquivo: ' + error);
+          });
+        }
+      }
+    });
+  });
+</script>
+{% endblock %}
