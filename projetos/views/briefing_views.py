@@ -347,17 +347,22 @@ def briefing_etapa(request, projeto_id, etapa):
         })
     
     #return render(request, 'cliente/briefing_etapa.html', context)
-
     template_name = f'cliente/briefing_etapa{etapa}.html'
     return render(request, template_name, context)
 
+
 @login_required
 @cliente_required
-@require_POST
 def enviar_mensagem_ia(request, projeto_id):
-    """Processa mensagem enviada para o assistente IA"""
-    mensagem = request.POST.get('mensagem', '')
+    """
+    View para processar mensagens enviadas para o assistente IA
+    """
+    if request.method == 'POST':
+        mensagem = request.POST.get('mensagem', '')
+    else:
+        mensagem = request.GET.get('mensagem', '')  # Compatibilidade para GET
     
+    etapa = int(request.POST.get('etapa', 1))
     projeto = get_object_or_404(Projeto, pk=projeto_id, empresa=request.user.empresa)
     briefing = get_object_or_404(Briefing, projeto=projeto)
     
@@ -366,61 +371,75 @@ def enviar_mensagem_ia(request, projeto_id):
         briefing=briefing
     ).order_by('-timestamp')[:5]
     
-    # Tenta obter um cliente de IA configurado
+    # Salvar a mensagem do cliente
+    mensagem_cliente = BriefingConversation.objects.create(
+        briefing=briefing,
+        mensagem=mensagem,
+        origem='cliente',
+        etapa=etapa
+    )
+    
+    # Busca um agente adequado no banco de dados
     try:
-        if get_llm_client:
-            # Obtém o cliente LLM, modelo e configurações do agente "Assistente de Briefing"
-            client, model, temperature, system_prompt, task_instructions = get_llm_client("Assistente de Briefing")
-        else:
-            # Fallback para OpenAI se get_llm_client não estiver disponível
-            raise ValueError("get_llm_client não está disponível")
+        # Obtém o cliente LLM, modelo e configurações do agente "Assistente de Briefing"
+        client, model, temperature, system_prompt, task_instructions = get_llm_client("Assistente de Briefing")
+        if client is None:
+            raise ValueError("Não foi possível inicializar o cliente LLM para o agente 'Assistente de Briefing'")
     except Exception as e:
+        # Fallback para cliente OpenAI padrão se não conseguir obter o cliente do agente
         logger.warning(f"Erro ao obter cliente LLM: {str(e)}. Usando cliente padrão.")
-        
-        api_key = os.getenv('OPENAI_API_KEY')
-        if not api_key:
-            logger.error("API Key não encontrada")
-            return JsonResponse({
-                'success': False,
-                'error': 'Configuração de IA não disponível'
-            }, status=500)
-            
         if OPENAI_AVAILABLE:
+            api_key = os.getenv('OPENAI_API_KEY')
+            if not api_key:
+                logger.error("API Key do OpenAI não encontrada!")
+                raise ValueError("API Key do OpenAI não encontrada")
             client = OpenAI(api_key=api_key)
-            model = "gpt-4-turbo" if client else None
+            model = "gpt-4o-mini"
             temperature = 0.7
             system_prompt = "Você é um assistente especializado em projetos cenográficos da Afinal Cenografia."
             task_instructions = None
         else:
-            logger.error("OpenAI SDK não disponível")
+            # Se OpenAI não estiver disponível, usar resposta básica
+            texto_resposta = "Lamento, mas estou enfrentando dificuldades técnicas no momento. Nossa equipe já está trabalhando nisso. Por favor, tente novamente em alguns instantes ou continue preenchendo o formulário normalmente."
+            mensagem_ia = BriefingConversation.objects.create(
+                briefing=briefing,
+                mensagem=texto_resposta,
+                origem='ia',
+                etapa=etapa
+            )
             return JsonResponse({
-                'success': False,
-                'error': 'Configuração de IA não disponível'
-            }, status=500)
+                'success': True,
+                'mensagem_cliente': {
+                    'id': mensagem_cliente.id,
+                    'texto': mensagem_cliente.mensagem,
+                    'timestamp': mensagem_cliente.timestamp.strftime('%H:%M')
+                },
+                'mensagem_ia': {
+                    'id': mensagem_ia.id,
+                    'texto': mensagem_ia.mensagem,
+                    'timestamp': mensagem_ia.timestamp.strftime('%H:%M')
+                }
+            })
     
     # Construir o contexto para o assistente
     contexto = system_prompt + "\n\n"
     contexto += f"Você está ajudando o cliente a preencher um briefing para o projeto '{projeto.nome}'. "
     
-    # Usar atributos que realmente existem no modelo Projeto
-    if hasattr(projeto, 'orcamento') and projeto.orcamento:
-        contexto += f"O projeto tem orçamento de R$ {projeto.orcamento}. "
-    
     # Adicionar informações do briefing para contexto
-    if briefing.etapa_atual == 1:
-        contexto += "O cliente está na etapa de definição do EVENTO (datas e localização). "
-    elif briefing.etapa_atual == 2:
-        contexto += "O cliente está na etapa de definição do ESTANDE (características físicas). "
-    elif briefing.etapa_atual == 3:
-        contexto += "O cliente está na etapa de definição das ÁREAS DO ESTANDE (divisões funcionais). "
-    elif briefing.etapa_atual == 4:
-        contexto += "O cliente está na etapa de DADOS COMPLEMENTARES (referências visuais). "
+    if etapa == 1:
+        contexto += "O cliente está na etapa de definição do LOCAL DO ESTANDE (onde fica o estande no pavilhão). "
+    elif etapa == 2:
+        contexto += "O cliente está na etapa de definição das CARACTERÍSTICAS do estande (dimensões, estilo, etc). "
+    elif etapa == 3:
+        contexto += "O cliente está na etapa de definição das DIVISÕES do estande (área de exposição, sala reunião, etc). "
+    elif etapa == 4:
+        contexto += "O cliente está na etapa de REFERÊNCIAS VISUAIS (referências, logotipo, campanha). "
     
     # Adicionar task_instructions se disponível
     if task_instructions:
         # Substituir variáveis no template de instruções
         instrucoes = task_instructions.replace("{nome_projeto}", projeto.nome)
-        instrucoes = instrucoes.replace("{etapa_atual}", str(briefing.etapa_atual))
+        instrucoes = instrucoes.replace("{etapa_atual}", str(etapa))
         contexto += instrucoes
     else:
         # Instrução padrão se não houver task_instructions
@@ -442,7 +461,7 @@ def enviar_mensagem_ia(request, projeto_id):
         # Adicionar a mensagem atual
         mensagens_formatadas.append({"role": "user", "content": mensagem})
         
-        # Enviar para a API apropriada
+        # Enviar para a API apropriada com base no provider do cliente
         if hasattr(client, 'chat') and hasattr(client.chat, 'completions'):  # OpenAI
             logger.info(f"Enviando requisição para OpenAI (modelo: {model})")
             resposta = client.chat.completions.create(
@@ -452,6 +471,8 @@ def enviar_mensagem_ia(request, projeto_id):
                 temperature=temperature
             )
             texto_resposta = resposta.choices[0].message.content
+            logger.info("Resposta recebida da OpenAI com sucesso")
+            
         elif hasattr(client, 'messages') and hasattr(client.messages, 'create'):  # Anthropic
             logger.info(f"Enviando requisição para Anthropic (modelo: {model})")
             resposta = client.messages.create(
@@ -462,29 +483,23 @@ def enviar_mensagem_ia(request, projeto_id):
                 temperature=temperature
             )
             texto_resposta = resposta.content[0].text
+            logger.info("Resposta recebida da Anthropic com sucesso")
+            
         else:
             # Provedor desconhecido ou não suportado
             logger.warning("Provedor de IA desconhecido ou não suportado")
-            texto_resposta = "Olá! Infelizmente, estou encontrando um problema técnico. Nossa equipe já está trabalhando nisso. Por favor, tente novamente mais tarde."
-    
+            texto_resposta = "Olá! Sou o assistente de briefing. Infelizmente, estou encontrando um problema técnico no momento. Nossa equipe já está trabalhando nisso. Por favor, tente novamente mais tarde ou continue preenchendo o formulário normalmente."
+            
     except Exception as e:
         logger.error(f"Erro ao processar mensagem com IA: {str(e)}")
-        texto_resposta = f"Desculpe, não consegui processar sua pergunta no momento. Por favor, tente novamente mais tarde."
-    
-    # Salvar a mensagem do cliente
-    mensagem_cliente = BriefingConversation.objects.create(
-        briefing=briefing,
-        mensagem=mensagem,
-        origem='cliente',
-        etapa=briefing.etapa_atual
-    )
+        texto_resposta = f"Desculpe, não consegui processar sua pergunta no momento. Por favor, tente novamente mais tarde ou entre em contato com nossa equipe para assistência."
     
     # Salvar a resposta da IA
     mensagem_ia = BriefingConversation.objects.create(
         briefing=briefing,
         mensagem=texto_resposta,
         origem='ia',
-        etapa=briefing.etapa_atual
+        etapa=etapa
     )
     
     return JsonResponse({

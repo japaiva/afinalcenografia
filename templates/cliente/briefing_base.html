@@ -7,7 +7,7 @@
 <div class="card shadow">
   <div class="card-header bg-light d-flex justify-content-between align-items-center">
     <h5 class="card-title mb-0">
-      <i class="fas fa-clipboard-list me-2"></i> Briefing de Projeto #{{ projeto.id }}
+      <i class="fas fa-clipboard-list me-2"></i> Briefing de Projeto: {{ projeto.nome }}
     </h5>
     <div class="d-flex align-items-center">
       <!-- Status de Validação condensado no header -->
@@ -25,20 +25,20 @@
         </div>
       </div>
       
-      <!-- Botões de ação (reorganizados) -->
+      <!-- Botões de ação -->
+      <a href="{% url 'cliente:projeto_detail' pk=projeto.id %}" class="btn btn-outline-secondary btn-sm me-1">
+        <i class="fas fa-project-diagram me-1"></i> Acessar Projeto
+      </a>
       {% if todas_aprovadas %}
-      <a href="{% url 'cliente:concluir_briefing' projeto_id=projeto.id %}" class="btn btn-primary btn-sm me-2">
+      <a href="{% url 'cliente:concluir_briefing' projeto_id=projeto.id %}" class="btn btn-primary btn-sm">
         <i class="fas fa-paper-plane me-1"></i> Enviar Briefing
       </a>
       {% else %}
-      <button id="validarBriefing" class="btn btn-outline-primary btn-sm me-2" data-url="{% url 'cliente:validar_briefing' projeto_id=projeto.id %}">
+      <button id="validarBriefing" class="btn btn-outline-primary btn-sm" 
+              data-url="{% url 'cliente:validar_briefing' projeto_id=projeto.id %}">
         <i class="fas fa-check-double me-1"></i> Validar Briefing
       </button>
       {% endif %}
-      
-      <a href="{% url 'cliente:projeto_detail' pk=projeto.id %}" class="btn btn-outline-secondary btn-sm">
-        <i class="fas fa-arrow-left me-1"></i> Voltar
-      </a>
     </div>
   </div>
   
@@ -48,7 +48,10 @@
       <div class="col-lg-8 border-end">
         <div class="p-4">
           <div class="progress mb-4" style="height: 8px;">
-            <div class="progress-bar bg-success" role="progressbar" style="width: {{ briefing.progresso }}%;" aria-valuenow="{{ briefing.progresso }}" aria-valuemin="0" aria-valuemax="100"></div>
+            <div class="progress-bar bg-success" role="progressbar" 
+                 style="width: {{ briefing.progresso }}%;" 
+                 aria-valuenow="{{ briefing.progresso }}" 
+                 aria-valuemin="0" aria-valuemax="100"></div>
           </div>
           
           <div class="d-flex justify-content-between mb-4">
@@ -80,108 +83,29 @@
           
           <h4 class="mb-3">{{ titulo_etapa }}</h4>
           
+          <!-- Informações da Feira (se existir) -->
+          {% if projeto.feira and etapa == 1 %}
+          <div class="alert alert-info mb-4">
+            <div class="d-flex">
+              <div class="me-3">
+                <i class="fas fa-calendar-alt fa-2x text-primary"></i>
+              </div>
+              <div>
+                <h5 class="alert-heading">Feira: {{ projeto.feira.nome }}</h5>
+                <p class="mb-1">Local: {{ projeto.feira.local }}, {{ projeto.feira.cidade }}/{{ projeto.feira.estado }}</p>
+                <p class="mb-1">Período: {{ projeto.feira.data_inicio|date:"d/m/Y" }} a {{ projeto.feira.data_fim|date:"d/m/Y" }}</p>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+          
           <!-- Conteúdo específico de cada etapa será incluído aqui -->
           {% block etapa_content %}{% endblock %}
         </div>
       </div>
       
-      <!-- Assistente IA -->
-      <div class="col-lg-4">
-        <div class="p-3 h-100 d-flex flex-column">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0">
-              <i class="fas fa-robot me-2 text-primary"></i> Assistente IA
-            </h5>
-            <div class="d-flex">
-              <button class="btn btn-sm btn-outline-primary me-1" id="novaPergunta" title="Fazer nova pergunta">
-                <i class="fas fa-question-circle"></i>
-              </button>
-              {% if projeto.feira %}
-              <button class="btn btn-sm btn-outline-info" id="perguntaFeira" title="Perguntar sobre a feira"
-                      data-bs-toggle="modal" data-bs-target="#feiraModal">
-                <i class="fas fa-calendar-alt"></i>
-              </button>
-              {% endif %}
-            </div>
-          </div>
-          
-          <!-- Input do chat (no topo) -->
-          <div class="chat-input mb-3">
-            <form id="chatForm" data-url="{% url 'cliente:enviar_mensagem_ia' projeto_id=projeto.id %}">
-              <div class="input-group">
-                <input type="text" class="form-control" id="mensagemInput" name="mensagem" placeholder="Faça uma pergunta ao assistente...">
-                <button class="btn btn-primary" type="submit" id="enviarMensagem">
-                  <i class="fas fa-paper-plane"></i>
-                </button>
-              </div>
-            </form>
-          </div>
-          
-          <!-- Chat da IA (abaixo do input) -->
-          <div class="chat-container bg-light rounded p-3 flex-grow-1 overflow-auto" style="height: 400px;" id="chatContainer">
-            {% for conversa in conversas %}
-              <div class="chat-message {{ conversa.origem }}-message mb-3">
-                <div class="chat-bubble">
-                  <p>{{ conversa.mensagem|linebreaks }}</p>
-                </div>
-                <small class="text-muted">{{ conversa.timestamp|time:"H:i" }}</small>
-              </div>
-            {% empty %}
-              <div class="chat-message ai-message mb-3">
-                <div class="chat-bubble">
-                  <p>Olá! Sou o assistente do briefing. Estou aqui para ajudá-lo a preencher todas as informações do seu projeto.</p>
-                  
-                  {% if etapa == 1 %}
-                  <p>Nesta etapa, precisamos das informações sobre o evento, datas de montagem e desmontagem, e localização do estande.</p>
-                  {% elif etapa == 2 %}
-                  <p>Nesta etapa, precisamos das características físicas do estande, como área, estilo, cores e materiais.</p>
-                  {% elif etapa == 3 %}
-                  <p>Nesta etapa, vamos definir as áreas funcionais do estande, como área aberta, sala de reunião, copa e depósito.</p>
-                  {% elif etapa == 4 %}
-                  <p>Nesta etapa final, adicione referências visuais, informações sobre logotipo e campanha para guiar o projeto.</p>
-                  {% endif %}
-                  
-                  {% if projeto.feira %}
-                  <p>Observei que este projeto está associado à feira <strong>{{ projeto.feira.nome }}</strong>. Eu posso ajudar com dúvidas específicas sobre as regras e requisitos desta feira. Clique no botão <i class="fas fa-calendar-alt"></i> acima para fazer perguntas sobre a feira.</p>
-                  {% endif %}
-                </div>
-                <small class="text-muted">Agora</small>
-              </div>
-            {% endfor %}
-          </div>
-          
-          <!-- Status de Validação -->
-          <div class="validation-status p-3 border-top mt-3">
-            <h6 class="mb-3">Status de Validação</h6>
-            <ul class="list-group list-group-flush">
-              {% for validacao in validacoes %}
-              <li class="list-group-item d-flex justify-content-between align-items-center px-0 border-0">
-                <span>
-                  <i class="fas 
-                    {% if validacao.status == 'aprovado' %}fa-check-circle text-success
-                    {% elif validacao.status == 'atencao' %}fa-exclamation-circle text-warning
-                    {% elif validacao.status == 'reprovado' %}fa-times-circle text-danger
-                    {% else %}fa-times-circle text-muted{% endif %} me-2"></i>
-                  {{ validacao.get_secao_display }}
-                </span>
-                <span class="badge 
-                  {% if validacao.status == 'aprovado' %}bg-success
-                  {% elif validacao.status == 'atencao' %}bg-warning text-dark
-                  {% elif validacao.status == 'reprovado' %}bg-danger
-                  {% else %}bg-secondary{% endif %}">
-                  {{ validacao.get_status_display }}
-                </span>
-              </li>
-              {% endfor %}
-            </ul>
-            <div class="text-center mt-3">
-              <button class="btn btn-outline-primary btn-sm" id="revalidarBriefing" data-url="{% url 'cliente:validar_briefing' projeto_id=projeto.id %}">
-                <i class="fas fa-sync-alt me-1"></i> Revalidar Briefing
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- Componente do Assistente de IA -->
+      {% include 'cliente/briefing_assistente_ia.html' %}
     </div>
   </div>
 </div>
@@ -206,7 +130,7 @@
           </div>
         </form>
       </div>
-
+      
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
         <button type="submit" form="feiraForm" class="btn btn-primary">
@@ -218,6 +142,7 @@
 </div>
 {% endif %}
 
+<!-- Estilos globais para o chat -->
 <style>
 .chat-container {
   display: flex;
@@ -268,12 +193,11 @@
 }
 </style>
 
-{% block extra_js %}
+<!-- JavaScript global para autosave e navegação -->
 <script>
-$(document).ready(function() {
+document.addEventListener('DOMContentLoaded', function() {
   // Auto-salvar o formulário quando houver mudanças
   let formChanged = false;
-  
   $('#briefingForm input, #briefingForm textarea, #briefingForm select').on('change', function() {
     formChanged = true;
   });
@@ -281,7 +205,6 @@ $(document).ready(function() {
   function autosave() {
     if (formChanged) {
       const formData = new FormData($('#briefingForm')[0]);
-      
       $.ajax({
         url: "{% url 'cliente:salvar_rascunho_briefing' projeto_id=projeto.id %}",
         type: 'POST',
@@ -306,97 +229,114 @@ $(document).ready(function() {
     }
   });
   
-  // Inverter ordem do chat para mostrar mensagens mais recentes no topo
-  const chatContainer = document.getElementById('chatContainer');
-  if (chatContainer) {
-    chatContainer.style.flexDirection = 'column-reverse';
-  }
-  
-  // Submit chat message
-  $('#chatForm').on('submit', function(e) {
-    e.preventDefault();
-    
+  // Handle arquivo upload
+  $(document).on('click', '[id^=uploadButton]', function() {
     const url = $(this).data('url');
-    const mensagem = $('#mensagemInput').val();
+    const fileInputId = $(this).closest('.input-group').find('input[type=file]').attr('id');
+    const tipoInputId = $(this).closest('.input-group').find('input[type=hidden], select').attr('id');
     
-    if (!mensagem.trim()) return;
+    const fileInput = document.getElementById(fileInputId);
+    const tipoInput = document.getElementById(tipoInputId);
     
-    // Disable input while sending
-    $('#mensagemInput').prop('disabled', true);
-    $('#enviarMensagem').prop('disabled', true);
+    if (fileInput.files.length === 0) {
+      alert('Selecione um arquivo para upload');
+      return;
+    }
     
-    // Add message to chat immediately
-    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const formData = new FormData();
+    formData.append('arquivo', fileInput.files[0]);
+    formData.append('tipo', tipoInput.value || tipoInput.options[tipoInput.selectedIndex].value);
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
     
-    // Prepend message (add at the top) instead of append since we're showing newest first
-    $('#chatContainer').prepend(`
-      <div class="chat-message cliente-message mb-3">
-        <div class="chat-bubble">
-          <p>${mensagem}</p>
-        </div>
-        <small class="text-muted">${timestamp}</small>
-      </div>
-    `);
-    
-    // Send to server
     $.ajax({
       url: url,
       type: 'POST',
-      data: {
-        mensagem: mensagem,
-        etapa: {{ etapa }},
-        csrfmiddlewaretoken: '{{ csrf_token }}'
-      },
+      data: formData,
+      processData: false,
+      contentType: false,
       success: function(response) {
-        // Prepend AI response at the top
-        $('#chatContainer').prepend(`
-          <div class="chat-message ai-message mb-3">
-            <div class="chat-bubble">
-              <p>${response.mensagem_ia.texto.replace(/\n/g, '<br>')}</p>
-            </div>
-            <small class="text-muted">${response.mensagem_ia.timestamp}</small>
-          </div>
-        `);
+        if (response.success) {
+          const containerId = $(fileInput).closest('.col-md-12').find('[id$=Container]').attr('id') || 'arquivosContainer';
+          const container = document.getElementById(containerId);
+          
+          if (container) {
+            // Detectar tipo de arquivo
+            const isImage = response.arquivo.tipo.includes('Imagem') || 
+                            response.arquivo.tipo.includes('Referência') || 
+                            response.arquivo.tipo.includes('Logo') || 
+                            response.arquivo.tipo.includes('Campanha');
+            
+            const tipoIconClass = isImage ? 'fa-image' : 
+                                 response.arquivo.tipo.includes('Planta') ? 'fa-map' :
+                                 response.arquivo.tipo.includes('Documento') ? 'fa-file-alt' : 'fa-file';
+            
+            // Criar HTML do item
+            let itemHtml = '';
+            if (isImage) {
+              itemHtml = `
+                <div class="position-relative arquivo-item" data-id="${response.arquivo.id}" style="width: 100px;">
+                  <img src="${response.arquivo.url}" alt="${response.arquivo.nome}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
+                  <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 excluir-arquivo" style="font-size: 0.7rem; padding: 0.1rem 0.3rem;" data-url="{% url 'cliente:excluir_arquivo_referencia' arquivo_id=0 %}".replace('0', response.arquivo.id)>
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              `;
+            } else {
+              itemHtml = `
+                <div class="position-relative arquivo-item" data-id="${response.arquivo.id}" style="width: 100px;">
+                  <div class="bg-light border text-center p-2" style="width: 100px; height: 100px;">
+                    <i class="fas ${tipoIconClass} fa-3x my-2"></i>
+                    <p class="small text-truncate mb-0">${response.arquivo.nome}</p>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 excluir-arquivo" style="font-size: 0.7rem; padding: 0.1rem 0.3rem;" data-url="{% url 'cliente:excluir_arquivo_referencia' arquivo_id=0 %}".replace('0', response.arquivo.id)>
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              `;
+            }
+            
+            // Adicionar ao container
+            container.innerHTML += itemHtml;
+          }
+          
+          // Limpar campo de arquivo
+          fileInput.value = '';
+        } else {
+          alert('Erro ao fazer upload: ' + (response.error || 'Erro desconhecido'));
+        }
       },
       error: function(xhr, status, error) {
-        alert('Erro ao enviar mensagem: ' + error);
-      },
-      complete: function() {
-        // Clear and re-enable input
-        $('#mensagemInput').val('').prop('disabled', false).focus();
-        $('#enviarMensagem').prop('disabled', false);
+        alert('Erro ao fazer upload: ' + error);
       }
     });
   });
   
-  // Handle feira form submission
-  $('#feiraForm').on('submit', function(e) {
-    e.preventDefault();
-    
+  // Handle delete arquivo
+  $(document).on('click', '.excluir-arquivo', function() {
     const url = $(this).data('url');
-    const pergunta = $('#perguntaFeiraTexto').val();
+    const arquivoItem = $(this).closest('.arquivo-item');
     
-    if (!pergunta.trim()) {
-      alert('Por favor, digite uma pergunta sobre a feira.');
-      return;
+    if (confirm('Tem certeza que deseja excluir este arquivo?')) {
+      $.ajax({
+        url: url,
+        type: 'POST',
+        data: { csrfmiddlewaretoken: '{{ csrf_token }}' },
+        success: function(response) {
+          if (response.success) {
+            arquivoItem.remove();
+          } else {
+            alert('Erro ao excluir arquivo: ' + (response.error || 'Erro desconhecido'));
+          }
+        },
+        error: function(xhr, status, error) {
+          alert('Erro ao excluir arquivo: ' + error);
+        }
+      });
     }
-    
-    // Adicionar prefixo à pergunta para contextualizar
-    const mensagemCompleta = `Sobre a feira "${projeto.feira.nome}": ${pergunta}`;
-    
-    // Fechar o modal
-    $('#feiraModal').modal('hide');
-    
-    // Simular envio de mensagem pelo chat padrão
-    $('#mensagemInput').val(mensagemCompleta);
-    $('#chatForm').submit();
-    
-    // Limpar campo de pergunta
-    $('#perguntaFeiraTexto').val('');
   });
   
-  // Validate briefing
-  $('#validarBriefing, #revalidarBriefing').on('click', function() {
+  // Valida briefing
+  $('#validarBriefing').on('click', function() {
     const url = $(this).data('url');
     
     // Save form first
@@ -410,9 +350,7 @@ $(document).ready(function() {
     $.ajax({
       url: url,
       type: 'POST',
-      data: {
-        csrfmiddlewaretoken: '{{ csrf_token }}'
-      },
+      data: { csrfmiddlewaretoken: '{{ csrf_token }}' },
       success: function(response) {
         // Refresh page to show updated validation status
         location.reload();
@@ -424,7 +362,28 @@ $(document).ready(function() {
       }
     });
   });
+  
+  // Handle feira form submission
+  $('#feiraForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    const pergunta = $('#perguntaFeiraTexto').val();
+    if (!pergunta.trim()) {
+      alert('Por favor, digite uma pergunta sobre a feira.');
+      return;
+    }
+    
+    // Process like regular chat submission
+    $('#mensagemInput').val('Sobre a feira: ' + pergunta);
+    $('#chatForm').submit();
+    
+    // Close modal
+    $('#feiraModal').modal('hide');
+    $('#perguntaFeiraTexto').val('');
+  });
 });
 </script>
-{% endblock %}
+
+<!-- JavaScript adicional específico da etapa -->
+{% block extra_js %}{% endblock %}
 {% endblock %}
