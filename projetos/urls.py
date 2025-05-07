@@ -48,6 +48,8 @@ urlpatterns = [
     path('<int:pk>/upload-arquivo/', projeto_upload_arquivo, name='projeto_upload_arquivo'),
     path('<int:pk>/arquivo/<int:arquivo_id>/<str:tipo>/excluir/', projeto_delete_arquivo, name='projeto_delete_arquivo'),
     
+
+    
     # URLs de briefing
     path('<int:projeto_id>/briefing/iniciar/', iniciar_briefing, name='iniciar_briefing'),
     path('<int:projeto_id>/briefing/etapa/<int:etapa>/', briefing_etapa, name='briefing_etapa'),

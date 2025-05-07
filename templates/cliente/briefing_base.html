@@ -83,22 +83,7 @@
           
           <h4 class="mb-3">{{ titulo_etapa }}</h4>
           
-          <!-- Informações da Feira (se existir) -->
-          {% if projeto.feira and etapa == 1 %}
-          <div class="alert alert-info mb-4">
-            <div class="d-flex">
-              <div class="me-3">
-                <i class="fas fa-calendar-alt fa-2x text-primary"></i>
-              </div>
-              <div>
-                <h5 class="alert-heading">Feira: {{ projeto.feira.nome }}</h5>
-                <p class="mb-1">Local: {{ projeto.feira.local }}, {{ projeto.feira.cidade }}/{{ projeto.feira.estado }}</p>
-                <p class="mb-1">Período: {{ projeto.feira.data_inicio|date:"d/m/Y" }} a {{ projeto.feira.data_fim|date:"d/m/Y" }}</p>
-              </div>
-            </div>
-          </div>
-          {% endif %}
-          
+        
           <!-- Conteúdo específico de cada etapa será incluído aqui -->
           {% block etapa_content %}{% endblock %}
         </div>

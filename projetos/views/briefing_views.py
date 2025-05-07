@@ -239,7 +239,7 @@ def briefing_etapa(request, projeto_id, etapa):
                 briefing.save()
                 
                 # Validar a seção
-                validar_secao_briefing(briefing, secao)
+                #validar_secao_briefing(briefing, secao)
                 
                 #messages.success(request, f'Etapa {etapa} salva com sucesso!')
                 
@@ -258,7 +258,7 @@ def briefing_etapa(request, projeto_id, etapa):
                 briefing.save()
                 
                 # Validar a seção
-                validar_secao_briefing(briefing, secao)
+                #validar_secao_briefing(briefing, secao)
                 
                 #messages.success(request, f'Etapa {etapa} salva com sucesso!')
                 
@@ -943,3 +943,28 @@ def validar_secao_briefing(briefing, secao):
             origem='ia',
             etapa=briefing.etapa_atual
         )
+
+@login_required
+@cliente_required
+def limpar_conversas_briefing(request, projeto_id):
+    """Limpa o histórico de conversas do briefing"""
+    projeto = get_object_or_404(Projeto, pk=projeto_id, empresa=request.user.empresa)
+    briefing = get_object_or_404(Briefing, projeto=projeto)
+    
+    # Manter apenas a mensagem de boas-vindas 
+    # (a primeira mensagem da IA)
+    primeira_mensagem = BriefingConversation.objects.filter(
+        briefing=briefing, 
+        origem='ia'
+    ).order_by('timestamp').first()
+    
+    if primeira_mensagem:
+        # Excluir todas as outras mensagens
+        BriefingConversation.objects.filter(
+            briefing=briefing
+        ).exclude(id=primeira_mensagem.id).delete()
+    
+    # Redirecionar de volta para a etapa atual
+    return redirect('cliente:briefing_etapa', 
+                   projeto_id=projeto.id, 
+                   etapa=briefing.etapa_atual)
