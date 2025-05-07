@@ -2,6 +2,7 @@
 
 from django.urls import path
 from projetos import views as projeto_views
+from projetos.views.briefing_views import limpar_conversas_briefing
 from cliente.views.briefing import validar_briefing
 from . import views
 
@@ -28,6 +29,7 @@ urlpatterns = [
     path('projetos/<int:pk>/', views.projeto_detail, name='projeto_detail'),
     path('projetos/<int:pk>/editar/', views.projeto_update, name='projeto_update'),
     path('projetos/<int:pk>/excluir/', views.projeto_delete, name='projeto_delete'),
+    path('projeto/<int:projeto_id>/briefing/limpar-conversas/', limpar_conversas_briefing, name='limpar_conversas_briefing'),
 
     # Briefing assistido por IA
     path('projeto/<int:projeto_id>/briefing/iniciar/', projeto_views.iniciar_briefing, name='iniciar_briefing'),
