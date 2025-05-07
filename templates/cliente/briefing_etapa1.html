@@ -1,0 +1,124 @@
+{% extends 'cliente/briefing_base.html' %}
+{% load static %}
+
+{% block etapa_content %}
+<!-- ETAPA 1: EVENTO - Datas e Localização -->
+<form id="briefingForm" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger">
+      {% for error in form.non_field_errors %}
+        <p class="mb-0">{{ error }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+  
+  <!-- Informações da Feira - Card de Resumo (Apenas Visualização) -->
+  {% if projeto.feira %}
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0">Informações da Feira</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <div class="d-flex align-items-center mb-2">
+            <i class="fas fa-calendar-alt text-primary me-2"></i>
+            <strong>Evento:</strong>
+          </div>
+          <p class="ms-4">{{ projeto.feira.nome }}</p>
+        </div>
+        
+        <div class="col-md-6 mb-3">
+          <div class="d-flex align-items-center mb-2">
+            <i class="fas fa-map-marker-alt text-primary me-2"></i>
+            <strong>Local:</strong>
+          </div>
+          <p class="ms-4">{{ projeto.feira.local }}, {{ projeto.feira.cidade }}/{{ projeto.feira.estado }}</p>
+        </div>
+        
+        <div class="col-md-6 mb-3">
+            <div class="d-flex align-items-center mb-2">
+              <i class="fas fa-building text-primary me-2"></i>
+              <strong>Organizador:</strong>
+            </div>
+            <p class="ms-4">{{ projeto.feira.promotora }}</p>
+        </div>
+        
+        <div class="col-md-6 mb-3">
+          <div class="d-flex align-items-center mb-2">
+            <i class="fas fa-clock text-primary me-2"></i>
+            <strong>Horário:</strong>
+          </div>
+          <p class="ms-4">{% if projeto.feira.data_horario %}{{ projeto.feira.data_horario }}{% else %}A confirmar{% endif %}</p>
+        </div>
+        
+        <div class="col-md-6 mb-3">
+            <div class="d-flex align-items-center mb-2">
+              <i class="fas fa-tools text-primary me-2"></i>
+              <strong>Montagem:</strong>
+            </div>
+            <p class="ms-4">{{ projeto.feira.periodo_montagem }}</p>
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <div class="d-flex align-items-center mb-2">
+              <i class="fas fa-truck-loading text-primary me-2"></i>
+              <strong>Desmontagem:</strong>
+            </div>
+            <p class="ms-4">{{ projeto.feira.periodo_desmontagem }}</p>
+          </div>
+
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  
+  <!-- Localização do Estande - Único campo realmente editável -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0">Localização do Estande</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-12 mb-3">
+          <label for="{{ form.endereco_estande.id_for_label }}" class="form-label">
+            Endereço do Estande*
+          </label>
+          {{ form.endereco_estande }}
+          <div class="form-text text-muted">Localização do estande dentro do pavilhão</div>
+          {% if form.endereco_estande.errors %}
+            <div class="form-text text-danger">
+              {% for error in form.endereco_estande.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <div class="col-md-12 mb-3">
+          <label for="{{ form.mapa_estande.id_for_label }}" class="form-label">
+            Mapa do Estande
+          </label>
+          {{ form.mapa_estande }}
+          <div class="form-text text-muted">Upload de planta ou mapa indicando a localização do estande</div>
+          {% if form.mapa_estande.errors %}
+            <div class="form-text text-danger">
+              {% for error in form.mapa_estande.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Nenhum JavaScript adicional necessário, já que não há mais campos a serem preenchidos automaticamente
+</script>
+{% endblock %}

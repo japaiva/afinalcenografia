@@ -1,140 +1,219 @@
-# forms/briefing.py
+# projetos/forms/briefing.py
 
 from django import forms
-from projetos.models.briefing import Briefing, BriefingArquivoReferencia
-
-class BriefingForm(forms.ModelForm):
-    """
-    Formulário para o briefing completo.
-    """
-    class Meta:
-        model = Briefing
-        exclude = ['projeto', 'status', 'etapa_atual', 'progresso', 'validado_por_ia', 'created_at', 'updated_at']
-        widgets = {
-            'categoria': forms.Select(attrs={'class': 'form-select'}),
-            'descricao_detalhada': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-            'objetivos': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'dimensoes': forms.NumberInput(attrs={'class': 'form-control'}),
-            'altura': forms.NumberInput(attrs={'class': 'form-control'}),
-            'paleta_cores': forms.TextInput(attrs={'class': 'form-control'}),
-            'materiais_preferidos': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'acabamentos': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'iluminacao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'eletrica': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'mobiliario': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-        }
-
+from projetos.models.briefing import (
+    Briefing, BriefingArquivoReferencia, 
+    AreaExposicao, SalaReuniao, Copa, Deposito
+)
 
 class BriefingEtapa1Form(forms.ModelForm):
-    """
-    Formulário para a primeira etapa do briefing (EVENTO).
-    """
+    """Formulário para a primeira etapa do briefing: Evento - Datas e Localização"""
+    
     class Meta:
         model = Briefing
         fields = [
-            'local_evento', 'data_feira_inicio', 'data_feira_fim', 'horario_feira',
-            'data_montagem_inicio', 'data_montagem_fim', 
-            'data_desmontagem_inicio', 'data_desmontagem_fim',
-            'endereco_estande'
+            'endereco_estande', 'mapa_estande',
         ]
         widgets = {
-            'local_evento': forms.TextInput(attrs={'class': 'form-control'}),
-            'data_feira_inicio': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'data_feira_fim': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'horario_feira': forms.TextInput(attrs={'class': 'form-control'}),
-            'data_montagem_inicio': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
-            'data_montagem_fim': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
-            'data_desmontagem_inicio': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
-            'data_desmontagem_fim': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
-            'endereco_estande': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'endereco_estande': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Rua B, Estande 42'}),
+            'mapa_estande': forms.FileInput(attrs={'class': 'form-control'}),
         }
-
-
 class BriefingEtapa2Form(forms.ModelForm):
     """
-    Formulário para a segunda etapa do briefing (ESTANDE).
+    Formulário para a segunda etapa do briefing (ESTANDE - Características Físicas).
     """
     class Meta:
         model = Briefing
         fields = [
-            'area_estande', 'estilo_estande', 'cores', 'material',
-            'piso_elevado', 'tipo_testeira', 'havera_venda', 
-            'havera_ativacao', 'observacoes_estande'
+            'medida_frente', 'medida_fundo', 'medida_lateral_esquerda', 'medida_lateral_direita',
+            'area_estande', 'estilo_estande', 'material',
+            'piso_elevado', 'tipo_testeira',
+            'tipo_venda', 'tipo_ativacao', 'objetivo_estande'
         ]
         widgets = {
-            'area_estande': forms.NumberInput(attrs={'class': 'form-control'}),
-            'estilo_estande': forms.TextInput(attrs={'class': 'form-control'}),
-            'cores': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'material': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'medida_frente': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01'
+            }),
+            'medida_fundo': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01'
+            }),
+            'medida_lateral_esquerda': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01'
+            }),
+            'medida_lateral_direita': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01'
+            }),
+            'area_estande': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'readonly': True
+            }),
+            'estilo_estande': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Moderno, Clean, Futurista, Rústico'
+            }),
+            'material': forms.Select(attrs={'class': 'form-select'}),
             'piso_elevado': forms.Select(attrs={'class': 'form-select'}),
             'tipo_testeira': forms.Select(attrs={'class': 'form-select'}),
-            'havera_venda': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'havera_ativacao': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'observacoes_estande': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'tipo_venda': forms.Select(attrs={'class': 'form-select'}),
+            'tipo_ativacao': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Área instagramável, Glorify, Games, etc.'
+            }),
+            'objetivo_estande': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Lançamento da coleção'
+            }),
         }
 
 
-class BriefingEtapa3Form(forms.ModelForm):
-    """
-    Formulário para a terceira etapa do briefing (ÁREAS DO ESTANDE).
-    """
+class AreaExposicaoForm(forms.ModelForm):
+    """Formulário para áreas de exposição do estande"""
     class Meta:
-        model = Briefing
-        fields = [
-            # Área Aberta
-            'area_aberta_tamanho', 'tem_mesas_atendimento', 'qtd_mesas_atendimento',
-            'tem_lounge', 'tem_balcao_cafe', 'tem_vitrine', 'tem_balcao_vitrine',
-            'tem_balcao_recepcao', 'tem_caixa', 'equipamentos',
-            # Sala de Reunião
-            'tem_sala_reuniao', 'sala_reuniao_capacidade', 'sala_reuniao_equipamentos',
-            'sala_reuniao_tamanho',
-            # Copa
-            'tem_copa', 'copa_equipamentos', 'copa_tamanho',
-            # Depósito
-            'tem_deposito', 'deposito_equipamentos', 'deposito_tamanho',
-        ]
+        model = AreaExposicao
+        exclude = ['briefing']
         widgets = {
-            # Área Aberta
-            'area_aberta_tamanho': forms.NumberInput(attrs={'class': 'form-control'}),
-            'tem_mesas_atendimento': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'qtd_mesas_atendimento': forms.NumberInput(attrs={'class': 'form-control'}),
             'tem_lounge': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'tem_balcao_cafe': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'tem_vitrine': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'tem_balcao_vitrine': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'tem_vitrine_exposicao': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'tem_balcao_recepcao': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'tem_caixa': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'equipamentos': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            
-            # Sala de Reunião
-            'tem_sala_reuniao': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'sala_reuniao_capacidade': forms.NumberInput(attrs={'class': 'form-control'}),
-            'sala_reuniao_equipamentos': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'sala_reuniao_tamanho': forms.NumberInput(attrs={'class': 'form-control'}),
-            
-            # Copa
-            'tem_copa': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'copa_equipamentos': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'copa_tamanho': forms.NumberInput(attrs={'class': 'form-control'}),
-            
-            # Depósito
-            'tem_deposito': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'deposito_equipamentos': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'deposito_tamanho': forms.NumberInput(attrs={'class': 'form-control'}),
+            'tem_mesas_atendimento': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'tem_balcao_cafe': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'tem_balcao_vitrine': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'tem_caixa_vendas': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'equipamentos': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'LED, TVs, etc.'
+            }),
+            'observacoes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': ''
+            }),
+            'metragem': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '',
+                'step': '0.01'
+            }),
         }
+
+
+class SalaReuniaoForm(forms.ModelForm):
+    """Formulário para salas de reunião do estande"""
+    class Meta:
+        model = SalaReuniao
+        exclude = ['briefing']
+        widgets = {
+            'capacidade': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': ''
+            }),
+            'equipamentos': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Prateleira, TV, armário, estilo mesa, etc.'
+            }),
+            'metragem': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '',
+                'step': '0.01'
+            }),
+        }
+
+
+class CopaForm(forms.ModelForm):
+    """Formulário para copas do estande"""
+    class Meta:
+        model = Copa
+        exclude = ['briefing']
+        widgets = {
+            'equipamentos': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Pia, geladeira, bancada, prateleiras, etc.'
+            }),
+            'metragem': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '',
+                'step': '0.01'
+            }),
+        }
+
+
+class DepositoForm(forms.ModelForm):
+    """Formulário para depósitos do estande"""
+    class Meta:
+        model = Deposito
+        exclude = ['briefing']
+        widgets = {
+            'equipamentos': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Prateleiras, etc.'
+            }),
+            'metragem': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '',
+                'step': '0.01'
+            }),
+        }
+
+
+class BriefingEtapa3Form(forms.Form):
+    """
+    Formulário para a terceira etapa do briefing (ÁREAS DO ESTANDE - Divisões Funcionais).
+    Este formulário gerencia várias sub-áreas do estande através de JavaScript e formsets.
+    """
+    # Checkboxes para indicar a presença de cada área
+    tem_area_exposicao = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+    
+    tem_sala_reuniao = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+    
+    tem_copa = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+    
+    tem_deposito = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
 
 
 class BriefingEtapa4Form(forms.ModelForm):
     """
-    Formulário para a quarta etapa do briefing (DADOS COMPLEMENTARES).
+    Formulário para a quarta etapa do briefing (DADOS COMPLEMENTARES - Referências Visuais).
     """
     class Meta:
         model = Briefing
         fields = ['referencias_dados', 'logotipo', 'campanha_dados']
         widgets = {
-            'referencias_dados': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-            'logotipo': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'campanha_dados': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'referencias_dados': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': ''
+            }),
+            'logotipo': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': ''
+            }),
+            'campanha_dados': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': ''
+            }),
         }
 
 
@@ -148,9 +227,12 @@ class BriefingArquivoReferenciaForm(forms.ModelForm):
         widgets = {
             'arquivo': forms.FileInput(attrs={'class': 'form-control'}),
             'tipo': forms.Select(attrs={'class': 'form-select'}),
-            'observacoes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'observacoes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Observações sobre este arquivo'
+            }),
         }
-
 
 
 class BriefingMensagemForm(forms.Form):

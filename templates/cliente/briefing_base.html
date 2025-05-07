@@ -1,0 +1,430 @@
+{% extends 'cliente/base_cliente.html' %}
+{% load static %}
+
+{% block title %}Briefing: {{ titulo_etapa }} | {{ projeto.nome }} | Portal do Cliente{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">
+      <i class="fas fa-clipboard-list me-2"></i> Briefing de Projeto #{{ projeto.id }}
+    </h5>
+    <div class="d-flex align-items-center">
+      <!-- Status de Validação condensado no header -->
+      <div class="me-3">
+        <div class="d-flex align-items-center">
+          {% for validacao in validacoes %}
+            <div class="me-1" title="{{ validacao.get_secao_display }}: {{ validacao.get_status_display }}">
+              <i class="fas 
+                {% if validacao.status == 'aprovado' %}fa-check-circle text-success
+                {% elif validacao.status == 'atencao' %}fa-exclamation-circle text-warning
+                {% elif validacao.status == 'reprovado' %}fa-times-circle text-danger
+                {% else %}fa-times-circle text-muted{% endif %} me-1"></i>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+      
+      <!-- Botões de ação (reorganizados) -->
+      {% if todas_aprovadas %}
+      <a href="{% url 'cliente:concluir_briefing' projeto_id=projeto.id %}" class="btn btn-primary btn-sm me-2">
+        <i class="fas fa-paper-plane me-1"></i> Enviar Briefing
+      </a>
+      {% else %}
+      <button id="validarBriefing" class="btn btn-outline-primary btn-sm me-2" data-url="{% url 'cliente:validar_briefing' projeto_id=projeto.id %}">
+        <i class="fas fa-check-double me-1"></i> Validar Briefing
+      </button>
+      {% endif %}
+      
+      <a href="{% url 'cliente:projeto_detail' pk=projeto.id %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i> Voltar
+      </a>
+    </div>
+  </div>
+  
+  <div class="card-body p-0">
+    <div class="row g-0">
+      <!-- Formulário de Briefing -->
+      <div class="col-lg-8 border-end">
+        <div class="p-4">
+          <div class="progress mb-4" style="height: 8px;">
+            <div class="progress-bar bg-success" role="progressbar" style="width: {{ briefing.progresso }}%;" aria-valuenow="{{ briefing.progresso }}" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+          
+          <div class="d-flex justify-content-between mb-4">
+            <div class="d-flex">
+              {% if pode_voltar %}
+              <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=etapa|add:'-1' %}" class="btn btn-sm btn-outline-secondary me-2">
+                <i class="fas fa-chevron-left me-1"></i> Anterior
+              </a>
+              {% else %}
+              <button class="btn btn-sm btn-outline-secondary me-2" disabled>
+                <i class="fas fa-chevron-left me-1"></i> Anterior
+              </button>
+              {% endif %}
+              
+              {% if pode_avancar %}
+              <button type="submit" form="briefingForm" name="avancar" value="1" class="btn btn-sm btn-outline-primary">
+                Próximo <i class="fas fa-chevron-right ms-1"></i>
+              </button>
+              {% else %}
+              <button type="submit" form="briefingForm" name="concluir" value="1" class="btn btn-sm btn-success">
+                Concluir <i class="fas fa-check ms-1"></i>
+              </button>
+              {% endif %}
+            </div>
+            <div class="text-muted">
+              Etapa {{ etapa }} de 4
+            </div>
+          </div>
+          
+          <h4 class="mb-3">{{ titulo_etapa }}</h4>
+          
+          <!-- Conteúdo específico de cada etapa será incluído aqui -->
+          {% block etapa_content %}{% endblock %}
+        </div>
+      </div>
+      
+      <!-- Assistente IA -->
+      <div class="col-lg-4">
+        <div class="p-3 h-100 d-flex flex-column">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">
+              <i class="fas fa-robot me-2 text-primary"></i> Assistente IA
+            </h5>
+            <div class="d-flex">
+              <button class="btn btn-sm btn-outline-primary me-1" id="novaPergunta" title="Fazer nova pergunta">
+                <i class="fas fa-question-circle"></i>
+              </button>
+              {% if projeto.feira %}
+              <button class="btn btn-sm btn-outline-info" id="perguntaFeira" title="Perguntar sobre a feira"
+                      data-bs-toggle="modal" data-bs-target="#feiraModal">
+                <i class="fas fa-calendar-alt"></i>
+              </button>
+              {% endif %}
+            </div>
+          </div>
+          
+          <!-- Input do chat (no topo) -->
+          <div class="chat-input mb-3">
+            <form id="chatForm" data-url="{% url 'cliente:enviar_mensagem_ia' projeto_id=projeto.id %}">
+              <div class="input-group">
+                <input type="text" class="form-control" id="mensagemInput" name="mensagem" placeholder="Faça uma pergunta ao assistente...">
+                <button class="btn btn-primary" type="submit" id="enviarMensagem">
+                  <i class="fas fa-paper-plane"></i>
+                </button>
+              </div>
+            </form>
+          </div>
+          
+          <!-- Chat da IA (abaixo do input) -->
+          <div class="chat-container bg-light rounded p-3 flex-grow-1 overflow-auto" style="height: 400px;" id="chatContainer">
+            {% for conversa in conversas %}
+              <div class="chat-message {{ conversa.origem }}-message mb-3">
+                <div class="chat-bubble">
+                  <p>{{ conversa.mensagem|linebreaks }}</p>
+                </div>
+                <small class="text-muted">{{ conversa.timestamp|time:"H:i" }}</small>
+              </div>
+            {% empty %}
+              <div class="chat-message ai-message mb-3">
+                <div class="chat-bubble">
+                  <p>Olá! Sou o assistente do briefing. Estou aqui para ajudá-lo a preencher todas as informações do seu projeto.</p>
+                  
+                  {% if etapa == 1 %}
+                  <p>Nesta etapa, precisamos das informações sobre o evento, datas de montagem e desmontagem, e localização do estande.</p>
+                  {% elif etapa == 2 %}
+                  <p>Nesta etapa, precisamos das características físicas do estande, como área, estilo, cores e materiais.</p>
+                  {% elif etapa == 3 %}
+                  <p>Nesta etapa, vamos definir as áreas funcionais do estande, como área aberta, sala de reunião, copa e depósito.</p>
+                  {% elif etapa == 4 %}
+                  <p>Nesta etapa final, adicione referências visuais, informações sobre logotipo e campanha para guiar o projeto.</p>
+                  {% endif %}
+                  
+                  {% if projeto.feira %}
+                  <p>Observei que este projeto está associado à feira <strong>{{ projeto.feira.nome }}</strong>. Eu posso ajudar com dúvidas específicas sobre as regras e requisitos desta feira. Clique no botão <i class="fas fa-calendar-alt"></i> acima para fazer perguntas sobre a feira.</p>
+                  {% endif %}
+                </div>
+                <small class="text-muted">Agora</small>
+              </div>
+            {% endfor %}
+          </div>
+          
+          <!-- Status de Validação -->
+          <div class="validation-status p-3 border-top mt-3">
+            <h6 class="mb-3">Status de Validação</h6>
+            <ul class="list-group list-group-flush">
+              {% for validacao in validacoes %}
+              <li class="list-group-item d-flex justify-content-between align-items-center px-0 border-0">
+                <span>
+                  <i class="fas 
+                    {% if validacao.status == 'aprovado' %}fa-check-circle text-success
+                    {% elif validacao.status == 'atencao' %}fa-exclamation-circle text-warning
+                    {% elif validacao.status == 'reprovado' %}fa-times-circle text-danger
+                    {% else %}fa-times-circle text-muted{% endif %} me-2"></i>
+                  {{ validacao.get_secao_display }}
+                </span>
+                <span class="badge 
+                  {% if validacao.status == 'aprovado' %}bg-success
+                  {% elif validacao.status == 'atencao' %}bg-warning text-dark
+                  {% elif validacao.status == 'reprovado' %}bg-danger
+                  {% else %}bg-secondary{% endif %}">
+                  {{ validacao.get_status_display }}
+                </span>
+              </li>
+              {% endfor %}
+            </ul>
+            <div class="text-center mt-3">
+              <button class="btn btn-outline-primary btn-sm" id="revalidarBriefing" data-url="{% url 'cliente:validar_briefing' projeto_id=projeto.id %}">
+                <i class="fas fa-sync-alt me-1"></i> Revalidar Briefing
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para perguntas sobre a feira -->
+{% if projeto.feira %}
+<div class="modal fade" id="feiraModal" tabindex="-1" aria-labelledby="feiraModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="feiraModalLabel">
+          <i class="fas fa-calendar-alt me-2"></i> Perguntar sobre a Feira
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      
+      <div class="modal-body">
+        <form id="feiraForm" data-url="{% url 'cliente:enviar_mensagem_ia' projeto_id=projeto.id %}">
+          <div class="mb-3">
+            <label for="perguntaFeiraTexto" class="form-label">Sua pergunta sobre a feira:</label>
+            <textarea class="form-control" id="perguntaFeiraTexto" rows="3" placeholder="Ex: Quais as regras para altura de paredes?"></textarea>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" form="feiraForm" class="btn btn-primary">
+          <i class="fas fa-paper-plane me-1"></i> Enviar Pergunta
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<style>
+.chat-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-message {
+  max-width: 85%;
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-message {
+  align-self: flex-start;
+}
+
+.cliente-message {
+  align-self: flex-end;
+  text-align: right;
+}
+
+.chat-bubble {
+  padding: 10px 15px;
+  border-radius: 18px;
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.ai-message .chat-bubble {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-bottom-left-radius: 5px;
+  text-align: left;
+}
+
+.cliente-message .chat-bubble {
+  background-color: #e9f3ff;
+  border: 1px solid #cce5ff;
+  border-bottom-right-radius: 5px;
+  text-align: left;
+}
+
+.chat-message small {
+  margin-top: 5px;
+  font-size: 0.7rem;
+}
+</style>
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+  // Auto-salvar o formulário quando houver mudanças
+  let formChanged = false;
+  
+  $('#briefingForm input, #briefingForm textarea, #briefingForm select').on('change', function() {
+    formChanged = true;
+  });
+  
+  function autosave() {
+    if (formChanged) {
+      const formData = new FormData($('#briefingForm')[0]);
+      
+      $.ajax({
+        url: "{% url 'cliente:salvar_rascunho_briefing' projeto_id=projeto.id %}",
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function() {
+          // Salvamento silencioso, sem notificação para o usuário
+          formChanged = false;
+        }
+      });
+    }
+  }
+  
+  // Salvar a cada 30 segundos se houver mudanças
+  setInterval(autosave, 30000);
+  
+  // Salvar ao sair da página
+  $(window).on('beforeunload', function() {
+    if (formChanged) {
+      autosave();
+    }
+  });
+  
+  // Inverter ordem do chat para mostrar mensagens mais recentes no topo
+  const chatContainer = document.getElementById('chatContainer');
+  if (chatContainer) {
+    chatContainer.style.flexDirection = 'column-reverse';
+  }
+  
+  // Submit chat message
+  $('#chatForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    const url = $(this).data('url');
+    const mensagem = $('#mensagemInput').val();
+    
+    if (!mensagem.trim()) return;
+    
+    // Disable input while sending
+    $('#mensagemInput').prop('disabled', true);
+    $('#enviarMensagem').prop('disabled', true);
+    
+    // Add message to chat immediately
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    // Prepend message (add at the top) instead of append since we're showing newest first
+    $('#chatContainer').prepend(`
+      <div class="chat-message cliente-message mb-3">
+        <div class="chat-bubble">
+          <p>${mensagem}</p>
+        </div>
+        <small class="text-muted">${timestamp}</small>
+      </div>
+    `);
+    
+    // Send to server
+    $.ajax({
+      url: url,
+      type: 'POST',
+      data: {
+        mensagem: mensagem,
+        etapa: {{ etapa }},
+        csrfmiddlewaretoken: '{{ csrf_token }}'
+      },
+      success: function(response) {
+        // Prepend AI response at the top
+        $('#chatContainer').prepend(`
+          <div class="chat-message ai-message mb-3">
+            <div class="chat-bubble">
+              <p>${response.mensagem_ia.texto.replace(/\n/g, '<br>')}</p>
+            </div>
+            <small class="text-muted">${response.mensagem_ia.timestamp}</small>
+          </div>
+        `);
+      },
+      error: function(xhr, status, error) {
+        alert('Erro ao enviar mensagem: ' + error);
+      },
+      complete: function() {
+        // Clear and re-enable input
+        $('#mensagemInput').val('').prop('disabled', false).focus();
+        $('#enviarMensagem').prop('disabled', false);
+      }
+    });
+  });
+  
+  // Handle feira form submission
+  $('#feiraForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    const url = $(this).data('url');
+    const pergunta = $('#perguntaFeiraTexto').val();
+    
+    if (!pergunta.trim()) {
+      alert('Por favor, digite uma pergunta sobre a feira.');
+      return;
+    }
+    
+    // Adicionar prefixo à pergunta para contextualizar
+    const mensagemCompleta = `Sobre a feira "${projeto.feira.nome}": ${pergunta}`;
+    
+    // Fechar o modal
+    $('#feiraModal').modal('hide');
+    
+    // Simular envio de mensagem pelo chat padrão
+    $('#mensagemInput').val(mensagemCompleta);
+    $('#chatForm').submit();
+    
+    // Limpar campo de pergunta
+    $('#perguntaFeiraTexto').val('');
+  });
+  
+  // Validate briefing
+  $('#validarBriefing, #revalidarBriefing').on('click', function() {
+    const url = $(this).data('url');
+    
+    // Save form first
+    autosave();
+    
+    // Disable button and show loading state
+    const button = $(this);
+    const originalText = button.html();
+    button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Validando...');
+    
+    $.ajax({
+      url: url,
+      type: 'POST',
+      data: {
+        csrfmiddlewaretoken: '{{ csrf_token }}'
+      },
+      success: function(response) {
+        // Refresh page to show updated validation status
+        location.reload();
+      },
+      error: function(xhr, status, error) {
+        alert('Erro ao validar briefing: ' + error);
+        // Restore button state
+        button.prop('disabled', false).html(originalText);
+      }
+    });
+  });
+});
+</script>
+{% endblock %}
+{% endblock %}

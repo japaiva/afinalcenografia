@@ -6,7 +6,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from core.models import Usuario, Empresa
 from core.forms import EmpresaForm  # Importe o formulário da empresa
-from projetos.models import Projeto
+from projetos.models import Projeto, ProjetoReferencia
 from projetos.forms import ProjetoForm
 
 from django.contrib.auth.views import LoginView
@@ -33,6 +33,24 @@ def cliente_required(view_func):
     def wrapper(request, *args, **kwargs):
         if not hasattr(request.user, 'nivel') or request.user.nivel != 'cliente':
             messages.error(request, 'Acesso negado. Você não tem permissão de cliente.')
+            return redirect('login')
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+# Middleware para verificar se o usuário é gestor
+def gestor_required(view_func):
+    def wrapper(request, *args, **kwargs):
+        if not hasattr(request.user, 'nivel') or request.user.nivel != 'gestor':
+            messages.error(request, 'Acesso negado. Você não tem permissão de gestor.')
+            return redirect('login')
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+# Middleware para verificar se o usuário é projetista
+def projetista_required(view_func):
+    def wrapper(request, *args, **kwargs):
+        if not hasattr(request.user, 'nivel') or request.user.nivel != 'projetista':
+            messages.error(request, 'Acesso negado. Você não tem permissão de projetista.')
             return redirect('login')
         return view_func(request, *args, **kwargs)
     return wrapper
@@ -217,7 +235,7 @@ def projeto_create(request):
             # Processar os arquivos de referência, se houver
             if 'arquivos_referencia' in request.FILES:
                 for arquivo in request.FILES.getlist('arquivos_referencia'):
-                    ArquivoReferencia.objects.create(
+                    ProjetoReferencia.objects.create(
                         projeto=projeto,
                         nome=arquivo.name,
                         arquivo=arquivo,
@@ -335,7 +353,7 @@ def briefing(request):
         # Processa uploads de arquivos
         if 'referencias' in request.FILES:
             for arquivo in request.FILES.getlist('referencias'):
-                ArquivoReferencia.objects.create(
+                ProjetoReferencia.objects.create(
                     projeto=projeto,
                     nome=arquivo.name,
                     arquivo=arquivo,

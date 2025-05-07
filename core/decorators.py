@@ -14,7 +14,23 @@ def cliente_required(view_func):
     return wrapper
 
 # Adicione este decorator ao arquivo core/decorators.py ou onde for mais adequado
+# Middleware para verificar se o usuário é gestor
+def gestor_required(view_func):
+    def wrapper(request, *args, **kwargs):
+        if not hasattr(request.user, 'nivel') or request.user.nivel != 'gestor':
+            messages.error(request, 'Acesso negado. Você não tem permissão de gestor.')
+            return redirect('login')
+        return view_func(request, *args, **kwargs)
+    return wrapper
 
+# Middleware para verificar se o usuário é projetista
+def projetista_required(view_func):
+    def wrapper(request, *args, **kwargs):
+        if not hasattr(request.user, 'nivel') or request.user.nivel != 'projetista':
+            messages.error(request, 'Acesso negado. Você não tem permissão de projetista.')
+            return redirect('login')
+        return view_func(request, *args, **kwargs)
+    return wrapper
 
 
 def require_admin_or_gestor(view_func):

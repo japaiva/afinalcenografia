@@ -1,0 +1,417 @@
+{% extends 'cliente/briefing_base.html' %}
+{% load static %}
+
+{% block etapa_content %}
+<!-- ETAPA 2: ESTANDE - Características Físicas -->
+<form id="briefingForm" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger">
+      {% for error in form.non_field_errors %}
+        <p class="mb-0">{{ error }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+  
+  <!-- Informações do Estande -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0">Informações do Estande</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <!-- Upload de planta baixa / esboço -->
+        <div class="col-md-12 mb-3">
+          <label class="form-label">Esboço Planta Baixa</label>
+          <div class="input-group" id="uploadForm">
+            <input type="file" class="form-control" id="arquivo" name="arquivo">
+            <input type="hidden" id="tipo" name="tipo" value="planta">
+            <button class="btn btn-outline-primary" type="button" id="uploadButton" 
+                    data-url="{% url 'cliente:upload_arquivo_referencia' projeto_id=projeto.id %}">
+              <i class="fas fa-upload"></i>
+            </button>
+          </div>
+          <div class="form-text text-muted">Envie esboço de como você imagina o seu estande</div>
+        </div>
+        
+        <!-- MODIFICAÇÃO: Medidas do Estande (em duas linhas) -->
+        <div class="col-md-12 mb-3">
+          <label class="form-label">Medidas do Estande (m)*</label>
+          <div class="row g-2">
+            <div class="col-md-6 mb-2">
+              <div class="input-group">
+                <span class="input-group-text">Frente</span>
+                {{ form.medida_frente }}
+                <span class="input-group-text">m</span>
+              </div>
+            </div>
+            <div class="col-md-6 mb-2">
+              <div class="input-group">
+                <span class="input-group-text">Fundo</span>
+                {{ form.medida_fundo }}
+                <span class="input-group-text">m</span>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="input-group">
+                <span class="input-group-text">Lat. Esquerda</span>
+                {{ form.medida_lateral_esquerda }}
+                <span class="input-group-text">m</span>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="input-group">
+                <span class="input-group-text">Lat. Direita</span>
+                {{ form.medida_lateral_direita }}
+                <span class="input-group-text">m</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- MODIFICAÇÃO: Área Total e Materiais na mesma linha -->
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label for="{{ form.area_estande.id_for_label }}" class="form-label">
+              Área Total (m²)
+            </label>
+            <div class="input-group">
+              {{ form.area_estande }}
+              <span class="input-group-text">m²</span>
+            </div>
+            <div class="form-text text-muted">Calculada automaticamente</div>
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <label for="{{ form.material.id_for_label }}" class="form-label">
+              Materiais*
+            </label>
+            {{ form.material }}
+            {% if form.material.errors %}
+              <div class="form-text text-danger">
+                {% for error in form.material.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div class="col-md-12 mb-3">
+          <label for="{{ form.estilo_estande.id_for_label }}" class="form-label">
+            Estilo do Estande*
+          </label>
+          {{ form.estilo_estande }}
+          <div class="form-text text-muted">Descreva como imagina o estilo do seu estande</div>
+          {% if form.estilo_estande.errors %}
+            <div class="form-text text-danger">
+              {% for error in form.estilo_estande.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Estrutura do Estande -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0">Estrutura do Estande</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label for="{{ form.piso_elevado.id_for_label }}" class="form-label">
+            Piso Elevado
+          </label>
+          {{ form.piso_elevado }}
+          {% if form.piso_elevado.errors %}
+            <div class="form-text text-danger">
+              {% for error in form.piso_elevado.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <div class="col-md-6 mb-3">
+          <label for="{{ form.tipo_testeira.id_for_label }}" class="form-label">
+            Tipo Testeira
+          </label>
+          {{ form.tipo_testeira }}
+          {% if form.tipo_testeira.errors %}
+            <div class="form-text text-danger">
+              {% for error in form.tipo_testeira.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Funcionalidades / Objetivo do Estande -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0">Funcionalidades / Objetivo do Estande</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label for="{{ form.tipo_venda.id_for_label }}" class="form-label">
+            Venda
+          </label>
+          {{ form.tipo_venda }}
+          {% if form.tipo_venda.errors %}
+            <div class="form-text text-danger">
+              {% for error in form.tipo_venda.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- MODIFICAÇÃO: Opções de ativação simplificadas com checkboxes -->
+        <div class="col-md-12 mb-3">
+          <label class="form-label">Ativação</label>
+          <div class="card p-3">
+            <div class="row">
+              <div class="col-md-6 mb-2">
+                <div class="form-check">
+                  <input class="form-check-input ativacao-check" type="checkbox" id="ativacao_instagramavel" data-value="Area Instagramavel">
+                  <label class="form-check-label" for="ativacao_instagramavel">
+                    Área Instagramável
+                  </label>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-2">
+                <div class="form-check">
+                  <input class="form-check-input ativacao-check" type="checkbox" id="ativacao_glorify" data-value="Glorify">
+                  <label class="form-check-label" for="ativacao_glorify">
+                    Glorify
+                  </label>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-2">
+                <div class="form-check">
+                  <input class="form-check-input ativacao-check" type="checkbox" id="ativacao_games" data-value="Games">
+                  <label class="form-check-label" for="ativacao_games">
+                    Games
+                  </label>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-2">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="ativacao_outro_check">
+                  <label class="form-check-label" for="ativacao_outro_check">
+                    Outro
+                  </label>
+                  <input type="text" class="form-control mt-1" id="ativacao_outro_texto" placeholder="Especifique">
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Campo original oculto que será atualizado por JavaScript -->
+          <div style="display: none;">
+            {{ form.tipo_ativacao }}
+          </div>
+          
+          <div class="form-text text-muted">Selecione os tipos de ativação para seu estande</div>
+          {% if form.tipo_ativacao.errors %}
+            <div class="form-text text-danger">
+              {% for error in form.tipo_ativacao.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <div class="col-md-12 mb-3">
+          <label for="{{ form.objetivo_estande.id_for_label }}" class="form-label">
+            Objetivo do Estande
+          </label>
+          {{ form.objetivo_estande }}
+          <div class="form-text text-muted">Descreva o objetivo principal do seu estande</div>
+          {% if form.objetivo_estande.errors %}
+            <div class="form-text text-danger">
+              {% for error in form.objetivo_estande.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Botões de navegação -->
+  <div class="d-flex justify-content-between mt-4">
+    {% if pode_voltar %}
+    <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=etapa|add:'-1' %}" class="btn btn-outline-secondary">
+      <i class="fas fa-chevron-left me-1"></i> Anterior
+    </a>
+    {% else %}
+    <button class="btn btn-outline-secondary" disabled>
+      <i class="fas fa-chevron-left me-1"></i> Anterior
+    </button>
+    {% endif %}
+    
+    {% if pode_avancar %}
+    <button type="submit" name="avancar" value="1" class="btn btn-primary">
+      Próximo <i class="fas fa-chevron-right ms-1"></i>
+    </button>
+    {% else %}
+    <button type="submit" name="concluir" value="1" class="btn btn-success">
+      Concluir <i class="fas fa-check ms-1"></i>
+    </button>
+    {% endif %}
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Auto-calcular área total quando as dimensões mudam
+    const medidaFrenteInput = document.getElementById('{{ form.medida_frente.id_for_label }}');
+    const medidaFundoInput = document.getElementById('{{ form.medida_fundo.id_for_label }}');
+    const areaEstandeInput = document.getElementById('{{ form.area_estande.id_for_label }}');
+    
+    // Função para calcular e atualizar a área
+    function calcularArea() {
+      const frente = parseFloat(medidaFrenteInput.value) || 0;
+      const fundo = parseFloat(medidaFundoInput.value) || 0;
+      
+      if (frente > 0 && fundo > 0) {
+        const area = frente * fundo;
+        areaEstandeInput.value = area.toFixed(2);
+      }
+    }
+    
+    // Eventos para recalcular quando os valores mudam
+    if (medidaFrenteInput && medidaFundoInput && areaEstandeInput) {
+      medidaFrenteInput.addEventListener('input', calcularArea);
+      medidaFundoInput.addEventListener('input', calcularArea);
+      
+      // Calcular a área inicial (caso já exista)
+      calcularArea();
+    }
+    
+    // Handling para upload de planta
+    const uploadButton = document.getElementById('uploadButton');
+    if (uploadButton) {
+      uploadButton.addEventListener('click', function() {
+        const url = this.dataset.url;
+        const fileInput = document.getElementById('arquivo');
+        const tipoInput = document.getElementById('tipo');
+        
+        if (fileInput.files.length === 0) {
+          alert('Selecione um arquivo para upload');
+          return;
+        }
+        
+        const formData = new FormData();
+        formData.append('arquivo', fileInput.files[0]);
+        formData.append('tipo', tipoInput.value);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        
+        fetch(url, {
+          method: 'POST',
+          body: formData,
+          credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('Arquivo enviado com sucesso!');
+            fileInput.value = '';
+          } else {
+            alert('Erro ao enviar arquivo: ' + data.error);
+          }
+        })
+        .catch(error => {
+          alert('Erro ao enviar arquivo: ' + error);
+        });
+      });
+    }
+    
+    // NOVO: Tratamento dos checkboxes de ativação
+    const ativacaoChecks = document.querySelectorAll('.ativacao-check');
+    const ativacaoOutroCheck = document.getElementById('ativacao_outro_check');
+    const ativacaoOutroTexto = document.getElementById('ativacao_outro_texto');
+    const tipoAtivacaoInput = document.getElementById('{{ form.tipo_ativacao.id_for_label }}');
+    
+    // Função para atualizar o campo original
+    function atualizarCampoAtivacao() {
+      let valores = [];
+      
+      // Adicionar valores dos checkboxes padrão
+      ativacaoChecks.forEach(check => {
+        if (check.checked) {
+          valores.push(check.dataset.value);
+        }
+      });
+      
+      // Adicionar valor do campo "Outro" se estiver marcado
+      if (ativacaoOutroCheck && ativacaoOutroCheck.checked && ativacaoOutroTexto.value.trim()) {
+        valores.push(ativacaoOutroTexto.value.trim());
+      }
+      
+      // Atualizar o campo original
+      tipoAtivacaoInput.value = valores.join(', ');
+    }
+    
+    // Carregar valores existentes
+    if (tipoAtivacaoInput && tipoAtivacaoInput.value) {
+      const valoresExistentes = tipoAtivacaoInput.value.split(', ');
+      
+      // Verificar cada checkbox padrão
+      ativacaoChecks.forEach(check => {
+        if (valoresExistentes.includes(check.dataset.value)) {
+          check.checked = true;
+        }
+      });
+      
+      // Verificar se há valores que não correspondem aos checkboxes padrão
+      const valoresPadrao = Array.from(ativacaoChecks).map(check => check.dataset.value);
+      const outrosValores = valoresExistentes.filter(val => !valoresPadrao.includes(val));
+      
+      if (outrosValores.length > 0) {
+        ativacaoOutroCheck.checked = true;
+        ativacaoOutroTexto.value = outrosValores.join(', ');
+      }
+    }
+    
+    // Adicionar eventos aos checkboxes
+    ativacaoChecks.forEach(check => {
+      check.addEventListener('change', atualizarCampoAtivacao);
+    });
+    
+    // Adicionar eventos ao checkbox e campo de texto "Outro"
+    if (ativacaoOutroCheck && ativacaoOutroTexto) {
+      ativacaoOutroCheck.addEventListener('change', function() {
+        ativacaoOutroTexto.disabled = !this.checked;
+        if (this.checked) {
+          ativacaoOutroTexto.focus();
+        } else {
+          ativacaoOutroTexto.value = '';
+        }
+        atualizarCampoAtivacao();
+      });
+      
+      ativacaoOutroTexto.addEventListener('input', atualizarCampoAtivacao);
+      
+      // Configuração inicial
+      ativacaoOutroTexto.disabled = !ativacaoOutroCheck.checked;
+    }
+  });
+</script>
+{% endblock %}
