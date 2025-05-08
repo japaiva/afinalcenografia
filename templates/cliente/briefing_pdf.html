@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Briefing - Projeto #{{ projeto.numero }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #1a3a6a;
+            padding-bottom: 20px;
+        }
+        .logo {
+            max-width: 180px;
+            margin-bottom: 15px;
+        }
+        h1 {
+            color: #1a3a6a;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        h2 {
+            color: #1a3a6a;
+            font-size: 18px;
+            margin-top: 25px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 8px;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .info-row {
+            display: flex;
+            margin-bottom: 10px;
+            border-bottom: 1px dotted #eee;
+            padding-bottom: 5px;
+        }
+        .label {
+            font-weight: bold;
+            width: 40%;
+        }
+        .value {
+            width: 60%;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            border-top: 1px solid #ddd;
+            padding-top: 15px;
+            font-size: 12px;
+            color: #777;
+        }
+        .status {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-validado {
+            background-color: #28a745;
+            color: white;
+        }
+        .status-pendente {
+            background-color: #ffc107;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        {% if empresa.logo %}
+            <img class="logo" src="{{ empresa.logo.url }}" alt="{{ empresa.nome }}">
+        {% endif %}
+        <h1>Briefing - Projeto #{{ projeto.numero }}</h1>
+        <p>{{ projeto.empresa.nome }} | Versão {{ briefing.versao }}</p>
+        <p>Gerado em: {% now "d/m/Y H:i" %}</p>
+    </div>
+
+    <div class="section">
+        <h2>Informações do Projeto</h2>
+        <div class="info-row">
+            <div class="label">Status:</div>
+            <div class="value">{{ projeto.get_status_display }}</div>
+        </div>
+        <div class="info-row">
+            <div class="label">Data de Criação:</div>
+            <div class="value">{{ projeto.created_at|date:"d/m/Y" }}</div>
+        </div>
+    </div>
+
+    {% for secao in secoes %}
+    <div class="section">
+        <h2>{{ secao.titulo }}</h2>
+        {% for label, value in secao.dados.items %}
+        <div class="info-row">
+            <div class="label">{{ label }}:</div>
+            <div class="value">{{ value }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+
+    {% if briefing.validacoes.exists %}
+    <div class="section">
+        <h2>Status de Validação</h2>
+        {% for validacao in briefing.validacoes.all %}
+        <div class="info-row">
+            <div class="label">{{ validacao.get_secao_display }}:</div>
+            <div class="value">
+                <span class="status {% if validacao.status == 'validado' %}status-validado{% else %}status-pendente{% endif %}">
+                    {{ validacao.get_status_display }}
+                </span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        <p>Afinal Cenografia - Documento gerado automaticamente pelo sistema</p>
+        <p>&copy; {% now "Y" %} Afinal Cenografia - Todos os direitos reservados</p>
+    </div>
+</body>
+</html>

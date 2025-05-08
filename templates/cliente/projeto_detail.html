@@ -67,64 +67,62 @@
         </div>
         <div class="card-body">
           {% if projeto.feira %}
-          <div class="row mb-2">
-            <div class="col-12">
-              <strong>Nome:</strong> {{ projeto.feira.nome }}
+            <div class="row mb-2">
+              <div class="col-12">
+                <strong>Nome:</strong> {{ projeto.feira.nome }}
+              </div>
             </div>
-          </div>
-          
-          <div class="row mb-2">
-            <div class="col-md-12">
-              <strong>Local:</strong> {{ projeto.feira.local|default:"Não informado" }}
+            
+            <div class="row mb-2">
+              <div class="col-md-12">
+                <strong>Local:</strong> {{ projeto.feira.local|default:"Não informado" }}
+              </div>
             </div>
-          </div>
-          
-          <div class="row mb-2">
-            <div class="col-md-6">
-              <strong>Cidade:</strong> {{ projeto.feira.cidade|default:"Não informada" }}
+            
+            <div class="row mb-2">
+              <div class="col-md-6">
+                <strong>Cidade:</strong> {{ projeto.feira.cidade|default:"Não informada" }}
+              </div>
+              <div class="col-md-6">
+                <strong>UF:</strong> {{ projeto.feira.estado|default:"--" }}
+              </div>
             </div>
-            <div class="col-md-6">
-              <strong>UF:</strong> {{ projeto.feira.estado|default:"--" }}
+            
+            <div class="row mb-2">
+              <div class="col-md-6">
+                <strong>Início:</strong>
+                {% if projeto.feira.data_inicio %}
+                  {{ projeto.feira.data_inicio|date:"d/m/Y" }}
+                {% else %}
+                  Não informada
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <strong>Fim:</strong>
+                {% if projeto.feira.data_fim %}
+                  {{ projeto.feira.data_fim|date:"d/m/Y" }}
+                {% else %}
+                  Não informada
+                {% endif %}
+              </div>
             </div>
-          </div>
-          
-          <div class="row mb-2">
-            <div class="col-md-6">
-              <strong>Início:</strong>
-              {% if projeto.feira.data_inicio %}
-                {{ projeto.feira.data_inicio|date:"d/m/Y" }}
-              {% else %}
-                Não informada
-              {% endif %}
-            </div>
-            <div class="col-md-6">
-              <strong>Fim:</strong>
-              {% if projeto.feira.data_fim %}
-                {{ projeto.feira.data_fim|date:"d/m/Y" }}
-              {% else %}
-                Não informada
-              {% endif %}
-            </div>
-          </div>
-          
-          {% if projeto.feira.manual %}
-          <div class="row">
-            <div class="col-12">
-              <a href="{{ projeto.feira.manual.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
-                <i class="fas fa-file-pdf me-1"></i> Baixar Manual da Feira
-              </a>
-            </div>
-          </div>
-          {% endif %}
-          
+
+            {% if projeto.feira.manual %}
+              <div class="row">
+                <div class="col-12">
+                  <a href="{{ projeto.feira.manual.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                    <i class="fas fa-file-pdf me-1"></i> Baixar Manual da Feira
+                  </a>
+                </div>
+              </div>
+            {% endif %}
           {% else %}
-          <div class="alert alert-warning mb-0">
-            <i class="fas fa-exclamation-triangle me-2"></i> Este projeto não possui feira associada.
-          </div>
+            <div class="alert alert-warning mb-0">
+              <i class="fas fa-exclamation-triangle me-2"></i> Este projeto não possui feira associada.
+            </div>
           {% endif %}
         </div>
       </div>
-      
       <!-- CONSULTA -->
       <div class="card shadow mb-4">
         <div class="card-header bg-light d-flex justify-content-between align-items-center">
@@ -254,12 +252,16 @@
               <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=1 %}" class="btn btn-outline-primary">
                 <i class="fas fa-clipboard-list me-2"></i> Acessar Briefing
               </a>
+              <!-- Novo botão para impressão do briefing -->
+              <a href="{% url 'cliente:imprimir_briefing' projeto_id=projeto.id %}" class="btn btn-outline-info">
+              <i class="fas fa-print me-2"></i> Imprimir Briefing
+              </a>
             {% else %}
               <a href="{% url 'cliente:iniciar_briefing' projeto_id=projeto.id %}" class="btn btn-outline-primary">
                 <i class="fas fa-clipboard-list me-2"></i> Iniciar Briefing
               </a>
             {% endif %}
-            
+          
             <!-- Corrigido o link para as mensagens específicas do projeto -->
             <a href="{% url 'cliente:mensagens_projeto' projeto_id=projeto.id %}" class="btn btn-outline-primary">
               <i class="fas fa-comment me-2"></i> Enviar Mensagem
