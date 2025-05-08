@@ -2,7 +2,7 @@
 
 from django.urls import path
 from projetos import views as projeto_views
-from projetos.views.briefing_views import limpar_conversas_briefing
+from projetos.views.briefing_views import limpar_conversas_briefing, perguntar_manual
 from cliente.views.briefing import validar_briefing
 from . import views
 
@@ -40,6 +40,7 @@ urlpatterns = [
     path('projeto/<int:projeto_id>/briefing/salvar-rascunho/', projeto_views.salvar_rascunho_briefing, name='salvar_rascunho_briefing'),
     path('arquivo/<int:arquivo_id>/excluir/', projeto_views.excluir_arquivo_referencia, name='excluir_arquivo_referencia'),
     path('projeto/<int:projeto_id>/briefing/validar/', validar_briefing, name='validar_briefing'),
+    path('perguntar-manual/', perguntar_manual, name='perguntar_manual'),  # Nova URL para perguntas sobre o manual
 
     # Sistema de Mensagens
     path('mensagens/', views.mensagens, name='mensagens'),

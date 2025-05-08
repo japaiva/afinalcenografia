@@ -18,6 +18,11 @@
             onclick="return confirm('Tem certeza que deseja limpar todas as conversas?');">
             <i class="fas fa-eraser me-1"></i>
             </a>
+            {% if projeto.feira %}
+            <button class="btn btn-sm btn-outline-primary ms-1" data-bs-toggle="modal" data-bs-target="#feiraModal">
+              <i class="fas fa-question-circle me-1"></i>
+            </button>
+            {% endif %}
           </div>
         </div>
         <!-- Botões de ação do chat -->
@@ -61,7 +66,7 @@
               {% endif %}
               
               {% if projeto.feira %}
-              <p>Observei que este projeto está associado à feira <strong>{{ projeto.feira.nome }}</strong>. Eu posso ajudar com dúvidas específicas sobre as regras e requisitos desta feira. Clique no botão <i class="fas fa-calendar-alt"></i> acima para fazer perguntas sobre a feira.</p>
+              <p>Observei que este projeto está associado à feira <strong>{{ projeto.feira.nome }}</strong>. Eu posso ajudar com dúvidas específicas sobre as regras e requisitos desta feira. Clique no botão <i class="fas fa-question-circle"></i> acima para fazer perguntas sobre a feira ou sobre o manual.</p>
               {% endif %}
             </div>
             <small class="text-muted">Agora</small>
@@ -102,30 +107,44 @@
     </div>
   </div>
   
-  <!-- Modal para perguntas sobre a feira -->
+  <!-- Modal para perguntas sobre a feira/manual -->
   {% if projeto.feira %}
   <div class="modal fade" id="feiraModal" tabindex="-1" aria-labelledby="feiraModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="feiraModalLabel">
-            <i class="fas fa-calendar-alt me-2"></i> Perguntar sobre a Feira
+            <i class="fas fa-question-circle me-2"></i> <span id="modalTitulo">Perguntar sobre a Feira</span>
           </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
         </div>
         
         <div class="modal-body">
-          <form id="feiraForm" data-url="{% url 'cliente:enviar_mensagem_ia' projeto_id=projeto.id %}">
+          <!-- Opções do tipo de pergunta -->
+          <div class="btn-group w-100 mb-3" role="group">
+            <input type="radio" class="btn-check" name="tipoPergunta" id="tipoPerguntaFeira" autocomplete="off" checked>
+            <label class="btn btn-outline-primary" for="tipoPerguntaFeira">
+              <i class="fas fa-calendar-alt me-1"></i> Feira
+            </label>
+            
+            <input type="radio" class="btn-check" name="tipoPergunta" id="tipoPerguntaManual" autocomplete="off">
+            <label class="btn btn-outline-primary" for="tipoPerguntaManual">
+              <i class="fas fa-book me-1"></i> Manual
+            </label>
+          </div>
+          
+          <form id="perguntaForm">
             <div class="mb-3">
-              <label for="perguntaFeiraTexto" class="form-label">Sua pergunta sobre a feira:</label>
-              <textarea class="form-control" id="perguntaFeiraTexto" rows="3" placeholder="Ex: Quais as regras para altura de paredes?"></textarea>
+              <label for="perguntaTexto" class="form-label">Sua pergunta:</label>
+              <textarea class="form-control" id="perguntaTexto" rows="3" placeholder="Ex: Quais as regras para altura de paredes?"></textarea>
+              <input type="hidden" id="feira_id" value="{{ projeto.feira.id }}">
             </div>
           </form>
         </div>
         
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="submit" form="feiraForm" class="btn btn-primary">
+          <button type="button" id="enviarPergunta" class="btn btn-primary">
             <i class="fas fa-paper-plane me-1"></i> Enviar Pergunta
           </button>
         </div>
@@ -195,6 +214,17 @@
       }
     };
     scrollChatToTop();
+    
+    // Atualizar título do modal com base no tipo de pergunta selecionado
+    $('input[name="tipoPergunta"]').on('change', function() {
+      if ($("#tipoPerguntaFeira").is(":checked")) {
+        $("#modalTitulo").text("Perguntar sobre a Feira");
+        $("#perguntaTexto").attr("placeholder", "Ex: Quais as regras para altura de paredes?");
+      } else {
+        $("#modalTitulo").text("Perguntar sobre o Manual");
+        $("#perguntaTexto").attr("placeholder", "Ex: Qual a altura máxima permitida para o estande?");
+      }
+    });
     
     // Submit chat message
     $('#chatForm').on('submit', function(e) {
@@ -282,23 +312,94 @@
       });
     });
     
-    // Handle feira form submission
-    $('#feiraForm').on('submit', function(e) {
-      e.preventDefault();
+    // Handle form submission for perguntas sobre feira/manual
+    $('#enviarPergunta').on('click', function() {
+      const pergunta = $('#perguntaTexto').val();
+      const feira_id = $('#feira_id').val();
       
-      const pergunta = $('#perguntaFeiraTexto').val();
       if (!pergunta.trim()) {
-        alert('Por favor, digite uma pergunta sobre a feira.');
+        alert('Por favor, digite uma pergunta.');
         return;
       }
       
-      // Process like regular chat submission
-      $('#mensagemInput').val('Sobre a feira: ' + pergunta);
-      $('#chatForm').submit();
+      // Determinar o tipo de pergunta
+      const isPerguntaManual = $('#tipoPerguntaManual').is(':checked');
+      const prefixo = isPerguntaManual ? "Sobre o manual: " : "Sobre a feira: ";
       
-      // Close modal
+      // Desabilitar botão enquanto processa
+      $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Consultando...');
+      
+      // Fechar o modal
       $('#feiraModal').modal('hide');
-      $('#perguntaFeiraTexto').val('');
+      
+      // Adicionar pergunta ao chat
+      const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      $('#chatContainer').prepend(`
+        <div class="chat-message cliente-message mb-3">
+          <div class="chat-bubble">
+            <p>${prefixo}${pergunta}</p>
+          </div>
+          <small class="text-muted">${timestamp}</small>
+        </div>
+      `);
+      scrollChatToTop();
+      
+      if (isPerguntaManual) {
+        // Perguntar ao manual usando RAG
+        $.ajax({
+          url: "{% url 'cliente:perguntar_manual' %}",
+          type: 'POST',
+          data: JSON.stringify({
+            pergunta: pergunta,
+            feira_id: feira_id
+          }),
+          contentType: 'application/json',
+          dataType: 'json',
+          headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+          },
+          success: function(response) {
+            // Adicionar resposta da IA
+            $('#chatContainer').prepend(`
+              <div class="chat-message ai-message mb-3">
+                <div class="chat-bubble">
+                  <p>${response.resposta}</p>
+                  ${response.contextos && response.contextos.length > 0 ? 
+                    '<p><small class="text-muted">Esta resposta foi baseada no manual da feira.</small></p>' : ''}
+                </div>
+                <small class="text-muted">${timestamp}</small>
+              </div>
+            `);
+            scrollChatToTop();
+          },
+          error: function(xhr, status, error) {
+            // Adicionar mensagem de erro ao chat
+            $('#chatContainer').prepend(`
+              <div class="chat-message ai-message mb-3">
+                <div class="chat-bubble">
+                  <p>Desculpe, não consegui processar sua pergunta sobre o manual. 
+                  ${xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : error}</p>
+                </div>
+                <small class="text-muted">${timestamp}</small>
+              </div>
+            `);
+            scrollChatToTop();
+          },
+          complete: function() {
+            // Restaurar o botão
+            $('#enviarPergunta').prop('disabled', false).html('<i class="fas fa-paper-plane me-1"></i> Enviar Pergunta');
+            
+            // Limpar o campo de texto
+            $('#perguntaTexto').val('');
+          }
+        });
+      } else {
+        // Processar como pergunta sobre feira (método original)
+        $('#mensagemInput').val(prefixo + pergunta);
+        $('#chatForm').submit();
+        $('#perguntaTexto').val('');
+        $('#enviarPergunta').prop('disabled', false).html('<i class="fas fa-paper-plane me-1"></i> Enviar Pergunta');
+      }
     });
   });
   </script>
