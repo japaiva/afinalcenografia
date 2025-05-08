@@ -51,5 +51,5 @@ from .briefing import (
     excluir_arquivo_referencia,
     ver_manual_feira,
     validar_briefing,
-    imprimir_briefing
+    gerar_relatorio_briefing
 )

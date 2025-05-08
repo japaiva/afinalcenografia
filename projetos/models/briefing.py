@@ -201,9 +201,30 @@ class Briefing(models.Model):
         help_text="Informações sobre a campanha atual e como deve ser aplicada no estande"
     )
 
-    # Campos para o PDF
-    pdf_file = models.FileField(upload_to='briefings/', null=True, blank=True)
-    pdf_generated_at = models.DateTimeField(null=True, blank=True)
+    # Campos para o relatório PDF
+    pdf_file = models.FileField(
+        upload_to='briefings/',
+        storage=MinioStorage(),
+        null=True, blank=True,
+        verbose_name="Arquivo PDF do Relatório"
+    )
+    pdf_generated_at = models.DateTimeField(
+        null=True, blank=True,
+        verbose_name="Data de Geração do PDF"
+    )
+    
+    
+    def precisa_atualizar_pdf(self):
+        """Verifica se o relatório PDF precisa ser atualizado"""
+        if not self.pdf_file or not self.pdf_generated_at:
+            return True
+        return self.updated_at > self.pdf_generated_at
+    
+    def get_pdf_url(self):
+        """Retorna a URL do PDF, se existir"""
+        if self.pdf_file:
+            return self.pdf_file.url
+        return None
 
     # Metadados
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
