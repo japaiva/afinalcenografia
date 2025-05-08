@@ -48,6 +48,5 @@ urlpatterns = [
     path('mensagens/projeto/<int:projeto_id>/', views.mensagens_projeto, name='mensagens_projeto'),
 
     path('projetos/<int:pk>/aprovar/', views.aprovar_projeto, name='aprovar_projeto'),
-    path('projetos/<int:projeto_id>/imprimir-briefing/', views.imprimir_briefing, name='imprimir_briefing'),
+    path('projetos/<int:projeto_id>/relatorio-briefing/', views.gerar_relatorio_briefing, name='relatorio_briefing'),
 ]
-

@@ -6,39 +6,14 @@
 {% block content %}
 <div class="card shadow">
   <div class="card-header bg-light d-flex justify-content-between align-items-center">
-    <h5 class="card-title mb-0">
-      <i class="fas fa-clipboard-list me-2"></i> Briefing de Projeto: {{ projeto.nome }}
-    </h5>
     <div class="d-flex align-items-center">
-      <!-- Status de Validação condensado no header -->
-      <div class="me-3">
-        <div class="d-flex align-items-center">
-          {% for validacao in validacoes %}
-            <div class="me-1" title="{{ validacao.get_secao_display }}: {{ validacao.get_status_display }}">
-              <i class="fas 
-                {% if validacao.status == 'aprovado' %}fa-check-circle text-success
-                {% elif validacao.status == 'atencao' %}fa-exclamation-circle text-warning
-                {% elif validacao.status == 'reprovado' %}fa-times-circle text-danger
-                {% else %}fa-times-circle text-muted{% endif %} me-1"></i>
-            </div>
-          {% endfor %}
-        </div>
-      </div>
-      
-      <!-- Botões de ação -->
-      <a href="{% url 'cliente:projeto_detail' pk=projeto.id %}" class="btn btn-outline-secondary btn-sm me-1">
-        <i class="fas fa-project-diagram me-1"></i> Acessar Projeto
+      <i class="fas fa-clipboard-list me-2"></i>
+      <h5 class="mb-0">Briefing: {{ projeto.nome }}</h5>
+    </div>
+    <div>
+      <a href="{% url 'cliente:projeto_detail' pk=projeto.id %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i> Voltar
       </a>
-      {% if todas_aprovadas %}
-      <a href="{% url 'cliente:concluir_briefing' projeto_id=projeto.id %}" class="btn btn-primary btn-sm">
-        <i class="fas fa-paper-plane me-1"></i> Enviar Briefing
-      </a>
-      {% else %}
-      <button id="validarBriefing" class="btn btn-outline-primary btn-sm" 
-              data-url="{% url 'cliente:validar_briefing' projeto_id=projeto.id %}">
-        <i class="fas fa-check-double me-1"></i> Validar Briefing
-      </button>
-      {% endif %}
     </div>
   </div>
   
@@ -47,6 +22,7 @@
       <!-- Formulário de Briefing -->
       <div class="col-lg-8 border-end">
         <div class="p-4">
+          <!-- Barra de progresso -->
           <div class="progress mb-4" style="height: 8px;">
             <div class="progress-bar bg-success" role="progressbar" 
                  style="width: {{ briefing.progresso }}%;" 
@@ -54,6 +30,7 @@
                  aria-valuemin="0" aria-valuemax="100"></div>
           </div>
           
+          <!-- Navegação e status -->
           <div class="d-flex justify-content-between mb-4">
             <div class="d-flex">
               {% if pode_voltar %}
@@ -76,11 +53,27 @@
               </button>
               {% endif %}
             </div>
-            <div class="text-muted">
-              Etapa {{ etapa }} de 4
+            
+            <!-- Status de validação e ações -->
+            <div class="d-flex align-items-center">
+              <div class="text-muted me-3">
+                Etapa {{ etapa }} de 4
+              </div>
+              
+              {% if todas_aprovadas %}
+              <a href="{% url 'cliente:concluir_briefing' projeto_id=projeto.id %}" class="btn btn-primary btn-sm">
+                <i class="fas fa-paper-plane me-1"></i> Enviar Briefing
+              </a>
+              {% else %}
+              <button id="validarBriefing" class="btn btn-outline-primary btn-sm" 
+                      data-url="{% url 'cliente:validar_briefing' projeto_id=projeto.id %}">
+                <i class="fas fa-check-double me-1"></i> Validar Briefing
+              </button>
+              {% endif %}
             </div>
           </div>
           
+          <!-- Título da etapa atual -->
           <h4 class="mb-3">{{ titulo_etapa }}</h4>
           
         
@@ -95,6 +88,7 @@
   </div>
 </div>
 
+<!-- O restante do código permanece igual -->
 <!-- Modal para perguntas sobre a feira -->
 {% if projeto.feira %}
 <div class="modal fade" id="feiraModal" tabindex="-1" aria-labelledby="feiraModalLabel" aria-hidden="true">

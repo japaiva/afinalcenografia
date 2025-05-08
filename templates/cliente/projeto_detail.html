@@ -249,18 +249,19 @@
         <div class="card-body">
           <div class="d-grid gap-2">
             {% if projeto.has_briefing %}
-              <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=1 %}" class="btn btn-outline-primary">
-                <i class="fas fa-clipboard-list me-2"></i> Acessar Briefing
-              </a>
-              <!-- Novo botão para impressão do briefing -->
-              <a href="{% url 'cliente:imprimir_briefing' projeto_id=projeto.id %}" class="btn btn-outline-info">
-              <i class="fas fa-print me-2"></i> Imprimir Briefing
-              </a>
-            {% else %}
-              <a href="{% url 'cliente:iniciar_briefing' projeto_id=projeto.id %}" class="btn btn-outline-primary">
-                <i class="fas fa-clipboard-list me-2"></i> Iniciar Briefing
-              </a>
-            {% endif %}
+            <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=1 %}" class="btn btn-outline-primary">
+              <i class="fas fa-clipboard-list me-2"></i> Acessar Briefing
+            </a>
+            <!-- Botão atualizado para relatório do briefing -->
+            <a href="{% url 'cliente:relatorio_briefing' projeto_id=projeto.id %}" class="btn btn-outline-info" target="_blank">
+              <i class="fas fa-file-pdf me-2"></i> Relatório de Briefing
+            </a>
+          {% else %}
+            <a href="{% url 'cliente:iniciar_briefing' projeto_id=projeto.id %}" class="btn btn-outline-primary">
+              <i class="fas fa-clipboard-list me-2"></i> Iniciar Briefing
+            </a>
+          {% endif %}
+
           
             <!-- Corrigido o link para as mensagens específicas do projeto -->
             <a href="{% url 'cliente:mensagens_projeto' projeto_id=projeto.id %}" class="btn btn-outline-primary">

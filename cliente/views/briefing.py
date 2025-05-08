@@ -28,9 +28,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 @login_required
-def imprimir_briefing(request, projeto_id):
+def gerar_relatorio_briefing(request, projeto_id):
     """
-    Gera um PDF com o conteúdo do briefing
+    Gera um relatório PDF do briefing e o armazena no MinIO
     """
     # Obtém a empresa do usuário logado
     empresa = request.user.empresa
@@ -40,89 +40,210 @@ def imprimir_briefing(request, projeto_id):
     
     # Verifica se o projeto tem briefing
     if not projeto.has_briefing:
-        messages.error(request, 'Este projeto não possui briefing para impressão.')
+        messages.error(request, 'Este projeto não possui briefing para gerar relatório.')
         return redirect('cliente:projeto_detail', pk=projeto_id)
     
     # Obtém o briefing mais recente
     briefing = projeto.briefings.first()
     
+    # Flag para verificar se precisamos gerar um novo PDF
+    generate_new_pdf = True
+    
     # Verifica se já existe um PDF armazenado e atualizado
-    if briefing.pdf_file and hasattr(briefing, 'last_updated') and briefing.last_updated <= briefing.pdf_generated_at:
-        # Retorna o PDF armazenado
-        response = HttpResponse(briefing.pdf_file.read(), content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="briefing_{projeto.numero}.pdf"'
-        return response
+    if briefing.pdf_file and briefing.pdf_generated_at and briefing.updated_at <= briefing.pdf_generated_at:
+        try:
+            # Tenta acessar o conteúdo do arquivo para garantir que ele existe
+            pdf_content = briefing.pdf_file.read()
+            briefing.pdf_file.seek(0)  # Retorna ao início do arquivo para uso posterior
+            
+            # Se chegou aqui, conseguimos ler o arquivo, então não precisamos gerar novo
+            generate_new_pdf = False
+            
+            # Retorna o PDF existente
+            response = HttpResponse(pdf_content, content_type='application/pdf')
+            response['Content-Disposition'] = f'inline; filename="relatorio_briefing_{projeto.numero}.pdf"'
+            return response
+            
+        except Exception as e:
+            # Se ocorrer qualquer erro ao acessar o arquivo, registramos e continuamos para gerar um novo
+            logger.error(f"Erro ao acessar arquivo PDF existente: {e}")
+            messages.warning(request, "Regenerando o relatório PDF, aguarde um momento...")
+            generate_new_pdf = True
     
-    # Prepara os dados das seções do briefing para o PDF
-    # (Adapte estas funções conforme a estrutura real do seu modelo)
-    dados_evento = {
-        'Nome do Evento': briefing.feira.nome if briefing.feira else 'Não informado',
-        'Local': briefing.feira.local if briefing.feira else 'Não informado',
-        'Data de Início': briefing.feira.data_inicio.strftime('%d/%m/%Y') if briefing.feira and briefing.feira.data_inicio else 'Não informada',
-        'Data de Término': briefing.feira.data_fim.strftime('%d/%m/%Y') if briefing.feira and briefing.feira.data_fim else 'Não informada',
-    }
-    
-    # Adapte os dados conforme o modelo real
-    dados_estande = {
-        'Tipo de Estande': briefing.get_tipo_estande_display() if hasattr(briefing, 'get_tipo_estande_display') else 'Não informado',
-        'Metragem': f"{briefing.metragem} m²" if hasattr(briefing, 'metragem') and briefing.metragem else 'Não informada',
-        'Orçamento': f"R$ {briefing.orcamento:,.2f}".replace(',', '.').replace('.', ',') if briefing.orcamento else 'Não informado',
-    }
-    
-    # Colete dados das áreas (adapte conforme sua estrutura)
-    dados_areas = {}
-    if hasattr(briefing, 'areas'):
-        for area in briefing.areas.all():
-            dados_areas[area.nome] = area.descricao
-    
-    # Dados complementares 
-    dados_complementares = {
-        'Objetivo do Estande': briefing.objetivo if hasattr(briefing, 'objetivo') and briefing.objetivo else 'Não informado',
-        'Observações': briefing.observacoes if hasattr(briefing, 'observacoes') and briefing.observacoes else 'Não informado',
-    }
-    
-    # Contexto para o template
-    context = {
-        'empresa': empresa,
-        'projeto': projeto,
-        'briefing': briefing,
-        'secoes': [
-            {'titulo': 'Informações do Evento', 'dados': dados_evento},
-            {'titulo': 'Características do Estande', 'dados': dados_estande},
-            {'titulo': 'Áreas do Estande', 'dados': dados_areas or {'Informação': 'Nenhuma área definida'}},
-            {'titulo': 'Informações Complementares', 'dados': dados_complementares},
-        ]
-    }
-    
-    # Carrega o template HTML para o PDF
-    template = get_template('cliente/briefing_pdf.html')
-    html_string = template.render(context)
-    
-    # Gera o PDF usando WeasyPrint
-    from weasyprint import HTML, CSS
-    pdf_file = HTML(string=html_string).write_pdf(
-        stylesheets=[
-            CSS(string='@page { size: A4; margin: 1cm }')
-        ]
-    )
-    
-    # Cria um nome de arquivo único com timestamp
-    timestamp = timezone.now().strftime('%Y%m%d%H%M%S')
-    filename = f"briefing_{projeto.numero}_{timestamp}.pdf"
-    
-    # Salva o arquivo no storage configurado
-    briefing.pdf_file.save(filename, ContentFile(pdf_file), save=False)
-    briefing.pdf_generated_at = timezone.now()
-    briefing.save(update_fields=['pdf_generated_at', 'pdf_file'])
-    
-    # Registra no log
-    logger.info(f"PDF do briefing gerado para o projeto #{projeto.numero}")
-    
-    # Retorna o PDF ao usuário
-    response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    return response
-
+    # Se chegamos aqui, precisamos gerar um novo PDF
+    if generate_new_pdf:
+        # Prepara os dados das seções do briefing para o PDF
+        dados_evento = {
+            'Nome do Evento': briefing.feira.nome if briefing.feira else 'Não informado',
+            'Local': briefing.feira.local if briefing.feira else 'Não informado',
+            'Data de Início': briefing.feira.data_inicio.strftime('%d/%m/%Y') if briefing.feira and briefing.feira.data_inicio else 'Não informada',
+            'Data de Término': briefing.feira.data_fim.strftime('%d/%m/%Y') if briefing.feira and briefing.feira.data_fim else 'Não informada',
+            'Endereço do Estande': briefing.endereco_estande or 'Não informado'
+        }
+        
+        # Adapte os dados conforme o modelo real
+        dados_estande = {
+            'Tipo de Estande': briefing.get_material_display() if hasattr(briefing, 'get_material_display') else 'Não informado',
+            'Metragem Frente': f"{briefing.medida_frente} m" if hasattr(briefing, 'medida_frente') and briefing.medida_frente else 'Não informada',
+            'Metragem Fundo': f"{briefing.medida_fundo} m" if hasattr(briefing, 'medida_fundo') and briefing.medida_fundo else 'Não informada',
+            'Área Total': f"{briefing.area_estande} m²" if hasattr(briefing, 'area_estande') and briefing.area_estande else 'Não informada',
+            'Orçamento': f"R$ {briefing.orcamento:,.2f}".replace(',', '.').replace('.', ',') if briefing.orcamento else 'Não informado',
+            'Estilo': briefing.estilo_estande or 'Não informado',
+            'Objetivo': briefing.objetivo_estande or 'Não informado',
+        }
+        
+        # Colete dados das áreas do estande
+        dados_areas = {}
+        
+        # Áreas de Exposição
+        areas_exposicao = []
+        if hasattr(briefing, 'areas_exposicao'):
+            for area in briefing.areas_exposicao.all():
+                area_info = {
+                    'Metragem': f"{area.metragem} m²" if area.metragem else 'Não informada',
+                    'Equipamentos': area.equipamentos or 'Não informados',
+                    'Itens': []
+                }
+                
+                if area.tem_lounge:
+                    area_info['Itens'].append('Lounge')
+                if area.tem_vitrine_exposicao:
+                    area_info['Itens'].append('Vitrine de Exposição')
+                if area.tem_balcao_recepcao:
+                    area_info['Itens'].append('Balcão de Recepção')
+                if area.tem_mesas_atendimento:
+                    area_info['Itens'].append('Mesas de Atendimento')
+                if area.tem_balcao_cafe:
+                    area_info['Itens'].append('Balcão para Café/Bar')
+                if area.tem_balcao_vitrine:
+                    area_info['Itens'].append('Balcão Vitrine')
+                if area.tem_caixa_vendas:
+                    area_info['Itens'].append('Caixa para Vendas')
+                
+                areas_exposicao.append(area_info)
+        
+        if areas_exposicao:
+            dados_areas['Áreas de Exposição'] = areas_exposicao
+        
+        # Salas de Reunião
+        salas_reuniao = []
+        if hasattr(briefing, 'salas_reuniao'):
+            for sala in briefing.salas_reuniao.all():
+                salas_reuniao.append({
+                    'Capacidade': f"{sala.capacidade} pessoas" if sala.capacidade else 'Não informada',
+                    'Metragem': f"{sala.metragem} m²" if sala.metragem else 'Não informada',
+                    'Equipamentos': sala.equipamentos or 'Não informados'
+                })
+        
+        if salas_reuniao:
+            dados_areas['Salas de Reunião'] = salas_reuniao
+        
+        # Copas
+        copas = []
+        if hasattr(briefing, 'copas'):
+            for copa in briefing.copas.all():
+                copas.append({
+                    'Metragem': f"{copa.metragem} m²" if copa.metragem else 'Não informada',
+                    'Equipamentos': copa.equipamentos or 'Não informados'
+                })
+        
+        if copas:
+            dados_areas['Copas'] = copas
+        
+        # Depósitos
+        depositos = []
+        if hasattr(briefing, 'depositos'):
+            for deposito in briefing.depositos.all():
+                depositos.append({
+                    'Metragem': f"{deposito.metragem} m²" if deposito.metragem else 'Não informada',
+                    'Equipamentos': deposito.equipamentos or 'Não informados'
+                })
+        
+        if depositos:
+            dados_areas['Depósitos'] = depositos
+        
+        # Dados complementares 
+        dados_complementares = {
+            'Objetivo do Estande': briefing.objetivo_evento if hasattr(briefing, 'objetivo_evento') and briefing.objetivo_evento else 'Não informado',
+            'Referências Visuais': briefing.referencias_dados if hasattr(briefing, 'referencias_dados') and briefing.referencias_dados else 'Não informado',
+            'Logotipo': briefing.logotipo if hasattr(briefing, 'logotipo') and briefing.logotipo else 'Não informado',
+            'Campanha': briefing.campanha_dados if hasattr(briefing, 'campanha_dados') and briefing.campanha_dados else 'Não informado',
+        }
+        
+        # Arquivos de referência
+        arquivos_referencias = []
+        if hasattr(briefing, 'arquivos'):
+            for arquivo in briefing.arquivos.all():
+                arquivos_referencias.append({
+                    'Nome': arquivo.nome,
+                    'Tipo': arquivo.get_tipo_display() if hasattr(arquivo, 'get_tipo_display') else arquivo.tipo,
+                    'Observações': arquivo.observacoes or 'Sem observações'
+                })
+        
+        # Contexto para o template
+        context = {
+            'empresa': empresa,
+            'projeto': projeto,
+            'briefing': briefing,
+            'secoes': [
+                {'titulo': 'Informações do Evento', 'dados': dados_evento},
+                {'titulo': 'Características do Estande', 'dados': dados_estande},
+                {'titulo': 'Áreas do Estande', 'dados': dados_areas or {'Informação': 'Nenhuma área definida'}},
+                {'titulo': 'Informações Complementares', 'dados': dados_complementares},
+            ],
+            'arquivos': arquivos_referencias,
+            'data_geracao': timezone.now().strftime('%d/%m/%Y %H:%M')
+        }
+        
+        # Carrega o template HTML para o PDF
+        template = get_template('cliente/briefing_relatorio.html')
+        html_string = template.render(context)
+        
+        # Gera o PDF usando WeasyPrint
+        try:
+            from weasyprint import HTML, CSS
+            pdf_file = HTML(string=html_string).write_pdf(
+                stylesheets=[
+                    CSS(string='@page { size: A4; margin: 1cm }')
+                ]
+            )
+            
+            # Cria um nome de arquivo único com timestamp
+            timestamp = timezone.now().strftime('%Y%m%d%H%M%S')
+            filename = f"relatorio_briefing_{projeto.numero}_{timestamp}.pdf"
+            
+            # Limpe qualquer referência anterior ao arquivo PDF
+            if briefing.pdf_file:
+                try:
+                    # Tenta excluir o arquivo anterior
+                    old_filename = briefing.pdf_file.name
+                    briefing.pdf_file.delete(save=False)
+                    logger.info(f"Arquivo anterior excluído: {old_filename}")
+                except Exception as e:
+                    logger.warning(f"Erro ao excluir arquivo anterior: {e}")
+            
+            # Salva o arquivo no storage configurado
+            briefing.pdf_file.save(filename, ContentFile(pdf_file), save=True)
+            briefing.pdf_generated_at = timezone.now()
+            briefing.save(update_fields=['pdf_generated_at'])
+            
+            # Registra no log
+            logger.info(f"Relatório do briefing gerado para o projeto #{projeto.numero}")
+            
+            # Retorna o PDF ao usuário
+            response = HttpResponse(pdf_file, content_type='application/pdf')
+            response['Content-Disposition'] = f'inline; filename="{filename}"'
+            return response
+            
+        except ImportError:
+            # Se WeasyPrint não estiver disponível, envia mensagem de erro
+            messages.error(request, 'Não foi possível gerar o relatório PDF. Biblioteca WeasyPrint não disponível.')
+            return redirect('cliente:projeto_detail', pk=projeto_id)
+        except Exception as e:
+            # Registra qualquer outro erro na geração do PDF
+            logger.error(f"Erro ao gerar relatório PDF: {e}")
+            messages.error(request, f'Erro ao gerar o relatório: {str(e)}')
+            return redirect('cliente:projeto_detail', pk=projeto_id)
 
 @login_required
 def briefing_etapa(request, projeto_id, etapa):
