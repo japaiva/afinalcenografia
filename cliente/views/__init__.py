@@ -50,5 +50,6 @@ from .briefing import (
     upload_arquivo_referencia,
     excluir_arquivo_referencia,
     ver_manual_feira,
-    validar_briefing
+    validar_briefing,
+    imprimir_briefing
 )

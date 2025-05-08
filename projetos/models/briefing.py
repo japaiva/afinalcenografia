@@ -63,6 +63,9 @@ class Briefing(models.Model):
 
     )
 
+
+
+
     # TELA 1: EVENTO - Datas e Localização
     # Localização do Estande (ÚNICO CAMPO REALMENTE NECESSÁRIO)
     endereco_estande = models.CharField(
@@ -197,6 +200,10 @@ class Briefing(models.Model):
         verbose_name="Campanha - Dados",
         help_text="Informações sobre a campanha atual e como deve ser aplicada no estande"
     )
+
+    # Campos para o PDF
+    pdf_file = models.FileField(upload_to='briefings/', null=True, blank=True)
+    pdf_generated_at = models.DateTimeField(null=True, blank=True)
 
     # Metadados
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")

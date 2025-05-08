@@ -17,6 +17,112 @@ from projetos.forms import (
 
 from projetos.views import validar_secao_briefing
 
+from django.http import HttpResponse
+from django.template.loader import get_template
+from django.utils import timezone
+from django.core.files.base import ContentFile
+
+import logging
+
+# Configure o logger
+logger = logging.getLogger(__name__)
+
+@login_required
+def imprimir_briefing(request, projeto_id):
+    """
+    Gera um PDF com o conteúdo do briefing
+    """
+    # Obtém a empresa do usuário logado
+    empresa = request.user.empresa
+    
+    # Obtém o projeto específico
+    projeto = get_object_or_404(Projeto, pk=projeto_id, empresa=empresa)
+    
+    # Verifica se o projeto tem briefing
+    if not projeto.has_briefing:
+        messages.error(request, 'Este projeto não possui briefing para impressão.')
+        return redirect('cliente:projeto_detail', pk=projeto_id)
+    
+    # Obtém o briefing mais recente
+    briefing = projeto.briefings.first()
+    
+    # Verifica se já existe um PDF armazenado e atualizado
+    if briefing.pdf_file and hasattr(briefing, 'last_updated') and briefing.last_updated <= briefing.pdf_generated_at:
+        # Retorna o PDF armazenado
+        response = HttpResponse(briefing.pdf_file.read(), content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="briefing_{projeto.numero}.pdf"'
+        return response
+    
+    # Prepara os dados das seções do briefing para o PDF
+    # (Adapte estas funções conforme a estrutura real do seu modelo)
+    dados_evento = {
+        'Nome do Evento': briefing.feira.nome if briefing.feira else 'Não informado',
+        'Local': briefing.feira.local if briefing.feira else 'Não informado',
+        'Data de Início': briefing.feira.data_inicio.strftime('%d/%m/%Y') if briefing.feira and briefing.feira.data_inicio else 'Não informada',
+        'Data de Término': briefing.feira.data_fim.strftime('%d/%m/%Y') if briefing.feira and briefing.feira.data_fim else 'Não informada',
+    }
+    
+    # Adapte os dados conforme o modelo real
+    dados_estande = {
+        'Tipo de Estande': briefing.get_tipo_estande_display() if hasattr(briefing, 'get_tipo_estande_display') else 'Não informado',
+        'Metragem': f"{briefing.metragem} m²" if hasattr(briefing, 'metragem') and briefing.metragem else 'Não informada',
+        'Orçamento': f"R$ {briefing.orcamento:,.2f}".replace(',', '.').replace('.', ',') if briefing.orcamento else 'Não informado',
+    }
+    
+    # Colete dados das áreas (adapte conforme sua estrutura)
+    dados_areas = {}
+    if hasattr(briefing, 'areas'):
+        for area in briefing.areas.all():
+            dados_areas[area.nome] = area.descricao
+    
+    # Dados complementares 
+    dados_complementares = {
+        'Objetivo do Estande': briefing.objetivo if hasattr(briefing, 'objetivo') and briefing.objetivo else 'Não informado',
+        'Observações': briefing.observacoes if hasattr(briefing, 'observacoes') and briefing.observacoes else 'Não informado',
+    }
+    
+    # Contexto para o template
+    context = {
+        'empresa': empresa,
+        'projeto': projeto,
+        'briefing': briefing,
+        'secoes': [
+            {'titulo': 'Informações do Evento', 'dados': dados_evento},
+            {'titulo': 'Características do Estande', 'dados': dados_estande},
+            {'titulo': 'Áreas do Estande', 'dados': dados_areas or {'Informação': 'Nenhuma área definida'}},
+            {'titulo': 'Informações Complementares', 'dados': dados_complementares},
+        ]
+    }
+    
+    # Carrega o template HTML para o PDF
+    template = get_template('cliente/briefing_pdf.html')
+    html_string = template.render(context)
+    
+    # Gera o PDF usando WeasyPrint
+    from weasyprint import HTML, CSS
+    pdf_file = HTML(string=html_string).write_pdf(
+        stylesheets=[
+            CSS(string='@page { size: A4; margin: 1cm }')
+        ]
+    )
+    
+    # Cria um nome de arquivo único com timestamp
+    timestamp = timezone.now().strftime('%Y%m%d%H%M%S')
+    filename = f"briefing_{projeto.numero}_{timestamp}.pdf"
+    
+    # Salva o arquivo no storage configurado
+    briefing.pdf_file.save(filename, ContentFile(pdf_file), save=False)
+    briefing.pdf_generated_at = timezone.now()
+    briefing.save(update_fields=['pdf_generated_at', 'pdf_file'])
+    
+    # Registra no log
+    logger.info(f"PDF do briefing gerado para o projeto #{projeto.numero}")
+    
+    # Retorna o PDF ao usuário
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
 
 @login_required
 def briefing_etapa(request, projeto_id, etapa):
