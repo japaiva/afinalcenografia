@@ -27,6 +27,8 @@ import logging
 # Configure o logger
 logger = logging.getLogger(__name__)
 
+# views/briefing.py (função atualizada)
+
 @login_required
 def gerar_relatorio_briefing(request, projeto_id):
     """
@@ -73,26 +75,42 @@ def gerar_relatorio_briefing(request, projeto_id):
     # Se chegamos aqui, precisamos gerar um novo PDF
     if generate_new_pdf:
         # Prepara os dados das seções do briefing para o PDF
+        
+        # Seção 1: Informações do Evento
+        # Garantir que estamos utilizando as informações da feira corretamente
+        feira = briefing.feira if briefing.feira else projeto.feira
+        
         dados_evento = {
-            'Nome do Evento': briefing.feira.nome if briefing.feira else 'Não informado',
-            'Local': briefing.feira.local if briefing.feira else 'Não informado',
-            'Data de Início': briefing.feira.data_inicio.strftime('%d/%m/%Y') if briefing.feira and briefing.feira.data_inicio else 'Não informada',
-            'Data de Término': briefing.feira.data_fim.strftime('%d/%m/%Y') if briefing.feira and briefing.feira.data_fim else 'Não informada',
+            'Nome do Evento': feira.nome if feira else 'Não informado',
+            'Local': feira.local if feira else 'Não informado',
+            'Cidade/Estado': f"{feira.cidade}/{feira.estado}" if feira and feira.cidade else 'Não informado',
+            'Organizador': feira.promotora if feira and feira.promotora else 'Não informado',
+            'Horário': feira.data_horario if feira and feira.data_horario else 'Não informado',
+            'Data de Início': feira.data_inicio.strftime('%d/%m/%Y') if feira and feira.data_inicio else 'Não informada',
+            'Data de Término': feira.data_fim.strftime('%d/%m/%Y') if feira and feira.data_fim else 'Não informada',
+            'Período de Montagem': feira.periodo_montagem if feira and feira.periodo_montagem else 'Não informado',
+            'Período de Desmontagem': feira.periodo_desmontagem if feira and feira.periodo_desmontagem else 'Não informado',
             'Endereço do Estande': briefing.endereco_estande or 'Não informado'
         }
         
-        # Adapte os dados conforme o modelo real
+        # Seção 2: Características do Estande
         dados_estande = {
-            'Tipo de Estande': briefing.get_material_display() if hasattr(briefing, 'get_material_display') else 'Não informado',
-            'Metragem Frente': f"{briefing.medida_frente} m" if hasattr(briefing, 'medida_frente') and briefing.medida_frente else 'Não informada',
-            'Metragem Fundo': f"{briefing.medida_fundo} m" if hasattr(briefing, 'medida_fundo') and briefing.medida_fundo else 'Não informada',
-            'Área Total': f"{briefing.area_estande} m²" if hasattr(briefing, 'area_estande') and briefing.area_estande else 'Não informada',
+            'Tipo de Estande': briefing.get_material_display() if hasattr(briefing, 'get_material_display') and briefing.material else 'Não informado',
+            'Metragem Frente': f"{briefing.medida_frente} m" if briefing.medida_frente else 'Não informada',
+            'Metragem Fundo': f"{briefing.medida_fundo} m" if briefing.medida_fundo else 'Não informada',
+            'Metragem Lateral Esquerda': f"{briefing.medida_lateral_esquerda} m" if briefing.medida_lateral_esquerda else 'Não informada',
+            'Metragem Lateral Direita': f"{briefing.medida_lateral_direita} m" if briefing.medida_lateral_direita else 'Não informada',
+            'Área Total': f"{briefing.area_estande} m²" if briefing.area_estande else 'Não informada',
             'Orçamento': f"R$ {briefing.orcamento:,.2f}".replace(',', '.').replace('.', ',') if briefing.orcamento else 'Não informado',
             'Estilo': briefing.estilo_estande or 'Não informado',
+            'Piso Elevado': briefing.get_piso_elevado_display() if hasattr(briefing, 'get_piso_elevado_display') and briefing.piso_elevado else 'Não informado',
+            'Tipo de Testeira': briefing.get_tipo_testeira_display() if hasattr(briefing, 'get_tipo_testeira_display') and briefing.tipo_testeira else 'Não informado',
+            'Tipo de Venda': briefing.get_tipo_venda_display() if hasattr(briefing, 'get_tipo_venda_display') and briefing.tipo_venda else 'Não informado',
+            'Tipo de Ativação': briefing.tipo_ativacao or 'Não informado',
             'Objetivo': briefing.objetivo_estande or 'Não informado',
         }
         
-        # Colete dados das áreas do estande
+        # Seção 3: Áreas do Estande
         dados_areas = {}
         
         # Áreas de Exposição
@@ -102,6 +120,7 @@ def gerar_relatorio_briefing(request, projeto_id):
                 area_info = {
                     'Metragem': f"{area.metragem} m²" if area.metragem else 'Não informada',
                     'Equipamentos': area.equipamentos or 'Não informados',
+                    'Observações': area.observacoes or 'Nenhuma observação',
                     'Itens': []
                 }
                 
@@ -162,23 +181,35 @@ def gerar_relatorio_briefing(request, projeto_id):
         if depositos:
             dados_areas['Depósitos'] = depositos
         
-        # Dados complementares 
+        # Seção 4: Dados complementares 
         dados_complementares = {
-            'Objetivo do Estande': briefing.objetivo_evento if hasattr(briefing, 'objetivo_evento') and briefing.objetivo_evento else 'Não informado',
-            'Referências Visuais': briefing.referencias_dados if hasattr(briefing, 'referencias_dados') and briefing.referencias_dados else 'Não informado',
-            'Logotipo': briefing.logotipo if hasattr(briefing, 'logotipo') and briefing.logotipo else 'Não informado',
-            'Campanha': briefing.campanha_dados if hasattr(briefing, 'campanha_dados') and briefing.campanha_dados else 'Não informado',
+            'Objetivo do Evento': briefing.objetivo_evento or projeto.descricao or 'Não informado',
+            'Referências Visuais': briefing.referencias_dados or 'Não informado',
+            'Logotipo': briefing.logotipo or 'Não informado',
+            'Campanha': briefing.campanha_dados or 'Não informado',
         }
         
         # Arquivos de referência
         arquivos_referencias = []
+        imagens_referencias = []
+        
         if hasattr(briefing, 'arquivos'):
             for arquivo in briefing.arquivos.all():
+                # Adiciona todos os arquivos à lista principal
                 arquivos_referencias.append({
                     'Nome': arquivo.nome,
                     'Tipo': arquivo.get_tipo_display() if hasattr(arquivo, 'get_tipo_display') else arquivo.tipo,
                     'Observações': arquivo.observacoes or 'Sem observações'
                 })
+                
+                # Se for imagem, adiciona à lista de imagens para exibição visual
+                tipos_imagem = ['imagem', 'referencia', 'campanha', 'logo']
+                if any(tipo in arquivo.tipo.lower() for tipo in tipos_imagem):
+                    imagens_referencias.append({
+                        'url': arquivo.arquivo.url,
+                        'nome': arquivo.nome,
+                        'tipo': arquivo.get_tipo_display() if hasattr(arquivo, 'get_tipo_display') else arquivo.tipo
+                    })
         
         # Contexto para o template
         context = {
@@ -188,10 +219,11 @@ def gerar_relatorio_briefing(request, projeto_id):
             'secoes': [
                 {'titulo': 'Informações do Evento', 'dados': dados_evento},
                 {'titulo': 'Características do Estande', 'dados': dados_estande},
-                {'titulo': 'Áreas do Estande', 'dados': dados_areas or {'Informação': 'Nenhuma área definida'}},
+                {'titulo': 'Áreas do Estande', 'dados': dados_areas},
                 {'titulo': 'Informações Complementares', 'dados': dados_complementares},
             ],
             'arquivos': arquivos_referencias,
+            'imagens_referencias': imagens_referencias,
             'data_geracao': timezone.now().strftime('%d/%m/%Y %H:%M')
         }
         
@@ -204,7 +236,23 @@ def gerar_relatorio_briefing(request, projeto_id):
             from weasyprint import HTML, CSS
             pdf_file = HTML(string=html_string).write_pdf(
                 stylesheets=[
-                    CSS(string='@page { size: A4; margin: 1cm }')
+                    CSS(string='''
+                        @page {
+                            size: A4;
+                            margin: 1cm;
+                            @top-center {
+                                content: "Briefing - Projeto #''' + str(projeto.numero) + '''";
+                                font-family: Arial;
+                                font-size: 10pt;
+                            }
+                            @bottom-center {
+                                content: "Página " counter(page) " de " counter(pages);
+                                font-family: Arial;
+                                font-size: 10pt;
+                            }
+                        }
+                        /* Removido o page-break-inside: avoid para permitir que o conteúdo flua naturalmente */
+                    ''')
                 ]
             )
             

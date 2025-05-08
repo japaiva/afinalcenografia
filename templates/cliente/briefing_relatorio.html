@@ -4,129 +4,463 @@
     <meta charset="utf-8">
     <title>Briefing - Projeto #{{ projeto.numero }}</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            margin: 0;
-            padding: 20px;
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --primary: #1a3a6a;
+            --secondary: #3a7ca5;
+            --accent: #f39c12;
+            --light: #f5f7fa;
+            --dark: #2c3e50;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --gray: #95a5a6;
         }
+        
+        body {
+            font-family: 'Montserrat', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+            margin: 0;
+            padding: 0;
+            background-color: var(--light);
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        
         .header {
             text-align: center;
             margin-bottom: 30px;
-            border-bottom: 2px solid #1a3a6a;
+            border-bottom: 2px solid var(--primary);
             padding-bottom: 20px;
+            position: relative;
         }
+        
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 3px;
+            background-color: var(--accent);
+        }
+        
         .logo {
             max-width: 180px;
             margin-bottom: 15px;
+            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.1));
         }
+        
         h1 {
-            color: #1a3a6a;
-            font-size: 24px;
+            color: var(--primary);
+            font-size: 28px;
             margin-bottom: 5px;
+            letter-spacing: 1px;
         }
+        
         h2 {
-            color: #1a3a6a;
-            font-size: 18px;
-            margin-top: 25px;
+            color: var(--secondary);
+            font-size: 20px;
+            margin-top: 30px;
             border-bottom: 1px solid #ddd;
-            padding-bottom: 8px;
+            padding-bottom: 10px;
+            position: relative;
         }
+        
+        h2::before {
+            content: '•';
+            color: var(--accent);
+            margin-right: 8px;
+        }
+        
+        /* Importante: Removido break-inside: avoid para evitar que seções pulem página */
         .section {
-            margin-bottom: 30px;
+            margin-bottom: 35px;
+            position: relative;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
+        
+        .card-header {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px;
+            margin: -20px -20px 20px;
+            border-radius: 8px 8px 0 0;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        
         .info-row {
             display: flex;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             border-bottom: 1px dotted #eee;
-            padding-bottom: 5px;
+            padding-bottom: 10px;
         }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
         .label {
-            font-weight: bold;
+            font-weight: 600;
             width: 40%;
+            color: var(--dark);
         }
+        
         .value {
             width: 60%;
         }
+        
+        .area-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: rgba(26, 58, 106, 0.05);
+            border-radius: 6px;
+            border-left: 3px solid var(--secondary);
+        }
+        
+        .area-title {
+            font-weight: 600;
+            color: var(--secondary);
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .area-info {
+            margin-left: 15px;
+        }
+        
         .footer {
             text-align: center;
             margin-top: 40px;
             border-top: 1px solid #ddd;
             padding-top: 15px;
             font-size: 12px;
-            color: #777;
+            color: var(--gray);
         }
+        
         .status {
             display: inline-block;
-            padding: 3px 8px;
-            border-radius: 3px;
+            padding: 4px 10px;
+            border-radius: 4px;
             font-size: 12px;
-            font-weight: bold;
+            font-weight: 600;
         }
-        .status-validado {
-            background-color: #28a745;
+        
+        .status-aprovado {
+            background-color: var(--success);
             color: white;
         }
+        
         .status-pendente {
-            background-color: #ffc107;
-            color: #333;
+            background-color: var(--warning);
+            color: white;
+        }
+        
+        .status-atencao {
+            background-color: var(--warning);
+            color: white;
+        }
+        
+        .status-reprovado {
+            background-color: var(--danger);
+            color: white;
+        }
+        
+        .file-list {
+            margin-top: 15px;
+        }
+        
+        .file-item {
+            display: flex;
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            background: rgba(26, 58, 106, 0.05);
+            border-radius: 4px;
+        }
+        
+        .file-type {
+            background: var(--secondary);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            margin-right: 10px;
+            font-weight: 600;
+        }
+        
+        .file-name {
+            flex-grow: 1;
+        }
+        
+        .file-notes {
+            font-style: italic;
+            font-size: 12px;
+            color: var(--gray);
+            margin-top: 3px;
+        }
+        
+        .timestamp {
+            position: absolute;
+            bottom: 5px;
+            right: 10px;
+            font-size: 11px;
+            color: var(--gray);
+            font-style: italic;
+        }
+        
+        .two-column {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 -10px;
+        }
+        
+        .column {
+            flex: 1;
+            min-width: 250px;
+            padding: 0 10px;
+        }
+        
+        .summary-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid var(--accent);
+            padding: 15px;
+            margin-top: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .summary-title {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+        
+        @media print {
+            body {
+                background: white;
+            }
+            
+            .container {
+                box-shadow: none;
+                max-width: 100%;
+            }
+            
+            /* Modificado para permitir quebra dentro da seção se necessário */
+            .section {
+                box-shadow: none;
+            }
+            
+            .header::after {
+                display: none;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        {% if empresa.logo %}
-            <img class="logo" src="{{ empresa.logo.url }}" alt="{{ empresa.nome }}">
-        {% endif %}
-        <h1>Briefing - Projeto #{{ projeto.numero }}</h1>
-        <p>{{ projeto.empresa.nome }} | Versão {{ briefing.versao }}</p>
-        <p>Gerado em: {% now "d/m/Y H:i" %}</p>
-    </div>
-
-    <div class="section">
-        <h2>Informações do Projeto</h2>
-        <div class="info-row">
-            <div class="label">Status:</div>
-            <div class="value">{{ projeto.get_status_display }}</div>
+    <div class="container">
+        <div class="header">
+            {% if empresa.logo %}
+                <img class="logo" src="{{ empresa.logo.url }}" alt="{{ empresa.nome }}">
+            {% endif %}
+            <h1>Briefing Projeto Cenografia</h1>
+            <p><strong>{{ projeto.nome }}</strong> | Gerado em: {{ data_geracao }}</p>
         </div>
-        <div class="info-row">
-            <div class="label">Data de Criação:</div>
-            <div class="value">{{ projeto.created_at|date:"d/m/Y" }}</div>
-        </div>
-    </div>
 
-    {% for secao in secoes %}
-    <div class="section">
-        <h2>{{ secao.titulo }}</h2>
-        {% for label, value in secao.dados.items %}
-        <div class="info-row">
-            <div class="label">{{ label }}:</div>
-            <div class="value">{{ value }}</div>
-        </div>
-        {% endfor %}
-    </div>
-    {% endfor %}
-
-    {% if briefing.validacoes.exists %}
-    <div class="section">
-        <h2>Status de Validação</h2>
-        {% for validacao in briefing.validacoes.all %}
-        <div class="info-row">
-            <div class="label">{{ validacao.get_secao_display }}:</div>
-            <div class="value">
-                <span class="status {% if validacao.status == 'validado' %}status-validado{% else %}status-pendente{% endif %}">
-                    {{ validacao.get_status_display }}
-                </span>
+        <div class="summary-box">
+            <div class="summary-title">Resumo do Projeto</div>
+            <div class="two-column">
+                <div class="column">
+                    <div class="info-row">
+                        <div class="label">Status:</div>
+                        <div class="value">{{ briefing.get_status_display }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="label">Progresso:</div>
+                        <div class="value">{{ briefing.progresso }}%</div>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="info-row">
+                        <div class="label">Criado em:</div>
+                        <div class="value">{{ briefing.created_at|date:"d/m/Y" }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="label">Atualizado:</div>
+                        <div class="value">{{ briefing.updated_at|date:"d/m/Y H:i" }}</div>
+                    </div>
+                </div>
             </div>
         </div>
-        {% endfor %}
-    </div>
-    {% endif %}
 
-    <div class="footer">
-        <p>Afinal Cenografia - Documento gerado automaticamente pelo sistema</p>
-        <p>&copy; {% now "Y" %} Afinal Cenografia - Todos os direitos reservados</p>
+        {% for secao in secoes %}
+        <div class="section">
+            <div class="card-header">{{ secao.titulo }}</div>
+            
+            {% if secao.titulo == 'Informações do Evento' %}
+                {% if projeto.feira.manual %}
+                <div class="info-row">
+                    <div class="label">Manual da Feira:</div>
+                    <div class="value">
+                        <a href="{{ projeto.feira.manual.url }}" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="fas fa-download me-1"></i> Download do Manual
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% for label, value in secao.dados.items %}
+                <div class="info-row">
+                    <div class="label">{{ label }}:</div>
+                    <div class="value">{{ value }}</div>
+                </div>
+                {% endfor %}
+                
+                {% if projeto.feira and briefing.mapa_estande %}
+                <div class="info-row mt-3">
+                    <div class="label">Mapa do Estande:</div>
+                    <div class="value">
+                        <img src="{{ briefing.mapa_estande.url }}" alt="Mapa do Estande" class="img-fluid mt-2" style="max-height: 300px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                </div>
+                {% endif %}
+            {% elif secao.titulo == 'Áreas do Estande' %}
+                {% for area_tipo, areas in secao.dados.items %}
+                    {% if areas %}
+                        {% if area_tipo == 'Áreas de Exposição' %}
+                            <h3>Área de Exposição</h3>
+                        {% elif area_tipo == 'Salas de Reunião' %}
+                            <h3>Sala de Reunião</h3>
+                        {% elif area_tipo == 'Copas' %}
+                            <h3>Copa</h3>
+                        {% elif area_tipo == 'Depósitos' %}
+                            <h3>Depósito</h3>
+                        {% else %}
+                            <h3>{{ area_tipo }}</h3>
+                        {% endif %}
+                        
+                        {% for area in areas %}
+                            <div class="area-section">
+                                {% if forloop.counter > 1 %}
+                                    {% if area_tipo == 'Áreas de Exposição' %}
+                                        <div class="area-title">Área de Exposição {{ forloop.counter }}</div>
+                                    {% elif area_tipo == 'Salas de Reunião' %}
+                                        <div class="area-title">Sala de Reunião {{ forloop.counter }}</div>
+                                    {% elif area_tipo == 'Copas' %}
+                                        <div class="area-title">Copa {{ forloop.counter }}</div>
+                                    {% elif area_tipo == 'Depósitos' %}
+                                        <div class="area-title">Depósito {{ forloop.counter }}</div>
+                                    {% else %}
+                                        <div class="area-title">{{ area_tipo }} {{ forloop.counter }}</div>
+                                    {% endif %}
+                                {% endif %}
+                                <div class="area-info">
+                                    {% for label, value in area.items %}
+                                        {% if label != 'Itens' %}
+                                            <div class="info-row">
+                                                <div class="label">{{ label }}:</div>
+                                                <div class="value">{{ value }}</div>
+                                            </div>
+                                        {% else %}
+                                            {% if value %}
+                                                <div class="info-row">
+                                                    <div class="label">Itens:</div>
+                                                    <div class="value">
+                                                        {{ value|join:", " }}
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                {% for label, value in secao.dados.items %}
+                <div class="info-row">
+                    <div class="label">{{ label }}:</div>
+                    <div class="value">{{ value }}</div>
+                </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        {% if arquivos %}
+        <div class="section">
+            <div class="card-header">Arquivos de Referência</div>
+            <div class="file-list">
+                {% for arquivo in arquivos %}
+                <div class="file-item">
+                    <span class="file-type">{{ arquivo.Tipo }}</span>
+                    <div class="file-info">
+                        <div class="file-name">{{ arquivo.Nome }}</div>
+                        {% if arquivo.Observações != 'Sem observações' %}
+                        <div class="file-notes">{{ arquivo.Observações }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Imagens de referência -->
+            {% if imagens_referencias %}
+            <div class="mt-4">
+                <h4>Imagens de Referência</h4>
+                <div class="d-flex flex-wrap gap-3 mt-3">
+                    {% for imagem in imagens_referencias %}
+                    <div class="card" style="width: 200px;">
+                        <img src="{{ imagem.url }}" alt="{{ imagem.nome }}" class="card-img-top" style="height: 150px; object-fit: cover;">
+                        <div class="card-body p-2">
+                            <p class="card-text small mb-1">{{ imagem.nome }}</p>
+                            <span class="badge bg-secondary">{{ imagem.tipo }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if briefing.validacoes.exists %}
+        <div class="section">
+            <div class="card-header">Status de Validação</div>
+            {% for validacao in briefing.validacoes.all %}
+            <div class="info-row">
+                <div class="label">{{ validacao.get_secao_display }}:</div>
+                <div class="value">
+                    <span class="status status-{{ validacao.status }}">
+                        {{ validacao.get_status_display }}
+                    </span>
+                    {% if validacao.mensagem %}
+                    <div style="margin-top: 5px; font-size: 13px;">
+                        {{ validacao.mensagem }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="footer">
+            <p>Afinal Cenografia - Documento gerado automaticamente</p>
+            <p>&copy; {% now "Y" %} Afinal Cenografia - Todos os direitos reservados</p>
+        </div>
     </div>
 </body>
 </html>
