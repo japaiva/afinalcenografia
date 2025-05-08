@@ -8,6 +8,10 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django.forms import modelformset_factory
 from django.db import transaction
+from core.services.extracao_service import eh_pergunta_relacionada_a_feira
+from core.models import Feira, Agente
+from core.services.rag_service import RAGService
+from projetos.models.projeto import Projeto  # Importação necessária
 
 import json
 import os
@@ -349,7 +353,6 @@ def briefing_etapa(request, projeto_id, etapa):
     #return render(request, 'cliente/briefing_etapa.html', context)
     template_name = f'cliente/briefing_etapa{etapa}.html'
     return render(request, template_name, context)
-
 
 @login_required
 @cliente_required
@@ -968,3 +971,86 @@ def limpar_conversas_briefing(request, projeto_id):
     return redirect('cliente:briefing_etapa', 
                    projeto_id=projeto.id, 
                    etapa=briefing.etapa_atual)
+
+
+@login_required
+@cliente_required
+@require_POST
+def perguntar_manual(request):
+    """
+    Recebe uma pergunta sobre o manual da feira e retorna uma resposta usando RAG.
+    """
+    try:
+        data = json.loads(request.body)
+        pergunta = data.get('pergunta')
+        feira_id = data.get('feira_id')
+        
+        if not pergunta:
+            return JsonResponse({'success': False, 'message': 'Forneça uma pergunta.'}, status=400)
+        if not feira_id:
+            return JsonResponse({'success': False, 'message': 'Especifique uma feira.'}, status=400)
+        
+        feira = get_object_or_404(Feira, pk=feira_id)
+        if not feira.chunks_processados:
+            return JsonResponse({
+                'success': False,
+                'message': 'O manual desta feira ainda não foi totalmente processado.'
+            })
+        
+        # Usar o agente específico para RAG de feiras
+        agente_nome = 'Assistente RAG de Feiras'
+        try:
+            agente = Agente.objects.get(nome=agente_nome, ativo=True)
+        except Agente.DoesNotExist:
+            # Fallback para outro agente
+            agente_nome = 'Assistente de Briefing'
+        
+        # Inicializar o serviço RAG com o agente apropriado
+        rag_service = RAGService(agent_name=agente_nome)
+        rag_result = rag_service.gerar_resposta_rag(pergunta, feira_id)
+        
+        # Verificar resultados
+        if rag_result.get('status') == 'error':
+            return JsonResponse({'success': False, 'message': rag_result.get('error')})
+        if rag_result.get('status') == 'no_results':
+            return JsonResponse({
+                'success': True,
+                'resposta': 'Não encontrei informações específicas sobre isso no manual da feira.',
+                'contextos': [],
+                'agente_usado': agente_nome
+            })
+        
+        # Buscar o projeto e o briefing associados à feira
+        projeto = get_object_or_404(Projeto, feira_id=feira_id, empresa=request.user.empresa)
+        briefing = get_object_or_404(Briefing, projeto=projeto)
+        
+        # Salvar a interação no histórico de conversa
+        BriefingConversation.objects.create(
+            briefing=briefing,
+            mensagem=f"Sobre o manual: {pergunta}",
+            origem='cliente',
+            etapa=briefing.etapa_atual
+        )
+        
+        # Salvar a resposta no histórico
+        BriefingConversation.objects.create(
+            briefing=briefing,
+            mensagem=rag_result['resposta'],
+            origem='ia',
+            etapa=briefing.etapa_atual
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'resposta': rag_result['resposta'],
+            'contextos': rag_result['contextos'],
+            'status': rag_result['status'],
+            'agente_usado': agente_nome
+        })
+        
+    except Exception as e:
+        logger.error(f"Erro ao responder pergunta sobre manual: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f"Erro ao processar consulta: {str(e)}"
+        }, status=500)

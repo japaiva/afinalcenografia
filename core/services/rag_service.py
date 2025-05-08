@@ -164,3 +164,4 @@ def integrar_feira_com_briefing(briefing_id, feira_id):
             'status': 'error',
             'message': str(e)
         }
+    

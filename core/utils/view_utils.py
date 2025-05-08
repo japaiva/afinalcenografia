@@ -87,3 +87,4 @@ class PaginacaoMixin:
             Objeto Page contendo os itens da página atual
         """
         return paginar_lista(queryset, self.request, self.itens_por_pagina)
+    
