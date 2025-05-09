@@ -106,7 +106,8 @@ def projeto_detail(request, pk):
 @login_required
 def ver_briefing(request, projeto_id, versao=None):
     """
-    Permite ao gestor visualizar o briefing de um projeto
+    Permite ao gestor visualizar o briefing de um projeto,
+    com suporte para visualizar versões específicas
     """
     projeto = get_object_or_404(Projeto, pk=projeto_id)
     
@@ -117,16 +118,30 @@ def ver_briefing(request, projeto_id, versao=None):
         messages.error(request, 'Este projeto não possui um briefing.')
         return redirect('gestor:projeto_detail', pk=projeto_id)
     
-    # Se não especificou versão, pega a mais recente
+    # Processar seleção de versão específica se informada
+    if versao is None and request.GET.get('versao'):
+        try:
+            versao = int(request.GET.get('versao'))
+        except ValueError:
+            versao = None
+    
+    # Se não especificou versão ou versão é inválida, pega a mais recente
     if versao is None:
         briefing = briefings.first()
     else:
         briefing = get_object_or_404(Briefing, projeto=projeto, versao=versao)
     
+    # Obtenha as validações, arquivos e conversas
     validacoes = BriefingValidacao.objects.filter(briefing=briefing)
     arquivos = BriefingArquivoReferencia.objects.filter(briefing=briefing)
     conversas = BriefingConversation.objects.filter(briefing=briefing).order_by('timestamp')
     
+    # Para os dados de áreas do estande
+    areas_exposicao = briefing.areas_exposicao.all() if hasattr(briefing, 'areas_exposicao') else []
+    salas_reuniao = briefing.salas_reuniao.all() if hasattr(briefing, 'salas_reuniao') else []
+    copas = briefing.copas.all() if hasattr(briefing, 'copas') else []
+    depositos = briefing.depositos.all() if hasattr(briefing, 'depositos') else []
+
     context = {
         'projeto': projeto,
         'briefing': briefing,
@@ -134,6 +149,10 @@ def ver_briefing(request, projeto_id, versao=None):
         'validacoes': validacoes,
         'arquivos': arquivos,
         'conversas': conversas,
+        'areas_exposicao': areas_exposicao,
+        'salas_reuniao': salas_reuniao,
+        'copas': copas,
+        'depositos': depositos,
         'todas_aprovadas': all(v.status == 'aprovado' for v in validacoes),
     }
     

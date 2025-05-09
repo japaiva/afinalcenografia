@@ -12,10 +12,28 @@
       <a href="{% url 'gestor:projeto_detail' pk=projeto.pk %}" class="btn btn-outline-secondary btn-sm">
         <i class="fas fa-arrow-left me-1"></i> Voltar
       </a>
+      {% if briefing.pdf_file %}
+      <a href="{{ briefing.pdf_file.url }}" class="btn btn-outline-primary btn-sm ms-2" target="_blank">
+        <i class="fas fa-file-pdf me-1"></i> Ver PDF
+      </a>
+      {% endif %}
     </div>
   </div>
   
   <div class="card-body">
+    <!-- Seletor de versão -->
+    {% if briefings.count > 1 %}
+    <div class="mb-3">
+      <label class="form-label fw-bold">Versão do Briefing</label>
+      <select id="versaoSelect" class="form-select" onchange="window.location.href = '{% url 'gestor:ver_briefing' projeto_id=projeto.id %}?versao=' + this.value">
+        {% for b in briefings %}
+        <option value="{{ b.versao }}" {% if b.id == briefing.id %}selected{% endif %}>
+          v{{ b.versao }} - {{ b.updated_at|date:"d/m/Y H:i" }} ({{ b.get_status_display }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
  
     <!-- Status do briefing -->
     <div class="alert 
@@ -36,32 +54,49 @@
             {% endif %}
           </h5>
           <p class="mb-0">
-            Última atualização: {{ briefing.updated_at|date:"d/m/Y H:i" }}
+            Progresso: <strong>{{ briefing.progresso }}%</strong> | Última atualização: {{ briefing.updated_at|date:"d/m/Y H:i" }}
           </p>
         </div>
+      </div>
+    </div>
+    
+    <!-- Validações do briefing -->
+    <div class="mb-4">
+      <h6 class="fw-bold">Status de Validação:</h6>
+      <div class="d-flex flex-wrap gap-2">
+        {% for validacao in validacoes %}
+        <div class="badge 
+          {% if validacao.status == 'pendente' %}bg-secondary
+          {% elif validacao.status == 'atencao' %}bg-warning text-dark
+          {% elif validacao.status == 'aprovado' %}bg-success
+          {% elif validacao.status == 'reprovado' %}bg-danger
+          {% endif %} py-2 px-3">
+          {{ validacao.get_secao_display }}
+        </div>
+        {% endfor %}
       </div>
     </div>
     
     <!-- Abas para diferentes seções -->
     <ul class="nav nav-tabs mb-4 mt-4" id="briefingTabs" role="tablist">
       <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab" aria-controls="info" aria-selected="true">
-          Informações Básicas
+        <button class="nav-link active" id="evento-tab" data-bs-toggle="tab" data-bs-target="#evento" type="button" role="tab" aria-controls="evento" aria-selected="true">
+          1. Evento
         </button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tech-tab" data-bs-toggle="tab" data-bs-target="#tech" type="button" role="tab" aria-controls="tech" aria-selected="false">
-          Detalhes Técnicos
+        <button class="nav-link" id="estande-tab" data-bs-toggle="tab" data-bs-target="#estande" type="button" role="tab" aria-controls="estande" aria-selected="false">
+          2. Estande
         </button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" id="materials-tab" data-bs-toggle="tab" data-bs-target="#materials" type="button" role="tab" aria-controls="materials" aria-selected="false">
-          Materiais
+        <button class="nav-link" id="areas-tab" data-bs-toggle="tab" data-bs-target="#areas" type="button" role="tab" aria-controls="areas" aria-selected="false">
+          3. Áreas do Estande
         </button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" id="requirements-tab" data-bs-toggle="tab" data-bs-target="#requirements" type="button" role="tab" aria-controls="requirements" aria-selected="false">
-          Requisitos
+        <button class="nav-link" id="complementares-tab" data-bs-toggle="tab" data-bs-target="#complementares" type="button" role="tab" aria-controls="complementares" aria-selected="false">
+          4. Dados Complementares
         </button>
       </li>
       <li class="nav-item" role="presentation">
@@ -78,97 +113,15 @@
     
     <!-- Conteúdo das abas -->
     <div class="tab-content" id="briefingTabContent">
-      <!-- Informações Básicas -->
-      <div class="tab-pane fade show active" id="info" role="tabpanel" aria-labelledby="info-tab">
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <label class="form-label fw-bold">Categoria</label>
-            <p class="border-bottom pb-2">{{ briefing.categoria|default:"-" }}</p>
-          </div>
-          
-          <div class="col-md-6 mb-3">
-            <label class="form-label fw-bold">Data de Criação</label>
-            <p class="border-bottom pb-2">{{ briefing.created_at|date:"d/m/Y H:i" }}</p>
-          </div>
-          
-          <div class="col-12 mb-3">
-            <label class="form-label fw-bold">Descrição Detalhada</label>
-            <div class="p-3 bg-light rounded">
-              {{ briefing.descricao_detalhada|linebreaks|default:"Não informado" }}
-            </div>
-          </div>
-          
-          <div class="col-12 mb-3">
-            <label class="form-label fw-bold">Objetivos</label>
-            <div class="p-3 bg-light rounded">
-              {{ briefing.objetivos|linebreaks|default:"Não informado" }}
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Detalhes Técnicos -->
-      <div class="tab-pane fade" id="tech" role="tabpanel" aria-labelledby="tech-tab">
-        <div class="row">
-          <div class="col-md-4 mb-3">
-            <label class="form-label fw-bold">Dimensões (m²)</label>
-            <p class="border-bottom pb-2">{{ briefing.dimensoes|default:"Não informado" }}</p>
-          </div>
-          
-          <div class="col-md-4 mb-3">
-            <label class="form-label fw-bold">Altura (m)</label>
-            <p class="border-bottom pb-2">{{ briefing.altura|default:"Não informado" }}</p>
-          </div>
-          
-          <div class="col-md-4 mb-3">
-            <label class="form-label fw-bold">Paleta de Cores</label>
-            <p class="border-bottom pb-2">{{ briefing.paleta_cores|default:"Não informado" }}</p>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Materiais e Acabamentos -->
-      <div class="tab-pane fade" id="materials" role="tabpanel" aria-labelledby="materials-tab">
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <label class="form-label fw-bold">Materiais Preferidos</label>
-            <div class="p-3 bg-light rounded">
-              {{ briefing.materiais_preferidos|linebreaks|default:"Não informado" }}
-            </div>
-          </div>
-          
-          <div class="col-md-6 mb-3">
-            <label class="form-label fw-bold">Acabamentos</label>
-            <div class="p-3 bg-light rounded">
-              {{ briefing.acabamentos|linebreaks|default:"Não informado" }}
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Requisitos Técnicos -->
-      <div class="tab-pane fade" id="requirements" role="tabpanel" aria-labelledby="requirements-tab">
-        <div class="row">
-          <div class="col-md-4 mb-3">
-            <label class="form-label fw-bold">Iluminação</label>
-            <div class="p-3 bg-light rounded">
-              {{ briefing.iluminacao|linebreaks|default:"Não informado" }}
-            </div>
-          </div>
-          
-          <div class="col-md-4 mb-3">
-            <label class="form-label fw-bold">Elétrica</label>
-            <div class="p-3 bg-light rounded">
-              {{ briefing.eletrica|linebreaks|default:"Não informado" }}
-            </div>
-          </div>
-          
-          <div class="col-md-4 mb-3">
-            <label class="form-label fw-bold">Mobiliário</label>
-            <div class="p-3 bg-light rounded">
-              {{ briefing.mobiliario|linebreaks|default:"Não informado" }}
-            </div>
-          </div>
+      <!-- 1. EVENTO - Datas e Localização -->
+      <div class="tab-pane fade show active" id="evento" role="tabpanel" aria-labelledby="evento-tab">
+        <div class="row g-4">
+          <!-- Informações da Feira -->
+          <div class="col-12">
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">Informações da Feira</h6>
+              </div>
         </div>
       </div>
       
@@ -188,7 +141,7 @@
                   </span>
                   <small class="text-muted ms-auto">{{ conversa.timestamp|date:"d/m/Y H:i" }}</small>
                 </div>
-                <div class="chat-bubble {% if conversa.origem == 'cliente' %}bg-white{% else %}bg-light{% endif %}">
+                <div class="chat-bubble {% if conversa.origem == 'cliente' %}bg-white{% else %}bg-light-success{% endif %} border">
                   {{ conversa.mensagem|linebreaks }}
                 </div>
               </div>
@@ -209,7 +162,7 @@
             {% for arquivo in arquivos %}
               <div class="col">
                 <div class="card h-100">
-                  {% if arquivo.tipo == 'imagem' %}
+                  {% if arquivo.tipo == 'imagem' or arquivo.tipo == 'referencia' or arquivo.tipo == 'campanha' or arquivo.tipo == 'logo' %}
                     <img src="{{ arquivo.arquivo.url }}" class="card-img-top" alt="{{ arquivo.nome }}" style="height: 150px; object-fit: cover;">
                   {% else %}
                     <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 150px;">
@@ -225,6 +178,9 @@
                       <span class="badge bg-secondary">{{ arquivo.get_tipo_display }}</span>
                       <span class="d-block mt-1">{{ arquivo.uploaded_at|date:"d/m/Y H:i" }}</span>
                     </p>
+                    {% if arquivo.observacoes %}
+                      <p class="card-text small">{{ arquivo.observacoes }}</p>
+                    {% endif %}
                     <a href="{{ arquivo.arquivo.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
                       <i class="fas fa-download me-1"></i> Download
                     </a>
@@ -242,7 +198,6 @@
       </div>
     </div>
   </div>
-  
 </div>
 
 <style>
@@ -259,5 +214,512 @@
   max-width: 100%;
   border: 1px solid #dee2e6;
 }
+
+.bg-light-success {
+  background-color: #f0f9f4;
+}
 </style>
 {% endblock %}
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold">Feira/Evento</label>
+                    <p class="border-bottom pb-2">{{ briefing.feira.nome|default:"Não informado" }}</p>
+                  </div>
+                  
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold">Local</label>
+                    <p class="border-bottom pb-2">{{ briefing.feira.local|default:"Não informado" }}</p>
+                  </div>
+                  
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold">Cidade/UF</label>
+                    <p class="border-bottom pb-2">
+                      {% if briefing.feira.cidade %}
+                        {{ briefing.feira.cidade }}/{{ briefing.feira.estado|default:"--" }}
+                      {% else %}
+                        Não informado
+                      {% endif %}
+                    </p>
+                  </div>
+                  
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold">Organizador</label>
+                    <p class="border-bottom pb-2">{{ briefing.feira.promotora|default:"Não informado" }}</p>
+                  </div>
+                  
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold">Período do Evento</label>
+                    <p class="border-bottom pb-2">
+                      {% if briefing.feira.data_inicio %}
+                        {{ briefing.feira.data_inicio|date:"d/m/Y" }} a {{ briefing.feira.data_fim|date:"d/m/Y"|default:"--" }}
+                      {% else %}
+                        Não informado
+                      {% endif %}
+                    </p>
+                  </div>
+                  
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold">Horário</label>
+                    <p class="border-bottom pb-2">{{ briefing.feira.data_horario|default:"Não informado" }}</p>
+                  </div>
+                  
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold">Período de Montagem</label>
+                    <p class="border-bottom pb-2">{{ briefing.feira.periodo_montagem|default:"Não informado" }}</p>
+                  </div>
+                  
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold">Período de Desmontagem</label>
+                    <p class="border-bottom pb-2">{{ briefing.feira.periodo_desmontagem|default:"Não informado" }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Localização do Estande -->
+          <div class="col-12">
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">Localização do Estande</h6>
+              </div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-12">
+                    <label class="form-label fw-bold">Endereço do Estande</label>
+                    <p class="border-bottom pb-2">{{ briefing.endereco_estande|default:"Não informado" }}</p>
+                  </div>
+                  
+                  <div class="col-md-12">
+                    <label class="form-label fw-bold">Mapa do Estande</label>
+                    {% if briefing.mapa_estande %}
+                      <div class="mt-2">
+                        <a href="{{ briefing.mapa_estande.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                          <i class="fas fa-file me-1"></i> Ver Mapa
+                        </a>
+                      </div>
+                    {% else %}
+                      <p class="border-bottom pb-2">Não enviado</p>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 2. ESTANDE - Características Físicas -->
+      <div class="tab-pane fade" id="estande" role="tabpanel" aria-labelledby="estande-tab">
+        <div class="row g-4">
+          <!-- Informações do Estande -->
+          <div class="col-12">
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">Informações do Estande</h6>
+              </div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-3">
+                    <label class="form-label fw-bold">Medida Frente (m)</label>
+                    <p class="border-bottom pb-2">{{ briefing.medida_frente|default:"Não informado" }}</p>
+                  </div>
+                  
+                  <div class="col-md-3">
+                    <label class="form-label fw-bold">Medida Fundo (m)</label>
+                    <p class="border-bottom pb-2">{{ briefing.medida_fundo|default:"Não informado" }}</p>
+                  </div>
+                  
+                  <div class="col-md-3">
+                    <label class="form-label fw-bold">Lateral Esquerda (m)</label>
+                    <p class="border-bottom pb-2">{{ briefing.medida_lateral_esquerda|default:"Não informado" }}</p>
+                  </div>
+                  
+                  <div class="col-md-3">
+                    <label class="form-label fw-bold">Lateral Direita (m)</label>
+                    <p class="border-bottom pb-2">{{ briefing.medida_lateral_direita|default:"Não informado" }}</p>
+                  </div>
+                  
+                  <div class="col-md-3">
+                    <label class="form-label fw-bold">Área Total (m²)</label>
+                    <p class="border-bottom pb-2">{{ briefing.area_estande|default:"Não informado" }}</p>
+                  </div>
+                  
+                  <div class="col-md-3">
+                    <label class="form-label fw-bold">Materiais</label>
+                    <p class="border-bottom pb-2">{{ briefing.get_material_display|default:"Não informado" }}</p>
+                  </div>
+                  
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold">Estilo do Estande</label>
+                    <p class="border-bottom pb-2">{{ briefing.estilo_estande|default:"Não informado" }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Estrutura do Estande -->
+          <div class="col-12">
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">Estrutura do Estande</h6>
+              </div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold">Piso Elevado</label>
+                    <p class="border-bottom pb-2">{{ briefing.get_piso_elevado_display|default:"Não informado" }}</p>
+                  </div>
+                  
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold">Tipo Testeira</label>
+                    <p class="border-bottom pb-2">{{ briefing.get_tipo_testeira_display|default:"Não informado" }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Funcionalidades / Objetivo do Estande -->
+          <div class="col-12">
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">Funcionalidades / Objetivo do Estande</h6>
+              </div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label fw-bold">Venda</label>
+                    <p class="border-bottom pb-2">{{ briefing.get_tipo_venda_display|default:"Não informado" }}</p>
+                  </div>
+                  
+                  <div class="col-md-8">
+                    <label class="form-label fw-bold">Tipo de Ativação</label>
+                    <p class="border-bottom pb-2">{{ briefing.tipo_ativacao|default:"Não informado" }}</p>
+                  </div>
+                  
+                  <div class="col-md-12">
+                    <label class="form-label fw-bold">Objetivo do Estande</label>
+                    <div class="p-3 bg-light rounded">
+                      {{ briefing.objetivo_estande|linebreaks|default:"Não informado" }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 3. ÁREAS DO ESTANDE - Divisões Funcionais -->
+      <div class="tab-pane fade" id="areas" role="tabpanel" aria-labelledby="areas-tab">
+        <div class="row g-4">
+          <!-- Áreas de Exposição -->
+          <div class="col-12">
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">Áreas de Exposição</h6>
+              </div>
+              <div class="card-body">
+                {% if briefing.areas_exposicao.exists %}
+                  <div class="accordion" id="accordionAreasExposicao">
+                    {% for area in briefing.areas_exposicao.all %}
+                      <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingArea{{ forloop.counter }}">
+                          <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" 
+                                 data-bs-toggle="collapse" data-bs-target="#collapseArea{{ forloop.counter }}" 
+                                 aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" aria-controls="collapseArea{{ forloop.counter }}">
+                            Área de Exposição {{ forloop.counter }} {% if area.metragem %}- {{ area.metragem }} m²{% endif %}
+                          </button>
+                        </h2>
+                        <div id="collapseArea{{ forloop.counter }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" 
+                             aria-labelledby="headingArea{{ forloop.counter }}" data-bs-parent="#accordionAreasExposicao">
+                          <div class="accordion-body">
+                            <div class="row g-3">
+                              <div class="col-md-12">
+                                <label class="form-label fw-bold">Itens</label>
+                                <ul class="list-group mb-3">
+                                  {% if area.tem_lounge %}<li class="list-group-item">Lounge</li>{% endif %}
+                                  {% if area.tem_vitrine_exposicao %}<li class="list-group-item">Vitrine Exposição</li>{% endif %}
+                                  {% if area.tem_balcao_recepcao %}<li class="list-group-item">Balcão Recepção</li>{% endif %}
+                                  {% if area.tem_mesas_atendimento %}<li class="list-group-item">Mesas de Atendimento</li>{% endif %}
+                                  {% if area.tem_balcao_cafe %}<li class="list-group-item">Balcão para Café/Bar</li>{% endif %}
+                                  {% if area.tem_balcao_vitrine %}<li class="list-group-item">Balcão Vitrine</li>{% endif %}
+                                  {% if area.tem_caixa_vendas %}<li class="list-group-item">Caixa para Vendas</li>{% endif %}
+                                  {% if not area.tem_lounge and not area.tem_vitrine_exposicao and not area.tem_balcao_recepcao and not area.tem_mesas_atendimento and not area.tem_balcao_cafe and not area.tem_balcao_vitrine and not area.tem_caixa_vendas %}
+                                    <li class="list-group-item">Nenhum item selecionado</li>
+                                  {% endif %}
+                                </ul>
+                              </div>
+                              
+                              <div class="col-md-6">
+                                <label class="form-label fw-bold">Equipamentos</label>
+                                <div class="p-3 bg-light rounded">
+                                  {{ area.equipamentos|linebreaks|default:"Não informado" }}
+                                </div>
+                              </div>
+                              
+                              <div class="col-md-6">
+                                <label class="form-label fw-bold">Observações</label>
+                                <div class="p-3 bg-light rounded">
+                                  {{ area.observacoes|linebreaks|default:"Não informado" }}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <div class="alert alert-info mb-0">
+                    Nenhuma área de exposição configurada.
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          
+          <!-- Salas de Reunião -->
+          <div class="col-12">
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">Salas de Reunião</h6>
+              </div>
+              <div class="card-body">
+                {% if briefing.salas_reuniao.exists %}
+                  <div class="accordion" id="accordionSalasReuniao">
+                    {% for sala in briefing.salas_reuniao.all %}
+                      <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingSala{{ forloop.counter }}">
+                          <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" 
+                                 data-bs-toggle="collapse" data-bs-target="#collapseSala{{ forloop.counter }}" 
+                                 aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" aria-controls="collapseSala{{ forloop.counter }}">
+                            Sala de Reunião {{ forloop.counter }} - {{ sala.capacidade }} pessoas{% if sala.metragem %} - {{ sala.metragem }} m²{% endif %}
+                          </button>
+                        </h2>
+                        <div id="collapseSala{{ forloop.counter }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" 
+                             aria-labelledby="headingSala{{ forloop.counter }}" data-bs-parent="#accordionSalasReuniao">
+                          <div class="accordion-body">
+                            <div class="row g-3">
+                              <div class="col-md-12">
+                                <label class="form-label fw-bold">Equipamentos</label>
+                                <div class="p-3 bg-light rounded">
+                                  {{ sala.equipamentos|linebreaks|default:"Não informado" }}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <div class="alert alert-info mb-0">
+                    Nenhuma sala de reunião configurada.
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          
+          <!-- Copa -->
+          <div class="col-12">
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">Copa</h6>
+              </div>
+              <div class="card-body">
+                {% if briefing.copas.exists %}
+                  {% with copa=briefing.copas.first %}
+                  <div class="row g-3">
+                    <div class="col-md-4">
+                      <label class="form-label fw-bold">Metragem</label>
+                      <p class="border-bottom pb-2">{% if copa.metragem %}{{ copa.metragem }} m²{% else %}Não informado{% endif %}</p>
+                    </div>
+                    
+                    <div class="col-md-8">
+                      <label class="form-label fw-bold">Equipamentos</label>
+                      <div class="p-3 bg-light rounded">
+                        {{ copa.equipamentos|linebreaks|default:"Não informado" }}
+                      </div>
+                    </div>
+                  </div>
+                  {% endwith %}
+                {% else %}
+                  <div class="alert alert-info mb-0">
+                    Nenhuma copa configurada.
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          
+          <!-- Depósito -->
+          <div class="col-12">
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">Depósito</h6>
+              </div>
+              <div class="card-body">
+                {% if briefing.depositos.exists %}
+                  {% with deposito=briefing.depositos.first %}
+                  <div class="row g-3">
+                    <div class="col-md-4">
+                      <label class="form-label fw-bold">Metragem</label>
+                      <p class="border-bottom pb-2">{% if deposito.metragem %}{{ deposito.metragem }} m²{% else %}Não informado{% endif %}</p>
+                    </div>
+                    
+                    <div class="col-md-8">
+                      <label class="form-label fw-bold">Equipamentos</label>
+                      <div class="p-3 bg-light rounded">
+                        {{ deposito.equipamentos|linebreaks|default:"Não informado" }}
+                      </div>
+                    </div>
+                  </div>
+                  {% endwith %}
+                {% else %}
+                  <div class="alert alert-info mb-0">
+                    Nenhum depósito configurado.
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 4. DADOS COMPLEMENTARES - Referências Visuais -->
+      <div class="tab-pane fade" id="complementares" role="tabpanel" aria-labelledby="complementares-tab">
+        <div class="row g-4">
+          <!-- Referências Visuais -->
+          <div class="col-12">
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">Referências Visuais</h6>
+              </div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-12">
+                    <label class="form-label fw-bold">Detalhamento</label>
+                    <div class="p-3 bg-light rounded">
+                      {{ briefing.referencias_dados|linebreaks|default:"Não informado" }}
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-12">
+                    <label class="form-label fw-bold">Arquivos de Referência</label>
+                    <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-3">
+                      {% for arquivo in arquivos %}
+                        {% if arquivo.tipo == 'referencia' %}
+                          <div class="col">
+                            <div class="card h-100">
+                              <img src="{{ arquivo.arquivo.url }}" class="card-img-top" alt="{{ arquivo.nome }}" style="height: 150px; object-fit: cover;">
+                              <div class="card-body p-2">
+                                <h6 class="card-title text-truncate small">{{ arquivo.nome }}</h6>
+                                <a href="{{ arquivo.arquivo.url }}" class="btn btn-sm btn-outline-primary mt-1" target="_blank">
+                                  <i class="fas fa-search me-1"></i> Ver
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        {% endif %}
+                      {% endfor %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Materiais de Campanha -->
+          <div class="col-12">
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">Materiais de Campanha</h6>
+              </div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-12">
+                    <label class="form-label fw-bold">Detalhamento</label>
+                    <div class="p-3 bg-light rounded">
+                      {{ briefing.campanha_dados|linebreaks|default:"Não informado" }}
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-12">
+                    <label class="form-label fw-bold">Arquivos de Campanha</label>
+                    <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-3">
+                      {% for arquivo in arquivos %}
+                        {% if arquivo.tipo == 'campanha' %}
+                          <div class="col">
+                            <div class="card h-100">
+                              <img src="{{ arquivo.arquivo.url }}" class="card-img-top" alt="{{ arquivo.nome }}" style="height: 150px; object-fit: cover;">
+                              <div class="card-body p-2">
+                                <h6 class="card-title text-truncate small">{{ arquivo.nome }}</h6>
+                                <a href="{{ arquivo.arquivo.url }}" class="btn btn-sm btn-outline-primary mt-1" target="_blank">
+                                  <i class="fas fa-search me-1"></i> Ver
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        {% endif %}
+                      {% endfor %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Informações Complementares -->
+          <div class="col-12">
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">Informações Complementares</h6>
+              </div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-12">
+                    <label class="form-label fw-bold">Logotipo</label>
+                    <div class="p-3 bg-light rounded">
+                      {{ briefing.logotipo|linebreaks|default:"Não informado" }}
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-12">
+                    <label class="form-label fw-bold">Outros Arquivos</label>
+                    <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-3">
+                      {% for arquivo in arquivos %}
+                        {% if arquivo.tipo != 'referencia' and arquivo.tipo != 'campanha' %}
+                          <div class="col">
+                            <div class="card h-100">
+                              {% if arquivo.tipo == 'imagem' or arquivo.tipo == 'logo' %}
+                                <img src="{{ arquivo.arquivo.url }}" class="card-img-top" alt="{{ arquivo.nome }}" style="height: 150px; object-fit: cover;">
+                              {% else %}
+                                <div class="bg-light d-flex align-items-center justify-content-center" style="height: 150px;">
+                                  <i class="fas 
+                                    {% if arquivo.tipo == 'planta' %}fa-map
+                                    {% elif arquivo.tipo == 'documento' %}fa-file-alt
+                                    {% else %}fa-file{% endif %} fa-3x text-secondary"></i>
+                                </div>
+                              {% endif %}
+                              <div class="card-body p-2">
+                                <h6 class="card-title text-truncate small">{{ arquivo.nome }}</h6>
+                                <p class="card-text small text-muted mb-1">{{ arquivo.get_tipo_display }}</p>
+                                <a href="{{ arquivo.arquivo.url }}" class="btn btn-sm btn-outline-primary mt-1" target="_blank">
+                                  <i class="fas fa-download me-1"></i> Download
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        {% endif %}
+                      {% endfor %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>

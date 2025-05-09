@@ -139,10 +139,18 @@
                   </a>
                   
                   {% if projeto.has_briefing %}
-                  <a href="{% url 'gestor:ver_briefing' projeto_id=projeto.id %}" class="btn btn-sm btn-outline-success">
-                    <i class="fas fa-clipboard-list"></i>
-                  </a>
-                  {% endif %}
+                  {% with briefing=projeto.briefings.first %}
+                    {% if briefing.pdf_file %}
+                    <a href="{{ briefing.pdf_file.url }}" class="btn btn-sm btn-outline-success" target="_blank" title="Ver PDF do Briefing">
+                      <i class="fas fa-file-pdf"></i>
+                    </a>
+                    {% else %}
+                    <a href="{% url 'cliente:relatorio_briefing' projeto_id=projeto.id %}" class="btn btn-sm btn-outline-success" title="Gerar PDF do Briefing">
+                      <i class="fas fa-sync-alt"></i>
+                    </a>
+                    {% endif %}
+                  {% endwith %}
+                {% endif %}
                   
                   <a href="{% url 'gestor:mensagens_projeto' projeto_id=projeto.id %}" class="btn btn-sm btn-outline-info">
                     <i class="fas fa-comment"></i>
