@@ -192,24 +192,27 @@ def gerar_relatorio_briefing(request, projeto_id):
         # Arquivos de referência
         arquivos_referencias = []
         imagens_referencias = []
-        
+
         if hasattr(briefing, 'arquivos'):
             for arquivo in briefing.arquivos.all():
-                # Adiciona todos os arquivos à lista principal
+                tipo_display = arquivo.get_tipo_display() if hasattr(arquivo, 'get_tipo_display') else arquivo.tipo
                 arquivos_referencias.append({
-                    'Nome': arquivo.nome,
-                    'Tipo': arquivo.get_tipo_display() if hasattr(arquivo, 'get_tipo_display') else arquivo.tipo,
-                    'Observações': arquivo.observacoes or 'Sem observações'
+                    'nome': arquivo.nome,
+                    'tipo': tipo_display,
+                    'observacoes': arquivo.observacoes or 'Sem observações'
                 })
-                
-                # Se for imagem, adiciona à lista de imagens para exibição visual
+
+                # Verifica se é imagem para galeria
                 tipos_imagem = ['imagem', 'referencia', 'campanha', 'logo']
-                if any(tipo in arquivo.tipo.lower() for tipo in tipos_imagem):
-                    imagens_referencias.append({
-                        'url': arquivo.arquivo.url,
-                        'nome': arquivo.nome,
-                        'tipo': arquivo.get_tipo_display() if hasattr(arquivo, 'get_tipo_display') else arquivo.tipo
-                    })
+                if any(t in arquivo.tipo.lower() for t in tipos_imagem):
+                    try:
+                        imagens_referencias.append({
+                            'url': arquivo.arquivo.url,
+                            'nome': arquivo.nome,
+                            'tipo': tipo_display
+                        })
+                    except Exception as e:
+                        logger.warning(f"Arquivo {arquivo.nome} não possui URL válida: {e}")
         
         # Contexto para o template
         context = {
