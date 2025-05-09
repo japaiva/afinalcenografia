@@ -8,7 +8,6 @@ from core.storage import MinioStorage
 from django.core.validators import MinValueValidator, MaxValueValidator
 import uuid
 import os
-
 class Feira(models.Model):
     # Campos gerais e identificação
     id = models.AutoField(primary_key=True)
@@ -48,14 +47,23 @@ class Feira(models.Model):
     documentos = models.TextField(blank=True, null=True, verbose_name="Documentos")
     credenciamento = models.TextField(blank=True, null=True)
     
-    # Arquivo do manual
+    # IMPORTANTE: Manter como método estático dentro da classe para compatibilidade com migrações
+    @staticmethod
     def manual_upload_path(instance, filename):
-        # Gerar caminho para o arquivo com UUID para evitar colisões
+        """
+        Gera um caminho para o arquivo do manual com UUID para evitar colisões
+        """
         ext = filename.split('.')[-1]
         filename = f"{uuid.uuid4()}.{ext}"
         return os.path.join('manuais', filename)
     
-    manual = models.FileField(upload_to=manual_upload_path, blank=True, null=True)
+    # Arquivo do manual - CORRIGIDO: usando MinioStorage explicitamente
+    manual = models.FileField(
+        upload_to=manual_upload_path, 
+        storage=MinioStorage(),  # Usando explicitamente o MinioStorage
+        blank=True, 
+        null=True
+    )
     
     # Campos de controle de processamento
     namespace_base = models.CharField(max_length=100, blank=True, null=True)
@@ -79,6 +87,18 @@ class Feira(models.Model):
     
     def __str__(self):
         return f"{self.nome} ({self.cidade}/{self.estado})"
+    
+    # CORRIGIDO: Método get_manual_url movido da classe Usuario para a classe Feira
+    def get_manual_url(self):
+        """
+        Retorna a URL correta para o manual da feira.
+        """
+        if not self.manual:
+            return None
+            
+        # Obter a URL direta do MinIO
+        from django.conf import settings
+        return f"{settings.AWS_S3_ENDPOINT_URL}/{settings.AWS_STORAGE_BUCKET_NAME}/{self.manual.name}"
 
     def get_namespace_base(self):
         """Retorna o namespace base, criando se não existir"""
@@ -138,6 +158,7 @@ class Feira(models.Model):
         verbose_name = 'Feira'
         verbose_name_plural = 'Feiras'
         ordering = ['-data_inicio']
+
 class Empresa(models.Model):
     nome = models.CharField(max_length=100)
     cnpj = models.CharField(max_length=18, unique=True)
@@ -178,6 +199,9 @@ class Usuario(AbstractUser):
     date_joined = models.DateTimeField(default=timezone.now)
     telefone = models.CharField(max_length=20, blank=True, null=True)
     
+
+        # No modelo Feira (models.py)
+
     # Removido o campo foto_perfil para evitar duplicação
     # foto_perfil = models.ImageField(upload_to='perfil/', blank=True, null=True)
 
@@ -198,6 +222,8 @@ class Parametro(models.Model):
     
     class Meta:
         db_table = 'parametros'
+
+
 
 
 class PerfilUsuario(models.Model):

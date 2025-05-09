@@ -51,17 +51,17 @@
               <td>{{ feira.data_inicio|date:"d/m/Y" }} a {{ feira.data_fim|date:"d/m/Y" }}</td>
               <td>
                 {% if feira.manual %}
-                  <a href="{{ feira.manual.url }}" target="_blank" class="btn btn-sm btn-outline-info">
-                    <i class="fas fa-file-pdf me-1"></i> Manual
-                  </a>
-                  {% if feira.chunks_processados %}
-                    <span class="badge bg-success ms-1"><i class="fas fa-check-circle"></i> Processado</span>
-                  {% else %}
-                    <span class="badge bg-warning text-dark ms-1"><i class="fas fa-clock"></i> Processando</span>
-                  {% endif %}
+                <a href="{{ feira.get_manual_url }}" target="_blank" class="btn btn-sm btn-outline-info">
+                  <i class="fas fa-file-pdf me-1"></i> Manual
+                </a>
+                {% if feira.chunks_processados %}
+                  <span class="badge bg-success ms-1"><i class="fas fa-check-circle"></i> Processado</span>
                 {% else %}
-                  <span class="text-muted">Sem manual</span>
+                  <span class="badge bg-warning text-dark ms-1"><i class="fas fa-clock"></i> Processando</span>
                 {% endif %}
+              {% else %}
+                <span class="text-muted">Sem manual</span>
+              {% endif %}
               </td>
               <td class="text-center">
                 <span class="badge {% if feira.ativa %}bg-success{% else %}bg-danger{% endif %}">
