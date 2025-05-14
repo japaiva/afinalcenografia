@@ -22,6 +22,26 @@
   <div class="row">
     <!-- COLUNA ESQUERDA (MAIOR) -->
     <div class="col-md-8">
+      <!-- STATUS AGUARDANDO MANUAL (mostrar somente quando for esse status) -->
+      {% if projeto.status == 'aguardando_manual' %}
+      <div class="card shadow mb-4 border-warning">
+        <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0"><i class="fas fa-exclamation-triangle me-2"></i> Atenção - Manual Necessário</h5>
+        </div>
+        <div class="card-body">
+          <p>Este projeto está aguardando o manual do expositor da feira para prosseguir. Por favor, selecione uma das opções abaixo:</p>
+          <div class="d-grid gap-2">
+            <a href="{% url 'cliente:projeto_update' pk=projeto.id %}" class="btn btn-primary">
+              <i class="fas fa-building me-2"></i> Selecionar uma Feira Cadastrada
+            </a>
+            <a href="{% url 'cliente:mensagens_projeto' projeto_id=projeto.id %}" class="btn btn-outline-primary">
+              <i class="fas fa-file-upload me-2"></i> Enviar Manual do Expositor
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      
       <!-- INFORMAÇÕES DO PROJETO -->
       <div class="card shadow mb-4">
         <div class="card-header bg-light d-flex justify-content-between align-items-center">
@@ -41,7 +61,8 @@
             <div class="col-md-6">
               <strong>Status:</strong>
               <span class="badge 
-                {% if projeto.status == 'briefing_pendente' %}bg-info
+                {% if projeto.status == 'aguardando_manual' %}bg-warning text-dark
+                {% elif projeto.status == 'briefing_pendente' %}bg-info
                 {% elif projeto.status == 'briefing_em_andamento' %}bg-warning text-dark
                 {% elif projeto.status == 'briefing_validado' %}bg-success
                 {% elif projeto.status == 'briefing_enviado' %}bg-info
@@ -128,7 +149,10 @@
             {% endif %}
           {% else %}
             <div class="alert alert-warning mb-0">
-              <i class="fas fa-exclamation-triangle me-2"></i> Este projeto não possui feira associada.
+              <i class="fas fa-exclamation-triangle me-2"></i> Este projeto não possui feira associada. 
+              {% if projeto.status == 'aguardando_manual' %}
+              Por favor, selecione uma feira ou envie o manual do expositor pelo sistema de mensagens.
+              {% endif %}
             </div>
           {% endif %}
         </div>
@@ -156,7 +180,11 @@
           <div class="tab-content pt-3" id="consultaTabsContent">
             <!-- BRIEFING TAB -->
             <div class="tab-pane fade show active" id="briefing-content" role="tabpanel" aria-labelledby="briefing-tab">
-              {% if projeto.has_briefing %}
+              {% if projeto.status == 'aguardando_manual' %}
+                <div class="alert alert-warning mb-0">
+                  <i class="fas fa-exclamation-triangle me-2"></i> Não é possível iniciar o briefing enquanto o projeto estiver aguardando manual.
+                </div>
+              {% elif projeto.has_briefing %}
                 {% with briefing=projeto.briefings.first %}
                 <div class="d-flex justify-content-between align-items-center mb-3">
                   <h6 class="mb-0">Briefing v{{ briefing.versao }}</h6>
@@ -260,19 +288,26 @@
         </div>
         <div class="card-body">
           <div class="d-grid gap-2">
-            {% if projeto.has_briefing %}
-            <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=1 %}" class="btn btn-outline-primary">
-              <i class="fas fa-clipboard-list me-2"></i> Acessar Briefing
-            </a>
-            <!-- Botão atualizado para relatório do briefing -->
-            <a href="{% url 'cliente:relatorio_briefing' projeto_id=projeto.id %}" class="btn btn-outline-info" target="_blank">
-              <i class="fas fa-file-pdf me-2"></i> Relatório de Briefing
-            </a>
-          {% else %}
-            <a href="{% url 'cliente:iniciar_briefing' projeto_id=projeto.id %}" class="btn btn-outline-primary">
-              <i class="fas fa-clipboard-list me-2"></i> Iniciar Briefing
-            </a>
-          {% endif %}
+            {% if projeto.status == 'aguardando_manual' %}
+              <a href="{% url 'cliente:projeto_update' pk=projeto.id %}" class="btn btn-primary">
+                <i class="fas fa-building me-2"></i> Selecionar Feira
+              </a>
+              <a href="{% url 'cliente:mensagens_projeto' projeto_id=projeto.id %}" class="btn btn-outline-primary">
+                <i class="fas fa-file-upload me-2"></i> Enviar Manual
+              </a>
+            {% elif projeto.has_briefing %}
+              <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=1 %}" class="btn btn-outline-primary">
+                <i class="fas fa-clipboard-list me-2"></i> Acessar Briefing
+              </a>
+              <!-- Botão atualizado para relatório do briefing -->
+              <a href="{% url 'cliente:relatorio_briefing' projeto_id=projeto.id %}" class="btn btn-outline-info" target="_blank">
+                <i class="fas fa-file-pdf me-2"></i> Relatório de Briefing
+              </a>
+            {% else %}
+              <a href="{% url 'cliente:iniciar_briefing' projeto_id=projeto.id %}" class="btn btn-outline-primary">
+                <i class="fas fa-clipboard-list me-2"></i> Iniciar Briefing
+              </a>
+            {% endif %}
 
           
             <!-- Corrigido o link para as mensagens específicas do projeto -->

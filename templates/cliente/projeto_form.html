@@ -39,16 +39,6 @@
             <div class="form-text">Selecione o tipo de projeto.</div>
           </div>
           
-          <!-- Nome do Projeto - Oculto para feira_negocios -->
-          <div class="col-12" id="nome-container">
-            <label for="{{ form.nome.id_for_label }}" class="form-label">Nome do Projeto*</label>
-            {{ form.nome }}
-            {% if form.nome.errors %}
-              <div class="text-danger small">{{ form.nome.errors.0 }}</div>
-            {% endif %}
-            <div class="form-text">Digite um nome descritivo para seu projeto.</div>
-          </div>
-          
           <!-- Feira - Só obrigatório para tipo "Feira Negócios" -->
           <div class="col-12" id="feira-container">
             <label for="{{ form.feira.id_for_label }}" class="form-label">Feira <span id="feira-obrigatoria">*</span></label>
@@ -57,6 +47,16 @@
               <div class="text-danger small">{{ form.feira.errors.0 }}</div>
             {% endif %}
             <div class="form-text" id="feira-info">Selecione a feira associada a este projeto.</div>
+          </div>
+          
+          <!-- Nome do Projeto - Oculto inicialmente para feira_negocios -->
+          <div class="col-12" id="nome-container" style="display: none;">
+            <label for="{{ form.nome.id_for_label }}" class="form-label">Nome do Projeto*</label>
+            {{ form.nome }}
+            {% if form.nome.errors %}
+              <div class="text-danger small">{{ form.nome.errors.0 }}</div>
+            {% endif %}
+            <div class="form-text" id="nome-info">Digite um nome descritivo para seu projeto.</div>
           </div>
           
           <!-- Orçamento -->
@@ -115,6 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const feiraField = document.getElementById('id_feira');
   const nomeField = document.getElementById('id_nome');
   const nomeContainer = document.getElementById('nome-container');
+  const nomeInfo = document.getElementById('nome-info');
   const feiraContainer = document.getElementById('feira-container');
   const feiraObrigatoria = document.getElementById('feira-obrigatoria');
   const feiraInfo = document.getElementById('feira-info');
@@ -123,28 +124,33 @@ document.addEventListener('DOMContentLoaded', function() {
   {% if not form.instance.pk %}
   const statusField = form.querySelector('[name="status"]');
   if (statusField) {
-    statusField.value = 'briefing_pendente';
+    statusField.value = 'aguardando_manual'; // Status padrão corrigido para 'aguardando_manual'
   }
   {% endif %}
   
   // Função para atualizar a visibilidade e comportamento dos campos
   function atualizarCampos() {
     if (tipoProjeto.value === 'feira_negocios') {
-      // Para feira de negócios, ocultamos o campo nome e exibimos a feira
-      nomeContainer.style.display = 'none';
+      // Para feira de negócios, mostrar sempre o campo feira
       feiraContainer.style.display = 'block';
-      feiraObrigatoria.style.display = 'inline';
-      feiraField.setAttribute('required', 'required');
-      feiraInfo.textContent = 'Selecione a feira. O nome do projeto será preenchido automaticamente com o nome da feira.';
+      feiraObrigatoria.style.display = 'none';  // Feira não é obrigatória
+      feiraInfo.textContent = 'Selecione a feira. Caso não a encontre entre as opções, deixe em branco e envie o manual do expositor em MENSAGENS.';
       
-      // Se tiver feira selecionada, preenche o nome oculto
+      // Para feira de negócios, mostrar o nome apenas se não tiver feira selecionada
       if (feiraField.value) {
+        // Se tiver feira selecionada, oculta o nome e preenche automaticamente
+        nomeContainer.style.display = 'none';
         const feiraOption = feiraField.options[feiraField.selectedIndex];
         nomeField.value = feiraOption.text;
+      } else {
+        // Se não tiver feira, mostra o campo nome com texto de ajuda específico
+        nomeContainer.style.display = 'block';
+        nomeInfo.textContent = 'Digite o nome da Feira (ainda sem manual).';
       }
     } else {
       // Para outros tipos, exibimos o nome e ocultamos a feira
       nomeContainer.style.display = 'block';
+      nomeInfo.textContent = '';
       feiraContainer.style.display = 'none';
       feiraField.removeAttribute('required');
       
@@ -158,6 +164,16 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Atualizar campos quando o tipo de projeto mudar
   tipoProjeto.addEventListener('change', function() {
+    // Atualizar status conforme o tipo de projeto
+    const statusField = form.querySelector('[name="status"]');
+    if (statusField && !form.getAttribute('data-instance-pk')) {
+      if (this.value === 'feira_negocios') {
+        statusField.value = 'aguardando_manual';
+      } else {
+        statusField.value = 'briefing_pendente';
+      }
+    }
+    
     atualizarCampos();
     
     // Limpar nome se mudar de feira para outros
@@ -175,13 +191,34 @@ document.addEventListener('DOMContentLoaded', function() {
   feiraField.addEventListener('change', function() {
     if (tipoProjeto.value === 'feira_negocios') {
       if (this.value) {
+        // Se selecionou uma feira, oculta o campo nome e preenche automaticamente
+        nomeContainer.style.display = 'none';
         const feiraOption = this.options[this.selectedIndex];
         nomeField.value = feiraOption.text;
+        
+        // Atualizar status para briefing_pendente se uma feira for selecionada
+        const statusField = form.querySelector('[name="status"]');
+        if (statusField && !form.getAttribute('data-instance-pk')) {
+          statusField.value = 'briefing_pendente';
+        }
       } else {
-        nomeField.value = '';
+        // Se removeu a feira, mostra o campo nome com texto específico
+        nomeContainer.style.display = 'block';
+        nomeInfo.textContent = 'Digite o nome da Feira (ainda sem manual).';
+        
+        // Atualizar status para aguardando_manual se a feira for removida
+        const statusField = form.querySelector('[name="status"]');
+        if (statusField && !form.getAttribute('data-instance-pk')) {
+          statusField.value = 'aguardando_manual';
+        }
       }
     }
   });
+  
+  // Marcar se a instância tem PK para uso no JavaScript
+  {% if form.instance.pk %}
+  form.setAttribute('data-instance-pk', 'true');
+  {% endif %}
   
   // Configuração inicial
   atualizarCampos();
@@ -207,10 +244,10 @@ document.addEventListener('DOMContentLoaded', function() {
       alert('Por favor, preencha todos os campos obrigatórios.');
     }
     
-    // Se for feira de negócios, feira é obrigatória
-    if (tipoProjetoValue === 'feira_negocios' && !feiraValue) {
+    // Se for feira de negócios, feira não é mais obrigatória
+    if (tipoProjetoValue === 'feira_negocios' && !feiraValue && !nomeValue) {
       formValido = false;
-      alert('Para projetos do tipo Feira de Negócios, é obrigatório selecionar uma feira.');
+      alert('Para projetos do tipo Feira de Negócios sem uma feira selecionada, você precisa fornecer um nome para o projeto.');
     }
     
     if (!formValido) {
@@ -250,5 +287,17 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Forçar o status correto para 'aguardando_manual' na inicialização
+  const tipoProjeto = document.getElementById('id_tipo_projeto');
+  const statusField = document.querySelector('[name="status"]');
+  
+  // Se o tipo for feira_negocios
+  if (statusField && tipoProjeto.value === 'feira_negocios') {
+    statusField.value = 'aguardando_manual';
+  }
+});
+
 </script>
 {% endblock %}

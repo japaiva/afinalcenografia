@@ -5,6 +5,9 @@ from django.db.models import Max
 from core.models import Usuario, Empresa, Feira
 from core.storage import MinioStorage
 from django.utils import timezone
+
+import logging
+logger = logging.getLogger(__name__)
 class Projeto(models.Model):
     TIPO_PROJETO_CHOICES = [
         ('feira_negocios', 'Feira de Negócios'),
@@ -12,6 +15,7 @@ class Projeto(models.Model):
     ]
     
     STATUS_CHOICES = [
+        ('aguardando_manual', 'Aguardando Manual'),  # Novo status
         ('briefing_pendente', 'Briefing Pendente'),
         ('briefing_validado', 'Briefing Validado'),
         ('briefing_enviado', 'Briefing Enviado'),
@@ -115,24 +119,44 @@ class Projeto(models.Model):
         verbose_name_plural = 'Projetos'
         ordering = ['-created_at']
 
+    def definir_status_inicial(self):
+        if self.tipo_projeto == 'feira_negocios':
+            tem_manual = False
+            manual_name = ''
+            if self.feira and self.feira.manual:
+                manual_name = self.feira.manual.name
+                try:
+                    tem_manual = bool(manual_name and self.feira.manual.storage.exists(manual_name))
+                except Exception as e:
+                    logger.error(f"[ERRO] Ao verificar existência do manual: {e}")
+                    tem_manual = False
+
+            logger.info(f"[STATUS-INICIAL] Projeto: {self.nome}, Feira: {self.feira}, Manual: '{manual_name}', Tem manual válido? {tem_manual}")
+            self.status = 'briefing_pendente' if tem_manual else 'aguardando_manual'
+        else:
+            self.status = 'briefing_pendente'
+            logger.info(f"[STATUS-INICIAL] Projeto: {self.nome}, Tipo: {self.tipo_projeto}, Status: briefing_pendente")
+
     def save(self, *args, **kwargs):
-        # Sequência por empresa na criação
+        # Garante que o status sempre será definido pela lógica
+        self.definir_status_inicial()
+
         if not self.pk:
-            ultimo = Projeto.objects.filter(
-                empresa=self.empresa
-            ).aggregate(Max('numero'))['numero__max'] or 0
+            ultimo = Projeto.objects.filter(empresa=self.empresa).aggregate(Max('numero'))['numero__max'] or 0
             self.numero = ultimo + 1
-            
-        # Preenche automaticamente o nome com o nome da feira (se tipo for feira_negocios)
+    
+        # Nome automático se feira_negocios
         if self.tipo_projeto == 'feira_negocios' and self.feira:
             self.nome = self.feira.nome
-            
-        # Preenche dados do evento pela feira (se houver feira selecionada)
+
+        if not self.pk and self.tipo_projeto == 'feira_negocios' and not self.feira and not self.nome:
+            self.nome = "Feira Sem Nome"
+
         if self.feira:
             self.local_evento = self.feira.local
             self.cidade_evento = self.feira.cidade
             self.estado_evento = self.feira.estado
-            
+
         super().save(*args, **kwargs)
 
     def atualizar_metricas(self):
@@ -147,16 +171,12 @@ class Projeto(models.Model):
         
         self.save(update_fields=['tempo_projeto', 'tempo_producao'])
 
-
-
-    
     @property
     def has_briefing(self):
         # Verifica se o objeto já está salvo antes de fazer a consulta
         if not self.pk:
             return False
         return self.briefings.exists()
-
 
 class ProjetoPlanta(models.Model):
     projeto = models.ForeignKey(

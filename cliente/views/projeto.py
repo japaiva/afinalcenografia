@@ -170,6 +170,9 @@ def selecionar_feira(request, projeto_id):
         if feira_id:
             feira = get_object_or_404(Feira, pk=feira_id)
             projeto.feira = feira
+            # Se o status for 'aguardando_manual', atualiza para 'briefing_pendente'
+            if projeto.status == 'aguardando_manual':
+                projeto.status = 'briefing_pendente'
             projeto.save()
             
             messages.success(request, f'Feira "{feira.nome}" selecionada com sucesso!')
@@ -184,34 +187,25 @@ def selecionar_feira(request, projeto_id):
     }
     return render(request, 'projetos/selecionar_feira.html', context)
 
-# clientes/views/projeto.py
-
-# Atualize a função projeto_create para lidar com o novo campo tipo_projeto
 @login_required
 def projeto_create(request):
     """
     View para criar um novo projeto
     """
-    # Obtém a empresa do usuário logado
     empresa = request.user.empresa
-    
+
     if request.method == 'POST':
         form = ProjetoForm(request.POST)
         if form.is_valid():
             projeto = form.save(commit=False)
             projeto.empresa = empresa
             projeto.criado_por = request.user
-            
-            # Define o status como briefing_pendente
-            projeto.status = 'briefing_pendente'
-            
-            # Se o tipo for feira_negocios e tiver feira selecionada, preenche o nome com a feira
-            if projeto.tipo_projeto == 'feira_negocios' and projeto.feira:
-                projeto.nome = projeto.feira.nome
-            
-            # Salva o projeto
+
+            # Define status inicial centralizado
+            projeto.definir_status_inicial()
+
             projeto.save()
-            
+
             # Cria um marco para registrar a criação do projeto
             ProjetoMarco.objects.create(
                 projeto=projeto,
@@ -219,20 +213,24 @@ def projeto_create(request):
                 observacao='Projeto criado pelo cliente',
                 registrado_por=request.user
             )
-            
+
             messages.success(request, 'Projeto criado com sucesso!')
+
+            if projeto.tipo_projeto == 'feira_negocios' and not projeto.feira:
+                messages.warning(request, 'Você não selecionou uma feira. Por favor, envie o manual do expositor da feira pelo sistema de mensagens.')
+
             return redirect('cliente:projeto_detail', pk=projeto.id)
+
     else:
-        form = ProjetoForm()
-        # Inicializar campos ocultos com valores padrão
-        form.initial['status'] = 'briefing_pendente'
-        form.initial['tipo_projeto'] = 'feira_negocios'
-    
-    context = {
+        form = ProjetoForm(initial={
+            'tipo_projeto': 'feira_negocios',
+        })
+
+    return render(request, 'cliente/projeto_form.html', {
         'empresa': empresa,
         'form': form,
-    }
-    return render(request, 'cliente/projeto_form.html', context)
+    })
+
 
 # Atualize a função projeto_update para lidar com o novo campo tipo_projeto
 @login_required
@@ -254,9 +252,22 @@ def projeto_update(request, pk):
             # Atualiza o nome baseado no tipo de projeto e feira
             if projeto_atualizado.tipo_projeto == 'feira_negocios' and projeto_atualizado.feira:
                 projeto_atualizado.nome = projeto_atualizado.feira.nome
+                
+            # Atualiza o status se mudar a feira em um projeto aguardando manual
+            if projeto.status == 'aguardando_manual' and projeto_atualizado.feira:
+                projeto_atualizado.status = 'briefing_pendente'
+            # Se remover a feira de um projeto de feira, muda para aguardando manual
+            elif projeto_atualizado.tipo_projeto == 'feira_negocios' and not projeto_atualizado.feira and projeto.feira:
+                projeto_atualizado.status = 'aguardando_manual'
             
             projeto_atualizado.save()
-            messages.success(request, 'Projeto atualizado com sucesso.')
+            
+            # Mensagem específica para projeto de feira sem feira
+            if projeto_atualizado.tipo_projeto == 'feira_negocios' and not projeto_atualizado.feira:
+                messages.warning(request, 'Você não selecionou uma feira. Por favor, envie o manual do expositor da feira pelo sistema de mensagens.')
+            else:
+                messages.success(request, 'Projeto atualizado com sucesso.')
+                
             return redirect('cliente:projeto_detail', pk=projeto.pk)
     else:
         form = ProjetoForm(instance=projeto)
@@ -286,8 +297,21 @@ class ProjetoUpdateView(LoginRequiredMixin, UpdateView):
         if projeto.tipo_projeto == 'feira_negocios' and projeto.feira:
             projeto.nome = projeto.feira.nome
             
+        # Atualiza o status se mudar a feira em um projeto aguardando manual
+        if projeto.status == 'aguardando_manual' and projeto.feira:
+            projeto.status = 'briefing_pendente'
+        # Se remover a feira de um projeto de feira, muda para aguardando manual
+        elif projeto.tipo_projeto == 'feira_negocios' and not projeto.feira and self.object.feira:
+            projeto.status = 'aguardando_manual'
+            
         projeto.save()
-        messages.success(self.request, 'Projeto atualizado com sucesso!')
+        
+        # Mensagem específica para projeto de feira sem feira
+        if projeto.tipo_projeto == 'feira_negocios' and not projeto.feira:
+            messages.warning(self.request, 'Você não selecionou uma feira. Por favor, envie o manual do expositor da feira pelo sistema de mensagens.')
+        else:
+            messages.success(self.request, 'Projeto atualizado com sucesso!')
+            
         return redirect('projetos:projeto_detail', pk=self.object.id)
     
     def get_context_data(self, **kwargs):
@@ -319,7 +343,6 @@ def projeto_delete(request, pk):
     return render(request, 'projetos/projeto_confirm_delete.html', context)
 
 # Atualização da função iniciar_briefing
-
 @login_required
 def iniciar_briefing(request, projeto_id):
     """
@@ -330,6 +353,11 @@ def iniciar_briefing(request, projeto_id):
     
     # Obtém o projeto
     projeto = get_object_or_404(Projeto, pk=projeto_id, empresa=empresa)
+    
+    # Verifica se o projeto está em status aguardando_manual
+    if projeto.status == 'aguardando_manual':
+        messages.error(request, 'Não é possível iniciar o briefing. Por favor, selecione uma feira ou envie o manual do expositor pelo sistema de mensagens.')
+        return redirect('cliente:projeto_detail', pk=projeto.id)
     
     # Verifica se o projeto já tem um briefing
     # Adiciona verificação extra de segurança
@@ -401,7 +429,6 @@ def verificar_manual_feira(request, projeto_id):
     return render(request, 'projetos/verificar_manual.html', context)
 
 # Classes baseadas em view como alternativa
-
 class ProjetoListView(LoginRequiredMixin, ListView):
     model = Projeto
     template_name = 'projetos/projeto_list.html'
@@ -447,22 +474,33 @@ class ProjetoDetailView(LoginRequiredMixin, DetailView):
         context['referencias'] = self.object.referencias.all()
         return context
 
+
 class ProjetoCreateView(LoginRequiredMixin, CreateView):
     model = Projeto
     form_class = ProjetoForm
     template_name = 'projetos/projeto_form.html'
-    
+
     def form_valid(self, form):
         form.instance.empresa = self.request.user.empresa
-        form.instance.cliente = self.request.user
+        form.instance.criado_por = self.request.user
+
+        # Aplica lógica centralizada de status
+        form.instance.definir_status_inicial()
+
         self.object = form.save()
-        messages.success(self.request, 'Projeto criado com sucesso!')
-        return redirect('projetos:selecionar_feira', projeto_id=self.object.id)
-    
+
+        if self.object.tipo_projeto == 'feira_negocios' and not self.object.feira:
+            messages.warning(self.request, 'Você não selecionou uma feira. Por favor, envie o manual do expositor da feira pelo sistema de mensagens.')
+        else:
+            messages.success(self.request, 'Projeto criado com sucesso!')
+
+        return redirect('projetos:projeto_detail', pk=self.object.id)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['empresa'] = self.request.user.empresa
         return context
+
 class ProjetoDeleteView(LoginRequiredMixin, DeleteView):
     model = Projeto
     template_name = 'projetos/projeto_confirm_delete.html'
@@ -481,8 +519,49 @@ class ProjetoDeleteView(LoginRequiredMixin, DeleteView):
         context['empresa'] = self.request.user.empresa
         return context
     
-
-# projetos/views/projeto.py
+# Function to process manual upload and update project status
+@login_required
+def processar_upload_manual(request, projeto_id):
+    """
+    View para processar o upload do manual do expositor
+    e atualizar o status do projeto
+    """
+    # Obtém a empresa do usuário logado
+    empresa = request.user.empresa
+    
+    # Obtém o projeto
+    projeto = get_object_or_404(Projeto, pk=projeto_id, empresa=empresa)
+    
+    if request.method == 'POST' and 'manual' in request.FILES:
+        arquivo = request.FILES['manual']
+        
+        # Criar uma mensagem com o arquivo anexado
+        from projetos.models import ProjetoMensagem
+        
+        mensagem = ProjetoMensagem.objects.create(
+            projeto=projeto,
+            remetente=request.user,
+            destinatario=None,  # Destinado à equipe interna
+            assunto="Manual do Expositor",
+            mensagem="Segue o manual do expositor para análise e cadastro da feira.",
+            arquivo=arquivo,
+            arquivo_nome=arquivo.name
+        )
+        
+        # Atualizar o status do projeto se estava aguardando manual
+        if projeto.status == 'aguardando_manual':
+            # Definir para briefing_pendente e salvar
+            projeto.status = 'briefing_pendente'
+            projeto.save(update_fields=['status'])
+            
+            messages.success(request, 'Manual enviado com sucesso! O status do projeto foi atualizado para Briefing Pendente.')
+        else:
+            messages.success(request, 'Manual enviado com sucesso!')
+            
+        return redirect('cliente:projeto_detail', pk=projeto.id)
+        
+    messages.error(request, 'Nenhum arquivo foi enviado.')
+    return redirect('cliente:mensagens_projeto', projeto_id=projeto.id)
 
 @login_required
 def aprovar_projeto(request, pk):
