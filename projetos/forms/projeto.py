@@ -35,43 +35,65 @@ class MultipleFileField(forms.FileField):
         else:
             result = single_file_clean(data, initial)
         return result
-
 class ProjetoForm(forms.ModelForm):
     class Meta:
         model = Projeto
         fields = [
-            'nome', 'descricao', 'orcamento', 'status', 'feira'
+            'tipo_projeto', 'nome', 'descricao', 'orcamento', 'status', 'feira'
         ]
         widgets = {
-            'nome': forms.HiddenInput(),  # Campo oculto, será preenchido via JavaScript
+            'tipo_projeto': forms.Select(attrs={'class': 'form-select', 'id': 'id_tipo_projeto'}),
+            'nome': forms.TextInput(attrs={'class': 'form-control'}),  # Agora é um TextInput comum
             'descricao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'orcamento': forms.TextInput(attrs={'class': 'form-control'}),
             'status': forms.HiddenInput(),  # Campo oculto, será preenchido automaticamente
-            'feira': forms.Select(attrs={'class': 'form-select'}),
+            'feira': forms.Select(attrs={'class': 'form-select', 'id': 'id_feira'}),
         }
         labels = {
             'descricao': 'Objetivo',  # Altera o label de Descrição para Objetivo
+            'tipo_projeto': 'Tipo de Projeto',
+            'nome': 'Nome do Projeto',
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Filtrar apenas feiras ativas para o campo feira
         self.fields['feira'].queryset = Feira.objects.filter(ativa=True).order_by('-data_inicio')
-        self.fields['feira'].required = True
+        self.fields['feira'].required = False  # Feira não é mais obrigatória
         self.fields['orcamento'].required = True
         self.fields['descricao'].required = True  # Tornar objetivo obrigatório
+        self.fields['nome'].required = True
+        
+        # Definir valor padrão para tipo_projeto
+        if not self.instance.pk:
+            self.fields['tipo_projeto'].initial = 'feira_negocios'
 
         # Se for uma instância existente (edição), deixar o campo status apenas leitura
         instance = kwargs.get('instance')
         if instance and instance.pk:
             self.fields['status'].widget.attrs['readonly'] = True
 
+    def clean(self):
+        cleaned_data = super().clean()
+        tipo_projeto = cleaned_data.get('tipo_projeto')
+        feira = cleaned_data.get('feira')
+        
+        # Se for feira de negócios, é obrigatório ter uma feira selecionada
+        if tipo_projeto == 'feira_negocios' and not feira:
+            self.add_error('feira', 'Este campo é obrigatório para projetos do tipo Feira de Negócios.')
+            
+        return cleaned_data
+    
     def save(self, commit=True):
         projeto = super().save(commit=False)
         
         # Para novos projetos, define o status como briefing_pendente
         if not projeto.pk:
             projeto.status = 'briefing_pendente'
+            
+        # Se for do tipo feira_negocios e tiver feira selecionada, preenche o nome com o nome da feira
+        if projeto.tipo_projeto == 'feira_negocios' and projeto.feira:
+            projeto.nome = projeto.feira.nome
             
         if commit:
             projeto.save()

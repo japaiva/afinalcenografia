@@ -5,8 +5,12 @@ from django.db.models import Max
 from core.models import Usuario, Empresa, Feira
 from core.storage import MinioStorage
 from django.utils import timezone
-
 class Projeto(models.Model):
+    TIPO_PROJETO_CHOICES = [
+        ('feira_negocios', 'Feira de Negócios'),
+        ('outros', 'Outros'),
+    ]
+    
     STATUS_CHOICES = [
         ('briefing_pendente', 'Briefing Pendente'),
         ('briefing_validado', 'Briefing Validado'),
@@ -23,6 +27,12 @@ class Projeto(models.Model):
     numero = models.PositiveIntegerField(
         verbose_name="Número do Projeto", editable=False,
         help_text="Sequência única por empresa"
+    )
+    tipo_projeto = models.CharField(
+        max_length=20, 
+        choices=TIPO_PROJETO_CHOICES,
+        default='feira_negocios',
+        verbose_name="Tipo de Projeto"
     )
     nome = models.CharField(max_length=200, verbose_name="Nome do Projeto")
 
@@ -112,11 +122,17 @@ class Projeto(models.Model):
                 empresa=self.empresa
             ).aggregate(Max('numero'))['numero__max'] or 0
             self.numero = ultimo + 1
-        # Preenche dados do evento pela feira
+            
+        # Preenche automaticamente o nome com o nome da feira (se tipo for feira_negocios)
+        if self.tipo_projeto == 'feira_negocios' and self.feira:
+            self.nome = self.feira.nome
+            
+        # Preenche dados do evento pela feira (se houver feira selecionada)
         if self.feira:
             self.local_evento = self.feira.local
             self.cidade_evento = self.feira.cidade
             self.estado_evento = self.feira.estado
+            
         super().save(*args, **kwargs)
 
     def atualizar_metricas(self):
@@ -132,8 +148,13 @@ class Projeto(models.Model):
         self.save(update_fields=['tempo_projeto', 'tempo_producao'])
 
 
+
+    
     @property
     def has_briefing(self):
+        # Verifica se o objeto já está salvo antes de fazer a consulta
+        if not self.pk:
+            return False
         return self.briefings.exists()
 
 

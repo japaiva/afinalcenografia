@@ -29,14 +29,34 @@
           </div>
           {% endif %}
           
-          <!-- Feira - Campo obrigatório -->
+          <!-- Tipo de Projeto - Campo novo -->
           <div class="col-12">
-            <label for="{{ form.feira.id_for_label }}" class="form-label">Feira*</label>
+            <label for="{{ form.tipo_projeto.id_for_label }}" class="form-label">Tipo de Projeto*</label>
+            {{ form.tipo_projeto }}
+            {% if form.tipo_projeto.errors %}
+              <div class="text-danger small">{{ form.tipo_projeto.errors.0 }}</div>
+            {% endif %}
+            <div class="form-text">Selecione o tipo de projeto.</div>
+          </div>
+          
+          <!-- Nome do Projeto - Oculto para feira_negocios -->
+          <div class="col-12" id="nome-container">
+            <label for="{{ form.nome.id_for_label }}" class="form-label">Nome do Projeto*</label>
+            {{ form.nome }}
+            {% if form.nome.errors %}
+              <div class="text-danger small">{{ form.nome.errors.0 }}</div>
+            {% endif %}
+            <div class="form-text">Digite um nome descritivo para seu projeto.</div>
+          </div>
+          
+          <!-- Feira - Só obrigatório para tipo "Feira Negócios" -->
+          <div class="col-12" id="feira-container">
+            <label for="{{ form.feira.id_for_label }}" class="form-label">Feira <span id="feira-obrigatoria">*</span></label>
             {{ form.feira }}
             {% if form.feira.errors %}
               <div class="text-danger small">{{ form.feira.errors.0 }}</div>
             {% endif %}
-            <div class="form-text">Selecione a feira associada a este projeto.</div>
+            <div class="form-text" id="feira-info">Selecione a feira associada a este projeto.</div>
           </div>
           
           <!-- Orçamento -->
@@ -69,12 +89,9 @@
           <div style="display:none;">{{ form.status }}</div>
           {% endif %}
           
-          <!-- Campo nome escondido para validação (será preenchido com nome da feira) -->
-          <div style="display:none;">{{ form.nome }}</div>
-          
           <!-- Campos não exibidos mas mantidos para evitar erros de validação -->
           {% for field in form %}
-            {% if field.name != 'nome' and field.name != 'feira' and field.name != 'orcamento' and field.name != 'descricao' and field.name != 'status' %}
+            {% if field.name != 'nome' and field.name != 'feira' and field.name != 'orcamento' and field.name != 'descricao' and field.name != 'status' and field.name != 'tipo_projeto' %}
               <div style="display:none;">{{ field }}</div>
             {% endif %}
           {% endfor %}
@@ -94,50 +111,112 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const form = document.getElementById('projetoForm');
-
+  const tipoProjeto = document.getElementById('id_tipo_projeto');
+  const feiraField = document.getElementById('id_feira');
+  const nomeField = document.getElementById('id_nome');
+  const nomeContainer = document.getElementById('nome-container');
+  const feiraContainer = document.getElementById('feira-container');
+  const feiraObrigatoria = document.getElementById('feira-obrigatoria');
+  const feiraInfo = document.getElementById('feira-info');
+  
   // Definir valor padrão para status se for um novo projeto
   {% if not form.instance.pk %}
   const statusField = form.querySelector('[name="status"]');
   if (statusField) {
-    statusField.value = 'briefing_pendente';  // Alterado para o novo status padrão
+    statusField.value = 'briefing_pendente';
+  }
+  {% endif %}
+  
+  // Função para atualizar a visibilidade e comportamento dos campos
+  function atualizarCampos() {
+    if (tipoProjeto.value === 'feira_negocios') {
+      // Para feira de negócios, ocultamos o campo nome e exibimos a feira
+      nomeContainer.style.display = 'none';
+      feiraContainer.style.display = 'block';
+      feiraObrigatoria.style.display = 'inline';
+      feiraField.setAttribute('required', 'required');
+      feiraInfo.textContent = 'Selecione a feira. O nome do projeto será preenchido automaticamente com o nome da feira.';
+      
+      // Se tiver feira selecionada, preenche o nome oculto
+      if (feiraField.value) {
+        const feiraOption = feiraField.options[feiraField.selectedIndex];
+        nomeField.value = feiraOption.text;
+      }
+    } else {
+      // Para outros tipos, exibimos o nome e ocultamos a feira
+      nomeContainer.style.display = 'block';
+      feiraContainer.style.display = 'none';
+      feiraField.removeAttribute('required');
+      
+      // Nome é editável
+      nomeField.removeAttribute('readonly');
+      
+      // Limpar valor da feira quando não for feira de negócios
+      feiraField.value = '';
+    }
   }
   
-  // Preencher automaticamente o nome com base na feira selecionada
-  const feiraField = form.querySelector('[name="feira"]');
-  const nomeField = form.querySelector('[name="nome"]');
-  
-  if (feiraField && nomeField) {
-    // Inicialmente, preencher com a feira já selecionada
-    if (feiraField.value) {
+  // Atualizar campos quando o tipo de projeto mudar
+  tipoProjeto.addEventListener('change', function() {
+    atualizarCampos();
+    
+    // Limpar nome se mudar de feira para outros
+    if (this.value !== 'feira_negocios') {
+      nomeField.value = '';
+      nomeField.focus();
+    } else if (feiraField.value) {
+      // Se voltar para feira e já tiver uma feira selecionada
       const feiraOption = feiraField.options[feiraField.selectedIndex];
       nomeField.value = feiraOption.text;
     }
-    
-    // Atualizar quando a feira for alterada
-    feiraField.addEventListener('change', function() {
+  });
+  
+  // Atualizar nome quando a feira for alterada (para tipo feira_negocios)
+  feiraField.addEventListener('change', function() {
+    if (tipoProjeto.value === 'feira_negocios') {
       if (this.value) {
         const feiraOption = this.options[this.selectedIndex];
         nomeField.value = feiraOption.text;
       } else {
         nomeField.value = '';
       }
-    });
-  }
-  {% endif %}
+    }
+  });
+  
+  // Configuração inicial
+  atualizarCampos();
 
   // Previne múltiplos envios
   form.addEventListener('submit', function(event) {
     // Verificar se todos os campos obrigatórios estão preenchidos
-    const feira = form.querySelector('[name="feira"]').value;
+    const tipoProjetoValue = tipoProjeto.value;
+    const feiraValue = feiraField.value;
+    const nomeValue = nomeField.value;
     const orcamento = form.querySelector('[name="orcamento"]').value;
     const objetivo = form.querySelector('[name="descricao"]').value;
     
-    if (!feira || !orcamento || !objetivo) {
-      event.preventDefault();
-      alert('Por favor, preencha todos os campos obrigatórios.');
-      return false;
+    let formValido = true;
+    
+    if (tipoProjetoValue !== 'feira_negocios' && !nomeValue) {
+      formValido = false;
+      alert('Por favor, preencha o nome do projeto.');
     }
     
+    if (!orcamento || !objetivo) {
+      formValido = false;
+      alert('Por favor, preencha todos os campos obrigatórios.');
+    }
+    
+    // Se for feira de negócios, feira é obrigatória
+    if (tipoProjetoValue === 'feira_negocios' && !feiraValue) {
+      formValido = false;
+      alert('Para projetos do tipo Feira de Negócios, é obrigatório selecionar uma feira.');
+    }
+    
+    if (!formValido) {
+      event.preventDefault();
+      return false;
+    }
     const submitButton = form.querySelector('button[type="submit"]');
     submitButton.disabled = true;
     submitButton.innerHTML = 'Processando...';
