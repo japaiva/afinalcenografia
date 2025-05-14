@@ -44,7 +44,8 @@
                 </td>
                 <td>
                 <span class="badge 
-                  {% if projeto.status == 'briefing_pendente' %}bg-info
+                  {% if projeto.status == 'aguardando_manual' %}bg-warning text-dark
+                  {% elif projeto.status == 'briefing_pendente' %}bg-info
                   {% elif projeto.status == 'briefing_em_andamento' %}bg-warning text-dark
                   {% elif projeto.status == 'briefing_validado' %}bg-success
                   {% elif projeto.status == 'briefing_enviado' %}bg-info
@@ -89,14 +90,16 @@
                         <i class="fas fa-eye"></i>
                       </a>
                       
-                      {% if projeto.has_briefing %}
-                      <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=1 %}" class="btn btn-sm btn-outline-success">
-                        <i class="fas fa-clipboard-list"></i>
-                      </a>
-                      {% else %}
-                      <a href="{% url 'cliente:iniciar_briefing' projeto_id=projeto.id %}" class="btn btn-sm btn-outline-success">
-                        <i class="fas fa-clipboard-list"></i>
-                      </a>
+                      {% if projeto.status != 'aguardando_manual' %}
+                        {% if projeto.has_briefing %}
+                        <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=1 %}" class="btn btn-sm btn-outline-success">
+                          <i class="fas fa-clipboard-list"></i>
+                        </a>
+                        {% else %}
+                        <a href="{% url 'cliente:iniciar_briefing' projeto_id=projeto.id %}" class="btn btn-sm btn-outline-success">
+                          <i class="fas fa-clipboard-list"></i>
+                        </a>
+                        {% endif %}
                       {% endif %}
                       
                       <a href="{% url 'cliente:mensagens_projeto' projeto_id=projeto.id %}" class="btn btn-sm btn-outline-info">
@@ -109,6 +112,10 @@
                       <ul class="dropdown-menu dropdown-menu-end">
                         <li><a class="dropdown-item" href="{% url 'cliente:projeto_update' pk=projeto.pk %}"><i class="fas fa-edit me-2"></i> Editar</a></li>
                         <li><a class="dropdown-item" href="{% url 'cliente:mensagens_projeto' projeto_id=projeto.id %}"><i class="fas fa-comment me-2"></i> Mensagens</a></li>
+                        
+                        {% if projeto.status == 'aguardando_manual' %}
+                        <li><a class="dropdown-item text-warning" href="{% url 'cliente:mensagens_projeto' projeto_id=projeto.id %}"><i class="fas fa-file-upload me-2"></i> Enviar Manual</a></li>
+                        {% endif %}
                         
                         <!-- Opção de Aprovar Projeto (mostrar apenas quando o status for apropriado) -->
                         {% if projeto.status == 'projeto_enviado' %}
