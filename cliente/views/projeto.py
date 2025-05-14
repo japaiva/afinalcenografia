@@ -152,53 +152,6 @@ def aprovar_projeto(request, pk):
     return render(request, 'cliente/aprovar_projeto.html', {'projeto': projeto})
 
 @login_required
-def projeto_create(request):
-    """
-    View para criar um novo projeto
-    """
-    # Obtém a empresa do usuário logado
-    empresa = request.user.empresa
-    
-    if request.method == 'POST':
-        form = ProjetoForm(request.POST)
-        if form.is_valid():
-            projeto = form.save(commit=False)
-            projeto.empresa = empresa
-            projeto.criado_por = request.user
-            
-            # Define o status como briefing_pendente
-            projeto.status = 'briefing_pendente'
-            
-            # Usa o nome da feira como nome do projeto
-            if projeto.feira:
-                projeto.nome = projeto.feira.nome
-            
-            # Salva o projeto
-            projeto.save()
-            
-            # Cria um marco para registrar a criação do projeto
-            from projetos.models import ProjetoMarco
-            ProjetoMarco.objects.create(
-                projeto=projeto,
-                tipo='criacao_projeto',
-                observacao='Projeto criado pelo cliente',
-                registrado_por=request.user
-            )
-            
-            messages.success(request, 'Projeto criado com sucesso!')
-            return redirect('cliente:projeto_detail', pk=projeto.id)
-    else:
-        form = ProjetoForm()
-        # Inicializar campos ocultos com valores padrão
-        form.initial['status'] = 'briefing_pendente'
-    
-    context = {
-        'empresa': empresa,
-        'form': form,
-    }
-    return render(request, 'cliente/projeto_form.html', context)
-
-@login_required
 def selecionar_feira(request, projeto_id):
     """
     View para selecionar a feira associada ao projeto
@@ -231,6 +184,57 @@ def selecionar_feira(request, projeto_id):
     }
     return render(request, 'projetos/selecionar_feira.html', context)
 
+# clientes/views/projeto.py
+
+# Atualize a função projeto_create para lidar com o novo campo tipo_projeto
+@login_required
+def projeto_create(request):
+    """
+    View para criar um novo projeto
+    """
+    # Obtém a empresa do usuário logado
+    empresa = request.user.empresa
+    
+    if request.method == 'POST':
+        form = ProjetoForm(request.POST)
+        if form.is_valid():
+            projeto = form.save(commit=False)
+            projeto.empresa = empresa
+            projeto.criado_por = request.user
+            
+            # Define o status como briefing_pendente
+            projeto.status = 'briefing_pendente'
+            
+            # Se o tipo for feira_negocios e tiver feira selecionada, preenche o nome com a feira
+            if projeto.tipo_projeto == 'feira_negocios' and projeto.feira:
+                projeto.nome = projeto.feira.nome
+            
+            # Salva o projeto
+            projeto.save()
+            
+            # Cria um marco para registrar a criação do projeto
+            ProjetoMarco.objects.create(
+                projeto=projeto,
+                tipo='criacao_projeto',
+                observacao='Projeto criado pelo cliente',
+                registrado_por=request.user
+            )
+            
+            messages.success(request, 'Projeto criado com sucesso!')
+            return redirect('cliente:projeto_detail', pk=projeto.id)
+    else:
+        form = ProjetoForm()
+        # Inicializar campos ocultos com valores padrão
+        form.initial['status'] = 'briefing_pendente'
+        form.initial['tipo_projeto'] = 'feira_negocios'
+    
+    context = {
+        'empresa': empresa,
+        'form': form,
+    }
+    return render(request, 'cliente/projeto_form.html', context)
+
+# Atualize a função projeto_update para lidar com o novo campo tipo_projeto
 @login_required
 def projeto_update(request, pk):
     """
@@ -245,9 +249,15 @@ def projeto_update(request, pk):
     if request.method == 'POST':
         form = ProjetoForm(request.POST, instance=projeto)
         if form.is_valid():
-            form.save()
+            projeto_atualizado = form.save(commit=False)
+            
+            # Atualiza o nome baseado no tipo de projeto e feira
+            if projeto_atualizado.tipo_projeto == 'feira_negocios' and projeto_atualizado.feira:
+                projeto_atualizado.nome = projeto_atualizado.feira.nome
+            
+            projeto_atualizado.save()
             messages.success(request, 'Projeto atualizado com sucesso.')
-            return redirect('projetos:projeto_detail', pk=projeto.pk)
+            return redirect('cliente:projeto_detail', pk=projeto.pk)
     else:
         form = ProjetoForm(instance=projeto)
     
@@ -256,7 +266,35 @@ def projeto_update(request, pk):
         'projeto': projeto,
         'form': form,
     }
-    return render(request, 'projetos/projeto_form.html', context)
+    return render(request, 'cliente/projeto_form.html', context)
+
+
+# Atualize também a classe ProjetoUpdateView
+class ProjetoUpdateView(LoginRequiredMixin, UpdateView):
+    model = Projeto
+    form_class = ProjetoForm
+    template_name = 'projetos/projeto_form.html'
+    
+    def get_queryset(self):
+        # Filtra projetos da empresa do usuário logado
+        return Projeto.objects.filter(empresa=self.request.user.empresa)
+    
+    def form_valid(self, form):
+        projeto = form.save(commit=False)
+        
+        # Atualiza o nome baseado no tipo de projeto e feira
+        if projeto.tipo_projeto == 'feira_negocios' and projeto.feira:
+            projeto.nome = projeto.feira.nome
+            
+        projeto.save()
+        messages.success(self.request, 'Projeto atualizado com sucesso!')
+        return redirect('projetos:projeto_detail', pk=self.object.id)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['empresa'] = self.request.user.empresa
+        context['projeto'] = self.object
+        return context
 
 @login_required
 def projeto_delete(request, pk):
@@ -280,6 +318,8 @@ def projeto_delete(request, pk):
     }
     return render(request, 'projetos/projeto_confirm_delete.html', context)
 
+# Atualização da função iniciar_briefing
+
 @login_required
 def iniciar_briefing(request, projeto_id):
     """
@@ -292,35 +332,50 @@ def iniciar_briefing(request, projeto_id):
     projeto = get_object_or_404(Projeto, pk=projeto_id, empresa=empresa)
     
     # Verifica se o projeto já tem um briefing
-    if projeto.has_briefing:
+    # Adiciona verificação extra de segurança
+    if projeto.pk and projeto.has_briefing:
         # Pega o briefing mais recente
         briefing = projeto.briefings.first()
         return redirect('cliente:briefing_etapa', projeto_id=projeto.id, etapa=briefing.etapa_atual)
     
-    # Cria um novo briefing para o projeto
-    from projetos.models import Briefing, BriefingValidacao
-    
-    briefing = Briefing.objects.create(
-        projeto=projeto,
-        nome_projeto=projeto.nome,
-        orcamento=projeto.orcamento,
-        feira=projeto.feira
-    )
-    
-    # Cria as validações iniciais para o briefing
-    for secao in ['evento', 'estande', 'areas_estande', 'dados_complementares']:
-        BriefingValidacao.objects.create(
-            briefing=briefing,
-            secao=secao,
-            status='pendente'
+    try:
+        # Cria um novo briefing para o projeto usando create para minimizar chamadas ao banco
+        from projetos.models import Briefing, BriefingValidacao
+        
+        # Cria o briefing primeiro sem chamar métodos que dependem de relacionamentos
+        briefing = Briefing(
+            projeto=projeto,
+            status='rascunho',
+            etapa_atual=1
         )
+        
+        # Salva o objeto para garantir que tenha um ID
+        briefing.save()
+        
+        # Agora podemos criar as validações com segurança
+        for secao in ['evento', 'estande', 'areas_estande', 'dados_complementares']:
+            BriefingValidacao.objects.create(
+                briefing=briefing,
+                secao=secao,
+                status='pendente'
+            )
+        
+        # Atualiza o status do projeto
+        projeto.status = 'briefing_em_andamento'
+        projeto.save(update_fields=['status'])
+        
+        messages.success(request, 'Briefing iniciado com sucesso!')
+        return redirect('cliente:briefing_etapa', projeto_id=projeto.id, etapa=1)
     
-    # Atualiza o status do projeto
-    projeto.status = 'briefing_em_andamento'
-    projeto.save(update_fields=['status'])
-    
-    messages.success(request, 'Briefing iniciado com sucesso!')
-    return redirect('cliente:briefing_etapa', projeto_id=projeto.id, etapa=1)
+    except Exception as e:
+        # Registra o erro e apresenta uma mensagem mais amigável
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Erro ao criar briefing: {str(e)}")
+        
+        messages.error(request, "Ocorreu um erro ao iniciar o briefing. Por favor, tente novamente ou contate o suporte.")
+        return redirect('cliente:projeto_detail', pk=projeto.id)
+
 
 @login_required
 def verificar_manual_feira(request, projeto_id):
@@ -408,27 +463,6 @@ class ProjetoCreateView(LoginRequiredMixin, CreateView):
         context = super().get_context_data(**kwargs)
         context['empresa'] = self.request.user.empresa
         return context
-
-class ProjetoUpdateView(LoginRequiredMixin, UpdateView):
-    model = Projeto
-    form_class = ProjetoForm
-    template_name = 'projetos/projeto_form.html'
-    
-    def get_queryset(self):
-        # Filtra projetos da empresa do usuário logado
-        return Projeto.objects.filter(empresa=self.request.user.empresa)
-    
-    def form_valid(self, form):
-        self.object = form.save()
-        messages.success(self.request, 'Projeto atualizado com sucesso!')
-        return redirect('projetos:projeto_detail', pk=self.object.id)
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['empresa'] = self.request.user.empresa
-        context['projeto'] = self.object
-        return context
-
 class ProjetoDeleteView(LoginRequiredMixin, DeleteView):
     model = Projeto
     template_name = 'projetos/projeto_confirm_delete.html'

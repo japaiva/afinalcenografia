@@ -27,7 +27,7 @@
           <thead class="table-light">
             <tr>
               <th class="d-none d-md-table-cell">Número</th>
-              <th>Feira</th>
+              <th>Nome</th>
               <th>Status</th>
               <th class="d-none d-lg-table-cell">Briefing</th> 
               <th class="d-none d-lg-table-cell">Aprovação</th>
@@ -40,11 +40,7 @@
               <tr>
                 <td class="d-none d-md-table-cell">{{ projeto.numero }}</td>
                 <td>
-                  {% if projeto.feira %}
-                    <span class="badge bg-info text-dark">{{ projeto.feira.nome }}</span>
-                  {% else %}
-                    <span class="badge bg-secondary">Não associada</span>
-                  {% endif %}
+                  <span class="fw-bold">{{ projeto.nome }}</span>
                 </td>
                 <td>
                 <span class="badge 
