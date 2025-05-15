@@ -26,7 +26,7 @@ class BriefingEtapa2Form(forms.ModelForm):
         model = Briefing
         fields = [
             'medida_frente', 'medida_fundo', 'medida_lateral_esquerda', 'medida_lateral_direita',
-            'area_estande', 'estilo_estande', 'material',
+            'area_estande', 'tipo_stand', 'estilo_estande', 'material',
             'piso_elevado', 'tipo_testeira',
             'tipo_venda', 'tipo_ativacao', 'objetivo_estande'
         ]
@@ -56,6 +56,7 @@ class BriefingEtapa2Form(forms.ModelForm):
                 'rows': 3,
                 'placeholder': 'Moderno, Clean, Futurista, Rústico'
             }),
+            'tipo_stand': forms.RadioSelect(attrs={'class': 'form-check-input tipo-stand-radio'}),
             'material': forms.Select(attrs={'class': 'form-select'}),
             'piso_elevado': forms.Select(attrs={'class': 'form-select'}),
             'tipo_testeira': forms.Select(attrs={'class': 'form-select'}),

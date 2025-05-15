@@ -90,7 +90,7 @@
                         <i class="fas fa-eye"></i>
                       </a>
                       
-                      {% if projeto.status != 'aguardando_manual' %}
+                      {% if projeto.tipo_projeto == 'feira_negocios' or projeto.status != 'aguardando_manual' %}
                         {% if projeto.has_briefing %}
                         <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=1 %}" class="btn btn-sm btn-outline-success">
                           <i class="fas fa-clipboard-list"></i>

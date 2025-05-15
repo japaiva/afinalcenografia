@@ -18,6 +18,14 @@ class Briefing(models.Model):
         ('aprovado', 'Aprovado'),
     )
 
+    TIPOS_STAND = (
+        ('ilha', 'Ilha'),
+        ('ponta_ilha', 'Ponta de Ilha'),
+        ('esquina', 'Esquina'),
+        ('corredor', 'Corredor'),
+        ('box', 'Box'),
+    )
+
     projeto = models.ForeignKey(
         Projeto,
         on_delete=models.CASCADE,
@@ -173,6 +181,13 @@ class Briefing(models.Model):
         blank=True, null=True,
         verbose_name="Objetivo do Estande",
         help_text="Lançamento da coleção, etc."
+    )
+
+    tipo_stand = models.CharField(
+        max_length=20, 
+        choices=TIPOS_STAND, 
+        default='esquina',  # Defina um valor padrão
+        verbose_name="Tipo de Stand"
     )
 
     # TELA 3: ÁREAS DO ESTANDE - Divisões Funcionais
