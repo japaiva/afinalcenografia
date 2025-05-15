@@ -115,7 +115,41 @@
       </div>
     </div>
   </div>
-  
+
+  <!-- Tipo de Stand -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0">Tipo de Stand</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        {% for valor, nome in form.fields.tipo_stand.choices %}
+        <div class="col-md-4 mb-4">
+          <div class="card h-100 tipo-stand-card {% if form.tipo_stand.value == valor %}selected{% endif %}">
+            <div class="card-body text-center">
+              <div class="mb-3">
+                <div class="tipo-stand-placeholder" data-tipo="{{ valor }}">
+                  {{ nome }}
+                </div>
+              </div>
+              <div class="form-check form-check-inline justify-content-center">
+                <input class="form-check-input" type="radio" 
+                      name="{{ form.tipo_stand.html_name }}" 
+                      id="id_tipo_stand_{{ forloop.counter0 }}" 
+                      value="{{ valor }}"
+                      {% if form.tipo_stand.value == valor %}checked{% endif %}>
+                <label class="form-check-label" for="id_tipo_stand_{{ forloop.counter0 }}">
+                  {{ nome }}
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
   <!-- Estrutura do Estande -->
   <div class="card mb-4">
     <div class="card-header bg-primary text-white">
@@ -277,6 +311,52 @@
 </form>
 {% endblock %}
 
+{% block extra_css %}
+{{ block.super }}
+<style>
+  .tipo-stand-card {
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    border: 1px solid #dee2e6;
+  }
+  
+  .tipo-stand-card:hover {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.15rem rgba(13, 110, 253, 0.25);
+  }
+  
+  .tipo-stand-card.selected {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.4);
+  }
+  
+  .tipo-stand-placeholder {
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    font-weight: bold;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Quando as imagens estiverem disponíveis */
+  .tipo-stand-img {
+    height: 150px;
+    object-fit: contain;
+    cursor: pointer;
+    transition: transform 0.2s;
+    max-width: 100%;
+  }
+  
+  .tipo-stand-img:hover {
+    transform: scale(1.05);
+  }
+</style>
+{% endblock %}
+
 {% block extra_js %}
 <script>
   document.addEventListener('DOMContentLoaded', function() {
@@ -412,6 +492,47 @@
       // Configuração inicial
       ativacaoOutroTexto.disabled = !ativacaoOutroCheck.checked;
     }
+    
+    // NOVO: Interatividade com os cards de tipo de stand
+    const tipoStandCards = document.querySelectorAll('.tipo-stand-card');
+    tipoStandCards.forEach(card => {
+      card.addEventListener('click', function() {
+        // Encontra o input de rádio dentro do card e seleciona-o
+        const radioInput = this.querySelector('input[type="radio"]');
+        if (radioInput) {
+          radioInput.checked = true;
+          
+          // Remove a classe selected de todos os cards
+          document.querySelectorAll('.tipo-stand-card').forEach(c => {
+            c.classList.remove('selected');
+          });
+          
+          // Adiciona a classe selected a este card
+          this.classList.add('selected');
+        }
+      });
+      
+      // Verifica se este card já deve estar selecionado inicialmente
+      const radioInput = card.querySelector('input[type="radio"]');
+      if (radioInput && radioInput.checked) {
+        card.classList.add('selected');
+      }
+    });
+    
+    // Quando as imagens estiverem disponíveis, você pode descomentar este código
+    // para fazer com que as imagens também sejam clicáveis
+    /*
+    const tipoStandImages = document.querySelectorAll('.tipo-stand-img');
+    tipoStandImages.forEach(img => {
+      img.addEventListener('click', function() {
+        // Encontra o card pai e simula um clique nele
+        const cardParent = this.closest('.tipo-stand-card');
+        if (cardParent) {
+          cardParent.click();
+        }
+      });
+    });
+    */
   });
 </script>
 {% endblock %}

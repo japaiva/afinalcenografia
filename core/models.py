@@ -8,6 +8,16 @@ from core.storage import MinioStorage
 from django.core.validators import MinValueValidator, MaxValueValidator
 import uuid
 import os
+
+def manual_upload_path(instance, filename):
+    """
+    Gera um caminho para o arquivo do manual com UUID para evitar colisões
+    """
+    ext = filename.split('.')[-1]
+    filename = f"{uuid.uuid4()}.{ext}"
+    return os.path.join('manuais', filename)
+    
+
 class Feira(models.Model):
     # Campos gerais e identificação
     id = models.AutoField(primary_key=True)
@@ -48,15 +58,6 @@ class Feira(models.Model):
     credenciamento = models.TextField(blank=True, null=True)
     
     # IMPORTANTE: Manter como método estático dentro da classe para compatibilidade com migrações
-    @staticmethod
-    def manual_upload_path(instance, filename):
-        """
-        Gera um caminho para o arquivo do manual com UUID para evitar colisões
-        """
-        ext = filename.split('.')[-1]
-        filename = f"{uuid.uuid4()}.{ext}"
-        return os.path.join('manuais', filename)
-    
     # Arquivo do manual - CORRIGIDO: usando MinioStorage explicitamente
     manual = models.FileField(
         upload_to=manual_upload_path, 
