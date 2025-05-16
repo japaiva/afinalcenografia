@@ -295,6 +295,7 @@ def gerar_relatorio_briefing(request, projeto_id):
             logger.error(f"Erro ao gerar relatório PDF: {e}")
             messages.error(request, f'Erro ao gerar o relatório: {str(e)}')
             return redirect('cliente:projeto_detail', pk=projeto_id)
+        
 
 @login_required
 def briefing_etapa(request, projeto_id, etapa):
@@ -338,11 +339,6 @@ def briefing_etapa(request, projeto_id, etapa):
         validacao_atual = briefing.validacoes.get(secao='dados_complementares')
         form_class = BriefingEtapa4Form
     
-    # Se estamos na etapa 4, pegamos os arquivos de referência (mudei de 2 para 4)
-    arquivos = []
-    if etapa == 4:
-        arquivos = briefing.arquivos.all()
-    
     # Processa o formulário se for um POST
     if request.method == 'POST':
         form = form_class(request.POST, request.FILES, instance=briefing)
@@ -382,6 +378,7 @@ def briefing_etapa(request, projeto_id, etapa):
     # Obtém as conversas desta etapa
     conversas = briefing.conversas.filter(etapa=etapa).order_by('-timestamp')[:20]
     
+    # Contexto base para todas as etapas
     context = {
         'empresa': empresa,
         'projeto': projeto,
@@ -394,10 +391,54 @@ def briefing_etapa(request, projeto_id, etapa):
         'todas_aprovadas': todas_aprovadas,
         'pode_voltar': pode_voltar,
         'pode_avancar': pode_avancar,
-        'arquivos': arquivos,
         'conversas': conversas,
     }
-    return render(request, 'briefing/briefing_etapa.html', context)
+    
+    # Adiciona variáveis específicas para cada etapa
+    if etapa == 1:
+        # Mapa do estande para etapa 1
+        context['arquivos'] = briefing.arquivos.all()
+        context['mapa_arquivo'] = briefing.arquivos.filter(tipo='mapa').first()
+        
+    elif etapa == 2:
+        # Planta baixa/esboço para etapa 2
+        context['arquivos'] = briefing.arquivos.all()
+        context['planta_arquivo'] = briefing.arquivos.filter(tipo='planta').first()
+        
+    elif etapa == 3:
+        # Obter áreas existentes para a etapa 3
+        areas_exposicao = briefing.areas_exposicao.all()
+        salas_reuniao = briefing.salas_reuniao.all()
+        
+        # Obter formulários para copa e depósito se existirem
+        from projetos.forms.briefing import CopaForm, DepositoForm
+        
+        copa = briefing.copas.first()
+        copa_form = CopaForm(instance=copa) if copa else CopaForm()
+        
+        deposito = briefing.depositos.first()
+        deposito_form = DepositoForm(instance=deposito) if deposito else DepositoForm()
+        
+        # Número de áreas para usar com JavaScript
+        context.update({
+            'areas_exposicao': areas_exposicao,
+            'salas_reuniao': salas_reuniao,
+            'copa_form': copa_form,
+            'deposito_form': deposito_form,
+            'num_areas_exposicao': areas_exposicao.count() or 1,
+            'num_salas_reuniao': salas_reuniao.count() or 1,
+        })
+        
+    elif etapa == 4:
+        # Para etapa 4, todos os arquivos
+        context['arquivos'] = briefing.arquivos.all()
+        
+        # Arquivos específicos por tipo
+        context['arquivos_referencia'] = briefing.arquivos.filter(tipo='referencia')
+        context['arquivos_campanha'] = briefing.arquivos.filter(tipo='campanha')
+        context['arquivos_outros'] = briefing.arquivos.filter(tipo='outro')
+    
+    return render(request, 'cliente/briefing_etapa.html', context)
 
 @login_required
 @require_POST
@@ -551,11 +592,22 @@ def concluir_briefing(request, projeto_id):
     }
     return render(request, 'briefing/concluir_briefing.html', context)
 
+from django.conf import settings
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from core.decorators import cliente_required
+
+from projetos.models import Projeto, Briefing, BriefingArquivoReferencia
+
 @login_required
 @require_POST
 def upload_arquivo_referencia(request, projeto_id):
     """
     View para fazer upload de um arquivo de referência para o briefing
+    Versão melhorada para suportar diferentes tipos de arquivo com tratamento unificado
     """
     # Obtém a empresa do usuário logado
     empresa = request.user.empresa
@@ -572,26 +624,59 @@ def upload_arquivo_referencia(request, projeto_id):
     
     # Processa o upload
     if request.method == 'POST' and request.FILES.get('arquivo'):
-        form = BriefingArquivoReferenciaForm(request.POST, request.FILES)
-        if form.is_valid():
-            arquivo = form.save(commit=False)
-            arquivo.briefing = briefing
+        arquivo_file = request.FILES.get('arquivo')
+        tipo = request.POST.get('tipo', 'outro')
+        nome = request.POST.get('nome') or arquivo_file.name
+        observacoes = request.POST.get('observacoes', '')
+        
+        # Validações
+        tipos_validos = ['mapa', 'planta', 'referencia', 'campanha', 'logo', 'imagem', 'outro']
+        if tipo not in tipos_validos:
+            return JsonResponse({'success': False, 'message': f'Tipo de arquivo inválido. Tipos permitidos: {", ".join(tipos_validos)}'})
+        
+        # Verificar tamanho do arquivo (opcional, ajuste conforme necessário)
+        max_size = getattr(settings, 'MAX_UPLOAD_SIZE', 10 * 1024 * 1024)  # 10MB por padrão
+        if arquivo_file.size > max_size:
+            return JsonResponse({'success': False, 'message': f'Arquivo muito grande. Tamanho máximo: {max_size/1024/1024}MB'})
+        
+        # Verificar se tipo deve ser único (mapa ou planta)
+        # Se for, excluir os anteriores
+        if tipo in ['mapa', 'planta']:
+            # Remove arquivos existentes do mesmo tipo
+            existentes = BriefingArquivoReferencia.objects.filter(
+                briefing=briefing, 
+                tipo=tipo
+            )
+            if existentes.exists():
+                for existente in existentes:
+                    existente.delete()
+        
+        # Criar o novo arquivo
+        try:
+            arquivo = BriefingArquivoReferencia(
+                briefing=briefing,
+                nome=nome,
+                arquivo=arquivo_file,
+                tipo=tipo,
+                observacoes=observacoes
+            )
             arquivo.save()
-            
+
+
             return JsonResponse({
                 'success': True,
-                'message': 'Arquivo enviado com sucesso!',
                 'arquivo': {
                     'id': arquivo.id,
                     'nome': arquivo.nome,
-                    'tipo': arquivo.get_tipo_display(),
                     'url': arquivo.arquivo.url,
+                    'tipo': arquivo.tipo  # Corrigido aqui
                 }
             })
-        else:
-            return JsonResponse({'success': False, 'errors': form.errors})
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'Erro ao salvar arquivo: {str(e)}'})
     
-    return JsonResponse({'success': False, 'message': 'Nenhum arquivo encontrado.'})
+    return JsonResponse({'success': False, 'message': 'Requisição inválida. Verifique os parâmetros enviados.'})
 
 @login_required
 @require_POST
@@ -602,15 +687,25 @@ def excluir_arquivo_referencia(request, arquivo_id):
     # Obtém a empresa do usuário logado
     empresa = request.user.empresa
     
-    # Obtém o arquivo, garantindo que pertence a um briefing de um projeto da mesma empresa
-    arquivo = get_object_or_404(BriefingArquivoReferencia, 
-                               id=arquivo_id, 
-                               briefing__projeto__empresa=empresa)
-    
-    # Exclui o arquivo
-    arquivo.delete()
-    
-    return JsonResponse({'success': True, 'message': 'Arquivo excluído com sucesso!'})
+    try:
+        # Obtém o arquivo, garantindo que pertence a um briefing de um projeto da mesma empresa
+        arquivo = get_object_or_404(BriefingArquivoReferencia, 
+                                id=arquivo_id, 
+                                briefing__projeto__empresa=empresa)
+        
+        # Armazenar algumas informações para a resposta
+        arquivo_info = {
+            'id': arquivo.id,
+            'nome': arquivo.nome,
+            'tipo': arquivo.tipo
+        }
+        
+        # Exclui o arquivo
+        arquivo.delete()
+        
+        return JsonResponse({'success': True, 'message': 'Arquivo excluído com sucesso!', 'arquivo': arquivo_info})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Erro ao excluir arquivo: {str(e)}'})
 
 @login_required
 def ver_manual_feira(request, projeto_id):

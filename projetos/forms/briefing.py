@@ -11,12 +11,9 @@ class BriefingEtapa1Form(forms.ModelForm):
     
     class Meta:
         model = Briefing
-        fields = [
-            'endereco_estande', 'mapa_estande',
-        ]
+        fields = ['endereco_estande']  # Removido mapa_estande
         widgets = {
             'endereco_estande': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Rua B, Estande 42'}),
-            'mapa_estande': forms.FileInput(attrs={'class': 'form-control'}),
         }
 class BriefingEtapa2Form(forms.ModelForm):
     """

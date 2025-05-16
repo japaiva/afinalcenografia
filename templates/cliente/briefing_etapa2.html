@@ -21,18 +21,57 @@
     </div>
     <div class="card-body">
       <div class="row">
+
+
         <!-- Upload de planta baixa / esboço -->
         <div class="col-md-12 mb-3">
-          <label class="form-label">Esboço Planta Baixa</label>
-          <div class="input-group" id="uploadForm">
-            <input type="file" class="form-control" id="arquivo" name="arquivo">
-            <input type="hidden" id="tipo" name="tipo" value="planta">
-            <button class="btn btn-outline-primary" type="button" id="uploadButton" 
-                    data-url="{% url 'cliente:upload_arquivo_referencia' projeto_id=projeto.id %}">
-              <i class="fas fa-upload"></i>
-            </button>
+          <label class="form-label">Planta Baixa / Esboço</label>
+
+          <div id="uploadPlantaForm" class="w-100">
+            <div class="input-group mb-2">
+              <input type="file" class="form-control" id="arquivoPlanta" name="arquivo">
+              <input type="hidden" id="tipoPlanta" name="tipo" value="planta">
+              <button class="btn btn-outline-primary" type="button" id="uploadPlantaButton"
+                      data-url="{% url 'cliente:upload_arquivo_referencia' projeto_id=projeto.id %}">
+                <i class="fas fa-upload"></i>
+              </button>
+            </div>
+
+            <div id="arquivosPlantaContainer" class="arquivos-container mt-2 d-flex flex-wrap">
+              {% for arquivo in briefing.arquivos.all %}
+                {% if arquivo.tipo == 'planta' %}
+                  <div class="position-relative arquivo-item me-2 mb-2" data-id="{{ arquivo.id }}" data-tipo="planta">
+                    <div class="card" style="width: 150px;">
+                      {% with arquivo_url=arquivo.arquivo.url|lower %}
+                        {% if '.jpg' in arquivo_url or '.jpeg' in arquivo_url or '.png' in arquivo_url or '.gif' in arquivo_url or '.svg' in arquivo_url or '.webp' in arquivo_url %}
+                          <img src="{{ arquivo.arquivo.url }}" alt="{{ arquivo.nome }}" class="card-img-top" style="height: 100px; object-fit: cover;">
+                        {% else %}
+                          <div class="text-center pt-3" style="height: 100px;">
+                            <i class="fas fa-drafting-compass fa-3x text-primary"></i>
+                          </div>
+                        {% endif %}
+                      {% endwith %}
+                      <div class="card-body p-2">
+                        <p class="card-text small text-truncate">{{ arquivo.nome }}</p>
+                        <div class="btn-group btn-group-sm">
+                          <a href="{{ arquivo.arquivo.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye"></i>
+                          </a>
+                          <button type="button" class="btn btn-sm btn-outline-danger excluir-arquivo"
+                                  data-id="{{ arquivo.id }}"
+                                  data-url="{% url 'cliente:excluir_arquivo_referencia' arquivo_id=arquivo.id %}">
+                            <i class="fas fa-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
           </div>
-          <div class="form-text text-muted">Envie esboço de como você imagina o seu estande</div>
+
+          <div class="form-text text-muted mt-1">Você pode enviar um esboço de planta baixa, feito à mão ou por software.</div>
         </div>
         
         <!-- MODIFICAÇÃO: Medidas do Estande (em duas linhas) -->
@@ -359,8 +398,34 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ block.super }}
+<script src="{% static 'js/briefing_file_upload.js' %}"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
+    // CORREÇÃO - Verificar se o uploader já foi inicializado para evitar duplicação
+    if (window.uploaderInitialized === true) {
+      console.log('Uploader já inicializado. Ignorando segunda inicialização.');
+      return;
+    }
+    window.uploaderInitialized = true;
+    
+    // Inicializar o gerenciador de uploads
+    const uploader = new BriefingFileUploader({
+      csrfToken: '{{ csrf_token }}',
+      uploadUrl: '{% url "cliente:upload_arquivo_referencia" projeto_id=projeto.id %}',
+      projetoId: {{ projeto.id }}
+    });
+    
+    // Configurar o formulário de upload de planta
+    uploader.addUploadForm({
+      formId: 'uploadPlantaForm',
+      fileInputId: 'arquivoPlanta',
+      uploadBtnId: 'uploadPlantaButton',
+      previewContainerId: 'arquivosPlantaContainer',
+      fileType: 'planta',
+      observacoesValue: 'Esboço do estande'
+    });
+
     // Auto-calcular área total quando as dimensões mudam
     const medidaFrenteInput = document.getElementById('{{ form.medida_frente.id_for_label }}');
     const medidaFundoInput = document.getElementById('{{ form.medida_fundo.id_for_label }}');
@@ -384,44 +449,6 @@
       
       // Calcular a área inicial (caso já exista)
       calcularArea();
-    }
-    
-    // Handling para upload de planta
-    const uploadButton = document.getElementById('uploadButton');
-    if (uploadButton) {
-      uploadButton.addEventListener('click', function() {
-        const url = this.dataset.url;
-        const fileInput = document.getElementById('arquivo');
-        const tipoInput = document.getElementById('tipo');
-        
-        if (fileInput.files.length === 0) {
-          alert('Selecione um arquivo para upload');
-          return;
-        }
-        
-        const formData = new FormData();
-        formData.append('arquivo', fileInput.files[0]);
-        formData.append('tipo', tipoInput.value);
-        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-        
-        fetch(url, {
-          method: 'POST',
-          body: formData,
-          credentials: 'same-origin'
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            alert('Arquivo enviado com sucesso!');
-            fileInput.value = '';
-          } else {
-            alert('Erro ao enviar arquivo: ' + data.error);
-          }
-        })
-        .catch(error => {
-          alert('Erro ao enviar arquivo: ' + error);
-        });
-      });
     }
     
     // NOVO: Tratamento dos checkboxes de ativação
@@ -530,6 +557,8 @@
         }
       });
     });
+    
+    console.log('Uploader e interações da Etapa 2 inicializados com sucesso!');
   });
 </script>
 {% endblock %}
