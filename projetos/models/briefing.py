@@ -128,7 +128,7 @@ class Briefing(models.Model):
     material = models.CharField(
         max_length=20,
         choices=(
-            ('customizado', 'Customizado'),
+            ('construido', 'Construido'),
             ('misto', 'Misto'),
             ('padrao', 'Padrão (alumínio, vidro)'),
         ),
