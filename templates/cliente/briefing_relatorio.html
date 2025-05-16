@@ -629,7 +629,91 @@
                     </div>
                 </div>
             {% endif %}
+
+
+            <!-- Sala de Reunião/Escritório -->
+            <h3>Sala de Reunião/Escritório</h3>
+            {% if briefing.salas_reuniao.all %}
+                {% for sala in briefing.salas_reuniao.all %}
+                    <div class="area-section">
+                        <div class="info-row">
+                            <div class="label">Metragem:</div>
+                            <div class="value">{% if sala.metragem %}{{ sala.metragem }} m²{% else %}Não informada{% endif %}</div>
+                        </div>
+                        
+                        <div class="info-row">
+                            <div class="label">Capacidade:</div>
+                            <div class="value">{% if sala.capacidade %}{{ sala.capacidade }} pessoas{% else %}Não informada{% endif %}</div>
+                        </div>
+                        
+                        <div class="info-row">
+                            <div class="label">Equipamentos:</div>
+                            <div class="value">{% if sala.equipamentos %}{{ sala.equipamentos }}{% else %}Não informados{% endif %}</div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="area-section">
+                    <div class="info-row">
+                        <div class="label">Status:</div>
+                        <div class="value">Não incluído no projeto</div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Copa -->
+            <h3>Copa</h3>
+            {% if briefing.copas.all %}
+                {% for copa in briefing.copas.all %}
+                    <div class="area-section">
+                        <div class="info-row">
+                            <div class="label">Metragem:</div>
+                            <div class="value">{% if copa.metragem %}{{ copa.metragem }} m²{% else %}Não informada{% endif %}</div>
+                        </div>
+                        
+                        <div class="info-row">
+                            <div class="label">Equipamentos:</div>
+                            <div class="value">{% if copa.equipamentos %}{{ copa.equipamentos }}{% else %}Não informados{% endif %}</div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="area-section">
+                    <div class="info-row">
+                        <div class="label">Status:</div>
+                        <div class="value">Não incluído no projeto</div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Depósito -->
+            <h3>Depósito</h3>
+            {% if briefing.depositos.all %}
+                {% for deposito in briefing.depositos.all %}
+                    <div class="area-section">
+                        <div class="info-row">
+                            <div class="label">Metragem:</div>
+                            <div class="value">{% if deposito.metragem %}{{ deposito.metragem }} m²{% else %}Não informada{% endif %}</div>
+                        </div>
+                        
+                        <div class="info-row">
+                            <div class="label">Equipamentos:</div>
+                            <div class="value">{% if deposito.equipamentos %}{{ deposito.equipamentos }}{% else %}Não informados{% endif %}</div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="area-section">
+                    <div class="info-row">
+                        <div class="label">Status:</div>
+                        <div class="value">Não incluído no projeto</div>
+                    </div>
+                </div>
+            {% endif %}
+
         </div>
+
+
 <!-- ETAPA 4: REFERÊNCIAS VISUAIS -->
 <div class="section">
     <div class="card-header">ETAPA 4: REFERÊNCIAS VISUAIS</div>

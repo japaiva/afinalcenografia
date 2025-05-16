@@ -336,7 +336,17 @@
     
     // Adicionar nova área de exposição
     if (addAreaExposicaoBtn) {
-      addAreaExposicaoBtn.addEventListener('click', function() {
+      // Remover qualquer evento anterior para garantir que não haja duplicação
+      addAreaExposicaoBtn.replaceWith(addAreaExposicaoBtn.cloneNode(true));
+      
+      // Obter referência atualizada ao botão
+      const newAddAreaBtn = document.getElementById('add_area_exposicao');
+      
+      newAddAreaBtn.addEventListener('click', function(e) {
+        // Previne comportamento padrão e propagação do evento
+        e.preventDefault();
+        e.stopPropagation();
+        
         if (!temAreaExposicaoCheck.checked) {
           temAreaExposicaoCheck.checked = true;
           areasExposicaoContainer.style.display = 'block';
@@ -452,7 +462,7 @@
           newArea.remove();
           renumerarAreas();
         });
-      });
+      }, { once: false }); // Garante que o evento será processado apenas uma vez por clique
     }
     
     // Adicionar eventos de remoção para áreas existentes
@@ -495,6 +505,7 @@
         });
       });
     }
+    
     // Salas de Reunião
     const temSalaReuniaoCheck = document.getElementById('{{ form.tem_sala_reuniao.id_for_label }}');
     const salasReuniaoContainer = document.getElementById('salas_reuniao_container');
@@ -509,7 +520,17 @@
     
     // Adicionar nova sala de reunião
     if (addSalaReuniaoBtn) {
-      addSalaReuniaoBtn.addEventListener('click', function() {
+      // Remover qualquer evento anterior para garantir que não haja duplicação
+      addSalaReuniaoBtn.replaceWith(addSalaReuniaoBtn.cloneNode(true));
+      
+      // Obter referência atualizada ao botão
+      const newAddSalaBtn = document.getElementById('add_sala_reuniao');
+      
+      newAddSalaBtn.addEventListener('click', function(e) {
+        // Previne comportamento padrão e propagação do evento
+        e.preventDefault();
+        e.stopPropagation();
+        
         if (!temSalaReuniaoCheck.checked) {
           temSalaReuniaoCheck.checked = true;
           salasReuniaoContainer.style.display = 'block';
@@ -560,7 +581,7 @@
           newSala.remove();
           renumerarSalas();
         });
-      });
+      }, { once: false }); // Garante que o evento será processado apenas uma vez por clique
     }
     
     // Adicionar eventos de remoção para salas existentes
