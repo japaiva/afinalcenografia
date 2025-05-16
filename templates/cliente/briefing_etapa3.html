@@ -14,10 +14,10 @@
     </div>
   {% endif %}
   
-  <!-- Área de Exposição -->
+  <!-- Área de Atendimento -->
   <div class="card mb-4">
     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-      <h5 class="mb-0">Área de Exposição</h5>
+      <h5 class="mb-0">Área de Atendimento</h5>
       <button type="button" class="btn btn-sm btn-light" id="add_area_exposicao">
         <i class="fas fa-plus"></i> Adicionar Área
       </button>
@@ -28,7 +28,7 @@
           <div class="form-check form-switch">
             {{ form.tem_area_exposicao }}
             <label class="form-check-label" for="{{ form.tem_area_exposicao.id_for_label }}">
-              Incluir Áreas de Exposição
+              Incluir Áreas de Atendimento
             </label>
           </div>
         </div>
@@ -41,7 +41,7 @@
           {% for area in areas_exposicao %}
             <div class="area-exposicao-item card mb-3">
               <div class="card-header d-flex justify-content-between align-items-center bg-light">
-                <h6 class="mb-0">Área de Exposição {{ forloop.counter }}</h6>
+                <h6 class="mb-0">Área de Atendimento {{ forloop.counter }}</h6>
                 <button type="button" class="btn btn-sm btn-danger remove-area-btn">
                   <i class="fas fa-trash"></i>
                 </button>
@@ -360,7 +360,7 @@
         newArea.className = 'area-exposicao-item card mb-3';
         newArea.innerHTML = `
           <div class="card-header d-flex justify-content-between align-items-center bg-light">
-            <h6 class="mb-0">Área de Exposição ${numAreasExposicao}</h6>
+            <h6 class="mb-0">Área de Atendimento ${numAreasExposicao}</h6>
             <button type="button" class="btn btn-sm btn-danger remove-area-btn">
               <i class="fas fa-trash"></i>
             </button>
@@ -485,7 +485,7 @@
       
       areas.forEach((area, index) => {
         const titulo = area.querySelector('h6');
-        titulo.textContent = `Área de Exposição ${index + 1}`;
+        titulo.textContent = `Área de Atendimento ${index + 1}`;
         
         // Atualizar os IDs e names dos campos (opcional)
         const inputs = area.querySelectorAll('input, textarea');
