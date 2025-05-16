@@ -36,29 +36,58 @@
           {% endif %}
         </div>
         
-        <!-- Upload de arquivos de referência -->
+        <!-- Upload de arquivos de referência - CORRIGIDO -->
         <div class="col-md-12 mb-3">
           <label class="form-label">Arquivos - Upload de referências</label>
-          <div class="input-group" id="uploadForm">
-            <input type="file" class="form-control" id="arquivo" name="arquivo">
-            <input type="hidden" id="tipo" name="tipo" value="referencia">
-            <button class="btn btn-outline-primary" type="button" id="uploadButtonReferencia" data-url="{% url 'cliente:upload_arquivo_referencia' projeto_id=projeto.id %}">
-              <i class="fas fa-upload"></i>
-            </button>
+          
+          <!-- Aplicando o padrão w-100 como nas outras etapas -->
+          <div id="uploadReferenciaForm" class="w-100">
+            <!-- Adicionado mb-2 para manter espaçamento consistente -->
+            <div class="input-group mb-2">
+              <input type="file" class="form-control" id="arquivoReferencia" name="arquivo">
+              <input type="hidden" id="tipoReferencia" name="tipo" value="referencia">
+              <button class="btn btn-outline-primary" type="button" id="uploadReferenciaButton" 
+                      data-url="{% url 'cliente:upload_arquivo_referencia' projeto_id=projeto.id %}">
+                <i class="fas fa-upload"></i>
+              </button>
+            </div>
+            
+            <!-- Container para arquivos de referência -->
+            <div id="arquivosReferenciaContainer" class="arquivos-container mt-2 d-flex flex-wrap">
+              {% for arquivo in briefing.arquivos.all %}
+                {% if arquivo.tipo == 'referencia' %}
+                  <div class="position-relative arquivo-item me-2 mb-2" data-id="{{ arquivo.id }}" data-tipo="referencia">
+                    <div class="card" style="width: 150px;">
+                      {% with arquivo_url=arquivo.arquivo.url|lower %}
+                        {% if '.jpg' in arquivo_url or '.jpeg' in arquivo_url or '.png' in arquivo_url or '.gif' in arquivo_url or '.svg' in arquivo_url or '.webp' in arquivo_url %}
+                          <img src="{{ arquivo.arquivo.url }}" alt="{{ arquivo.nome }}" class="card-img-top" style="height: 100px; object-fit: cover;">
+                        {% else %}
+                          <div class="text-center pt-3" style="height: 100px;">
+                            <i class="fas fa-image fa-3x text-primary"></i>
+                          </div>
+                        {% endif %}
+                      {% endwith %}
+                      <div class="card-body p-2">
+                        <p class="card-text small text-truncate">{{ arquivo.nome }}</p>
+                        <div class="btn-group btn-group-sm">
+                          <a href="{{ arquivo.arquivo.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye"></i>
+                          </a>
+                          <button type="button" class="btn btn-sm btn-outline-danger excluir-arquivo" 
+                                  data-id="{{ arquivo.id }}" 
+                                  data-url="{% url 'cliente:excluir_arquivo_referencia' arquivo_id=arquivo.id %}">
+                            <i class="fas fa-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
           </div>
           
-          <div id="arquivosReferenciaContainer" class="d-flex flex-wrap gap-2 mt-2">
-            {% for arquivo in arquivos %}
-              {% if arquivo.tipo == 'referencia' %}
-              <div class="position-relative arquivo-item" data-id="{{ arquivo.id }}" style="width: 100px;">
-                <img src="{{ arquivo.arquivo.url }}" alt="{{ arquivo.nome }}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
-                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 excluir-arquivo" style="font-size: 0.7rem; padding: 0.1rem 0.3rem;" data-url="{% url 'cliente:excluir_arquivo_referencia' arquivo_id=arquivo.id %}">
-                  <i class="fas fa-times"></i>
-                </button>
-              </div>
-              {% endif %}
-            {% endfor %}
-          </div>
+          <div class="form-text text-muted mt-1">Upload de imagens de referência para o estande</div>
         </div>
       </div>
     </div>
@@ -86,29 +115,58 @@
           {% endif %}
         </div>
         
-        <!-- Upload de arquivos de campanha -->
+        <!-- Upload de arquivos de campanha - CORRIGIDO -->
         <div class="col-md-12 mb-3">
           <label class="form-label">Arquivos - Upload de materiais de campanha</label>
-          <div class="input-group" id="uploadFormCampanha">
-            <input type="file" class="form-control" id="arquivoCampanha" name="arquivo">
-            <input type="hidden" id="tipoCampanha" name="tipo" value="campanha">
-            <button class="btn btn-outline-primary" type="button" id="uploadButtonCampanha" data-url="{% url 'cliente:upload_arquivo_referencia' projeto_id=projeto.id %}">
-              <i class="fas fa-upload"></i>
-            </button>
+          
+          <!-- Aplicando o padrão w-100 como nas outras etapas -->
+          <div id="uploadCampanhaForm" class="w-100">
+            <!-- Adicionado mb-2 para manter espaçamento consistente -->
+            <div class="input-group mb-2">
+              <input type="file" class="form-control" id="arquivoCampanha" name="arquivo">
+              <input type="hidden" id="tipoCampanha" name="tipo" value="campanha">
+              <button class="btn btn-outline-primary" type="button" id="uploadCampanhaButton" 
+                      data-url="{% url 'cliente:upload_arquivo_referencia' projeto_id=projeto.id %}">
+                <i class="fas fa-upload"></i>
+              </button>
+            </div>
+            
+            <!-- Container para arquivos de campanha -->
+            <div id="arquivosCampanhaContainer" class="arquivos-container mt-2 d-flex flex-wrap">
+              {% for arquivo in briefing.arquivos.all %}
+                {% if arquivo.tipo == 'campanha' %}
+                  <div class="position-relative arquivo-item me-2 mb-2" data-id="{{ arquivo.id }}" data-tipo="campanha">
+                    <div class="card" style="width: 150px;">
+                      {% with arquivo_url=arquivo.arquivo.url|lower %}
+                        {% if '.jpg' in arquivo_url or '.jpeg' in arquivo_url or '.png' in arquivo_url or '.gif' in arquivo_url or '.svg' in arquivo_url or '.webp' in arquivo_url %}
+                          <img src="{{ arquivo.arquivo.url }}" alt="{{ arquivo.nome }}" class="card-img-top" style="height: 100px; object-fit: cover;">
+                        {% else %}
+                          <div class="text-center pt-3" style="height: 100px;">
+                            <i class="fas fa-ad fa-3x text-primary"></i>
+                          </div>
+                        {% endif %}
+                      {% endwith %}
+                      <div class="card-body p-2">
+                        <p class="card-text small text-truncate">{{ arquivo.nome }}</p>
+                        <div class="btn-group btn-group-sm">
+                          <a href="{{ arquivo.arquivo.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye"></i>
+                          </a>
+                          <button type="button" class="btn btn-sm btn-outline-danger excluir-arquivo" 
+                                  data-id="{{ arquivo.id }}" 
+                                  data-url="{% url 'cliente:excluir_arquivo_referencia' arquivo_id=arquivo.id %}">
+                            <i class="fas fa-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
           </div>
           
-          <div id="arquivosCampanhaContainer" class="d-flex flex-wrap gap-2 mt-2">
-            {% for arquivo in arquivos %}
-              {% if arquivo.tipo == 'campanha' %}
-              <div class="position-relative arquivo-item" data-id="{{ arquivo.id }}" style="width: 100px;">
-                <img src="{{ arquivo.arquivo.url }}" alt="{{ arquivo.nome }}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
-                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 excluir-arquivo" style="font-size: 0.7rem; padding: 0.1rem 0.3rem;" data-url="{% url 'cliente:excluir_arquivo_referencia' arquivo_id=arquivo.id %}">
-                  <i class="fas fa-times"></i>
-                </button>
-              </div>
-              {% endif %}
-            {% endfor %}
-          </div>
+          <div class="form-text text-muted mt-1">Upload de materiais de campanha (logos, banners, etc.)</div>
         </div>
       </div>
     </div>
@@ -136,39 +194,58 @@
           {% endif %}
         </div>
         
-        <!-- Upload de outros arquivos -->
+        <!-- Upload de outros arquivos - CORRIGIDO -->
         <div class="col-md-12 mb-3">
           <label class="form-label">Referências Visuais - Upload de arquivos</label>
-          <div class="input-group" id="uploadFormOutros">
-            <input type="file" class="form-control" id="arquivoOutros" name="arquivo">
-            <input type="hidden" id="tipoOutros" name="tipo" value="imagem">
-            <button class="btn btn-outline-primary" type="button" id="uploadButtonOutros" data-url="{% url 'cliente:upload_arquivo_referencia' projeto_id=projeto.id %}">
-              <i class="fas fa-upload"></i>
-            </button>
+          
+          <!-- Aplicando o padrão w-100 como nas outras etapas -->
+          <div id="uploadOutrosForm" class="w-100">
+            <!-- Adicionado mb-2 para manter espaçamento consistente -->
+            <div class="input-group mb-2">
+              <input type="file" class="form-control" id="arquivoOutros" name="arquivo">
+              <input type="hidden" id="tipoOutros" name="tipo" value="outro">
+              <button class="btn btn-outline-primary" type="button" id="uploadOutrosButton" 
+                      data-url="{% url 'cliente:upload_arquivo_referencia' projeto_id=projeto.id %}">
+                <i class="fas fa-upload"></i>
+              </button>
+            </div>
+            
+            <!-- Container para outros arquivos -->
+            <div id="arquivosOutrosContainer" class="arquivos-container mt-2 d-flex flex-wrap">
+              {% for arquivo in briefing.arquivos.all %}
+                {% if arquivo.tipo != 'referencia' and arquivo.tipo != 'campanha' and arquivo.tipo != 'mapa' and arquivo.tipo != 'planta' %}
+                  <div class="position-relative arquivo-item me-2 mb-2" data-id="{{ arquivo.id }}" data-tipo="{{ arquivo.tipo }}">
+                    <div class="card" style="width: 150px;">
+                      {% with arquivo_url=arquivo.arquivo.url|lower %}
+                        {% if '.jpg' in arquivo_url or '.jpeg' in arquivo_url or '.png' in arquivo_url or '.gif' in arquivo_url or '.svg' in arquivo_url or '.webp' in arquivo_url %}
+                          <img src="{{ arquivo.arquivo.url }}" alt="{{ arquivo.nome }}" class="card-img-top" style="height: 100px; object-fit: cover;">
+                        {% else %}
+                          <div class="text-center pt-3" style="height: 100px;">
+                            <i class="fas fa-file fa-3x text-primary"></i>
+                          </div>
+                        {% endif %}
+                      {% endwith %}
+                      <div class="card-body p-2">
+                        <p class="card-text small text-truncate">{{ arquivo.nome }}</p>
+                        <div class="btn-group btn-group-sm">
+                          <a href="{{ arquivo.arquivo.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye"></i>
+                          </a>
+                          <button type="button" class="btn btn-sm btn-outline-danger excluir-arquivo" 
+                                  data-id="{{ arquivo.id }}" 
+                                  data-url="{% url 'cliente:excluir_arquivo_referencia' arquivo_id=arquivo.id %}">
+                            <i class="fas fa-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
           </div>
           
-          <div id="arquivosOutrosContainer" class="d-flex flex-wrap gap-2 mt-2">
-            {% for arquivo in arquivos %}
-              {% if arquivo.tipo != 'referencia' and arquivo.tipo != 'campanha' %}
-              <div class="position-relative arquivo-item" data-id="{{ arquivo.id }}" style="width: 100px;">
-                {% if arquivo.tipo == 'imagem' or arquivo.tipo == 'logo' %}
-                <img src="{{ arquivo.arquivo.url }}" alt="{{ arquivo.nome }}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
-                {% else %}
-                <div class="bg-light border text-center p-2" style="width: 100px; height: 100px;">
-                  <i class="fas 
-                    {% if arquivo.tipo == 'planta' %}fa-map
-                    {% elif arquivo.tipo == 'documento' %}fa-file-alt
-                    {% else %}fa-file{% endif %} fa-3x my-2"></i>
-                  <p class="small text-truncate mb-0">{{ arquivo.nome }}</p>
-                </div>
-                {% endif %}
-                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 excluir-arquivo" style="font-size: 0.7rem; padding: 0.1rem 0.3rem;" data-url="{% url 'cliente:excluir_arquivo_referencia' arquivo_id=arquivo.id %}">
-                  <i class="fas fa-times"></i>
-                </button>
-              </div>
-              {% endif %}
-            {% endfor %}
-          </div>
+          <div class="form-text text-muted mt-1">Upload de quaisquer outros arquivos relevantes</div>
         </div>
       </div>
     </div>
@@ -198,121 +275,57 @@
   </div>
 </form>
 {% endblock %}
+
 {% block extra_js %}
+{{ block.super }}
+<script src="{% static 'js/briefing_file_upload.js' %}"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Função para gerenciar uploads
-    function setupUpload(buttonId, fileInputId, typeInputId, containerId, tipoValor) {
-      const uploadButton = document.getElementById(buttonId);
-      const fileInput = document.getElementById(fileInputId);
-      const tipoInput = document.getElementById(typeInputId);
-      const container = document.getElementById(containerId);
-      
-      if (uploadButton) {
-        uploadButton.addEventListener('click', function() {
-          const url = this.dataset.url;
-          
-          if (fileInput.files.length === 0) {
-            alert('Selecione um arquivo para upload');
-            return;
-          }
-          
-          const formData = new FormData();
-          formData.append('arquivo', fileInput.files[0]);
-          formData.append('tipo', tipoValor);
-          formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-          
-          fetch(url, {
-            method: 'POST',
-            body: formData,
-            credentials: 'same-origin'
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              // Adicionar arquivo ao container apropriado
-              const isImage = data.arquivo.tipo.includes('Imagem') || 
-                data.arquivo.tipo.includes('Referência') || 
-                data.arquivo.tipo.includes('Logo') || 
-                data.arquivo.tipo.includes('Campanha');
-              
-              if (isImage) {
-                // Para imagens, mostrar thumbnail
-                const itemHtml = `
-                  <div class="position-relative arquivo-item" data-id="${data.arquivo.id}" style="width: 100px;">
-                    <img src="${data.arquivo.url}" alt="${data.arquivo.nome}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
-                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 excluir-arquivo" style="font-size: 0.7rem; padding: 0.1rem 0.3rem;" data-url="{% url 'cliente:excluir_arquivo_referencia' arquivo_id=0 %}".replace('0', data.arquivo.id)>
-                      <i class="fas fa-times"></i>
-                    </button>
-                  </div>
-                `;
-                container.insertAdjacentHTML('beforeend', itemHtml);
-              } else {
-                // Para outros arquivos, mostrar ícone
-                const icone = data.arquivo.tipo.includes('Planta') ? 'fa-map' : 
-                            data.arquivo.tipo.includes('Documento') ? 'fa-file-alt' : 'fa-file';
-                
-                const itemHtml = `
-                  <div class="position-relative arquivo-item" data-id="${data.arquivo.id}" style="width: 100px;">
-                    <div class="bg-light border text-center p-2" style="width: 100px; height: 100px;">
-                      <i class="fas ${icone} fa-3x my-2"></i>
-                      <p class="small text-truncate mb-0">${data.arquivo.nome}</p>
-                    </div>
-                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 excluir-arquivo" style="font-size: 0.7rem; padding: 0.1rem 0.3rem;" data-url="{% url 'cliente:excluir_arquivo_referencia' arquivo_id=0 %}".replace('0', data.arquivo.id)>
-                      <i class="fas fa-times"></i>
-                    </button>
-                  </div>
-                `;
-                container.insertAdjacentHTML('beforeend', itemHtml);
-              }
-              
-              // Limpar campo de arquivo
-              fileInput.value = '';
-            } else {
-              alert('Erro ao enviar arquivo: ' + data.error);
-            }
-          })
-          .catch(error => {
-            alert('Erro ao enviar arquivo: ' + error);
-          });
-        });
-      }
+    // CORREÇÃO - Verificar se o uploader já foi inicializado para evitar duplicação
+    if (window.uploaderInitialized === true) {
+      console.log('Uploader já inicializado. Ignorando segunda inicialização.');
+      return;
     }
+    window.uploaderInitialized = true;
     
-    // Configurar os três botões de upload
-    setupUpload('uploadButtonReferencia', 'arquivo', 'tipo', 'arquivosReferenciaContainer', 'referencia');
-    setupUpload('uploadButtonCampanha', 'arquivoCampanha', 'tipoCampanha', 'arquivosCampanhaContainer', 'campanha');
-    setupUpload('uploadButtonOutros', 'arquivoOutros', 'tipoOutros', 'arquivosOutrosContainer', 'imagem');
-    
-    // Handling para exclusão de arquivos
-    document.addEventListener('click', function(e) {
-      if (e.target.closest('.excluir-arquivo')) {
-        const button = e.target.closest('.excluir-arquivo');
-        const url = button.dataset.url;
-        const arquivoItem = button.closest('.arquivo-item');
-        
-        if (confirm('Tem certeza que deseja excluir este arquivo?')) {
-          fetch(url, {
-            method: 'POST',
-            headers: {
-              'X-CSRFToken': '{{ csrf_token }}'
-            },
-            credentials: 'same-origin'
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              arquivoItem.remove();
-            } else {
-              alert('Erro ao excluir arquivo: ' + data.error);
-            }
-          })
-          .catch(error => {
-            alert('Erro ao excluir arquivo: ' + error);
-          });
-        }
-      }
+    // Inicializar o gerenciador de uploads
+    const uploader = new BriefingFileUploader({
+      csrfToken: '{{ csrf_token }}',
+      uploadUrl: '{% url "cliente:upload_arquivo_referencia" projeto_id=projeto.id %}',
+      projetoId: {{ projeto.id }}
     });
+    
+    // Configurar o formulário de upload de referências
+    uploader.addUploadForm({
+      formId: 'uploadReferenciaForm',
+      fileInputId: 'arquivoReferencia',
+      uploadBtnId: 'uploadReferenciaButton',
+      previewContainerId: 'arquivosReferenciaContainer',
+      fileType: 'referencia',
+      observacoesValue: 'Referência visual'
+    });
+    
+    // Configurar o formulário de upload de materiais de campanha
+    uploader.addUploadForm({
+      formId: 'uploadCampanhaForm',
+      fileInputId: 'arquivoCampanha',
+      uploadBtnId: 'uploadCampanhaButton',
+      previewContainerId: 'arquivosCampanhaContainer',
+      fileType: 'campanha',
+      observacoesValue: 'Material de campanha'
+    });
+    
+    // Configurar o formulário de upload de outros arquivos
+    uploader.addUploadForm({
+      formId: 'uploadOutrosForm',
+      fileInputId: 'arquivoOutros',
+      uploadBtnId: 'uploadOutrosButton',
+      previewContainerId: 'arquivosOutrosContainer',
+      fileType: 'outro',
+      observacoesValue: 'Material complementar'
+    });
+    
+    console.log('Uploader e interações da Etapa 4 inicializados com sucesso!');
   });
 </script>
 {% endblock %}

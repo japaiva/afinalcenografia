@@ -79,12 +79,6 @@ class Briefing(models.Model):
         verbose_name="Endereço do Estande",
         help_text="Localização do estande dentro do pavilhão"
     )
-    mapa_estande = models.FileField(
-        upload_to='briefing/mapas/',
-        storage=MinioStorage(),
-        blank=True, null=True,
-        verbose_name="Mapa do Estande"
-    )
 
     # TELA 2: ESTANDE - Características Físicas
     
@@ -403,13 +397,11 @@ class BriefingArquivoReferencia(models.Model):
     tipo = models.CharField(
         max_length=50,
         choices=(
-            ('imagem', 'Imagem'),
-            ('planta', 'Planta'),
-            ('logo', 'Logo'),
-            ('campanha', 'Imagem de Campanha'),
-            ('referencia', 'Referência de Estande'),
-            ('documento', 'Documento'),
-            ('outro', 'Outro')
+            ('mapa', 'Mapa do Estande'),        # Etapa 1: Mapa do estande
+            ('planta', 'Planta/Esboço'),        # Etapa 2: Esboço planta baixa
+            ('referencia', 'Referência'),        # Etapa 4: Referências visuais
+            ('campanha', 'Material de Campanha'),  # Etapa 4: Materiais de campanha
+            ('outro', 'Outro Material')          # Etapa 4: Informações complementares
         )
     )
     observacoes = models.TextField(blank=True, null=True)
@@ -421,8 +413,6 @@ class BriefingArquivoReferencia(models.Model):
 
     def __str__(self):
         return self.nome
-
-
 class BriefingValidacao(models.Model):
     briefing = models.ForeignKey(Briefing, on_delete=models.CASCADE, related_name='validacoes')
     secao = models.CharField(

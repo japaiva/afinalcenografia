@@ -75,13 +75,14 @@
   </div>
   {% endif %}
   
-  <!-- Localização do Estande - Único campo realmente editável -->
+  <!-- Localização do Estande -->
   <div class="card mb-4">
     <div class="card-header bg-primary text-white">
       <h5 class="mb-0">Localização do Estande</h5>
     </div>
     <div class="card-body">
       <div class="row">
+
         <div class="col-md-12 mb-3">
           <label for="{{ form.endereco_estande.id_for_label }}" class="form-label">
             Endereço do Estande*
@@ -96,43 +97,57 @@
             </div>
           {% endif %}
         </div>
-        
+
         <div class="col-md-12 mb-3">
-          <label for="{{ form.mapa_estande.id_for_label }}" class="form-label">
-            Mapa do Estande
-          </label>
-          
-          <!-- Campo de upload -->
-          {{ form.mapa_estande }}
-          
-          <!-- Exibição do arquivo atual (se existir) -->
-          {% if briefing.mapa_estande %}
-          <div class="mt-2 border p-2 rounded file-preview">
-            <div class="d-flex align-items-center">
-              <i class="fas fa-file-alt text-primary me-2"></i>
-              <span class="me-2">{{ briefing.mapa_estande.name|default:"Arquivo carregado" }}</span>
-              <a href="{{ briefing.mapa_estande.url }}" target="_blank" class="btn btn-sm btn-outline-primary me-2">
-                <i class="fas fa-eye"></i> Visualizar
-              </a>
+          <label class="form-label">Mapa do Estande</label>
+
+          <!-- Formulário de upload -->
+          <div id="uploadMapaForm" class="w-100">
+            <div class="input-group mb-2">
+              <input type="file" class="form-control" id="arquivoMapa" name="arquivo">
+              <input type="hidden" id="tipoMapa" name="tipo" value="mapa">
+              <button class="btn btn-outline-primary" type="button" id="uploadMapaButton"
+                      data-url="{% url 'cliente:upload_arquivo_referencia' projeto_id=projeto.id %}">
+                <i class="fas fa-upload"></i>
+              </button>
             </div>
-            
-            <!-- Miniatura (para imagens) -->
-            {% if briefing.mapa_estande.url|lower|slice:"-4:" in '.jpg,.png,.gif,.svg,.jpeg,.webp' %}
-            <div class="mt-2">
-              <img src="{{ briefing.mapa_estande.url }}" alt="Miniatura do mapa" class="img-thumbnail" style="max-height: 150px;">
-            </div>
-            {% endif %}
-          </div>
-          {% endif %}
-          
-          <div class="form-text text-muted">Upload de planta ou mapa indicando a localização do estande</div>
-          {% if form.mapa_estande.errors %}
-            <div class="form-text text-danger">
-              {% for error in form.mapa_estande.errors %}
-                {{ error }}
+
+            <!-- Container para arquivos do tipo mapa (preview aparece aqui) -->
+            <div id="arquivosMapaContainer" class="arquivos-container mt-2 d-flex flex-wrap">
+              {% for arquivo in briefing.arquivos.all %}
+                {% if arquivo.tipo == 'mapa' %}
+                  <div class="position-relative arquivo-item me-2 mb-2" data-id="{{ arquivo.id }}" data-tipo="mapa">
+                    <div class="card" style="width: 150px;">
+                      {% with arquivo_url=arquivo.arquivo.url|lower %}
+                        {% if '.jpg' in arquivo_url or '.jpeg' in arquivo_url or '.png' in arquivo_url or '.gif' in arquivo_url or '.svg' in arquivo_url or '.webp' in arquivo_url %}
+                          <img src="{{ arquivo.arquivo.url }}" alt="{{ arquivo.nome }}" class="card-img-top" style="height: 100px; object-fit: cover;">
+                        {% else %}
+                          <div class="text-center pt-3" style="height: 100px;">
+                            <i class="fas fa-map fa-3x text-primary"></i>
+                          </div>
+                        {% endif %}
+                      {% endwith %}
+                      <div class="card-body p-2">
+                        <p class="card-text small text-truncate">{{ arquivo.nome }}</p>
+                        <div class="btn-group btn-group-sm">
+                          <a href="{{ arquivo.arquivo.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye"></i>
+                          </a>
+                          <button type="button" class="btn btn-sm btn-outline-danger excluir-arquivo" 
+                                  data-id="{{ arquivo.id }}" 
+                                  data-url="{% url 'cliente:excluir_arquivo_referencia' arquivo_id=arquivo.id %}">
+                            <i class="fas fa-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                {% endif %}
               {% endfor %}
             </div>
-          {% endif %}
+          </div>
+
+          <div class="form-text text-muted mt-1">Upload de planta ou mapa indicando a localização do estande</div>
         </div>
       </div>
     </div>
@@ -141,50 +156,42 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ block.super }}
+<script src="{% static 'js/briefing_file_upload.js' %}"></script>
 <script>
-  // Adicione isso ao bloco extra_js
-$(document).ready(function() {
-  // Função para lidar com a visualização do arquivo selecionado
-  $('#{{ form.mapa_estande.id_for_label }}').on('change', function() {
-    const fileInput = this;
-    
-    // Verificar se um arquivo foi selecionado
-    if (fileInput.files && fileInput.files[0]) {
-      const fileName = fileInput.files[0].name;
-      const fileSize = (fileInput.files[0].size / 1024).toFixed(2) + ' KB';
-      
-      // Criar ou atualizar o elemento de preview
-      let previewElement = $(this).siblings('.file-preview');
-      if (previewElement.length === 0) {
-        previewElement = $('<div class="mt-2 border p-2 rounded file-preview"></div>');
-        $(this).after(previewElement);
-      }
-      
-      // Atualizar o conteúdo do preview
-      previewElement.html(`
-        <div class="d-flex align-items-center">
-          <i class="fas fa-file-alt text-primary me-2"></i>
-          <span class="me-2">${fileName} (${fileSize})</span>
-          <span class="badge bg-success">Selecionado - Não salvo</span>
-        </div>
-      `);
-      
-      // Se for uma imagem, mostrar miniatura
-      const fileExtension = fileName.split('.').pop().toLowerCase();
-      if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(fileExtension)) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          previewElement.append(`
-            <div class="mt-2">
-              <img src="${e.target.result}" alt="Miniatura do mapa" class="img-thumbnail" style="max-height: 150px;">
-            </div>
-          `);
-        };
-        reader.readAsDataURL(fileInput.files[0]);
-      }
+  document.addEventListener('DOMContentLoaded', function () {
+    // CORREÇÃO - Verificar se o uploader já foi inicializado para evitar duplicação
+    if (window.uploaderInitialized === true) {
+      console.log('Uploader já inicializado. Ignorando segunda inicialização.');
+      return;
     }
+    window.uploaderInitialized = true;
+    
+    const csrfToken = '{{ csrf_token }}';
+
+    if (!csrfToken || csrfToken === 'NOTPROVIDED') {
+      console.warn('Token CSRF não disponível no template!');
+      return;
+    }
+
+    // Inicializar o gerenciador de uploads
+    const uploader = new BriefingFileUploader({
+      csrfToken: csrfToken,
+      uploadUrl: '{% url "cliente:upload_arquivo_referencia" projeto_id=projeto.id %}',
+      projetoId: {{ projeto.id }}
+    });
+
+    // Configurar o formulário de upload do mapa
+    uploader.addUploadForm({
+      formId: 'uploadMapaForm',
+      fileInputId: 'arquivoMapa',
+      uploadBtnId: 'uploadMapaButton',
+      previewContainerId: 'arquivosMapaContainer',
+      fileType: 'mapa',
+      observacoesValue: 'Mapa do estande'
+    });
+    
+    console.log('Uploader inicializado com sucesso!');
   });
-});
-  // Nenhum JavaScript adicional necessário, já que não há mais campos a serem preenchidos automaticamente
 </script>
 {% endblock %}
