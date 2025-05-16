@@ -76,11 +76,6 @@
           {% for validacao in validacoes %}
           <li class="list-group-item d-flex justify-content-between align-items-center px-0 border-0">
             <span>
-              <i class="fas 
-                {% if validacao.status == 'aprovado' %}fa-check-circle text-success
-                {% elif validacao.status == 'atencao' %}fa-exclamation-circle text-warning
-                {% elif validacao.status == 'reprovado' %}fa-times-circle text-danger
-                {% else %}fa-times-circle text-muted{% endif %} me-2"></i>
               {{ validacao.get_secao_display }}
             </span>
             <span class="badge 
