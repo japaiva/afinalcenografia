@@ -1,5 +1,6 @@
 {% load formatadores %}
 {% load briefing_filters%}
+{% load static %}
 
 <!DOCTYPE html>
 <html>
@@ -257,21 +258,47 @@
             margin-bottom: 10px;
         }
         
-        /* Estilos para a galeria de imagens */
-        .gallery {
+        /* Estilos para miniaturas de imagens em cada seção */
+        .section-thumbnails {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 15px;
-            margin-top: 10px;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+            margin-top: 15px;
         }
         
-        .gallery-item {
-            padding: 8px;
+        .thumbnail-item {
+            padding: 6px;
             background-color: #f9f9f9;
             border-radius: 4px;
             text-align: center;
+            border: 1px solid #eee;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         
+        .thumbnail-item img {
+            max-width: 100%;
+            height: 100px;
+            object-fit: cover;
+            margin-bottom: 8px;
+        }
+        
+        .thumbnail-caption {
+            font-size: 12px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .thumbnail-type {
+            background-color: var(--secondary);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            display: inline-block;
+            margin-top: 4px;
+        }
+
         @media print {
             body {
                 background: white;
@@ -291,52 +318,26 @@
                 display: none;
             }
             
-            .gallery {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-
-        .gallery {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-    
-        .gallery-item {
-            background-color: #f9f9f9;
-            border-radius: 4px;
-            overflow: hidden;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-    
-        .gallery-item:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-    
-        @media print {
-            .gallery {
+            .section-thumbnails {
                 grid-template-columns: repeat(3, 1fr);
             }
             
-            .gallery-item {
+            .thumbnail-item {
                 break-inside: avoid;
             }
         }
-
-
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
+            <img class="logo" src="https://s3.spsystems.pro/afinalusers/adm/logo-afinal-cenografia.png" alt="Logo Afinal">
             {% if empresa.logo %}
-                <img class="logo" src="{{ empresa.logo.url }}" alt="{{ empresa.nome }}">
+                <!-- Podemos exibir o logo da empresa cliente também, se necessário -->
+                <!-- <img class="logo" src="{{ empresa.logo.url }}" alt="{{ empresa.nome }}" style="max-width: 160px; margin-left: 20px;"> -->
             {% endif %}
             <h1>Briefing Projeto Cenografia</h1>
-            <p><strong>{{ projeto.nome }}</strong> </p>
+            <p><strong>{{ empresa.nome }} - {{ projeto.nome }}</strong></p>
         </div>
 
         <!-- Seção PROJETO -->
@@ -375,11 +376,15 @@
             <div class="area-section">
                 <div class="info-row">
                     <div class="label">Número do Projeto:</div>
-                    <div class="value">{{ projeto.numero }}</div>
+                    <div class="value">{{ empresa.nome }} - {{ projeto.nome }}</div>
                 </div>
                 <div class="info-row">
                     <div class="label">Nome do Projeto:</div>
                     <div class="value">{{ projeto.nome }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="label">Tipo de Projeto:</div>
+                    <div class="value">{{ projeto.get_tipo_projeto_display }}</div>
                 </div>
                 <div class="info-row">
                     <div class="label">Orçamento:</div>
@@ -399,7 +404,8 @@
         <div class="section">
             <div class="card-header">ETAPA 1: LOCAL ESTANDE</div>
             
-            <!-- Informações da Feira -->
+            <!-- Informações da Feira - apenas se o projeto tiver uma feira associada -->
+            {% if projeto.feira %}
             <h3>Informações da Feira</h3>
             <div class="area-section">
                 <div class="info-row">
@@ -427,26 +433,44 @@
                     <div class="value">{{ projeto.feira.periodo_desmontagem }}</div>
                 </div>
             </div>
+            {% endif %}
             
             <!-- Localização do Estande -->
             <h3>Localização do Estande</h3>
             <div class="area-section">
-
                 <div class="info-row">
                     <div class="label">Endereço do Estande:</div>
                     <div class="value">{{ briefing.endereco_estande }}</div>
                 </div>
-                <div class="info-row">
-                    <div class="label">Mapa do Estande:</div>
-                    <div class="value">
-                        {% if briefing.mapa_estande %}
-                            <img src="{{ briefing.mapa_estande.url }}" alt="Mapa do Estande" style="max-width: 100%; margin-top: 10px; border: 1px solid #ddd;">
-                        {% else %}
-                            Não disponível
-                        {% endif %}
-                    </div>
-                </div>
+            </div>
 
+            <!-- Mapa do Estande (miniaturas) -->
+            <h3>Mapa do Estande</h3>
+            <div class="area-section">
+            <div class="section-thumbnails">
+                {% for arquivo in briefing.arquivos.all %}
+                {% if arquivo.tipo == 'mapa' %}
+                    <div class="thumbnail-item">
+                    {% with arquivo_url=arquivo.arquivo.url|lower %}
+                        {% if '.jpg' in arquivo_url or '.jpeg' in arquivo_url or '.png' in arquivo_url or '.gif' in arquivo_url or '.svg' in arquivo_url or '.webp' in arquivo_url %}
+                        <img src="{{ arquivo.arquivo.url }}" alt="{{ arquivo.nome }}">
+                        {% else %}
+                        <div style="height: 100px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-map fa-3x" style="color: var(--primary);"></i>
+                        </div>
+                        {% endif %}
+                    {% endwith %}
+                    <div class="thumbnail-caption">{{ arquivo.nome }}</div>
+                    <div class="thumbnail-type">Mapa</div>
+                    </div>
+                {% endif %}
+                {% empty %}
+                <div class="info-row">
+                    <div class="label">Status:</div>
+                    <div class="value">Nenhum mapa disponível</div>
+                </div>
+                {% endfor %}
+            </div>
             </div>
         </div>
 
@@ -457,6 +481,10 @@
             <!-- Informações do Estande -->
             <h3>Informações do Estande</h3>
             <div class="area-section">
+                <div class="info-row">
+                    <div class="label">Tipo de Stand:</div>
+                    <div class="value">{% if briefing.get_tipo_stand_display %}{{ briefing.get_tipo_stand_display }}{% else %}Não informado{% endif %}</div>
+                </div>
                 <div class="info-row">
                     <div class="label">Medida Frente:</div>
                     <div class="value">{% if briefing.medida_frente %}{{ briefing.medida_frente }} m{% else %}Não informada{% endif %}</div>
@@ -485,34 +513,32 @@
                     <div class="label">Estilo do Estande:</div>
                     <div class="value">{% if briefing.estilo_estande %}{{ briefing.estilo_estande }}{% else %}Não informado{% endif %}</div>
                 </div>
+            </div>
 
-                <div class="info-row">
-                    <div class="label">Planta Baixa:</div>
-                    <div class="value">
-                        {% with plantas_count=0 %}
-                            {% for arquivo in arquivos %}
-                                {% if arquivo.tipo == 'planta' %}
-                                    {% with plantas_count=plantas_count|add:"1" %}{% endwith %}
-                                {% endif %}
-                            {% endfor %}
-                            
-                            {% if plantas_count > 0 %}
-                                {% for arquivo in arquivos %}
-                                    {% if arquivo.tipo == 'planta' and arquivo.arquivo.url|is_image %}
-                                        <div style="margin: 10px 0;">
-                                            <img src="{{ arquivo.arquivo.url }}" alt="{{ arquivo.nome }}" style="max-width: 100%; border: 1px solid #ddd;">
-                                            {% if arquivo.observacoes %}
-                                                <div class="file-notes">{{ arquivo.observacoes }}</div>
-                                            {% endif %}
-                                        </div>
-                                    {% endif %}
-                                {% endfor %}
-                            {% else %}
-                                <div>Não disponível</div>
-                            {% endif %}
-                        {% endwith %}
+            <!-- Planta Baixa (miniaturas) -->
+            <h3>Planta Baixa / Esboço</h3>
+            <div class="area-section">
+            <div class="section-thumbnails">
+                {% for arquivo in briefing.arquivos.all %}
+                {% if arquivo.tipo == 'planta' %}
+                    <div class="thumbnail-item">
+                    {% with arquivo_url=arquivo.arquivo.url|lower %}
+                        {% if '.jpg' in arquivo_url or '.jpeg' in arquivo_url or '.png' in arquivo_url or '.gif' in arquivo_url or '.svg' in arquivo_url or '.webp' in arquivo_url %}
+                        <img src="{{ arquivo.arquivo.url }}" alt="{{ arquivo.nome }}">
+                        {% else %}
+                        <div style="height: 100px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-drafting-compass fa-3x" style="color: var(--primary);"></i>
+                        </div>
+                        {% endif %}
+                    {% endwith %}
+                    <div class="thumbnail-caption">{{ arquivo.nome }}</div>
+                    <div class="thumbnail-type">Planta</div>
                     </div>
-                </div>
+                {% endif %}
+                {% empty %}
+                <p>Nenhuma planta enviada.</p>
+                {% endfor %}
+            </div>
             </div>
             
             <!-- Estrutura do Estande -->
@@ -544,7 +570,7 @@
                     <div class="value">{% if briefing.objetivo_estande %}{{ briefing.objetivo_estande }}{% else %}Não informado{% endif %}</div>
                 </div>
             </div>
-        
+        </div>
 
         <!-- ETAPA 3: ÁREAS DO ESTANDE -->
         <div class="section">
@@ -592,110 +618,6 @@
                 <div class="area-section">
                     <div class="info-row">
                         <div class="label">Status:</div>
-                        <div class="value">Área de Exposição selecionada, mas sem detalhes adicionais</div>
-                    </div>
-                </div>
-            {% else %}
-                <div class="area-section">
-                    <div class="info-row">
-                        <div class="label">Status:</div>
-                        <div class="value">Não incluída no projeto</div>
-                    </div>
-                </div>
-            {% endif %}
-            
-            <!-- Sala de Reunião -->
-            <h3>Sala de Reunião</h3>
-            
-            {% if briefing.salas_reuniao.all %}
-                {% for sala in briefing.salas_reuniao.all %}
-                    <div class="area-section">
-                        <div class="info-row">
-                            <div class="label">Capacidade:</div>
-                            <div class="value">{% if sala.capacidade %}{{ sala.capacidade }} pessoas{% else %}Não informada{% endif %}</div>
-                        </div>
-                        
-                        <div class="info-row">
-                            <div class="label">Metragem:</div>
-                            <div class="value">{% if sala.metragem %}{{ sala.metragem }} m²{% else %}Não informada{% endif %}</div>
-                        </div>
-                        
-                        <div class="info-row">
-                            <div class="label">Equipamentos da Sala:</div>
-                            <div class="value">{% if sala.equipamentos %}{{ sala.equipamentos }}{% else %}Não informados{% endif %}</div>
-                        </div>
-                    </div>
-                {% endfor %}
-            {% elif briefing.tem_sala_reuniao %}
-                <div class="area-section">
-                    <div class="info-row">
-                        <div class="label">Status:</div>
-                        <div class="value">Sala de Reunião selecionada, mas sem detalhes adicionais</div>
-                    </div>
-                </div>
-            {% else %}
-                <div class="area-section">
-                    <div class="info-row">
-                        <div class="label">Status:</div>
-                        <div class="value">Não incluída no projeto</div>
-                    </div>
-                </div>
-            {% endif %}
-            
-            <!-- Copa -->
-            <h3>Copa</h3>
-            
-            {% if briefing.copas.all %}
-                {% for copa in briefing.copas.all %}
-                    <div class="area-section">
-                        <div class="info-row">
-                            <div class="label">Metragem:</div>
-                            <div class="value">{% if copa.metragem %}{{ copa.metragem }} m²{% else %}Não informada{% endif %}</div>
-                        </div>
-                        
-                        <div class="info-row">
-                            <div class="label">Equipamentos da Copa:</div>
-                            <div class="value">{% if copa.equipamentos %}{{ copa.equipamentos }}{% else %}Não informados{% endif %}</div>
-                        </div>
-                    </div>
-                {% endfor %}
-            {% elif briefing.tem_copa %}
-                <div class="area-section">
-                    <div class="info-row">
-                        <div class="label">Status:</div>
-                        <div class="value">Copa selecionada, mas sem detalhes adicionais</div>
-                    </div>
-                </div>
-            {% else %}
-                <div class="area-section">
-                    <div class="info-row">
-                        <div class="label">Status:</div>
-                        <div class="value">Não incluída no projeto</div>
-                    </div>
-                </div>
-            {% endif %}
-            
-            <!-- Depósito -->
-            <h3>Depósito</h3>
-            
-            {% if briefing.depositos.all %}
-                {% for deposito in briefing.depositos.all %}
-                    <div class="area-section">
-                        <div class="info-row">
-                            <div class="label">Metragem:</div>
-                            <div class="value">{% if deposito.metragem %}{{ deposito.metragem }} m²{% else %}Não informada{% endif %}</div>
-                        </div>
-                        
-                        <div class="info-row">
-                            <div class="label">Equipamentos do Depósito:</div>
-                            <div class="value">{% if deposito.equipamentos %}{{ deposito.equipamentos }}{% else %}Não informados{% endif %}</div>
-                        </div>
-                    </div>
-                {% endfor %}
-            {% elif briefing.tem_deposito %}
-                <div class="area-section">
-                    <div class="info-row">
-                        <div class="label">Status:</div>
                         <div class="value">Depósito selecionado, mas sem detalhes adicionais</div>
                     </div>
                 </div>
@@ -708,93 +630,141 @@
                 </div>
             {% endif %}
         </div>
-
-        <!-- ETAPA 4: REFERÊNCIAS VISUAIS -->
-        <div class="section">
-            <div class="card-header">ETAPA 4: REFERÊNCIAS VISUAIS</div>
-            
-            <!-- Referências Visuais -->
-            <h3>Referências Visuais</h3>
-            <div class="area-section">
-                <div class="info-row">
-                    <div class="label">Detalhamento:</div>
-                    <div class="value">{% if briefing.referencias_dados %}{{ briefing.referencias_dados }}{% else %}Não informado{% endif %}</div>
-                </div>
-            </div>
-            
-            <!-- Materiais de Campanha -->
-            <h3>Materiais de Campanha</h3>
-            <div class="area-section">
-                <div class="info-row">
-                    <div class="label">Detalhamento:</div>
-                    <div class="value">{% if briefing.campanha_dados %}{{ briefing.campanha_dados }}{% else %}Não informado{% endif %}</div>
-                </div>
-            </div>
-            
-            <!-- Informações Complementares -->
-            <h3>Informações Complementares</h3>
-            <div class="area-section">
-                <div class="info-row">
-                    <div class="label">Detalhamento - Dados:</div>
-                    <div class="value">{% if briefing.logotipo %}{{ briefing.logotipo }}{% else %}Não informado{% endif %}</div>
-                </div>
-            </div>
-            
-
-            <!-- GALERIA DE IMAGENS -->
-            <div class="section">
-                <div class="card-header">Galeria de Imagens</div>
-            
-                <!-- Imagens na galeria -->
-                <h3>Imagens do Projeto</h3>
-                <div class="area-section">
-            
-                    {% if imagens_referencias %}
-                        <div class="gallery" style="margin-top: 20px;">
-                            {% for imagem in imagens_referencias %}
-                                <div class="gallery-item" style="border: 1px solid #ddd; padding: 8px; border-radius: 4px;">
-                                    <img src="{{ imagem.url }}" alt="{{ imagem.nome }}" style="max-width: 100%; height: auto; max-height: 150px; object-fit: cover;">
-                                    <div style="margin-top: 5px; font-size: 12px; font-weight: 600;">{{ imagem.nome }}</div>
-                                    <span style="background: var(--secondary); color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; display: inline-block; margin-top: 5px;">{{ imagem.tipo }}</span>
-                                </div>
-                            {% endfor %}
-                        </div>
+<!-- ETAPA 4: REFERÊNCIAS VISUAIS -->
+<div class="section">
+    <div class="card-header">ETAPA 4: REFERÊNCIAS VISUAIS</div>
+    
+    <!-- Referências Visuais -->
+    <h3>Referências Visuais</h3>
+    <div class="area-section">
+        <div class="info-row">
+            <div class="label">Detalhamento:</div>
+            <div class="value">{% if briefing.referencias_dados %}{{ briefing.referencias_dados }}{% else %}Não informado{% endif %}</div>
+        </div>
+    </div>
+        
+        <!-- Miniaturas de Referências Visuais -->
+        <div class="area-section">
+        <div class="section-thumbnails">
+            {% for arquivo in briefing.arquivos.all %}
+            {% if arquivo.tipo == 'referencia' %}
+                <div class="thumbnail-item">
+                {% with arquivo_url=arquivo.arquivo.url|lower %}
+                    {% if '.jpg' in arquivo_url or '.jpeg' in arquivo_url or '.png' in arquivo_url or '.gif' in arquivo_url or '.svg' in arquivo_url or '.webp' in arquivo_url %}
+                    <img src="{{ arquivo.arquivo.url }}" alt="{{ arquivo.nome }}">
                     {% else %}
-                        <div style="text-align: center; padding: 20px;">
-                            <p style="color: var(--gray);">Nenhuma imagem foi adicionada ao projeto.</p>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-
-        <!-- Status de Validação -->
-        {% if briefing.validacoes.exists %}
-        <div class="section">
-            <div class="card-header">Status de Validação</div>
-            {% for validacao in briefing.validacoes.all %}
-            <div class="area-section">
-                <div class="info-row">
-                    <div class="label">{{ validacao.get_secao_display }}:</div>
-                    <div class="value">
-                        <span class="status status-{{ validacao.status }}">
-                            {{ validacao.get_status_display }}
-                        </span>
-                        {% if validacao.mensagem %}
-                        <div style="margin-top: 5px; font-size: 13px;">
-                            {{ validacao.mensagem }}
-                        </div>
-                        {% endif %}
+                    <div style="height: 100px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-image fa-3x" style="color: var(--primary);"></i>
                     </div>
+                    {% endif %}
+                {% endwith %}
+                <div class="thumbnail-caption">{{ arquivo.nome }}</div>
+                <div class="thumbnail-type">Referência</div>
                 </div>
-            </div>
+            {% endif %}
+            {% empty %}
+            <p>Nenhuma referência visual enviada.</p>
             {% endfor %}
         </div>
-        {% endif %}
-
-        <div class="footer">
-            <p>Afinal Cenografia - Documento gerado automaticamente</p>
-            <p>&copy; {% now "Y" %} Afinal Cenografia - Todos os direitos reservados</p>
         </div>
+    
+    <!-- Materiais de Campanha -->
+    <h3>Materiais de Campanha</h3>
+    <div class="area-section">
+        <div class="info-row">
+            <div class="label">Detalhamento:</div>
+            <div class="value">{% if briefing.campanha_dados %}{{ briefing.campanha_dados }}{% else %}Não informado{% endif %}</div>
+        </div>
+    </div>
+
+        <div class="area-section">
+        <div class="section-thumbnails">
+            {% for arquivo in briefing.arquivos.all %}
+            {% if arquivo.tipo == 'campanha' %}
+                <div class="thumbnail-item">
+                {% with arquivo_url=arquivo.arquivo.url|lower %}
+                    {% if '.jpg' in arquivo_url or '.jpeg' in arquivo_url or '.png' in arquivo_url or '.gif' in arquivo_url or '.svg' in arquivo_url or '.webp' in arquivo_url %}
+                    <img src="{{ arquivo.arquivo.url }}" alt="{{ arquivo.nome }}">
+                    {% else %}
+                    <div style="height: 100px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-ad fa-3x" style="color: var(--primary);"></i>
+                    </div>
+                    {% endif %}
+                {% endwith %}
+                <div class="thumbnail-caption">{{ arquivo.nome }}</div>
+                <div class="thumbnail-type">Campanha</div>
+                </div>
+            {% endif %}
+            {% empty %}
+            <p>Nenhum material de campanha enviado.</p>
+            {% endfor %}
+        </div>
+        </div>
+        
+
+    
+    <!-- Informações Complementares -->
+    <h3>Informações Complementares</h3>
+    <div class="area-section">
+        <div class="info-row">
+            <div class="label">Detalhamento:</div>
+            <div class="value">{% if briefing.logotipo %}{{ briefing.logotipo }}{% else %}Não informado{% endif %}</div>
+        </div>
+    </div>
+        
+        <div class="area-section">
+        <div class="section-thumbnails">
+            {% for arquivo in briefing.arquivos.all %}
+            {% if arquivo.tipo == 'logo' or arquivo.tipo == 'outro' %}
+                <div class="thumbnail-item">
+                {% with arquivo_url=arquivo.arquivo.url|lower %}
+                    {% if '.jpg' in arquivo_url or '.jpeg' in arquivo_url or '.png' in arquivo_url or '.gif' in arquivo_url or '.svg' in arquivo_url or '.webp' in arquivo_url %}
+                    <img src="{{ arquivo.arquivo.url }}" alt="{{ arquivo.nome }}">
+                    {% else %}
+                    <div style="height: 100px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-file fa-3x" style="color: var(--primary);"></i>
+                    </div>
+                    {% endif %}
+                {% endwith %}
+                <div class="thumbnail-caption">{{ arquivo.nome }}</div>
+                <div class="thumbnail-type">
+                    {% if arquivo.tipo == 'logo' %}Logo{% else %}Outro{% endif %}
+                </div>
+                </div>
+            {% endif %}
+            {% empty %}
+            <p>Nenhum arquivo enviado.</p>
+            {% endfor %}
+        </div>
+        </div>
+
+</div>
+
+<!-- Status de Validação -->
+{% if briefing.validacoes.exists %}
+<div class="section">
+    <div class="card-header">Status de Validação</div>
+    {% for validacao in briefing.validacoes.all %}
+    <div class="area-section">
+        <div class="info-row">
+            <div class="label">{{ validacao.get_secao_display }}:</div>
+            <div class="value">
+                <span class="status status-{{ validacao.status }}">
+                    {{ validacao.get_status_display }}
+                </span>
+                {% if validacao.mensagem %}
+                <div style="margin-top: 5px; font-size: 13px;">
+                    {{ validacao.mensagem }}
+                </div>
+                {% endif %}
             </div>
-        </body>
-        </html>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="footer">
+    <p>Afinal Cenografia - Documento gerado automaticamente</p>
+    <p>&copy; {% now "Y" %} Afinal Cenografia - Todos os direitos reservados</p>
+</div>
