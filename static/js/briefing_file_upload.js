@@ -18,6 +18,8 @@ class BriefingFileUploader {
         this.uploadUrl = config.uploadUrl;
         this.projetoId = config.projetoId;
         this.uploadForms = [];
+        // Armazenar eventos de exclusão para evitar registrá-los várias vezes
+        this.deleteBtnsWithListeners = new Set();
         this.fileTypes = {
             'mapa': { icon: 'fa-map', name: 'Mapa do Estande', allowMultiple: false },
             'planta': { icon: 'fa-drafting-compass', name: 'Planta/Esboço', allowMultiple: false },
@@ -71,14 +73,27 @@ class BriefingFileUploader {
 
         // Adiciona evento para exclusão de arquivos (delegado ao container)
         if (previewContainer) {
-            previewContainer.addEventListener('click', (e) => {
-                const deleteBtn = e.target.closest('.excluir-arquivo');
-                if (deleteBtn) {
-                    const arquivoId = deleteBtn.dataset.id;
-                    const url = deleteBtn.dataset.url;
-                    this.handleDeleteFile(url, arquivoId, deleteBtn.closest('.arquivo-item'));
-                }
-            });
+            // CORREÇÃO: Garantir que evento de exclusão seja registrado apenas uma vez
+            // Verificar se já adicionamos evento a este container
+            if (!this.deleteBtnsWithListeners.has(previewContainer.id)) {
+                previewContainer.addEventListener('click', (e) => {
+                    const deleteBtn = e.target.closest('.excluir-arquivo');
+                    if (deleteBtn) {
+                        // Desabilitar o botão para evitar múltiplos cliques
+                        if (deleteBtn.disabled) {
+                            return;
+                        }
+                        deleteBtn.disabled = true;
+                        
+                        const arquivoId = deleteBtn.dataset.id;
+                        const url = deleteBtn.dataset.url;
+                        this.handleDeleteFile(url, arquivoId, deleteBtn.closest('.arquivo-item'), deleteBtn);
+                    }
+                });
+                // Marcar container como já tendo evento registrado
+                this.deleteBtnsWithListeners.add(previewContainer.id);
+                console.log(`Evento de exclusão registrado para o container: ${previewContainer.id}`);
+            }
         }
     }
 
@@ -150,7 +165,6 @@ class BriefingFileUploader {
             alert('Selecione um arquivo para upload');
             return;
         }
-
 
         const formData = new FormData();
         formData.append('arquivo', fileInput.files[0]);
@@ -286,30 +300,45 @@ class BriefingFileUploader {
      * @param {string} url - URL para excluir o arquivo
      * @param {number} arquivoId - ID do arquivo
      * @param {HTMLElement} element - Elemento a ser removido após exclusão
+     * @param {HTMLButtonElement} button - Botão que foi clicado (para reativar se necessário)
      */
-    handleDeleteFile(url, arquivoId, element) {
-        if (confirm('Tem certeza que deseja excluir este arquivo?')) {
-            fetch(url, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': this.csrfToken,
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'same-origin'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Remover elemento da UI
-                    element.remove();
-                    this.showNotification('Arquivo excluído com sucesso!', 'success');
-                } else {
-                    this.showNotification(`Erro ao excluir arquivo: ${data.message || 'Erro desconhecido'}`, 'danger');
-                }
-            })
-            .catch(error => {
-                this.showNotification(`Erro ao excluir arquivo: ${error}`, 'danger');
-            });
+    handleDeleteFile(url, arquivoId, element, button) {
+        // CORREÇÃO: Usar uma variável para garantir que só pedimos confirmação uma vez
+        let confirmRequested = false;
+        
+        if (!confirmRequested) {
+            confirmRequested = true;
+            
+            if (confirm('Tem certeza que deseja excluir este arquivo?')) {
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': this.csrfToken,
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remover elemento da UI
+                        if (element) {
+                            element.remove();
+                        }
+                        this.showNotification('Arquivo excluído com sucesso!', 'success');
+                    } else {
+                        if (button) button.disabled = false;
+                        this.showNotification(`Erro ao excluir arquivo: ${data.message || 'Erro desconhecido'}`, 'danger');
+                    }
+                })
+                .catch(error => {
+                    if (button) button.disabled = false;
+                    this.showNotification(`Erro ao excluir arquivo: ${error}`, 'danger');
+                });
+            } else {
+                // Reativar o botão se o usuário cancelar
+                if (button) button.disabled = false;
+            }
         }
     }
 
