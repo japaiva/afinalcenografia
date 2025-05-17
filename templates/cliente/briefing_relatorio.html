@@ -400,7 +400,7 @@
         <!-- Quebra de página antes de Informações do Evento -->
         <div style="page-break-after: always;"></div>
 
-        <!-- ETAPA 1: LOCAL ESTANDE -->
+<!-- ETAPA 1: LOCAL ESTANDE -->
         <div class="section">
             <div class="card-header">ETAPA 1: LOCAL ESTANDE</div>
             
@@ -431,6 +431,34 @@
                 <div class="info-row">
                     <div class="label">Desmontagem:</div>
                     <div class="value">{{ projeto.feira.periodo_desmontagem }}</div>
+                </div>
+            </div>
+            {% elif projeto.tipo_projeto == 'outros' %}
+            <h3>Informações do Evento</h3>
+            <div class="area-section">
+                <div class="info-row">
+                    <div class="label">Evento:</div>
+                    <div class="value">{{ briefing.nome_evento|default:"Não informado" }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="label">Local:</div>
+                    <div class="value">{{ briefing.local_evento|default:"Não informado" }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="label">Organizador:</div>
+                    <div class="value">{{ briefing.organizador_evento|default:"Não informado" }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="label">Data e Horário:</div>
+                    <div class="value">{{ briefing.data_horario_evento|default:"Não informado" }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="label">Montagem:</div>
+                    <div class="value">{{ briefing.periodo_montagem_evento|default:"Não informado" }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="label">Desmontagem:</div>
+                    <div class="value">{{ briefing.periodo_desmontagem_evento|default:"Não informado" }}</div>
                 </div>
             </div>
             {% endif %}
@@ -474,6 +502,7 @@
             </div>
         </div>
 
+
         <!-- ETAPA 2: ESTANDE -->
         <div class="section">
             <div class="card-header">ETAPA 2: ESTANDE</div>
@@ -481,10 +510,13 @@
             <!-- Informações do Estande -->
             <h3>Informações do Estande</h3>
             <div class="area-section">
+                {% if projeto.tipo_projeto != 'outros' %}
                 <div class="info-row">
                     <div class="label">Tipo de Stand:</div>
                     <div class="value">{% if briefing.get_tipo_stand_display %}{{ briefing.get_tipo_stand_display }}{% else %}Não informado{% endif %}</div>
                 </div>
+                {% endif %}
+                
                 <div class="info-row">
                     <div class="label">Medida Frente:</div>
                     <div class="value">{% if briefing.medida_frente %}{{ briefing.medida_frente }} m{% else %}Não informada{% endif %}</div>
@@ -573,6 +605,7 @@
         </div>
 
         <!-- ETAPA 3: ÁREAS DO ESTANDE -->
+        {% if projeto.tipo_projeto != 'outros' %}
         <div class="section">
             <div class="card-header">ETAPA 3: ÁREAS DO ESTANDE</div>
             
@@ -712,7 +745,7 @@
             {% endif %}
 
         </div>
-
+        {% endif %}
 
 <!-- ETAPA 4: REFERÊNCIAS VISUAIS -->
 <div class="section">
