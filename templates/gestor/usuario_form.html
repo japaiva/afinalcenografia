@@ -96,6 +96,21 @@
             </div>
           {% endif %}
         </div>
+
+        <div class="col-md-6">
+          <label for="{{ form.confirm_password.id_for_label }}" class="form-label">Confirmar Senha{% if not form.instance.pk %}*{% endif %}</label>
+          {{ form.confirm_password }}
+          <div class="form-text small">
+            Digite a senha novamente para confirmar.
+          </div>
+          {% if form.confirm_password.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.confirm_password.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
         
         <!-- Telefone -->
         <div class="col-md-6">
@@ -134,26 +149,7 @@
             </div>
           {% endif %}
         </div>
-        
-        <!-- Foto de Perfil -->
-        <div class="col-md-6">
-          <label for="{{ form.foto_perfil.id_for_label }}" class="form-label">Foto de Perfil</label>
-          {{ form.foto_perfil }}
-          {% if form.foto_perfil.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.foto_perfil.errors %}
-                {{ error }}
-              {% endfor %}
-            </div>
-          {% endif %}
-          {% if form.instance.foto_perfil %}
-            <div class="mt-2">
-              <p class="mb-1 small">Foto atual:</p>
-              <img src="{{ form.instance.foto_perfil.url }}" alt="{{ form.instance.username }}" class="img-thumbnail rounded-circle" style="width: 100px; height: 100px; object-fit: cover;">
-            </div>
-          {% endif %}
-        </div>
-        
+                
         <!-- Status -->
         <div class="col-md-6">
           <div class="form-check form-switch mt-4">

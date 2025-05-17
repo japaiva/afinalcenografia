@@ -27,5 +27,17 @@ class CoreConfig(AppConfig):
                     logger.info("Mantendo logs de desenvolvimento (modo DEBUG ativo)")
                     
                 logger.info("Aplicativo Core inicializado com sucesso")
+                
+                # Importar signals DEPOIS de tudo inicializado
+                self._register_signals()
             except Exception as e:
                 logger.error(f"Erro ao configurar logs: {str(e)}")
+    
+    def _register_signals(self):
+        """Registra os signals separadamente para evitar importações circulares"""
+        try:
+            # Importe os signals, não os modelos
+            from core.signals import create_user_profile, save_user_profile
+            logger.info("Signals registrados com sucesso")
+        except Exception as e:
+            logger.error(f"Erro ao registrar signals: {str(e)}")
