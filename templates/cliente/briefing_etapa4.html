@@ -254,14 +254,21 @@
   <!-- Botões de navegação -->
   <div class="d-flex justify-content-between mt-4">
     {% if pode_voltar %}
-    <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=etapa|add:'-1' %}" class="btn btn-outline-secondary">
-      <i class="fas fa-chevron-left me-1"></i> Anterior
-    </a>
+      {% if projeto.tipo_projeto == 'outros' %}
+        <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=2 %}" class="btn btn-outline-secondary">
+          <i class="fas fa-chevron-left me-1"></i> Anterior
+        </a>
+      {% else %}
+        <a href="{% url 'cliente:briefing_etapa' projeto_id=projeto.id etapa=3 %}" class="btn btn-outline-secondary">
+          <i class="fas fa-chevron-left me-1"></i> Anterior
+        </a>
+      {% endif %}
     {% else %}
-    <button class="btn btn-outline-secondary" disabled>
-      <i class="fas fa-chevron-left me-1"></i> Anterior
-    </button>
+      <button class="btn btn-outline-secondary" disabled>
+        <i class="fas fa-chevron-left me-1"></i> Anterior
+      </button>
     {% endif %}
+
     
     {% if pode_avancar %}
     <button type="submit" name="avancar" value="1" class="btn btn-primary">

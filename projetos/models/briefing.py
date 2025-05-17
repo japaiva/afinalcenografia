@@ -222,6 +222,7 @@ class Briefing(models.Model):
         verbose_name="Tipo de Stand"
     )
 
+
     # TELA 3: ÁREAS DO ESTANDE - Divisões Funcionais
 
     # TELA 4: DADOS COMPLEMENTARES

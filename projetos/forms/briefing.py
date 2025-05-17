@@ -104,6 +104,27 @@ class BriefingEtapa2Form(forms.ModelForm):
             }),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Tornar o campo tipo_stand não obrigatório
+        self.fields['tipo_stand'].required = False
+        
+        # Se a instância estiver associada a um projeto do tipo "outros", usar widget escondido
+        if hasattr(self.instance, 'projeto') and self.instance.projeto and self.instance.projeto.tipo_projeto == 'outros':
+            # Em vez de remover o campo, vamos torná-lo um campo escondido com valor padrão
+            self.fields['tipo_stand'].widget = forms.HiddenInput()
+            # Definir valor inicial para o campo
+            self.fields['tipo_stand'].initial = 'esquina'
+            
+    def clean(self):
+        cleaned_data = super().clean()
+        
+        # Se o campo tipo_stand não foi preenchido, usar o valor padrão
+        if 'tipo_stand' not in cleaned_data or not cleaned_data.get('tipo_stand'):
+            cleaned_data['tipo_stand'] = 'esquina'  # Valor padrão do modelo
+            
+        return cleaned_data
 
 class AreaExposicaoForm(forms.ModelForm):
     """Formulário para áreas de exposição do estande"""
