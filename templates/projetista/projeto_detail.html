@@ -1,0 +1,314 @@
+{% extends 'projetista/base_projetista.html' %}
+{% load formatadores %}
+
+{% block title %}Projeto #{{ projeto.numero }} - {{ projeto.empresa.nome }} | Portal do Projetista{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+  <div class="card shadow mb-4">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center">
+        <i class="fas fa-project-diagram me-2"></i>
+        <h4 class="mb-0">Projeto #{{ projeto.numero }} - {{ projeto.empresa.nome }}</h4>
+      </div>
+      <div>
+        <a href="{% url 'projetista:projeto_list' %}" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-1"></i> Voltar
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- COLUNA ESQUERDA (MAIOR) -->
+    <div class="col-md-8">
+      <!-- INFORMAÇÕES DO PROJETO -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i> Informações do Projeto</h5>
+        </div>
+        <div class="card-body">
+          <div class="row mb-2">
+            <div class="col-md-6">
+              <strong>Orçamento:</strong> R$ {{ projeto.orcamento|floatformat:2 }}
+            </div>
+            <div class="col-md-6">
+              <strong>Status:</strong>
+              <span class="badge 
+                {% if projeto.status == 'briefing_pendente' %}bg-info
+                {% elif projeto.status == 'briefing_em_andamento' %}bg-warning text-dark
+                {% elif projeto.status == 'briefing_validado' %}bg-success
+                {% elif projeto.status == 'briefing_enviado' %}bg-info
+                {% elif projeto.status == 'projeto_em_desenvolvimento' %}bg-primary
+                {% elif projeto.status == 'projeto_enviado' %}bg-info
+                {% elif projeto.status == 'projeto_em_analise' %}bg-warning text-dark
+                {% elif projeto.status == 'projeto_aprovado' %}bg-success
+                {% elif projeto.status == 'em_producao' %}bg-danger
+                {% elif projeto.status == 'concluido' %}bg-secondary
+                {% elif projeto.status == 'cancelado' %}bg-danger
+                {% else %}bg-secondary{% endif %}">
+                {{ projeto.get_status_display }}
+              </span>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-12">
+              <strong>Objetivo:</strong> {{ projeto.descricao|default:"Não informado" }}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- CONSULTA -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0"><i class="fas fa-search me-2"></i> Consulta</h5>
+        </div>
+        <div class="card-body">
+          <ul class="nav nav-tabs" id="consultaTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="briefing-tab" data-bs-toggle="tab" data-bs-target="#briefing-content" type="button" role="tab" aria-controls="briefing-content" aria-selected="true">Briefing</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="conceito-tab" data-bs-toggle="tab" data-bs-target="#conceito-content" type="button" role="tab" aria-controls="conceito-content" aria-selected="false">Conceito Visual</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="marcos-tab" data-bs-toggle="tab" data-bs-target="#marcos-content" type="button" role="tab" aria-controls="marcos-content" aria-selected="false">Marcos</button>
+            </li>
+          </ul>
+          
+          <div class="tab-content pt-3" id="consultaTabsContent">
+            <!-- BRIEFING TAB -->
+            <div class="tab-pane fade show active" id="briefing-content" role="tabpanel" aria-labelledby="briefing-tab">
+              {% if projeto.has_briefing %}
+                {% with briefing=projeto.briefings.first %}
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h6 class="mb-0">Briefing v{{ briefing.versao }}</h6>
+                  <span class="badge 
+                    {% if briefing.status == 'rascunho' %}bg-secondary
+                    {% elif briefing.status == 'validado' %}bg-success
+                    {% elif briefing.status == 'em_validacao' %}bg-warning text-dark
+                    {% elif briefing.status == 'enviado' %}bg-primary
+                    {% elif briefing.status == 'revisao' %}bg-info
+                    {% elif briefing.status == 'aprovado' %}bg-success
+                    {% endif %}">
+                    {{ briefing.get_status_display }}
+                  </span>
+                </div>
+                
+                <div class="progress mb-3" style="height: 20px;">
+                  <div class="progress-bar bg-success" role="progressbar" style="width: {{ briefing.progresso }}%;" aria-valuenow="{{ briefing.progresso }}" aria-valuemin="0" aria-valuemax="100">{{ briefing.progresso }}%</div>
+                </div>
+                
+                <div class="d-flex">
+                  {% if briefing.pdf_file %}
+                  <a href="{{ briefing.pdf_file.url }}" class="btn btn-primary btn-sm me-2" target="_blank">
+                    <i class="fas fa-file-pdf me-1"></i> Ver PDF do Briefing
+                  </a>
+                  {% endif %}
+                  
+                  <a href="{% url 'projetista:ver_briefing' projeto_id=projeto.id %}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-eye me-1"></i> Visualizar Briefing Completo
+                  </a>
+                </div>
+                {% endwith %}
+              {% else %}
+                <div class="alert alert-info mb-3">
+                  <i class="fas fa-info-circle me-2"></i> Este projeto ainda não possui briefing.
+                </div>
+              {% endif %}
+            </div>
+            
+            <!-- CONCEITO VISUAL TAB -->
+            <div class="tab-pane fade" id="conceito-content" role="tabpanel" aria-labelledby="conceito-tab">
+              {% if tem_conceito %}
+                <div class="alert alert-success mb-3">
+                  <i class="fas fa-check-circle me-2"></i> Este projeto já possui um conceito visual.
+                </div>
+                <a href="{% url 'projetista:gerar_conceito' projeto_id=projeto.id %}" class="btn btn-outline-primary">
+                  <i class="fas fa-edit me-1"></i> Editar Conceito Visual
+                </a>
+              {% else %}
+                <div class="alert alert-info mb-3">
+                  <i class="fas fa-info-circle me-2"></i> Este projeto ainda não possui um conceito visual.
+                </div>
+                <a href="{% url 'projetista:gerar_conceito' projeto_id=projeto.id %}" class="btn btn-primary">
+                  <i class="fas fa-plus me-1"></i> Criar Conceito Visual
+                </a>
+              {% endif %}
+            </div>
+            
+            <!-- MARCOS TAB -->
+            <div class="tab-pane fade" id="marcos-content" role="tabpanel" aria-labelledby="marcos-tab">
+              <div class="timeline-container">
+                {% for marco in marcos %}
+                <div class="timeline-item">
+                  <div class="timeline-marker 
+                    {% if marco.tipo == 'criacao_projeto' %}bg-secondary
+                    {% elif marco.tipo == 'envio_briefing' %}bg-info
+                    {% elif marco.tipo == 'validacao_briefing' %}bg-success
+                    {% elif marco.tipo == 'inicio_desenvolvimento' %}bg-primary
+                    {% elif marco.tipo == 'envio_projeto' %}bg-info
+                    {% elif marco.tipo == 'analise_projeto' %}bg-warning
+                    {% elif marco.tipo == 'aprovacao_projeto' %}bg-success
+                    {% elif marco.tipo == 'inicio_producao' %}bg-danger
+                    {% elif marco.tipo == 'entrega_estande' %}bg-success
+                    {% elif marco.tipo == 'cancelamento' %}bg-danger
+                    {% else %}bg-secondary{% endif %}">
+                  </div>
+                  <div class="timeline-content">
+                    <div class="d-flex justify-content-between">
+                      <h6 class="fw-bold mb-1">{{ marco.get_tipo_display }}</h6>
+                      <small class="text-muted">{{ marco.data|date:"d/m/Y H:i" }}</small>
+                    </div>
+                    <p class="mb-0">{{ marco.observacao|default:"" }}</p>
+                    {% if marco.registrado_por %}
+                    <small class="text-muted">Registrado por: {{ marco.registrado_por.get_full_name|default:marco.registrado_por.username }}</small>
+                    {% endif %}
+                  </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-3 text-muted">Nenhum marco registrado para este projeto.</div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- COLUNA DIREITA (MENOR) -->
+    <div class="col-md-4">
+      <!-- AÇÕES -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0"><i class="fas fa-cogs me-2"></i> Ações</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            {% if projeto.has_briefing %}
+              <a href="{% url 'projetista:ver_briefing' projeto_id=projeto.id %}" class="btn btn-outline-primary">
+                <i class="fas fa-eye me-2"></i> Ver Briefing Completo
+              </a>
+            {% endif %}
+            
+            <a href="{% url 'projetista:gerar_conceito' projeto_id=projeto.id %}" class="btn btn-outline-primary">
+              <i class="fas fa-lightbulb me-2"></i> {% if tem_conceito %}Editar{% else %}Gerar{% endif %} Conceito Visual
+            </a>
+            
+            <a href="{% url 'projetista:mensagens_projeto' projeto_id=projeto.id %}" class="btn btn-outline-primary">
+              <i class="fas fa-comment me-2"></i> Enviar Mensagem
+            </a>
+          </div>
+        </div>
+      </div>
+      
+      <!-- CRONOGRAMA -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0"><i class="fas fa-calendar me-2"></i> Cronograma</h5>
+        </div>
+        <div class="card-body">
+          <ul class="list-group">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                Inclusão Projeto
+              </div>
+              <span>
+                {% if projeto.created_at %}
+                  {{ projeto.created_at|date:"d/m/Y" }}
+                {% else %}
+                  -
+                {% endif %}
+              </span>
+            </li>
+            
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                Envio Briefing
+              </div>
+              <span>
+                {% if projeto.data_envio_briefing %}
+                  {{ projeto.data_envio_briefing|date:"d/m/Y" }}
+                {% else %}
+                  -
+                {% endif %}
+              </span>
+            </li>
+            
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                Retorno Projeto
+              </div>
+              <span>
+                {% with retorno_projeto=projeto.marcos.filter.first %}
+                {% if retorno_projeto %}
+                  {{ retorno_projeto.data|date:"d/m/Y" }}
+                {% else %}
+                  -
+                {% endif %}
+                {% endwith %}
+              </span>
+            </li>
+            
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                Aprov. Projeto
+              </div>
+              <span>
+                {% if projeto.data_aprovacao_projeto %}
+                  {{ projeto.data_aprovacao_projeto|date:"d/m/Y" }}
+                {% else %}
+                  -
+                {% endif %}
+              </span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.timeline-container {
+  position: relative;
+  padding-left: 30px;
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 25px;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: -30px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -23px;
+  top: 15px;
+  height: calc(100% + 25px);
+  width: 2px;
+  background-color: #e9ecef;
+}
+
+.timeline-item:last-child::before {
+  display: none;
+}
+
+.timeline-content {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.1);
+}
+</style>
+{% endblock %}

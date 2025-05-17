@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}Portal do Projetista | Afinal Cenografia{% endblock %}
+
+{% block navbar_title %}
+<span class="app-title-text">Portal do Projetista</span>
+{% endblock %}
+
+{% block nav_items %}
+<li class="nav-item">
+  <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'projetista:dashboard' %}">
+  </a>
+</li>
+
+<!-- Divisor vertical -->
+<li class="nav-item">
+  <span class="nav-link" style="border-left: 2px solid #60a5fa; height: 24px; margin: 8px 15px;"></span>
+</li>
+
+<!-- Menu de Projetos -->
+<li class="nav-item dropdown">
+  <a class="nav-link dropdown-toggle {% if 'projeto' in request.resolver_match.url_name %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+     Projetos
+  </a>
+  <ul class="dropdown-menu dropdown-menu-dark">
+    <li><a class="dropdown-item" href="{% url 'projetista:projeto_list' %}">
+       Meus Projetos
+    </a></li>
+  </ul>
+</li>
+
+<!-- Menu de Mensagens -->
+<li class="nav-item dropdown">
+  <a class="nav-link dropdown-toggle {% if 'mensagem' in request.resolver_match.url_name %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+     Mensagens 
+    <!-- Badge para notificações não lidas -->
+    {% if user.mensagens_nao_lidas > 0 %}
+    <span class="badge rounded-pill bg-danger" style="font-size: 0.7rem; position: relative; top: -1px;">{{ user.mensagens_nao_lidas }}</span>
+    {% endif %}
+  </a>
+  <ul class="dropdown-menu dropdown-menu-dark">
+    <li><a class="dropdown-item" href="{% url 'projetista:mensagens' %}">
+        Central de Mensagens
+    </a></li>
+    <li><a class="dropdown-item" href="{% url 'projetista:nova_mensagem' %}">
+        Nova Mensagem
+    </a></li>
+  </ul>
+</li>
+
+{% endblock %}
