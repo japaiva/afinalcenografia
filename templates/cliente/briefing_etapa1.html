@@ -14,7 +14,7 @@
     </div>
   {% endif %}
   
-  <!-- Informações da Feira - Card de Resumo (Apenas Visualização) -->
+  <!-- Informações da Feira - Card de Resumo (Quando projeto tem feira associada) -->
   {% if projeto.feira %}
   <div class="card mb-4">
     <div class="card-header bg-primary text-white">
@@ -49,7 +49,7 @@
         <div class="col-md-6 mb-3">
           <div class="d-flex align-items-center mb-2">
             <i class="fas fa-clock text-primary me-2"></i>
-            <strong>Horário:</strong>
+            <strong>Data e Horário:</strong>
           </div>
           <p class="ms-4">{% if projeto.feira.data_horario %}{{ projeto.feira.data_horario }}{% else %}A confirmar{% endif %}</p>
         </div>
@@ -73,8 +73,128 @@
       </div>
     </div>
   </div>
-  {% endif %}
   
+  {% elif projeto.tipo_projeto == 'outros' %}
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0">Informações do Evento</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+
+        <!-- Evento (2 linhas) -->
+        <div class="col-md-6 mb-3">
+          <div class="d-flex align-items-center mb-2">
+            <i class="fas fa-calendar-alt text-primary me-2"></i>
+            <strong>Evento:*</strong>
+          </div>
+          <div class="ms-4">
+            <textarea name="nome_evento" class="form-control" rows="2" placeholder="Nome do Evento">{{ form.nome_evento.value|default_if_none:'' }}</textarea>
+            {% if form.nome_evento.errors %}
+              <div class="form-text text-danger">
+                {% for error in form.nome_evento.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Local (5 linhas) -->
+        <div class="col-md-6 mb-3">
+          <div class="d-flex align-items-center mb-2">
+            <i class="fas fa-map-marker-alt text-primary me-2"></i>
+            <strong>Local:*</strong>
+          </div>
+          <div class="ms-4">
+            <textarea name="local_evento" class="form-control" rows="5" placeholder="Local do Evento">{{ form.local_evento.value|default_if_none:'' }}</textarea>
+            {% if form.local_evento.errors %}
+              <div class="form-text text-danger">
+                {% for error in form.local_evento.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Organizador (2 linhas) -->
+        <div class="col-md-6 mb-3">
+          <div class="d-flex align-items-center mb-2">
+            <i class="fas fa-building text-primary me-2"></i>
+            <strong>Organizador:*</strong>
+          </div>
+          <div class="ms-4">
+            <textarea name="organizador_evento" class="form-control" rows="2" placeholder="Organizador do Evento">{{ form.organizador_evento.value|default_if_none:'' }}</textarea>
+            {% if form.organizador_evento.errors %}
+              <div class="form-text text-danger">
+                {% for error in form.organizador_evento.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Data e Horário (5 linhas) -->
+        <div class="col-md-6 mb-3">
+          <div class="d-flex align-items-center mb-2">
+            <i class="fas fa-clock text-primary me-2"></i>
+            <strong>Data e Horário:*</strong>
+          </div>
+          <div class="ms-4">
+            <textarea name="data_horario_evento" class="form-control" rows="5" placeholder="Ex: 25/06 a 27/06 - 10h às 19h">{{ form.data_horario_evento.value|default_if_none:'' }}</textarea>
+            {% if form.data_horario_evento.errors %}
+              <div class="form-text text-danger">
+                {% for error in form.data_horario_evento.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Montagem (5 linhas) -->
+        <div class="col-md-6 mb-3">
+          <div class="d-flex align-items-center mb-2">
+            <i class="fas fa-tools text-primary me-2"></i>
+            <strong>Montagem:*</strong>
+          </div>
+          <div class="ms-4">
+            <textarea name="periodo_montagem_evento" class="form-control" rows="5" placeholder="Período de montagem">{{ form.periodo_montagem_evento.value|default_if_none:'' }}</textarea>
+            {% if form.periodo_montagem_evento.errors %}
+              <div class="form-text text-danger">
+                {% for error in form.periodo_montagem_evento.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Desmontagem (5 linhas) -->
+        <div class="col-md-6 mb-3">
+          <div class="d-flex align-items-center mb-2">
+            <i class="fas fa-truck-loading text-primary me-2"></i>
+            <strong>Desmontagem:*</strong>
+          </div>
+          <div class="ms-4">
+            <textarea name="periodo_desmontagem_evento" class="form-control" rows="5" placeholder="Período de desmontagem">{{ form.periodo_desmontagem_evento.value|default_if_none:'' }}</textarea>
+            {% if form.periodo_desmontagem_evento.errors %}
+              <div class="form-text text-danger">
+                {% for error in form.periodo_desmontagem_evento.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Localização do Estande -->
   <div class="card mb-4">
     <div class="card-header bg-primary text-white">

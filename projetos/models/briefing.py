@@ -80,6 +80,44 @@ class Briefing(models.Model):
         help_text="Localização do estande dentro do pavilhão"
     )
 
+    # TELA 1: EVENTO - Datas e Localização (Campos adicionais para projetos tipo "outros")
+    nome_evento = models.CharField(
+        max_length=255,
+        blank=True, null=True,
+        verbose_name="Nome do Evento",
+        help_text="Nome do evento ou feira"
+    )
+    local_evento = models.CharField(
+        max_length=255,
+        blank=True, null=True,
+        verbose_name="Local",
+        help_text="Local completo onde o evento será realizado (incluindo cidade/estado)"
+    )
+    organizador_evento = models.CharField(
+        max_length=255,
+        blank=True, null=True,
+        verbose_name="Organizador",
+        help_text="Empresa ou pessoa responsável pela organização do evento"
+    )
+    data_horario_evento = models.CharField(
+        max_length=255,
+        blank=True, null=True,
+        verbose_name="Data e Horário",
+        help_text="Período e horário de funcionamento do evento"
+    )
+    periodo_montagem_evento = models.CharField(
+        max_length=255,
+        blank=True, null=True,
+        verbose_name="Período de Montagem",
+        help_text="Datas e horários disponíveis para montagem"
+    )
+    periodo_desmontagem_evento = models.CharField(
+        max_length=255,
+        blank=True, null=True,
+        verbose_name="Período de Desmontagem",
+        help_text="Datas e horários para desmontagem"
+    )
+
     # TELA 2: ESTANDE - Características Físicas
     
     # Informações do Estande
@@ -253,6 +291,12 @@ def save(self, *args, **kwargs):
         self.feira = self.projeto.feira
         self.orcamento = self.projeto.orcamento
         self.objetivo_evento = self.projeto.descricao
+
+    # Se for um projeto do tipo "outros" e não tiver feira associada
+    if self.projeto.tipo_projeto == 'outros' and not self.feira:
+        # Certifique-se de que o estamos usando os campos manuais
+        pass
+
         
     # Calcula área total se tiver dimensões
     if self.medida_frente and self.medida_fundo:
