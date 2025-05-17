@@ -109,8 +109,12 @@ class UsuarioForm(forms.ModelForm):
         password = cleaned_data.get("password")
         confirm_password = cleaned_data.get("confirm_password")
         
-        if password and confirm_password and password != confirm_password:
-            self.add_error('confirm_password', "As senhas não coincidem.")
+        # Só verificar se as senhas coincidem se uma nova senha for fornecida
+        if password:
+            if not confirm_password:
+                self.add_error('confirm_password', "Por favor, confirme a senha.")
+            elif password != confirm_password:
+                self.add_error('confirm_password', "As senhas não coincidem.")
         
         return cleaned_data
     
