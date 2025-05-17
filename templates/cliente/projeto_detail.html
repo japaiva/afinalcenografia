@@ -157,6 +157,38 @@
         </div>
       </div>
       {% endif %}
+
+      {% if projeto.tipo_projeto == 'outros' and projeto.has_briefing %}
+        {% with briefing=projeto.briefings.first %}
+          <div class="card shadow mb-4">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0"><i class="fas fa-calendar-alt me-2"></i> Informações do Evento</h5>
+            </div>
+            <div class="card-body">
+              <div class="row mb-2">
+                <div class="col-12">
+                  <strong>Nome:</strong> {{ briefing.nome_evento|default:"Não informado" }}
+                </div>
+              </div>
+              <div class="row mb-2">
+                <div class="col-12">
+                  <strong>Local:</strong> {{ briefing.local_evento|default:"Não informado" }}
+                </div>
+              </div>
+              <div class="row mb-2">
+                <div class="col-12">
+                  <strong>Organizador:</strong> {{ briefing.organizador_evento|default:"Não informado" }}
+                </div>
+              </div>
+              <div class="row mb-2">
+                <div class="col-12">
+                  <strong>Data e Horário:</strong> {{ briefing.data_horario_evento|default:"Não informado" }}
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endwith %}
+      {% endif %}
       
       <!-- CONSULTA -->
       <div class="card shadow mb-4">

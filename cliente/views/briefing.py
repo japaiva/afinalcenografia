@@ -3,31 +3,328 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
-from django.views.decorators.http import require_POST
+from django.http import JsonResponse, HttpResponse
+from django.template.loader import get_template
+from django.utils import timezone
+from django.core.files.base import ContentFile
+from django.conf import settings
+from django.db import transaction
+
 from core.decorators import cliente_required
 
-from projetos.models import Projeto,Briefing, BriefingArquivoReferencia, BriefingValidacao, BriefingConversation
+from projetos.models import Projeto
+from projetos.models.briefing import (
+    Briefing, AreaExposicao, SalaReuniao, Copa, Deposito,
+    BriefingArquivoReferencia, BriefingValidacao, BriefingConversation
+)
 
-from projetos.forms import (
+from projetos.forms.briefing import (
     BriefingEtapa1Form, BriefingEtapa2Form,
     BriefingEtapa3Form, BriefingEtapa4Form,
-    BriefingArquivoReferenciaForm
+    BriefingArquivoReferenciaForm, BriefingMensagemForm,
+    CopaForm, DepositoForm
 )
 
 from projetos.views import validar_secao_briefing
 
-from django.http import HttpResponse
-from django.template.loader import get_template
-from django.utils import timezone
-from django.core.files.base import ContentFile
-
+#logger
 import logging
-
-# Configure o logger
 logger = logging.getLogger(__name__)
 
-# views/briefing.py (função atualizada)
+#REFATORADAS
+# briefing_etapa
+# salvar_rascunho_briefing
+# concluir briefing
+
+from django.views.decorators.http import require_POST
+
+@login_required
+@require_POST
+def salvar_rascunho_briefing(request, projeto_id):
+    """
+    View para salvar um rascunho do briefing (via AJAX)
+    """
+    from projetos.services.briefing_service import salvar_rascunho_briefing
+
+    etapa = int(request.POST.get('etapa', 1))
+
+    form_map = {
+        1: BriefingEtapa1Form,
+        2: BriefingEtapa2Form,
+        3: BriefingEtapa3Form,
+        4: BriefingEtapa4Form,
+    }
+    form_class = form_map.get(etapa, BriefingEtapa1Form)
+
+    success, form = salvar_rascunho_briefing(
+        projeto_id,
+        form_class,
+        {'data': request.POST, 'files': request.FILES}
+    )
+
+    if success:
+        return JsonResponse({'success': True, 'message': 'Rascunho salvo com sucesso!'})
+    return JsonResponse({'success': False, 'errors': form.errors})
+
+@login_required
+@cliente_required
+def concluir_briefing(request, projeto_id):
+    """Tela de conclusão do briefing"""
+    projeto = get_object_or_404(Projeto, pk=projeto_id, empresa=request.user.empresa)
+    
+    try:
+        briefing = Briefing.objects.get(projeto=projeto)
+    except Briefing.DoesNotExist:
+        messages.error(request, 'Nenhum briefing encontrado para este projeto.')
+        return redirect('cliente:briefing_etapa', projeto_id=projeto.id, etapa=1)
+    
+    validacoes = BriefingValidacao.objects.filter(briefing=briefing)
+    todas_aprovadas = all(v.status == 'aprovado' for v in validacoes)
+    
+    if request.method == 'POST':
+        if todas_aprovadas:
+            briefing.status = 'enviado'
+            briefing.save()
+
+            projeto.status = 'briefing_enviado'
+            projeto.data_envio_briefing = timezone.now()
+            projeto.save()
+
+            messages.success(request, 'Briefing enviado com sucesso para análise!')
+            return redirect('cliente:projeto_detail', pk=projeto.id)
+        else:
+            messages.error(request, 'Existem seções do briefing que ainda não foram aprovadas.')
+
+    context = {
+        'projeto': projeto,
+        'briefing': briefing,
+        'validacoes': validacoes,
+        'todas_aprovadas': todas_aprovadas,
+    }
+
+    return render(request, 'cliente/briefing_conclusao.html', context)
+
+@login_required
+@cliente_required
+def briefing_etapa(request, projeto_id, etapa):
+    """Gerencia cada etapa do briefing"""
+    from projetos.services.briefing_service import proxima_etapa_logica, obter_titulo_etapa
+
+    projeto = get_object_or_404(Projeto, pk=projeto_id, empresa=request.user.empresa)
+
+    try:
+        briefing = Briefing.objects.get(projeto=projeto)
+    except Briefing.DoesNotExist:
+        return redirect('cliente:iniciar_briefing', projeto_id=projeto.id)
+
+    etapa = int(etapa)
+    if etapa < 1 or etapa > 4:
+        etapa = 1
+
+    # Formulários por etapa
+    if etapa == 1:
+        form_class = BriefingEtapa1Form
+        secao = 'evento'
+    elif etapa == 2:
+        form_class = BriefingEtapa2Form
+        secao = 'estande'
+    elif etapa == 3:
+        form_class = BriefingEtapa3Form
+        secao = 'areas_estande'
+    else:
+        form_class = BriefingEtapa4Form
+        secao = 'dados_complementares'
+
+    if request.method == 'POST':
+        if etapa == 3:
+            form = form_class(request.POST)
+            if form.is_valid():
+                with transaction.atomic():
+                    # Checkboxes principais
+                    tem_area_exposicao = form.cleaned_data.get('tem_area_exposicao', False)
+                    tem_sala_reuniao = form.cleaned_data.get('tem_sala_reuniao', False)
+                    tem_copa = form.cleaned_data.get('tem_copa', False)
+                    tem_deposito = form.cleaned_data.get('tem_deposito', False)
+
+                    if not tem_area_exposicao:
+                        AreaExposicao.objects.filter(briefing=briefing).delete()
+
+                    if not tem_sala_reuniao:
+                        SalaReuniao.objects.filter(briefing=briefing).delete()
+
+                    if not tem_copa:
+                        Copa.objects.filter(briefing=briefing).delete()
+
+                    if not tem_deposito:
+                        Deposito.objects.filter(briefing=briefing).delete()
+
+                    # Áreas de exposição
+                    if tem_area_exposicao:
+                        AreaExposicao.objects.filter(briefing=briefing).delete()
+                        num_areas = int(request.POST.get('num_areas_exposicao', 1))
+                        for i in range(num_areas):
+                            if f'area_exposicao-{i}-metragem' in request.POST:
+                                area = AreaExposicao(briefing=briefing)
+                                area.tem_lounge = request.POST.get(f'area_exposicao-{i}-tem_lounge') == 'on'
+                                area.tem_vitrine_exposicao = request.POST.get(f'area_exposicao-{i}-tem_vitrine_exposicao') == 'on'
+                                area.tem_balcao_recepcao = request.POST.get(f'area_exposicao-{i}-tem_balcao_recepcao') == 'on'
+                                area.tem_mesas_atendimento = request.POST.get(f'area_exposicao-{i}-tem_mesas_atendimento') == 'on'
+                                area.tem_balcao_cafe = request.POST.get(f'area_exposicao-{i}-tem_balcao_cafe') == 'on'
+                                area.tem_balcao_vitrine = request.POST.get(f'area_exposicao-{i}-tem_balcao_vitrine') == 'on'
+                                area.tem_caixa_vendas = request.POST.get(f'area_exposicao-{i}-tem_caixa_vendas') == 'on'
+                                area.equipamentos = request.POST.get(f'area_exposicao-{i}-equipamentos', '')
+                                area.observacoes = request.POST.get(f'area_exposicao-{i}-observacoes', '')
+                                try:
+                                    area.metragem = float(request.POST.get(f'area_exposicao-{i}-metragem', 0))
+                                except (ValueError, TypeError):
+                                    area.metragem = 0
+                                area.save()
+
+                    # Salas de reunião
+                    if tem_sala_reuniao:
+                        SalaReuniao.objects.filter(briefing=briefing).delete()
+                        num_salas = int(request.POST.get('num_salas_reuniao', 1))
+                        for i in range(num_salas):
+                            if f'sala_reuniao-{i}-capacidade' in request.POST:
+                                sala = SalaReuniao(briefing=briefing)
+                                try:
+                                    sala.capacidade = int(request.POST.get(f'sala_reuniao-{i}-capacidade', 0))
+                                except (ValueError, TypeError):
+                                    sala.capacidade = 0
+                                sala.equipamentos = request.POST.get(f'sala_reuniao-{i}-equipamentos', '')
+                                try:
+                                    sala.metragem = float(request.POST.get(f'sala_reuniao-{i}-metragem', 0))
+                                except (ValueError, TypeError):
+                                    sala.metragem = 0
+                                sala.save()
+
+                    # Copa
+                    if tem_copa and 'copa-equipamentos' in request.POST:
+                        copa, _ = Copa.objects.get_or_create(briefing=briefing)
+                        copa.equipamentos = request.POST.get('copa-equipamentos', '')
+                        try:
+                            copa.metragem = float(request.POST.get('copa-metragem', 0))
+                        except (ValueError, TypeError):
+                            copa.metragem = 0
+                        copa.save()
+
+                    # Depósito
+                    if tem_deposito and 'deposito-equipamentos' in request.POST:
+                        deposito, _ = Deposito.objects.get_or_create(briefing=briefing)
+                        deposito.equipamentos = request.POST.get('deposito-equipamentos', '')
+                        try:
+                            deposito.metragem = float(request.POST.get('deposito-metragem', 0))
+                        except (ValueError, TypeError):
+                            deposito.metragem = 0
+                        deposito.save()
+
+                briefing.etapa_atual = etapa
+                briefing.save()
+        else:
+            form = form_class(request.POST, request.FILES, instance=briefing)
+            if form.is_valid():
+                form.save()
+                briefing.etapa_atual = etapa
+                briefing.save()
+
+        if 'avancar' in request.POST and etapa < 4:
+            return redirect('cliente:briefing_etapa', projeto_id=projeto.id, etapa=proxima_etapa_logica(projeto.tipo_projeto, etapa))
+        elif 'concluir' in request.POST:
+            return redirect('cliente:concluir_briefing', projeto_id=projeto.id)
+
+    else:
+        if etapa == 3:
+            form = BriefingEtapa3Form(initial={
+                'tem_area_exposicao': AreaExposicao.objects.filter(briefing=briefing).exists(),
+                'tem_sala_reuniao': SalaReuniao.objects.filter(briefing=briefing).exists(),
+                'tem_copa': Copa.objects.filter(briefing=briefing).exists(),
+                'tem_deposito': Deposito.objects.filter(briefing=briefing).exists(),
+            })
+        else:
+            form = form_class(instance=briefing)
+
+    conversas = BriefingConversation.objects.filter(briefing=briefing, etapa=etapa).order_by('-timestamp')[:20]
+    validacoes = BriefingValidacao.objects.filter(briefing=briefing)
+    validacao_atual = validacoes.filter(secao=secao).first()
+    arquivos = BriefingArquivoReferencia.objects.filter(briefing=briefing)
+
+    context = {
+        'projeto': projeto,
+        'briefing': briefing,
+        'etapa': etapa,
+        'form': form,
+        'conversas': conversas,
+        'validacoes': validacoes,
+        'validacao_atual': validacao_atual,
+        'mensagem_form': BriefingMensagemForm(),
+        'arquivo_form': BriefingArquivoReferenciaForm(),
+        'arquivos': arquivos,
+        'titulo_etapa': obter_titulo_etapa(etapa),
+        'pode_avancar': etapa < 4,
+        'pode_voltar': etapa > 1,
+        'todas_aprovadas': all(v.status == 'aprovado' for v in validacoes),
+    }
+
+    if etapa == 3:
+        areas_exposicao = list(AreaExposicao.objects.filter(briefing=briefing)) or [None]
+        salas_reuniao = list(SalaReuniao.objects.filter(briefing=briefing)) or [None]
+        copa = Copa.objects.filter(briefing=briefing).first()
+        deposito = Deposito.objects.filter(briefing=briefing).first()
+
+        context.update({
+            'areas_exposicao': areas_exposicao,
+            'salas_reuniao': salas_reuniao,
+            'copa_form': CopaForm(instance=copa) if copa else CopaForm(prefix='copa'),
+            'deposito_form': DepositoForm(instance=deposito) if deposito else DepositoForm(prefix='deposito'),
+            'num_areas_exposicao': len(areas_exposicao),
+            'num_salas_reuniao': len(salas_reuniao),
+        })
+
+    # Renderiza template dinâmico por etapa (ex: briefing_etapa3.html)
+    template_name = f'cliente/briefing_etapa{etapa}.html'
+    return render(request, template_name, context)
+
+@login_required
+def iniciar_briefing(request, projeto_id):
+    """
+    View para iniciar o briefing de um projeto
+    """
+    # Obtém a empresa do usuário logado
+    empresa = request.user.empresa
+
+    # Obtém o projeto
+    projeto = get_object_or_404(Projeto, pk=projeto_id, empresa=empresa)
+
+    # Verifica se o projeto já tem um briefing
+    if projeto.has_briefing:
+        return redirect('cliente:briefing_etapa', projeto_id=projeto.id, etapa=projeto.briefing.etapa_atual)
+
+    # Cria um novo briefing para o projeto
+    briefing = Briefing.objects.create(projeto=projeto)
+
+    # Preenche dados iniciais do briefing
+    if projeto.feira:
+        briefing.feira = projeto.feira
+
+    briefing.orcamento = projeto.orcamento
+    briefing.save()
+
+    # Cria as validações iniciais para as novas seções
+    for secao in ['evento', 'estande', 'areas_estande', 'dados_complementares']:
+        BriefingValidacao.objects.create(
+            briefing=briefing,
+            secao=secao,
+            status='pendente'
+        )
+
+    # Atualiza o status do projeto
+    projeto.status = 'briefing_pendente'
+    projeto.save(update_fields=['status'])
+
+    messages.success(request, 'Briefing iniciado com sucesso!')
+    return redirect('cliente:briefing_etapa', projeto_id=projeto.id, etapa=1)
+
+#A REFATORAR
 
 @login_required
 def gerar_relatorio_briefing(request, projeto_id):
@@ -296,191 +593,6 @@ def gerar_relatorio_briefing(request, projeto_id):
             messages.error(request, f'Erro ao gerar o relatório: {str(e)}')
             return redirect('cliente:projeto_detail', pk=projeto_id)
         
-
-@login_required
-def briefing_etapa(request, projeto_id, etapa):
-    """
-    View para exibir e processar um formulário de briefing por etapa
-    """
-    # Obtém a empresa do usuário logado
-    empresa = request.user.empresa
-    
-    # Obtém o projeto e verifica se pertence à mesma empresa
-    projeto = get_object_or_404(Projeto, pk=projeto_id, empresa=empresa)
-    
-    # Verifica se o projeto tem um briefing associado
-    if not projeto.has_briefing:
-        messages.error(request, 'Este projeto não possui um briefing iniciado.')
-        return redirect('projetos:projeto_detail', pk=projeto_id)
-    
-    # Obtém o briefing
-    briefing = projeto.briefing
-    
-    # Verifica a etapa solicitada (1-4)
-    if etapa < 1 or etapa > 4:
-        messages.error(request, 'Etapa inválida.')
-        return redirect('briefing:briefing_etapa', projeto_id=projeto_id, etapa=briefing.etapa_atual)
-    
-    # Define o título da etapa e o formulário correspondente
-    if etapa == 1:
-        titulo_etapa = "EVENTO - Datas e Localização"
-        validacao_atual = briefing.validacoes.get(secao='evento')
-        form_class = BriefingEtapa1Form
-    elif etapa == 2:
-        titulo_etapa = "ESTANDE - Características Físicas"
-        validacao_atual = briefing.validacoes.get(secao='estande')
-        form_class = BriefingEtapa2Form
-    elif etapa == 3:
-        titulo_etapa = "ÁREAS DO ESTANDE - Divisões Funcionais"
-        validacao_atual = briefing.validacoes.get(secao='areas_estande')
-        form_class = BriefingEtapa3Form
-    else:  # etapa == 4
-        titulo_etapa = "DADOS COMPLEMENTARES - Referências Visuais"
-        validacao_atual = briefing.validacoes.get(secao='dados_complementares')
-        form_class = BriefingEtapa4Form
-    
-    # Processa o formulário se for um POST
-    if request.method == 'POST':
-        form = form_class(request.POST, request.FILES, instance=briefing)
-        if form.is_valid():
-            # Salva o formulário
-            form.save()
-            
-            # Atualiza a etapa atual do briefing se necessário
-            if 'avancar' in request.POST and etapa < 4:
-                briefing.etapa_atual = etapa + 1
-                briefing.save(update_fields=['etapa_atual'])
-                messages.success(request, f'Etapa {etapa} concluída com sucesso!')
-                return redirect('cliente:briefing_etapa', projeto_id=projeto_id, etapa=etapa+1)
-            elif 'concluir' in request.POST:
-                # Marca o briefing como validado
-                briefing.status = 'em_validacao'
-                briefing.save(update_fields=['status'])
-                messages.success(request, 'Todas as etapas preenchidas! O briefing será validado.')
-                return redirect('cliente:concluir_briefing', projeto_id=projeto_id)
-            
-            # Simples salvamento sem navegação
-            messages.success(request, 'Informações salvas com sucesso!')
-            return redirect('cliente:briefing_etapa', projeto_id=projeto_id, etapa=etapa)
-    else:
-        form = form_class(instance=briefing)
-    
-    # Verifica botões de navegação
-    pode_voltar = etapa > 1
-    pode_avancar = etapa < 4
-    
-    # Obtém todas as validações do briefing
-    validacoes = briefing.validacoes.all()
-    
-    # Verifica se todas as seções estão aprovadas
-    todas_aprovadas = all(v.status == 'aprovado' for v in validacoes)
-    
-    # Obtém as conversas desta etapa
-    conversas = briefing.conversas.filter(etapa=etapa).order_by('-timestamp')[:20]
-    
-    # Contexto base para todas as etapas
-    context = {
-        'empresa': empresa,
-        'projeto': projeto,
-        'briefing': briefing,
-        'form': form,
-        'etapa': etapa,
-        'titulo_etapa': titulo_etapa,
-        'validacao_atual': validacao_atual,
-        'validacoes': validacoes,
-        'todas_aprovadas': todas_aprovadas,
-        'pode_voltar': pode_voltar,
-        'pode_avancar': pode_avancar,
-        'conversas': conversas,
-    }
-    
-    # Adiciona variáveis específicas para cada etapa
-    if etapa == 1:
-        # Mapa do estande para etapa 1
-        context['arquivos'] = briefing.arquivos.all()
-        context['mapa_arquivo'] = briefing.arquivos.filter(tipo='mapa').first()
-        
-    elif etapa == 2:
-        # Planta baixa/esboço para etapa 2
-        context['arquivos'] = briefing.arquivos.all()
-        context['planta_arquivo'] = briefing.arquivos.filter(tipo='planta').first()
-        
-    elif etapa == 3:
-        # Obter áreas existentes para a etapa 3
-        areas_exposicao = briefing.areas_exposicao.all()
-        salas_reuniao = briefing.salas_reuniao.all()
-        
-        # Obter formulários para copa e depósito se existirem
-        from projetos.forms.briefing import CopaForm, DepositoForm
-        
-        copa = briefing.copas.first()
-        copa_form = CopaForm(instance=copa) if copa else CopaForm()
-        
-        deposito = briefing.depositos.first()
-        deposito_form = DepositoForm(instance=deposito) if deposito else DepositoForm()
-        
-        # Número de áreas para usar com JavaScript
-        context.update({
-            'areas_exposicao': areas_exposicao,
-            'salas_reuniao': salas_reuniao,
-            'copa_form': copa_form,
-            'deposito_form': deposito_form,
-            'num_areas_exposicao': areas_exposicao.count() or 1,
-            'num_salas_reuniao': salas_reuniao.count() or 1,
-        })
-        
-    elif etapa == 4:
-        # Para etapa 4, todos os arquivos
-        context['arquivos'] = briefing.arquivos.all()
-        
-        # Arquivos específicos por tipo
-        context['arquivos_referencia'] = briefing.arquivos.filter(tipo='referencia')
-        context['arquivos_campanha'] = briefing.arquivos.filter(tipo='campanha')
-        context['arquivos_outros'] = briefing.arquivos.filter(tipo='outro')
-    
-    return render(request, 'cliente/briefing_etapa.html', context)
-
-@login_required
-@require_POST
-def salvar_rascunho_briefing(request, projeto_id):
-    """
-    View para salvar um rascunho do briefing (usado em AJAX)
-    """
-    # Obtém a empresa do usuário logado
-    empresa = request.user.empresa
-    
-    # Obtém o projeto e verifica se pertence à mesma empresa
-    projeto = get_object_or_404(Projeto, pk=projeto_id, empresa=empresa)
-    
-    # Verifica se o projeto tem um briefing associado
-    if not projeto.has_briefing:
-        return JsonResponse({'success': False, 'message': 'Este projeto não possui um briefing iniciado.'})
-    
-    # Obtém o briefing
-    briefing = projeto.briefing
-    
-    # Determina a etapa atual para selecionar o formulário correto
-    etapa = int(request.POST.get('etapa', briefing.etapa_atual))
-    
-    # Seleciona o formulário correspondente
-    if etapa == 1:
-        form_class = BriefingEtapa1Form
-    elif etapa == 2:
-        form_class = BriefingEtapa2Form
-    elif etapa == 3:
-        form_class = BriefingEtapa3Form
-    else:  # etapa == 4
-        form_class = BriefingEtapa4Form
-    
-    # Processa o formulário
-    form = form_class(request.POST, request.FILES, instance=briefing)
-    if form.is_valid():
-        form.save()
-        return JsonResponse({'success': True, 'message': 'Rascunho salvo com sucesso!'})
-    
-    # Se o formulário não for válido, retorna os erros
-    return JsonResponse({'success': False, 'errors': form.errors})
-
 @login_required
 @require_POST
 def validar_briefing(request, projeto_id):
@@ -543,64 +655,6 @@ def validar_briefing(request, projeto_id):
     })
 
 
-@login_required
-def concluir_briefing(request, projeto_id):
-    """
-    View para concluir o briefing e enviá-lo para aprovação
-    """
-    # Obtém a empresa do usuário logado
-    empresa = request.user.empresa
-    
-    # Obtém o projeto e verifica se pertence à mesma empresa
-    projeto = get_object_or_404(Projeto, pk=projeto_id, empresa=empresa)
-    
-    # Verifica se o projeto tem um briefing associado
-    if not projeto.has_briefing:
-        messages.error(request, 'Este projeto não possui um briefing iniciado.')
-        return redirect('projetos:projeto_detail', pk=projeto_id)
-    
-    # Obtém o briefing
-    briefing = projeto.briefing
-    
-    # Obtém todas as validações
-    validacoes = briefing.validacoes.all()
-    
-    # Verifica se todas as seções estão aprovadas
-    todas_aprovadas = all(v.status == 'aprovado' for v in validacoes)
-    
-    # Se for um POST, processa o envio do briefing
-    if request.method == 'POST':
-        if todas_aprovadas:
-            # Atualiza o status do briefing e do projeto
-            briefing.status = 'enviado'
-            briefing.save(update_fields=['status'])
-            
-            projeto.briefing_status = 'enviado'
-            projeto.save(update_fields=['briefing_status'])
-            
-            messages.success(request, 'Briefing enviado com sucesso para análise!')
-            return redirect('projetos:projeto_detail', pk=projeto_id)
-        else:
-            messages.error(request, 'O briefing não pode ser enviado pois existem seções que precisam ser corrigidas.')
-    
-    context = {
-        'empresa': empresa,
-        'projeto': projeto,
-        'briefing': briefing,
-        'validacoes': validacoes,
-        'todas_aprovadas': todas_aprovadas,
-    }
-    return render(request, 'briefing/concluir_briefing.html', context)
-
-from django.conf import settings
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.http import JsonResponse
-from django.views.decorators.http import require_POST
-from core.decorators import cliente_required
-
-from projetos.models import Projeto, Briefing, BriefingArquivoReferencia
 
 @login_required
 @require_POST
@@ -781,52 +835,3 @@ def briefing_perguntar_feira(request, briefing_id):
         'feira': feira,
     }
     return render(request, 'cliente/briefing_perguntar_feira.html', context)
-
-# views/briefing.py ou onde você preferir colocar
-
-@login_required
-def iniciar_briefing(request, projeto_id):
-    """
-    View para iniciar o briefing de um projeto
-    """
-    # Obtém a empresa do usuário logado
-    empresa = request.user.empresa
-    
-    # Obtém o projeto
-    projeto = get_object_or_404(Projeto, pk=projeto_id, empresa=empresa)
-    
-    # Verifica se o projeto já tem um briefing
-    if projeto.has_briefing:
-        return redirect('cliente:briefing_etapa', projeto_id=projeto.id, etapa=projeto.briefing.etapa_atual)
-    
-    # Cria um novo briefing para o projeto
-    briefing = Briefing.objects.create(projeto=projeto)
-    
-    # Preencher dados iniciais do projeto
-    # Se o projeto tiver uma feira associada, podemos preencher esses dados automaticamente
-    if projeto.feira:
-        briefing.feira = projeto.feira
-        briefing.local_evento = projeto.feira.local
-        briefing.data_feira_inicio = projeto.feira.data_inicio
-        briefing.data_feira_fim = projeto.feira.data_fim
-    
-    # Preenchemos também o nome do projeto e orçamento se disponíveis
-    briefing.nome_projeto = projeto.nome
-    briefing.orcamento = projeto.orcamento
-    briefing.save()
-    
-    # Cria as validações iniciais para as novas seções
-    for secao in ['evento', 'estande', 'areas_estande', 'dados_complementares']:
-        BriefingValidacao.objects.create(
-            briefing=briefing,
-            secao=secao,
-            status='pendente'
-        )
-    
-    # Atualiza o status do projeto
-    projeto.tem_briefing = True
-    projeto.briefing_status = 'em_andamento'
-    projeto.save(update_fields=['tem_briefing', 'briefing_status'])
-    
-    messages.success(request, 'Briefing iniciado com sucesso!')
-    return redirect('cliente:briefing_etapa', projeto_id=projeto.id, etapa=1)
