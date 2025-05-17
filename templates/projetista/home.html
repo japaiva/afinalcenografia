@@ -11,10 +11,21 @@
         <img src="{% static 'img/logo-afinal-cenografia.png' %}" alt="Afinal Cenografia" class="img-fluid mb-4" style="max-height: 100px;">
         <h1 class="app-title">Portal do Projetista</h1>
       </div>
+      
       {% if user.is_authenticated %}
-        <a href="{% url 'projetista:dashboard' %}" class="modern-button">
-          Acessar Dashboard
-        </a>
+        {% if user.nivel == 'projetista' %}
+          <a href="{% url 'projetista:dashboard' %}" class="modern-button">
+            Acessar Dashboard
+          </a>
+        {% else %}
+          <div class="alert alert-danger mb-4">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Acesso negado. Você não tem permissão de projetista.
+          </div>
+          <a href="/" class="modern-button btn-secondary">
+            <i class="fas fa-home me-2"></i> Voltar para Página Inicial
+          </a>
+        {% endif %}
       {% else %}
         <a href="{% url 'projetista:login' %}" class="modern-button">
           <i class="fas fa-sign-in-alt me-2"></i> Login
@@ -26,35 +37,9 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const contentBox = document.querySelector('.modern-content-box');
-    contentBox.style.opacity = '0';
-    contentBox.style.transform = 'translateY(20px)';
-    contentBox.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
-    
-    setTimeout(function() {
-      contentBox.style.opacity = '1';
-      contentBox.style.transform = 'translateY(0)';
-    }, 100);
-  });
-</script>
+<!-- JavaScript existente -->
 {% endblock %}
 
 {% block extra_css %}
-<style>
-  /* Ajuste específico para esta página */
-  .modern-content-box {
-    padding: 3rem;
-    margin: 0 auto;
-  }
-  
-  .app-title {
-    margin-bottom: 2rem;
-  }
-  
-  .modern-button {
-    min-width: 200px;
-  }
-</style>
+<!-- CSS existente -->
 {% endblock %}

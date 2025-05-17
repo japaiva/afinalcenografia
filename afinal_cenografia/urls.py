@@ -23,8 +23,7 @@ urlpatterns = [
 
     path('debug-search/', debug_search_view, name='debug-search'),
     
-    # Portais específicos
-    path('gestor/', include('gestor.urls')),
+    path('gestor/', include('gestor.urls', namespace='gestor')),
     path('cliente/', include('cliente.urls', namespace='cliente')),
     path('projetista/', include('projetista.urls', namespace='projetista')),
     

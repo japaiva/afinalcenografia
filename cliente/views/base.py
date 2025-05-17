@@ -1,67 +1,18 @@
-# views/base.py
+# cliente/views/base.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-
-from core.models import Usuario, Empresa
-from core.forms import EmpresaForm  # Importe o formulário da empresa
-from projetos.models import Projeto, ProjetoReferencia
-from projetos.forms import ProjetoForm
-
 from django.contrib.auth.views import LoginView
 from django.urls import reverse_lazy
 
-class ClienteLoginView(LoginView):
-    template_name = 'cliente/login.html'
-    
-    def form_valid(self, form):
-        print("Login bem-sucedido para:", form.get_user())
-        return super().form_valid(form)
-    
-    def get_success_url(self):
-        print("Redirecionando para:", reverse_lazy('cliente:dashboard'))
-        return reverse_lazy('cliente:dashboard')
- 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['app_name'] = 'Portal do Cliente'
-        return context
+from core.models import Usuario, Empresa
+from core.forms import EmpresaForm  # Importe o formulário da empresa
+from core.decorators import cliente_required
+from projetos.models import Projeto, ProjetoReferencia
+from projetos.forms import ProjetoForm
 
-# Middleware para verificar se o usuário é cliente
-def cliente_required(view_func):
-    def wrapper(request, *args, **kwargs):
-        if not hasattr(request.user, 'nivel') or request.user.nivel != 'cliente':
-            messages.error(request, 'Acesso negado. Você não tem permissão de cliente.')
-            return redirect('login')
-        return view_func(request, *args, **kwargs)
-    return wrapper
-
-# Middleware para verificar se o usuário é gestor
-def gestor_required(view_func):
-    def wrapper(request, *args, **kwargs):
-        if not hasattr(request.user, 'nivel') or request.user.nivel != 'gestor':
-            messages.error(request, 'Acesso negado. Você não tem permissão de gestor.')
-            return redirect('login')
-        return view_func(request, *args, **kwargs)
-    return wrapper
-
-# Middleware para verificar se o usuário é projetista
-def projetista_required(view_func):
-    def wrapper(request, *args, **kwargs):
-        if not hasattr(request.user, 'nivel') or request.user.nivel != 'projetista':
-            messages.error(request, 'Acesso negado. Você não tem permissão de projetista.')
-            return redirect('login')
-        return view_func(request, *args, **kwargs)
-    return wrapper
-
-# PÁGINAS PRINCIPAIS
-
-def home(request):
-    """
-    Página inicial do Portal do Cliente
-    """
-    return render(request, 'cliente/home.html')
+# PAGINAS PRINCIPAIS
 
 @login_required
 @cliente_required
@@ -82,8 +33,26 @@ def dashboard(request):
         'projetos_ativos': projetos_ativos,
     }
     return render(request, 'cliente/dashboard.html', context)
+class ClienteLoginView(LoginView):
+    template_name = 'cliente/login.html'
+    
+    def form_valid(self, form):
+        print("Login bem-sucedido para:", form.get_user())
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        print("Redirecionando para:", reverse_lazy('cliente:dashboard'))
+        return reverse_lazy('cliente:dashboard')
+ 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['app_name'] = 'Portal do Cliente'
+        return context
 
-# VISUALIZAÇÃO DE USUÁRIOS DA EMPRESA
+def home(request):
+    return render(request, 'cliente/home.html')
+
+# CRUD USUARIOS
 
 @login_required
 @cliente_required
