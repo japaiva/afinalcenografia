@@ -643,6 +643,7 @@ def obter_titulo_etapa(etapa):
     }
     return titulos.get(etapa, 'Etapa do Briefing')
 
+
 def validar_secao_briefing(briefing, secao):
     """
     Função que valida uma seção do briefing utilizando análise básica ou IA
@@ -674,12 +675,25 @@ def validar_secao_briefing(briefing, secao):
         logger.info(f"Usando validação básica para a seção '{secao}' do briefing {briefing.id}")
         
         if secao == 'evento':
-            if briefing.endereco_estande:
-                validacao.status = 'aprovado'
-                validacao.mensagem = 'Informações do evento completas.'
+            # Verificar se é um projeto do tipo "outros" sem feira
+            if briefing.projeto.tipo_projeto == 'outros' and not briefing.feira:
+                # Validar os campos específicos para projetos sem feira
+                if (briefing.nome_evento and briefing.local_evento and briefing.endereco_estande and 
+                    briefing.data_horario_evento and briefing.organizador_evento and 
+                    briefing.periodo_montagem_evento and briefing.periodo_desmontagem_evento):
+                    validacao.status = 'aprovado'
+                    validacao.mensagem = 'Informações do evento completas.'
+                else:
+                    validacao.status = 'atencao'
+                    validacao.mensagem = 'Alguns campos importantes do evento estão incompletos. Por favor, preencha todos os campos obrigatórios.'
             else:
-                validacao.status = 'atencao'
-                validacao.mensagem = 'Alguns campos importantes do evento estão incompletos.'
+                # Validação para projetos com feira (padrão)
+                if briefing.endereco_estande:
+                    validacao.status = 'aprovado'
+                    validacao.mensagem = 'Informações do evento completas.'
+                else:
+                    validacao.status = 'atencao'
+                    validacao.mensagem = 'Alguns campos importantes do evento estão incompletos.'
         
         elif secao == 'estande':
             if (briefing.medida_frente or briefing.area_estande) and briefing.estilo_estande:

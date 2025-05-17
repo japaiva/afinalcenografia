@@ -6,15 +6,50 @@ from projetos.models.briefing import (
     AreaExposicao, SalaReuniao, Copa, Deposito
 )
 
+
+# forms/briefing.py - Atualizar o formulário BriefingEtapa1Form
+
+from django import forms
+from projetos.models.briefing import Briefing
+
 class BriefingEtapa1Form(forms.ModelForm):
     """Formulário para a primeira etapa do briefing: Evento - Datas e Localização"""
     
     class Meta:
         model = Briefing
-        fields = ['endereco_estande']  # Removido mapa_estande
+        fields = [
+            'endereco_estande',  
+            # Campos adicionais para projetos tipo "outros"
+            'nome_evento', 
+            'local_evento', 
+            'organizador_evento', 
+            'data_horario_evento', 
+            'periodo_montagem_evento', 
+            'periodo_desmontagem_evento'
+        ]
         widgets = {
             'endereco_estande': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Rua B, Estande 42'}),
+            'nome_evento': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nome do evento ou feira'}),
+            'local_evento': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Local completo, incluindo cidade/estado'}),
+            'organizador_evento': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Empresa organizadora'}),
+            'data_horario_evento': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 25/06 a 27/06/2024 - 10h às 19h'}),
+            'periodo_montagem_evento': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 22/06 a 24/06 - 8h às 22h'}),
+            'periodo_desmontagem_evento': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 27/06 - 22h às 06h (28/06)'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Verificar se o projeto é do tipo "outros" para mostrar campos adicionais
+        if hasattr(self.instance, 'projeto') and self.instance.projeto and self.instance.projeto.tipo_projeto == 'outros' and not self.instance.feira:
+            # Campos serão mostrados
+            pass
+        else:
+            # Ocultar campos adicionais para projetos com feira
+            for field_name in ['nome_evento', 'local_evento', 'organizador_evento', 
+                               'data_horario_evento', 'periodo_montagem_evento', 'periodo_desmontagem_evento']:
+                self.fields[field_name].widget = forms.HiddenInput()
+                self.fields[field_name].required = False
 class BriefingEtapa2Form(forms.ModelForm):
     """
     Formulário para a segunda etapa do briefing (ESTANDE - Características Físicas).
