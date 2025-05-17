@@ -1,0 +1,95 @@
+{% extends 'projetista/base_projetista.html' %}
+
+{% block title %}Dashboard | Portal do Projetista{% endblock %}
+
+{% block content %}
+<!-- Banner de boas-vindas -->
+<div class="card shadow mb-4">
+  <div class="card-body bg-light">
+    <div class="row align-items-center">
+      <div class="col-md-2 text-center">
+        <div class="display-1 fw-bold text-primary">P</div>
+      </div>
+      <div class="col-md-10">
+        <h2 class="mb-2">Bem-vindo, {{ user.first_name }}!</h2>
+        <p class="text-muted mb-0">Portal do Projetista • Último acesso: {{ user.last_login|date:"d/m/Y H:i" }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Ações Rápidas -->
+<div class="card shadow">
+  <div class="card-header bg-white">
+    <h4 class="card-title mb-0">
+      <i class="fas fa-bolt text-primary me-2"></i> Ações Rápidas
+    </h4>
+  </div>
+  
+  <div class="card-body p-4">
+    <div class="row g-4">
+      <!-- Projetos -->
+      <div class="col-md-6">
+        <a href="{% url 'projetista:projeto_list' %}" class="text-decoration-none">
+          <div class="card h-100 border-0 shadow-sm hover-card">
+            <div class="card-body text-center p-4">
+              <div class="icon-circle bg-primary text-white mb-3">
+                <i class="fas fa-project-diagram fa-2x"></i>
+              </div>
+              <h5 class="card-title">Meus Projetos</h5>
+            </div>
+          </div>
+        </a>
+      </div>
+      
+      <!-- Mensagens -->
+      <div class="col-md-6">
+        <a href="{% url 'projetista:mensagens' %}" class="text-decoration-none">
+          <div class="card h-100 border-0 shadow-sm hover-card">
+            <div class="card-body text-center p-4">
+              <div class="icon-circle bg-info text-white mb-3">
+                <i class="fas fa-envelope fa-2x"></i>
+              </div>
+              <h5 class="card-title">Mensagens</h5>
+              {% if user.mensagens_nao_lidas > 0 %}
+                <span class="position-absolute top-0 end-0 translate-middle badge rounded-pill bg-danger mt-3 me-3">
+                  {{ user.mensagens_nao_lidas }}
+                  <span class="visually-hidden">mensagens não lidas</span>
+                </span>
+              {% endif %}
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .icon-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    transition: transform 0.3s ease;
+  }
+  
+  .hover-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+  }
+  
+  .hover-card:hover .icon-circle {
+    transform: scale(1.1);
+  }
+</style>
+{% endblock %}

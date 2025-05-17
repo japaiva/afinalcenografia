@@ -113,6 +113,15 @@ class Projeto(models.Model):
         auto_now=True, verbose_name="Última Atualização"
     )
 
+    # Novo campo para projetista
+    projetista = models.ForeignKey(
+        'core.Usuario',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='projetos_atribuidos'
+    )
+
     class Meta:
         db_table = 'projetos'
         verbose_name = 'Projeto'

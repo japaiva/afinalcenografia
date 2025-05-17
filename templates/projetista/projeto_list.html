@@ -1,0 +1,198 @@
+{% extends 'projetista/base_projetista.html' %}
+
+{% block title %}Meus Projetos | Portal do Projetista{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">
+      <i class="fas fa-project-diagram me-2"></i> Meus Projetos
+    </h5>
+    <a href="{% url 'projetista:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i> Voltar
+    </a>
+  </div>
+  
+  <!-- Filtros -->
+  <div class="card-header bg-white">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label small">Empresa</label>
+        <select name="empresa" class="form-select form-select-sm">
+          <option value="">Todas as Empresas</option>
+          {% for empresa in empresas %}
+          <option value="{{ empresa.id }}" {% if empresa_escolhida == empresa.id|stringformat:"s" %}selected{% endif %}>
+            {{ empresa.nome }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      
+      <div class="col-md-4">
+        <label class="form-label small">Status</label>
+        <select name="status" class="form-select form-select-sm">
+          <option value="">Todos os Status</option>
+          {% for status_value, status_label in status_choices %}
+          <option value="{{ status_value }}" {% if status_escolhido == status_value %}selected{% endif %}>
+            {{ status_label }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      
+      <div class="col-md-4">
+        <label class="form-label small">Busca</label>
+        <div class="input-group input-group-sm">
+          <input type="text" name="search" class="form-control" placeholder="Buscar..." value="{{ search_query|default:'' }}">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-search"></i>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+  
+  <!-- Lista de Projetos -->
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th scope="col">Número</th>
+            <th scope="col">Empresa</th>
+            <th scope="col">Status</th>
+            <th scope="col">Briefing</th>
+            <th scope="col">Aprovação</th>
+            <th scope="col">Conceito</th>
+            <th scope="col" class="text-end">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for projeto in projetos %}
+          <tr>
+            <td>{{ projeto.numero }}</td>
+            <td>
+              <span class="badge bg-secondary">{{ projeto.empresa.nome }}</span>
+            </td>
+            <td>
+              <span class="badge 
+                {% if projeto.status == 'briefing_pendente' %}bg-info
+                {% elif projeto.status == 'briefing_validado' %}bg-success
+                {% elif projeto.status == 'briefing_enviado' %}bg-info
+                {% elif projeto.status == 'projeto_em_desenvolvimento' %}bg-primary
+                {% elif projeto.status == 'projeto_enviado' %}bg-info
+                {% elif projeto.status == 'projeto_em_analise' %}bg-warning text-dark
+                {% elif projeto.status == 'projeto_aprovado' %}bg-success
+                {% elif projeto.status == 'em_producao' %}bg-danger
+                {% elif projeto.status == 'concluido' %}bg-secondary
+                {% elif projeto.status == 'cancelado' %}bg-danger
+                {% else %}bg-secondary{% endif %}">
+                {{ projeto.get_status_display }}
+              </span>
+            </td>
+            <td>
+              {% if projeto.data_briefing %}
+                {{ projeto.data_briefing|date:"d/m/Y" }}
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if projeto.data_aprovacao %}
+                {{ projeto.data_aprovacao|date:"d/m/Y" }}
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if projeto.conceitos_visuais.exists %}
+                <span class="badge bg-success">Criado</span>
+              {% else %}
+                <span class="badge bg-warning text-dark">Pendente</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <div class="btn-group">
+                <a href="{% url 'projetista:projeto_detail' pk=projeto.pk %}" class="btn btn-sm btn-outline-primary">
+                  <i class="fas fa-eye"></i>
+                </a>
+                
+                {% if projeto.has_briefing %}
+                  {% with briefing=projeto.briefings.first %}
+                    {% if briefing.pdf_file %}
+                    <a href="{{ briefing.pdf_file.url }}" class="btn btn-sm btn-outline-success" target="_blank" title="Ver PDF do Briefing">
+                      <i class="fas fa-file-pdf"></i>
+                    </a>
+                    {% endif %}
+                  {% endwith %}
+                {% endif %}
+                
+                <a href="{% url 'projetista:mensagens_projeto' projeto_id=projeto.id %}" class="btn btn-sm btn-outline-info">
+                  <i class="fas fa-comment"></i>
+                </a>
+                
+                <a href="{% url 'projetista:gerar_conceito' projeto_id=projeto.id %}" class="btn btn-sm btn-outline-warning">
+                  <i class="fas fa-lightbulb"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center py-4">
+              <div class="text-muted">
+                <i class="fas fa-folder-open fa-2x mb-3"></i>
+                <p>Nenhum projeto encontrado.</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  <!-- Paginação -->
+  {% if projetos.paginator.num_pages > 1 %}
+  <div class="card-footer bg-white">
+    <nav aria-label="Navegação de páginas">
+      <ul class="pagination pagination-sm justify-content-center mb-0">
+        {% if projetos.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page=1&status={{ status_escolhido }}&empresa={{ empresa_escolhida }}&search={{ search_query|urlencode }}">«</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ projetos.previous_page_number }}&status={{ status_escolhido }}&empresa={{ empresa_escolhida }}&search={{ search_query|urlencode }}">‹</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">«</span></li>
+          <li class="page-item disabled"><span class="page-link">‹</span></li>
+        {% endif %}
+        
+        {% for i in projetos.paginator.page_range %}
+          {% if projetos.number == i %}
+            <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+          {% elif i > projetos.number|add:'-3' and i < projetos.number|add:'3' %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ i }}&status={{ status_escolhido }}&empresa={{ empresa_escolhida }}&search={{ search_query|urlencode }}">{{ i }}</a>
+            </li>
+          {% endif %}
+        {% endfor %}
+        
+        {% if projetos.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ projetos.next_page_number }}&status={{ status_escolhido }}&empresa={{ empresa_escolhida }}&search={{ search_query|urlencode }}">›</a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ projetos.paginator.num_pages }}&status={{ status_escolhido }}&empresa={{ empresa_escolhida }}&search={{ search_query|urlencode }}">»</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">›</span></li>
+          <li class="page-item disabled"><span class="page-link">»</span></li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
