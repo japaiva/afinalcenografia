@@ -8,7 +8,25 @@ from django.urls import reverse_lazy
 
 from core.models import Usuario, Parametro, Empresa, ParametroIndexacao, Agente
 from core.forms import UsuarioForm, ParametroForm, EmpresaForm, ParametroIndexacaoForm, AgenteForm
+from core.decorators import gestor_required
 from projetos.models import Projeto
+
+# PAGINAS PRINCIPAIS
+
+@login_required
+@gestor_required
+def dashboard(request):
+    print("Usuário acessando o dashboard:", request.user)
+    
+    # Adicione esta linha para contar o total de projetos
+    total_projetos = Projeto.objects.all().count()
+    
+    context = {
+        'total_empresas': Empresa.objects.filter(ativa=True).count(),
+        'total_usuarios': Usuario.objects.filter(is_active=True).count(),
+        'total_projetos': total_projetos,  # Passe o total para o template
+    }
+    return render(request, 'gestor/dashboard.html', context)
 
 class GestorLoginView(LoginView):
     template_name = 'gestor/login.html'
@@ -26,12 +44,7 @@ class GestorLoginView(LoginView):
         context['app_name'] = 'Portal do Gestor'
         return context
 
-# PÁGINAS PRINCIPAIS
-
 def home(request):
-    """
-    Página inicial do Portal do Gestor
-    """
     return render(request, 'gestor/home.html')
 
 
@@ -228,19 +241,7 @@ def parametro_delete(request, pk):
         return redirect('gestor:parametro_list')
     return render(request, 'gestor/parametro_confirm_delete.html', {'parametro': parametro})
 
-@login_required
-def dashboard(request):
-    print("Usuário acessando o dashboard:", request.user)
-    
-    # Adicione esta linha para contar o total de projetos
-    total_projetos = Projeto.objects.all().count()
-    
-    context = {
-        'total_empresas': Empresa.objects.filter(ativa=True).count(),
-        'total_usuarios': Usuario.objects.filter(is_active=True).count(),
-        'total_projetos': total_projetos,  # Passe o total para o template
-    }
-    return render(request, 'gestor/dashboard.html', context)
+
 
 
 # agente
