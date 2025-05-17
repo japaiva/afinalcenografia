@@ -80,8 +80,7 @@ def projeto_detail(request, pk):
     """
     projeto = get_object_or_404(Projeto, pk=pk)
     
-    # Remover esta linha:
-    # projetistas = Usuario.objects.filter(nivel='projetista', is_active=True).order_by('username')
+    projetistas = Usuario.objects.filter(nivel='projetista', is_active=True).order_by('username')
     
     # Obter informações mais detalhadas
     briefings = projeto.briefings.all().order_by('-versao')
@@ -92,8 +91,7 @@ def projeto_detail(request, pk):
     
     context = {
         'projeto': projeto,
-        # Remover esta linha:
-        # 'projetistas': projetistas,
+        'projetistas': projetistas,
         'briefings': briefings,
         'marcos': marcos,
         'mensagens': mensagens,
