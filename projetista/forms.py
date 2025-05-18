@@ -1,0 +1,50 @@
+from django import forms
+from projetista.models import ConceitoVisual, ImagemConceitoVisual
+
+class ConceitoVisualForm(forms.ModelForm):
+    """Formulário para manipulação do conceito visual"""
+    class Meta:
+        model = ConceitoVisual
+        fields = [
+            'titulo', 'descricao', 'paleta_cores', 'materiais_principais'
+        ]
+        widgets = {
+            'titulo': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Título do conceito visual'
+            }),
+            'descricao': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 5,
+                'placeholder': 'Descrição detalhada do conceito'
+            }),
+            'paleta_cores': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Paleta de cores principais'
+            }),
+            'materiais_principais': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Materiais e acabamentos principais'
+            }),
+        }
+
+class ImagemConceitoForm(forms.ModelForm):
+    """Formulário para upload de imagens do conceito"""
+    class Meta:
+        model = ImagemConceitoVisual
+        fields = ['imagem', 'descricao', 'angulo_vista']
+        widgets = {
+            'imagem': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/jpeg,image/png,image/webp'
+            }),
+            'descricao': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Descrição breve da imagem'
+            }),
+            'angulo_vista': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+        }

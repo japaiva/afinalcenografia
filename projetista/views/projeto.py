@@ -116,8 +116,9 @@ def projeto_detail(request, pk):
 def ver_briefing(request, projeto_id, versao=None):
     """
     Permite ao projetista visualizar o briefing de um projeto,
-    com suporte para visualizar versões específicas
+    com suporte para visualizar versões específicas e informações detalhadas
     """
+    # Verificar se o projeto pertence ao projetista logado
     projeto = get_object_or_404(Projeto, pk=projeto_id, projetista=request.user)
     
     # Buscar todas as versões do briefing
@@ -142,108 +143,50 @@ def ver_briefing(request, projeto_id, versao=None):
     
     # Obtenha as validações, arquivos e conversas
     validacoes = BriefingValidacao.objects.filter(briefing=briefing)
-    arquivos = BriefingArquivoReferencia.objects.filter(briefing=briefing)
+    arquivos = list(BriefingArquivoReferencia.objects.filter(briefing=briefing))
     conversas = BriefingConversation.objects.filter(briefing=briefing).order_by('timestamp')
     
-    # Para os dados de áreas do estande
-    areas_exposicao = briefing.areas_exposicao.all() if hasattr(briefing, 'areas_exposicao') else []
-    salas_reuniao = briefing.salas_reuniao.all() if hasattr(briefing, 'salas_reuniao') else []
-    copas = briefing.copas.all() if hasattr(briefing, 'copas') else []
-    depositos = briefing.depositos.all() if hasattr(briefing, 'depositos') else []
+    # Extrair arquivos específicos para uso direto no template
+    mapa_arquivo = next((a for a in arquivos if a.tipo == 'mapa'), None)
+    planta_arquivos = [a for a in arquivos if a.tipo == 'planta']
+    referencia_arquivos = [a for a in arquivos if a.tipo == 'referencia']
+    campanha_arquivos = [a for a in arquivos if a.tipo == 'campanha']
+    outros_arquivos = [a for a in arquivos if a.tipo not in ('mapa', 'planta', 'referencia', 'campanha')]
+    
+    # Obter dados para as áreas específicas do estande
+    # Estamos usando hasattr para verificar se o modelo possui esses relacionamentos
+    areas_exposicao = list(briefing.areas_exposicao.all()) if hasattr(briefing, 'areas_exposicao') else []
+    salas_reuniao = list(briefing.salas_reuniao.all()) if hasattr(briefing, 'salas_reuniao') else []
+    copas = list(briefing.copas.all()) if hasattr(briefing, 'copas') else []
+    depositos = list(briefing.depositos.all()) if hasattr(briefing, 'depositos') else []
+    
+    # Dados específicos da feira (caso exista)
+    # Priorizamos a feira do briefing, depois a feira do projeto
+    feira = None
+    if hasattr(briefing, 'feira') and briefing.feira:
+        feira = briefing.feira
+    elif hasattr(projeto, 'feira') and projeto.feira:
+        feira = projeto.feira
 
     context = {
         'projeto': projeto,
         'briefing': briefing,
         'briefings': briefings,  # Todas as versões
         'validacoes': validacoes,
-        'arquivos': arquivos,
+        'arquivos': arquivos,  # Lista completa de arquivos
+        'mapa_arquivo': mapa_arquivo,  # Arquivo de mapa específico
+        'planta_arquivos': planta_arquivos,  # Arquivos de planta
+        'referencia_arquivos': referencia_arquivos,  # Arquivos de referência
+        'campanha_arquivos': campanha_arquivos,  # Arquivos de campanha
+        'outros_arquivos': outros_arquivos,  # Outros tipos de arquivo
         'conversas': conversas,
         'areas_exposicao': areas_exposicao,
         'salas_reuniao': salas_reuniao,
         'copas': copas,
         'depositos': depositos,
+        'feira': feira,
         'todas_aprovadas': all(v.status == 'aprovado' for v in validacoes),
+        'from_page': 'projetista',  # Indicador da origem para o template
     }
     
     return render(request, 'projetista/ver_briefing.html', context)
-
-@login_required
-def gerar_conceito(request, projeto_id):
-    """
-    Permite ao projetista gerar um conceito visual baseado no briefing
-    """
-    projeto = get_object_or_404(Projeto, pk=projeto_id, projetista=request.user)
-    briefing = projeto.briefings.latest('versao')
-    
-    # Verificar se já existe um conceito (adaptado para funcionar sem o modelo concreto)
-    conceito = None
-    form_data = {}
-    
-    # Esta parte seria executada apenas se o modelo ConceitoVisual existir
-    if hasattr(ConceitoVisual, 'objects') and not isinstance(ConceitoVisual.objects, type):
-        try:
-            conceito = ConceitoVisual.objects.filter(briefing=briefing).first()
-            if conceito:
-                form_data = {
-                    'descricao': conceito.descricao,
-                    'referencias_utilizadas': conceito.referencias_utilizadas
-                }
-        except:
-            # Se ocorrer qualquer erro, simplesmente continuamos com conceito=None
-            pass
-    
-    context = {
-        'projeto': projeto,
-        'briefing': briefing,
-        'conceito': conceito,
-        'form_data': form_data,
-        'arquivos': BriefingArquivoReferencia.objects.filter(briefing=briefing),
-    }
-    
-    return render(request, 'projetista/gerar_conceito.html', context)
-
-@login_required
-def salvar_conceito(request, projeto_id):
-    """
-    Salva o conceito visual gerado pelo projetista
-    """
-    projeto = get_object_or_404(Projeto, pk=projeto_id, projetista=request.user)
-    briefing = projeto.briefings.latest('versao')
-    
-    if request.method == 'POST':
-        # Obter dados do formulário
-        descricao = request.POST.get('descricao', '')
-        referencias_utilizadas = request.POST.get('referencias_utilizadas', '')
-        
-        # Aqui seria o código para salvar o conceito, mas isso requer o modelo
-        # No momento, apenas simulamos o comportamento
-        
-        # Comentando o código que depende do modelo ConceitoVisual
-        """
-        try:
-            conceito = ConceitoVisual.objects.get(briefing=briefing)
-            conceito.descricao = descricao
-            conceito.referencias_utilizadas = referencias_utilizadas
-            conceito.atualizado_em = timezone.now()
-        except ConceitoVisual.DoesNotExist:
-            conceito = ConceitoVisual(
-                briefing=briefing,
-                projeto=projeto,
-                projetista=request.user,
-                descricao=descricao,
-                referencias_utilizadas=referencias_utilizadas
-            )
-        
-        # Salvar o conceito
-        conceito.save()
-        
-        # Processar arquivos de imagem de conceito
-        for arquivo in request.FILES.getlist('imagens_conceito'):
-            # Adicionar lógica para salvar os arquivos de conceito
-            pass
-        """
-        
-        messages.success(request, 'Conceito visual salvo com sucesso! (Simulado)')
-        return redirect('projetista:projeto_detail', pk=projeto.pk)
-    
-    return redirect('projetista:gerar_conceito', projeto_id=projeto.pk)

@@ -70,13 +70,13 @@
       <table class="table table-hover align-middle">
         <thead class="table-light">
           <tr>
-            <th scope="col">Número</th>
+            <th scope="col">#</th>
             <th scope="col">Empresa</th>
             <th scope="col">Feira</th>
             <th scope="col">Status</th>
+            <th scope="col">Desenv</th>
             <th scope="col">Briefing</th>
             <th scope="col">Aprovação</th>
-            <th scope="col">Entrega</th>
             <th scope="col" class="text-end">Ações</th>
           </tr>
         </thead>
@@ -84,9 +84,7 @@
           {% for projeto in projetos %}
           <tr>
             <td>{{ projeto.numero }}</td>
-            <td>
-              <span class="badge bg-secondary">{{ projeto.empresa.nome }}</span>
-            </td>
+            <td>{{ projeto.empresa.nome }}</td>
             <td>
               {% if projeto.feira %}
                 {{ projeto.feira.nome }}
@@ -111,6 +109,19 @@
               </span>
             </td>
             <td>
+              <span class="badge 
+                {% if projeto.status_desenvolvimento == 'nao_iniciado' %}bg-secondary
+                {% elif projeto.status_desenvolvimento == 'conceito_visual' %}bg-info
+                {% elif projeto.status_desenvolvimento == 'renderizacao_3d' %}bg-primary
+                {% elif projeto.status_desenvolvimento == 'projeto_executivo' %}bg-warning text-dark
+                {% elif projeto.status_desenvolvimento == 'calculo_custos' %}bg-danger
+                {% elif projeto.status_desenvolvimento == 'detalhamento' %}bg-info
+                {% elif projeto.status_desenvolvimento == 'concluido' %}bg-success
+                {% else %}bg-secondary{% endif %}">
+                {{ projeto.get_status_desenvolvimento_display|default:"Não iniciado" }}
+              </span>
+            </td>
+            <td>
               {% if projeto.data_briefing %}
                 {{ projeto.data_briefing|date:"d/m/Y" }}
               {% else %}
@@ -124,57 +135,49 @@
                 <span class="text-muted">-</span>
               {% endif %}
             </td>
-            <td>
-              {% if projeto.data_entrega %}
-                {{ projeto.data_entrega|date:"d/m/Y" }}
-              {% else %}
-                <span class="text-muted">-</span>
-              {% endif %}
-            </td>
             <td class="text-end">
-              <td class="text-end">
-                <div class="btn-group">
-                  <a href="{% url 'gestor:projeto_detail' pk=projeto.pk %}" class="btn btn-sm btn-outline-primary">
-                    <i class="fas fa-eye"></i>
+              <div class="btn-group">
+                <a href="{% url 'gestor:projeto_detail' pk=projeto.pk %}" class="btn btn-sm btn-outline-primary">
+                  <i class="fas fa-eye"></i>
+                </a>
+                
+                {% if projeto.has_briefing %}
+                {% with briefing=projeto.briefings.first %}
+                  {% if briefing.pdf_file %}
+                  <a href="{{ briefing.pdf_file.url }}" class="btn btn-sm btn-outline-success" target="_blank" title="Ver PDF do Briefing">
+                    <i class="fas fa-file-pdf"></i>
                   </a>
-                  
-                  {% if projeto.has_briefing %}
-                  {% with briefing=projeto.briefings.first %}
-                    {% if briefing.pdf_file %}
-                    <a href="{{ briefing.pdf_file.url }}" class="btn btn-sm btn-outline-success" target="_blank" title="Ver PDF do Briefing">
-                      <i class="fas fa-file-pdf"></i>
-                    </a>
-                    {% else %}
-                    <a href="{% url 'cliente:relatorio_briefing' projeto_id=projeto.id %}" class="btn btn-sm btn-outline-success" title="Gerar PDF do Briefing">
-                      <i class="fas fa-sync-alt"></i>
-                    </a>
-                    {% endif %}
-                  {% endwith %}
-                {% endif %}
-                  
-                  <a href="{% url 'gestor:mensagens_projeto' projeto_id=projeto.id %}" class="btn btn-sm btn-outline-info">
-                    <i class="fas fa-comment"></i>
+                  {% else %}
+                  <a href="{% url 'cliente:relatorio_briefing' projeto_id=projeto.id %}" class="btn btn-sm btn-outline-success" title="Gerar PDF do Briefing">
+                    <i class="fas fa-sync-alt"></i>
                   </a>
+                  {% endif %}
+                {% endwith %}
+              {% endif %}
+                
+                <a href="{% url 'gestor:mensagens_projeto' projeto_id=projeto.id %}" class="btn btn-sm btn-outline-info">
+                  <i class="fas fa-comment"></i>
+                </a>
+                
+                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                  <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li><a class="dropdown-item" href="{% url 'gestor:projeto_detail' pk=projeto.pk %}">
+                    <i class="fas fa-eye me-2"></i> Ver Detalhes
+                  </a></li>
                   
-                  <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-                    <i class="fas fa-ellipsis-v"></i>
-                  </button>
-                  <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="{% url 'gestor:projeto_detail' pk=projeto.pk %}">
-                      <i class="fas fa-eye me-2"></i> Ver Detalhes
-                    </a></li>
-                    
-                    <li><a class="dropdown-item" href="{% url 'gestor:mensagens_projeto' projeto_id=projeto.id %}">
-                      <i class="fas fa-comment me-2"></i> Mensagens
-                    </a></li>
-                    
-                    <li><hr class="dropdown-divider"></li>
-                    
-                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#alterarStatusModal{{ projeto.id }}">
-                      <i class="fas fa-exchange-alt me-2"></i> Alterar Status
-                    </a></li>
-                  </ul>
-                </div>
+                  <li><a class="dropdown-item" href="{% url 'gestor:mensagens_projeto' projeto_id=projeto.id %}">
+                    <i class="fas fa-comment me-2"></i> Mensagens
+                  </a></li>
+                  
+                  <li><hr class="dropdown-divider"></li>
+                  
+                  <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#alterarStatusModal{{ projeto.id }}">
+                    <i class="fas fa-exchange-alt me-2"></i> Alterar Status
+                  </a></li>
+                </ul>
+              </div>
 
               <!-- Modal para alterar status -->
               <div class="modal fade" id="alterarStatusModal{{ projeto.id }}" tabindex="-1" aria-hidden="true">

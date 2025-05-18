@@ -58,12 +58,13 @@
       <table class="table table-hover align-middle">
         <thead class="table-light">
           <tr>
-            <th scope="col">Número</th>
+            <th scope="col">#</th>
             <th scope="col">Empresa</th>
+            <th scope="col">Feira</th>
             <th scope="col">Status</th>
+            <th scope="col">Desenv</th>
             <th scope="col">Briefing</th>
             <th scope="col">Aprovação</th>
-            <th scope="col">Conceito</th>
             <th scope="col" class="text-end">Ações</th>
           </tr>
         </thead>
@@ -71,8 +72,13 @@
           {% for projeto in projetos %}
           <tr>
             <td>{{ projeto.numero }}</td>
+            <td>{{ projeto.empresa.nome }}</td>
             <td>
-              <span class="badge bg-secondary">{{ projeto.empresa.nome }}</span>
+              {% if projeto.feira %}
+                {{ projeto.feira.nome }}
+              {% else %}
+                <span class="text-muted">Não definida</span>
+              {% endif %}
             </td>
             <td>
               <span class="badge 
@@ -91,6 +97,19 @@
               </span>
             </td>
             <td>
+              <span class="badge 
+                {% if projeto.status_desenvolvimento == 'nao_iniciado' %}bg-secondary
+                {% elif projeto.status_desenvolvimento == 'conceito_visual' %}bg-info
+                {% elif projeto.status_desenvolvimento == 'renderizacao_3d' %}bg-primary
+                {% elif projeto.status_desenvolvimento == 'projeto_executivo' %}bg-warning text-dark
+                {% elif projeto.status_desenvolvimento == 'calculo_custos' %}bg-danger
+                {% elif projeto.status_desenvolvimento == 'detalhamento' %}bg-info
+                {% elif projeto.status_desenvolvimento == 'concluido' %}bg-success
+                {% else %}bg-secondary{% endif %}">
+                {{ projeto.get_status_desenvolvimento_display|default:"Não iniciado" }}
+              </span>
+            </td>
+            <td>
               {% if projeto.data_briefing %}
                 {{ projeto.data_briefing|date:"d/m/Y" }}
               {% else %}
@@ -102,13 +121,6 @@
                 {{ projeto.data_aprovacao|date:"d/m/Y" }}
               {% else %}
                 <span class="text-muted">-</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if projeto.conceitos_visuais.exists %}
-                <span class="badge bg-success">Criado</span>
-              {% else %}
-                <span class="badge bg-warning text-dark">Pendente</span>
               {% endif %}
             </td>
             <td class="text-end">
@@ -139,7 +151,7 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="7" class="text-center py-4">
+            <td colspan="8" class="text-center py-4">
               <div class="text-muted">
                 <i class="fas fa-folder-open fa-2x mb-3"></i>
                 <p>Nenhum projeto encontrado.</p>
