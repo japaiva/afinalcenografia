@@ -76,13 +76,17 @@
                   {{ projeto.get_status_desenvolvimento_display|default:"Não iniciado" }}
                 </span>
               </div>
-              <div>
+              <div class="mb-2">
                 <strong>Projetista:</strong>
                 {% if projeto.projetista %}
                   {{ projeto.projetista.get_full_name|default:projeto.projetista.username }}
                 {% else %}
                   <span class="text-muted">Não atribuído</span>
                 {% endif %}
+              </div>
+              <div>
+                <strong>Tipo:</strong>
+                {{ projeto.get_tipo_projeto_display|default:"Não informado" }}
               </div>
             </div>
           </div>

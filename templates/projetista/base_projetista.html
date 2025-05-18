@@ -30,14 +30,6 @@
   </ul>
 </li>
 
-<!-- Menu de Conceitos Visuais -->
-<li class="nav-item">
-  <a class="nav-link{% if 'conceito' in request.path %} active{% endif %}" href="{% url 'projetista:projeto_list' %}">
-    <i class="fas fa-lightbulb me-2"></i>
-    <span>Conceitos Visuais</span>
-  </a>
-</li>
-
 <!-- Menu de Mensagens -->
 <li class="nav-item dropdown">
   <a class="nav-link dropdown-toggle {% if 'mensagem' in request.resolver_match.url_name %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">

@@ -60,7 +60,7 @@
           <tr>
             <th scope="col">#</th>
             <th scope="col">Empresa</th>
-            <th scope="col">Feira</th>
+            <th scope="col">Projeto</th>
             <th scope="col">Status</th>
             <th scope="col">Desenv</th>
             <th scope="col">Briefing</th>
@@ -74,11 +74,7 @@
             <td>{{ projeto.numero }}</td>
             <td>{{ projeto.empresa.nome }}</td>
             <td>
-              {% if projeto.feira %}
-                {{ projeto.feira.nome }}
-              {% else %}
-                <span class="text-muted">Não definida</span>
-              {% endif %}
+              {{ projeto.nome|default:"Sem título" }}
             </td>
             <td>
               <span class="badge 
