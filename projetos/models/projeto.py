@@ -14,8 +14,9 @@ class Projeto(models.Model):
         ('outros', 'Outros'),
     ]
     
+
     STATUS_CHOICES = [
-        ('aguardando_manual', 'Aguardando Manual'),  # Novo status
+        ('aguardando_manual', 'Aguardando Manual'),
         ('briefing_pendente', 'Briefing Pendente'),
         ('briefing_validado', 'Briefing Validado'),
         ('briefing_enviado', 'Briefing Enviado'),
@@ -27,6 +28,17 @@ class Projeto(models.Model):
         ('concluido', 'Concluído'),
         ('cancelado', 'Cancelado'),
     ]
+
+    STATUS_DESENVOLVIMENTO_CHOICES = [
+        ('nao_iniciado', 'Não Iniciado'),
+        ('conceito_visual', 'Conceito Visual'),
+        ('renderizacao_3d', 'Renderização 3D'),
+        ('projeto_executivo', 'Projeto Executivo'),
+        ('calculo_custos', 'Cálculo de Custos'),
+        ('detalhamento', 'Detalhamento'),
+        ('concluido', 'Concluído'),
+    ]
+
 
     numero = models.PositiveIntegerField(
         verbose_name="Número do Projeto", editable=False,
@@ -113,7 +125,6 @@ class Projeto(models.Model):
         auto_now=True, verbose_name="Última Atualização"
     )
 
-    # Novo campo para projetista
     projetista = models.ForeignKey(
         'core.Usuario',
         on_delete=models.SET_NULL,
@@ -121,7 +132,14 @@ class Projeto(models.Model):
         blank=True,
         related_name='projetos_atribuidos'
     )
-
+  
+    status_desenvolvimento = models.CharField(
+        max_length=30, 
+        choices=STATUS_DESENVOLVIMENTO_CHOICES,
+        default='nao_iniciado', 
+        verbose_name="Status de Desenvolvimento"
+    )
+    
     class Meta:
         db_table = 'projetos'
         verbose_name = 'Projeto'

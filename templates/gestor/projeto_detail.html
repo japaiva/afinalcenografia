@@ -25,36 +25,65 @@
       <!-- INFORMAÇÕES DO PROJETO -->
       <div class="card shadow mb-4">
         <div class="card-header bg-light d-flex justify-content-between align-items-center">
-          <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i> Informações do Projeto</h5>
+          <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i> Informações Gerais</h5>
         </div>
         <div class="card-body">
-          <div class="row mb-2">
+          <div class="row mb-3">
             <div class="col-md-6">
-              <strong>Orçamento:</strong> R$ {{ projeto.orcamento|floatformat:2 }}
+              <!-- MODIFICADO: Lado esquerdo com cliente, projeto, orçamento e objetivo -->
+              <div class="mb-2">
+                <strong>Cliente:</strong> {{ projeto.empresa.nome }}
+              </div>
+              <div class="mb-2">
+                <strong>Projeto:</strong> {{ projeto.nome }}
+              </div>
+              <div class="mb-2">
+                <strong>Orçamento:</strong> R$ {{ projeto.orcamento|floatformat:2 }}
+              </div>
+              <div>
+                <strong>Objetivo:</strong> {{ projeto.descricao|default:"Não informado" }}
+              </div>
             </div>
             <div class="col-md-6">
-              <strong>Status:</strong>
-              <span class="badge 
-                {% if projeto.status == 'briefing_pendente' %}bg-info
-                {% elif projeto.status == 'briefing_em_andamento' %}bg-warning text-dark
-                {% elif projeto.status == 'briefing_validado' %}bg-success
-                {% elif projeto.status == 'briefing_enviado' %}bg-info
-                {% elif projeto.status == 'projeto_em_desenvolvimento' %}bg-primary
-                {% elif projeto.status == 'projeto_enviado' %}bg-info
-                {% elif projeto.status == 'projeto_em_analise' %}bg-warning text-dark
-                {% elif projeto.status == 'projeto_aprovado' %}bg-success
-                {% elif projeto.status == 'em_producao' %}bg-danger
-                {% elif projeto.status == 'concluido' %}bg-secondary
-                {% elif projeto.status == 'cancelado' %}bg-danger
-                {% else %}bg-secondary{% endif %}">
-                {{ projeto.get_status_display }}
-              </span>
-            </div>
-          </div>
-          
-          <div class="row">
-            <div class="col-md-12">
-              <strong>Objetivo:</strong> {{ projeto.descricao|default:"Não informado" }}
+              <!-- MODIFICADO: Lado direito com status projeto, status desenv e projetista -->
+              <div class="mb-2"> <strong>Projeto:</strong> 
+                <span class="badge 
+                  {% if projeto.status == 'briefing_pendente' %}bg-info
+                  {% elif projeto.status == 'briefing_em_andamento' %}bg-warning text-dark
+                  {% elif projeto.status == 'briefing_validado' %}bg-success
+                  {% elif projeto.status == 'briefing_enviado' %}bg-info
+                  {% elif projeto.status == 'projeto_em_desenvolvimento' %}bg-primary
+                  {% elif projeto.status == 'projeto_enviado' %}bg-info
+                  {% elif projeto.status == 'projeto_em_analise' %}bg-warning text-dark
+                  {% elif projeto.status == 'projeto_aprovado' %}bg-success
+                  {% elif projeto.status == 'em_producao' %}bg-danger
+                  {% elif projeto.status == 'concluido' %}bg-secondary
+                  {% elif projeto.status == 'cancelado' %}bg-danger
+                  {% else %}bg-secondary{% endif %}">
+                  {{ projeto.get_status_display }}
+                </span>
+              </div>
+              <div class="mb-2"> <strong>Desenv:</strong> 
+                <span class="badge 
+                  {% if projeto.status_desenvolvimento == 'nao_iniciado' %}bg-secondary
+                  {% elif projeto.status_desenvolvimento == 'conceito_visual' %}bg-info
+                  {% elif projeto.status_desenvolvimento == 'renderizacao_3d' %}bg-primary
+                  {% elif projeto.status_desenvolvimento == 'projeto_executivo' %}bg-warning text-dark
+                  {% elif projeto.status_desenvolvimento == 'calculo_custos' %}bg-danger
+                  {% elif projeto.status_desenvolvimento == 'detalhamento' %}bg-info
+                  {% elif projeto.status_desenvolvimento == 'concluido' %}bg-success
+                  {% else %}bg-secondary{% endif %}">
+                  {{ projeto.get_status_desenvolvimento_display|default:"Não iniciado" }}
+                </span>
+              </div>
+              <div>
+                <strong>Projetista:</strong>
+                {% if projeto.projetista %}
+                  {{ projeto.projetista.get_full_name|default:projeto.projetista.username }}
+                {% else %}
+                  <span class="text-muted">Não atribuído</span>
+                {% endif %}
+              </div>
             </div>
           </div>
         </div>
@@ -136,7 +165,19 @@
               <button class="nav-link active" id="briefing-tab" data-bs-toggle="tab" data-bs-target="#briefing-content" type="button" role="tab" aria-controls="briefing-content" aria-selected="true">Briefing</button>
             </li>
             <li class="nav-item" role="presentation">
+              <button class="nav-link" id="conceito-tab" data-bs-toggle="tab" data-bs-target="#conceito-content" type="button" role="tab" aria-controls="conceito-content" aria-selected="false">Conceito</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="3d-tab" data-bs-toggle="tab" data-bs-target="#3d-content" type="button" role="tab" aria-controls="3d-content" aria-selected="false">3D</button>
+            </li>
+            <li class="nav-item" role="presentation">
               <button class="nav-link" id="projeto-tab" data-bs-toggle="tab" data-bs-target="#projeto-content" type="button" role="tab" aria-controls="projeto-content" aria-selected="false">Projeto</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="custos-tab" data-bs-toggle="tab" data-bs-target="#custos-content" type="button" role="tab" aria-controls="custos-content" aria-selected="false">Custos</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="detalhe-tab" data-bs-toggle="tab" data-bs-target="#detalhe-content" type="button" role="tab" aria-controls="detalhe-content" aria-selected="false">Detalhe</button>
             </li>
             <li class="nav-item" role="presentation">
               <button class="nav-link" id="fotos-tab" data-bs-toggle="tab" data-bs-target="#fotos-content" type="button" role="tab" aria-controls="fotos-content" aria-selected="false">Fotos</button>
@@ -147,48 +188,116 @@
           </ul>
           
           <div class="tab-content pt-3" id="consultaTabsContent">
-          <!-- BRIEFING TAB -->
-          <div class="tab-pane fade show active" id="briefing-content" role="tabpanel" aria-labelledby="briefing-tab">
-            {% if projeto.has_briefing %}
-              {% with briefing=projeto.briefings.first %}
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="mb-0">Briefing v{{ briefing.versao }}</h6>
-                <span class="badge 
-                  {% if briefing.status == 'rascunho' %}bg-secondary
-                  {% elif briefing.status == 'validado' %}bg-success
-                  {% elif briefing.status == 'em_validacao' %}bg-warning text-dark
-                  {% elif briefing.status == 'enviado' %}bg-primary
-                  {% elif briefing.status == 'revisao' %}bg-info
-                  {% elif briefing.status == 'aprovado' %}bg-success
-                  {% endif %}">
-                  {{ briefing.get_status_display }}
-                </span>
-              </div>
-              
-              <div class="progress mb-3" style="height: 20px;">
-                <div class="progress-bar bg-success" role="progressbar" style="width: {{ briefing.progresso }}%;" aria-valuenow="{{ briefing.progresso }}" aria-valuemin="0" aria-valuemax="100">{{ briefing.progresso }}%</div>
-              </div>
-              
-              {% if briefing.pdf_file %}
-              <a href="{{ briefing.pdf_file.url }}" class="btn btn-primary btn-sm" target="_blank">
-                <i class="fas fa-file-pdf me-1"></i> Ver PDF do Briefing
-              </a>
+            <!-- BRIEFING TAB -->
+            <div class="tab-pane fade show active" id="briefing-content" role="tabpanel" aria-labelledby="briefing-tab">
+              {% if projeto.has_briefing %}
+                {% with briefing=projeto.briefings.first %}
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h6 class="mb-0">Briefing v{{ briefing.versao }}</h6>
+                  <span class="badge 
+                    {% if briefing.status == 'rascunho' %}bg-secondary
+                    {% elif briefing.status == 'validado' %}bg-success
+                    {% elif briefing.status == 'em_validacao' %}bg-warning text-dark
+                    {% elif briefing.status == 'enviado' %}bg-primary
+                    {% elif briefing.status == 'revisao' %}bg-info
+                    {% elif briefing.status == 'aprovado' %}bg-success
+                    {% endif %}">
+                    {{ briefing.get_status_display }}
+                  </span>
+                </div>
+                
+                <div class="progress mb-3" style="height: 20px;">
+                  <div class="progress-bar bg-success" role="progressbar" style="width: {{ briefing.progresso }}%;" aria-valuenow="{{ briefing.progresso }}" aria-valuemin="0" aria-valuemax="100">{{ briefing.progresso }}%</div>
+                </div>
+                
+                {% if briefing.pdf_file %}
+                <a href="{{ briefing.pdf_file.url }}" class="btn btn-primary btn-sm" target="_blank">
+                  <i class="fas fa-file-pdf me-1"></i> Ver PDF do Briefing
+                </a>
+                {% else %}
+                <a href="{% url 'cliente:relatorio_briefing' projeto_id=projeto.id %}" class="btn btn-primary btn-sm">
+                  <i class="fas fa-sync-alt me-1"></i> Gerar PDF do Briefing
+                </a>
+                {% endif %}
+                {% endwith %}
               {% else %}
-              <a href="{% url 'cliente:relatorio_briefing' projeto_id=projeto.id %}" class="btn btn-primary btn-sm">
-                <i class="fas fa-sync-alt me-1"></i> Gerar PDF do Briefing
-              </a>
+                <div class="alert alert-info mb-3">
+                  <i class="fas fa-info-circle me-2"></i> Este projeto ainda não possui briefing.
+                </div>
               {% endif %}
-              {% endwith %}
-            {% else %}
-              <div class="alert alert-info mb-3">
-                <i class="fas fa-info-circle me-2"></i> Este projeto ainda não possui briefing.
-              </div>
-            {% endif %}
-          </div>
+            </div>
+
+            <!-- CONCEITO VISUAL TAB -->
+            <div class="tab-pane fade" id="conceito-content" role="tabpanel" aria-labelledby="conceito-tab">
+              {% if projeto.status_desenvolvimento == 'conceito_visual' or projeto.status_desenvolvimento == 'renderizacao_3d' or projeto.status_desenvolvimento == 'projeto_executivo' or projeto.status_desenvolvimento == 'calculo_custos' or projeto.status_desenvolvimento == 'detalhamento' or projeto.status_desenvolvimento == 'concluido' %}
+                <div class="mb-3">
+                  <h6>Conceito Visual</h6>
+                  <div class="row">
+                    {% for conceito in projeto.conceitos.all %}
+                    <div class="col-md-6 mb-3">
+                      <div class="card">
+                        <img src="{{ conceito.imagem.url }}" class="card-img-top" alt="{{ conceito.descricao }}">
+                        <div class="card-body p-2">
+                          <p class="card-text small">{{ conceito.descricao }}</p>
+                          <div class="d-flex justify-content-end">
+                            <a href="{{ conceito.imagem.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                              <i class="fas fa-download"></i>
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12 text-center text-muted py-3">
+                      Nenhum conceito visual disponível
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              {% else %}
+                <div class="alert alert-info mb-0">
+                  <i class="fas fa-info-circle me-2"></i> O conceito visual ainda não foi desenvolvido.
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- RENDERIZAÇÃO 3D TAB -->
+            <div class="tab-pane fade" id="3d-content" role="tabpanel" aria-labelledby="3d-tab">
+              {% if projeto.status_desenvolvimento == 'renderizacao_3d' or projeto.status_desenvolvimento == 'projeto_executivo' or projeto.status_desenvolvimento == 'calculo_custos' or projeto.status_desenvolvimento == 'detalhamento' or projeto.status_desenvolvimento == 'concluido' %}
+                <div class="mb-3">
+                  <h6>Renderizações 3D</h6>
+                  <div class="row">
+                    {% for render in projeto.renders.all %}
+                    <div class="col-md-6 mb-3">
+                      <div class="card">
+                        <img src="{{ render.imagem.url }}" class="card-img-top" alt="{{ render.descricao }}">
+                        <div class="card-body p-2">
+                          <p class="card-text small">{{ render.descricao }}</p>
+                          <div class="d-flex justify-content-end">
+                            <a href="{{ render.imagem.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                              <i class="fas fa-download"></i>
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12 text-center text-muted py-3">
+                      Nenhuma renderização 3D disponível
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              {% else %}
+                <div class="alert alert-info mb-0">
+                  <i class="fas fa-info-circle me-2"></i> As renderizações 3D ainda não foram desenvolvidas.
+                </div>
+              {% endif %}
+            </div>
             
             <!-- PROJETO TAB -->
             <div class="tab-pane fade" id="projeto-content" role="tabpanel" aria-labelledby="projeto-tab">
-              {% if projeto.status == 'projeto_enviado' or projeto.status == 'projeto_em_analise' or projeto.status == 'projeto_aprovado' or projeto.status == 'em_producao' or projeto.status == 'concluido' %}
+              {% if projeto.status_desenvolvimento == 'projeto_executivo' or projeto.status_desenvolvimento == 'calculo_custos' or projeto.status_desenvolvimento == 'detalhamento' or projeto.status_desenvolvimento == 'concluido' %}
                 <div class="mb-3">
                   <h6>Arquivos do Projeto</h6>
                   <ul class="list-group">
@@ -216,7 +325,88 @@
                 </div>
               {% else %}
                 <div class="alert alert-info mb-0">
-                  <i class="fas fa-info-circle me-2"></i> O projeto executivo ainda não foi enviado.
+                  <i class="fas fa-info-circle me-2"></i> O projeto executivo ainda não foi desenvolvido.
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- CUSTOS TAB -->
+            <div class="tab-pane fade" id="custos-content" role="tabpanel" aria-labelledby="custos-tab">
+              {% if projeto.status_desenvolvimento == 'calculo_custos' or projeto.status_desenvolvimento == 'detalhamento' or projeto.status_desenvolvimento == 'concluido' %}
+                <div class="mb-3">
+                  <h6>Planilha de Custos</h6>
+                  <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                      <thead class="table-light">
+                        <tr>
+                          <th>Item</th>
+                          <th>Descrição</th>
+                          <th>Quantidade</th>
+                          <th>Valor Unitário</th>
+                          <th>Valor Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for item in projeto.itens_custo.all %}
+                        <tr>
+                          <td>{{ item.item }}</td>
+                          <td>{{ item.descricao }}</td>
+                          <td>{{ item.quantidade }}</td>
+                          <td>R$ {{ item.valor_unitario|floatformat:2 }}</td>
+                          <td>R$ {{ item.valor_total|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                          <td colspan="5" class="text-center text-muted py-3">
+                            Nenhum item de custo disponível
+                          </td>
+                        </tr>
+                        {% endfor %}
+                      </tbody>
+                      <tfoot>
+                        <tr class="table-secondary">
+                          <th colspan="4" class="text-end">Total:</th>
+                          <th>R$ {{ projeto.total_custos|default:"0.00"|floatformat:2 }}</th>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+              {% else %}
+                <div class="alert alert-info mb-0">
+                  <i class="fas fa-info-circle me-2"></i> A planilha de custos ainda não foi desenvolvida.
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- DETALHAMENTO TAB -->
+            <div class="tab-pane fade" id="detalhe-content" role="tabpanel" aria-labelledby="detalhe-tab">
+              {% if projeto.status_desenvolvimento == 'detalhamento' or projeto.status_desenvolvimento == 'concluido' %}
+                <div class="mb-3">
+                  <h6>Detalhamento Técnico</h6>
+                  <ul class="list-group">
+                    {% for detalhe in projeto.detalhamentos.all %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                      <div>
+                        <i class="fas fa-file-alt me-2"></i>
+                        {{ detalhe.titulo }}
+                      </div>
+                      <div>
+                        <a href="{{ detalhe.arquivo.url }}" class="btn btn-sm btn-outline-secondary" target="_blank">
+                          <i class="fas fa-download"></i>
+                        </a>
+                      </div>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-center text-muted">
+                      Nenhum detalhamento disponível
+                    </li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              {% else %}
+                <div class="alert alert-info mb-0">
+                  <i class="fas fa-info-circle me-2"></i> O detalhamento técnico ainda não foi desenvolvido.
                 </div>
               {% endif %}
             </div>
@@ -232,9 +422,9 @@
                       <div class="card-body p-2">
                         <p class="card-text small">{{ foto.descricao }}</p>
                         <div class="d-flex justify-content-end">
-                          <button type="button" class="btn btn-sm btn-outline-danger excluir-foto" data-url="#">
-                            <i class="fas fa-trash"></i>
-                          </button>
+                          <a href="{{ foto.arquivo.url }}" class="btn btn-sm btn-outline-primary me-1" target="_blank">
+                            <i class="fas fa-download"></i>
+                          </a>
                         </div>
                       </div>
                     </div>
@@ -300,37 +490,35 @@
         </div>
         <div class="card-body">
           <div class="d-grid gap-2">
-
-
-              {% if projeto.has_briefing %}
+            {% if projeto.has_briefing %}
               {% with briefing=projeto.briefings.first %}
                 {% if briefing.pdf_file %}
-                <a href="{{ briefing.pdf_file.url }}" class="btn btn-outline-primary" target="_blank">
-                  <i class="fas fa-file-pdf me-2"></i> Ver PDF do Briefing
-                </a>
+                  <a href="{{ briefing.pdf_file.url }}" class="btn btn-outline-primary" target="_blank">
+                    <i class="fas fa-file-pdf me-2"></i> Ver PDF do Briefing
+                  </a>
                 {% else %}
-                <a href="{% url 'cliente:relatorio_briefing' projeto_id=projeto.id %}" class="btn btn-outline-primary">
-                  <i class="fas fa-sync-alt me-2"></i> Gerar PDF do Briefing
-                </a>
+                  <a href="{% url 'cliente:relatorio_briefing' projeto_id=projeto.id %}" class="btn btn-outline-primary">
+                    <i class="fas fa-sync-alt me-2"></i> Gerar PDF do Briefing
+                  </a>
                 {% endif %}
               {% endwith %}
             {% endif %}
-
-
-            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#alterarStatusModal">
-              <i class="fas fa-tasks me-2"></i> Alterar Status
-            </button>
             
             <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#atribuirProjetistaModal">
               <i class="fas fa-user-plus me-2"></i> Atribuir Projetista
             </button>
-            
+
             <a href="{% url 'gestor:mensagens_projeto' projeto_id=projeto.id %}" class="btn btn-outline-primary">
               <i class="fas fa-comment me-2"></i> Enviar Mensagem
             </a>
             
             <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#limparMensagensModal">
               <i class="fas fa-trash me-2"></i> Limpar Mensagens
+            </button>
+            
+            <!-- MODIFICADO: Alterar Status como última opção -->
+            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#alterarStatusModal">
+              <i class="fas fa-tasks me-2"></i> Alterar Status
             </button>
           </div>
         </div>
@@ -477,7 +665,7 @@
         {% csrf_token %}
         <div class="modal-body">
           <div class="mb-3">
-            <label for="status" class="form-label">Novo Status</label>
+            <label for="status" class="form-label">Status do Projeto</label>
             <select id="status" name="status" class="form-select">
               {% for status_value, status_label in projeto.STATUS_CHOICES %}
               <option value="{{ status_value }}" {% if projeto.status == status_value %}selected{% endif %}>
@@ -486,6 +674,19 @@
               {% endfor %}
             </select>
           </div>
+          
+          <!-- ADICIONADO: Status de Desenvolvimento -->
+          <div class="mb-3">
+            <label for="status_desenvolvimento" class="form-label">Status de Desenvolvimento</label>
+            <select id="status_desenvolvimento" name="status_desenvolvimento" class="form-select">
+              {% for status_value, status_label in projeto.STATUS_DESENVOLVIMENTO_CHOICES %}
+              <option value="{{ status_value }}" {% if projeto.status_desenvolvimento == status_value %}selected{% endif %}>
+                {{ status_label }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          
           <div class="mb-3">
             <label for="observacao" class="form-label">Observação</label>
             <textarea id="observacao" name="observacao" class="form-control" rows="3"></textarea>
@@ -509,16 +710,32 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
       </div>
       <div class="modal-body">
+        <!-- ADICIONADO: Opção para desatribuir projetista -->
+        {% if projeto.projetista %}
+        <div class="alert alert-info mb-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <strong>Projetista atual:</strong> {{ projeto.projetista.get_full_name|default:projeto.projetista.username }}
+            </div>
+            <a href="{% url 'gestor:projeto_atribuir' pk=projeto.pk usuario_id=0 %}" class="btn btn-sm btn-outline-danger">
+              <i class="fas fa-user-minus me-1"></i> Remover
+            </a>
+          </div>
+        </div>
+        {% endif %}
+
+        <h6 class="mb-3">{% if projeto.projetista %}Alterar para{% else %}Selecionar{% endif %}</h6>
+        
         <div class="list-group">
           {% for projetista in projetistas %}
-          <a href="{% url 'gestor:projeto_atribuir' pk=projeto.pk usuario_id=projetista.id %}" class="list-group-item list-group-item-action">
+          <a href="{% url 'gestor:projeto_atribuir' pk=projeto.pk usuario_id=projetista.id %}" class="list-group-item list-group-item-action {% if projeto.projetista == projetista %}active{% endif %}">
             <div class="d-flex align-items-center">
-              <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white me-3" style="width: 40px; height: 40px;">
+              <div class="{% if projeto.projetista == projetista %}bg-white text-primary{% else %}bg-primary text-white{% endif %} rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
                 {{ projetista.get_full_name|default:projetista.username|slice:":1"|upper }}
               </div>
               <div>
                 <h6 class="mb-0">{{ projetista.get_full_name|default:projetista.username }}</h6>
-                <small class="text-muted">{{ projetista.email }}</small>
+                <small class="{% if projeto.projetista == projetista %}text-white{% else %}text-muted{% endif %}">{{ projetista.email }}</small>
               </div>
             </div>
           </a>

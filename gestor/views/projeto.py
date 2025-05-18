@@ -205,15 +205,32 @@ def projeto_alterar_status(request, pk):
 @login_required
 def projeto_atribuir(request, pk, usuario_id):
     """
-    Atribuir um projetista a um projeto
+    Atribuir ou desatribuir um projetista a um projeto
     """
     projeto = get_object_or_404(Projeto, pk=pk)
-    projetista = get_object_or_404(Usuario, pk=usuario_id, nivel='projetista')
     
-    projeto.projetista = projetista
-    projeto.save()
+    if usuario_id == 0:
+        # Desatribuir projetista
+        projetista_antigo = projeto.projetista
+        projeto.projetista = None
+        projeto.save()
+        
+        messages.success(request, f'Projetista removido com sucesso.')
+    else:
+        # Atribuir projetista
+        projetista = get_object_or_404(Usuario, pk=usuario_id, nivel='projetista')
+        
+        # Verificar se é uma alteração de projetista
+        foi_alteracao = projeto.projetista is not None and projeto.projetista != projetista
+        
+        projeto.projetista = projetista
+        projeto.save()
+        
+        if foi_alteracao:
+            messages.success(request, f'Projetista alterado para {projetista.get_full_name() or projetista.username} com sucesso.')
+        else:
+            messages.success(request, f'Projetista {projetista.get_full_name() or projetista.username} atribuído com sucesso.')
     
-    messages.success(request, f'Projeto atribuído a {projetista.get_full_name() or projetista.username} com sucesso.')
     return redirect('gestor:projeto_detail', pk=projeto.pk)
 
 
