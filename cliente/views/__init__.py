@@ -32,7 +32,8 @@ from .projeto import (
     selecionar_feira,
     iniciar_briefing,
     aprovar_projeto,
-    verificar_manual_feira
+    verificar_manual_feira,
+    processar_upload_manual
 )
 
 # Importe as views de mensagens

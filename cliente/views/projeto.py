@@ -595,3 +595,4 @@ def aprovar_projeto(request, pk):
         return redirect('cliente:projeto_detail', pk=projeto.id)
     
     return render(request, 'projetos/aprovar_projeto.html', {'projeto': projeto})
+
