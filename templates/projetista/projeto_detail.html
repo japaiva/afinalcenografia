@@ -218,7 +218,7 @@
                   {% endif %}
                   
                   <a href="{% url 'projetista:ver_briefing' projeto_id=projeto.id %}" class="btn btn-outline-primary btn-sm">
-                    <i class="fas fa-eye me-1"></i> Visualizar Briefing Completo
+                    <i class="fas fa-eye me-1"></i> Ver Briefing Completo
                   </a>
                 </div>
                 {% endwith %}
@@ -507,10 +507,10 @@
               {% endwith %}
             {% endif %}
             
-            <a href="{% url 'projetista:gerar_conceito' projeto_id=projeto.id %}" class="btn btn-outline-primary">
-              <i class="fas fa-lightbulb me-2"></i> {% if tem_conceito %}Editar{% else %}Gerar{% endif %} Conceito Visual
+            <a href="{% url 'projetista:gerar_conceito' projeto_id=projeto.id %}" class="btn btn-primary">
+              <i class="fas fa-lightbulb me-1"></i> Conceito Visual
             </a>
-            
+
             <a href="{% url 'projetista:mensagens_projeto' projeto_id=projeto.id %}" class="btn btn-outline-primary">
               <i class="fas fa-comment me-2"></i> Enviar Mensagem
             </a>

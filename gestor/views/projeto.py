@@ -15,7 +15,6 @@ from projetos.models import (
     Briefing, BriefingConversation, BriefingValidacao, BriefingArquivoReferencia
 )
 
-
 @login_required
 def projeto_list(request):
     """
@@ -100,61 +99,6 @@ def projeto_detail(request, pk):
     }
     
     return render(request, 'gestor/projeto_detail.html', context)
-
-@login_required
-def ver_briefing(request, projeto_id, versao=None):
-    """
-    Permite ao gestor visualizar o briefing de um projeto,
-    com suporte para visualizar versões específicas
-    """
-    projeto = get_object_or_404(Projeto, pk=projeto_id)
-    
-    # Buscar todas as versões do briefing
-    briefings = projeto.briefings.all().order_by('-versao')
-    
-    if not briefings.exists():
-        messages.error(request, 'Este projeto não possui um briefing.')
-        return redirect('gestor:projeto_detail', pk=projeto_id)
-    
-    # Processar seleção de versão específica se informada
-    if versao is None and request.GET.get('versao'):
-        try:
-            versao = int(request.GET.get('versao'))
-        except ValueError:
-            versao = None
-    
-    # Se não especificou versão ou versão é inválida, pega a mais recente
-    if versao is None:
-        briefing = briefings.first()
-    else:
-        briefing = get_object_or_404(Briefing, projeto=projeto, versao=versao)
-    
-    # Obtenha as validações, arquivos e conversas
-    validacoes = BriefingValidacao.objects.filter(briefing=briefing)
-    arquivos = BriefingArquivoReferencia.objects.filter(briefing=briefing)
-    conversas = BriefingConversation.objects.filter(briefing=briefing).order_by('timestamp')
-    
-    # Para os dados de áreas do estande
-    areas_exposicao = briefing.areas_exposicao.all() if hasattr(briefing, 'areas_exposicao') else []
-    salas_reuniao = briefing.salas_reuniao.all() if hasattr(briefing, 'salas_reuniao') else []
-    copas = briefing.copas.all() if hasattr(briefing, 'copas') else []
-    depositos = briefing.depositos.all() if hasattr(briefing, 'depositos') else []
-
-    context = {
-        'projeto': projeto,
-        'briefing': briefing,
-        'briefings': briefings,  # Todas as versões
-        'validacoes': validacoes,
-        'arquivos': arquivos,
-        'conversas': conversas,
-        'areas_exposicao': areas_exposicao,
-        'salas_reuniao': salas_reuniao,
-        'copas': copas,
-        'depositos': depositos,
-        'todas_aprovadas': all(v.status == 'aprovado' for v in validacoes),
-    }
-    
-    return render(request, 'gestor/ver_briefing.html', context)
 
 @login_required
 def projeto_alterar_status(request, pk):
@@ -256,3 +200,96 @@ def feira_qa_progress(request, pk):
             'success': False, 
             'error': str(e)
         }, status=500)
+    
+@login_required
+def ver_briefing(request, projeto_id, versao=None):
+
+    projeto = get_object_or_404(Projeto, pk=projeto_id)
+        
+    # Buscar todas as versões do briefing
+    briefings = projeto.briefings.all().order_by('-versao')
+    
+    if not briefings.exists():
+        messages.error(request, 'Este projeto não possui um briefing.')
+        return redirect('gestor:projeto_detail', pk=projeto_id)
+    
+    # Processar seleção de versão específica se informada
+    if versao is None and request.GET.get('versao'):
+        try:
+            versao = int(request.GET.get('versao'))
+        except ValueError:
+            versao = None
+    
+    # Se não especificou versão ou versão é inválida, pega a mais recente
+    if versao is None:
+        briefing = briefings.first()
+    else:
+        briefing = get_object_or_404(Briefing, projeto=projeto, versao=versao)
+    
+    # Obtenha as validações, arquivos e conversas
+    validacoes = BriefingValidacao.objects.filter(briefing=briefing)
+    arquivos = list(BriefingArquivoReferencia.objects.filter(briefing=briefing))
+    conversas = BriefingConversation.objects.filter(briefing=briefing).order_by('timestamp')
+    
+    # Extrair arquivos específicos para uso direto no template
+    mapa_arquivo = next((a for a in arquivos if a.tipo == 'mapa'), None)
+    planta_arquivos = [a for a in arquivos if a.tipo == 'planta']
+    referencia_arquivos = [a for a in arquivos if a.tipo == 'referencia']
+    campanha_arquivos = [a for a in arquivos if a.tipo == 'campanha']
+    outros_arquivos = [a for a in arquivos if a.tipo not in ('mapa', 'planta', 'referencia', 'campanha')]
+    
+    # Obter dados para as áreas específicas do estande
+    areas_exposicao = list(briefing.areas_exposicao.all()) if hasattr(briefing, 'areas_exposicao') else []
+    salas_reuniao = list(briefing.salas_reuniao.all()) if hasattr(briefing, 'salas_reuniao') else []
+    copas = list(briefing.copas.all()) if hasattr(briefing, 'copas') else []
+    depositos = list(briefing.depositos.all()) if hasattr(briefing, 'depositos') else []
+    
+    # Dados específicos da feira (caso exista)
+    feira = None
+    if hasattr(briefing, 'feira') and briefing.feira:
+        feira = briefing.feira
+    elif hasattr(projeto, 'feira') and projeto.feira:
+        feira = projeto.feira
+    
+    # Adicionar informações específicas para o gestor
+    projetista_info = None
+    if projeto.projetista:
+        projetista_info = {
+            'nome': projeto.projetista.get_full_name() or projeto.projetista.username,
+            'email': projeto.projetista.email,
+            'telefone': projeto.projetista.telefone if hasattr(projeto.projetista, 'telefone') else None,
+        }
+    
+    # Informações adicionais relevantes para gestão
+    info_gestao = {
+        'data_criacao': projeto.created_at,
+        'data_ultima_atualizacao': projeto.updated_at,
+        'data_envio_briefing': projeto.data_envio_briefing,
+        'orcamento': briefing.orcamento,
+        'data_limite': projeto.data_limite_entrega if hasattr(projeto, 'data_limite_entrega') else None,
+    }
+
+    context = {
+        'projeto': projeto,
+        'briefing': briefing,
+        'briefings': briefings,  # Todas as versões
+        'validacoes': validacoes,
+        'arquivos': arquivos,  # Lista completa de arquivos
+        'mapa_arquivo': mapa_arquivo,  # Arquivo de mapa específico
+        'planta_arquivos': planta_arquivos,  # Arquivos de planta
+        'referencia_arquivos': referencia_arquivos,  # Arquivos de referência
+        'campanha_arquivos': campanha_arquivos,  # Arquivos de campanha
+        'outros_arquivos': outros_arquivos,  # Outros tipos de arquivo
+        'conversas': conversas,
+        'areas_exposicao': areas_exposicao,
+        'salas_reuniao': salas_reuniao,
+        'copas': copas,
+        'depositos': depositos,
+        'feira': feira,
+        'todas_aprovadas': all(v.status == 'aprovado' for v in validacoes),
+        'projetista_info': projetista_info,  # Informação adicional para gestores
+        'info_gestao': info_gestao,  # Informações de gestão adicionais
+        'from_page': 'gestor',  # Indicador da origem para o template
+    }
+    
+    return render(request, 'gestor/ver_briefing.html', context)

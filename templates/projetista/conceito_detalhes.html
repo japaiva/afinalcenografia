@@ -1,0 +1,292 @@
+{% extends 'projetista/base_projetista.html' %}
+
+{% block title %}{{ conceito.titulo }} | Conceito Visual{% endblock %}
+
+{% block content %}
+<div class="card shadow mb-4">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">
+      <i class="fas fa-lightbulb me-2"></i> Conceito Visual: {{ conceito.titulo|default:"Sem título" }}
+    </h5>
+    <div>
+      <a href="{% url 'projetista:projeto_detail' pk=projeto.id %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i> Voltar ao Projeto
+      </a>
+      <a href="{% url 'projetista:gerar_conceito' projeto_id=projeto.id %}" class="btn btn-outline-primary btn-sm ms-2">
+        <i class="fas fa-edit me-1"></i> Editar Conceito
+      </a>
+    </div>
+  </div>
+  
+  <div class="card-body">
+    <!-- Detalhes do Conceito -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <h6 class="border-bottom pb-2 mb-3">Descrição do Conceito</h6>
+        <p>{{ conceito.descricao|linebreaks }}</p>
+      </div>
+      
+      <div class="col-md-6">
+        <h6 class="border-bottom pb-2 mb-3">Paleta de Cores</h6>
+        <p>{{ conceito.paleta_cores|linebreaks|default:"Não definida" }}</p>
+      </div>
+      
+      <div class="col-md-6">
+        <h6 class="border-bottom pb-2 mb-3">Materiais Principais</h6>
+        <p>{{ conceito.materiais_principais|linebreaks|default:"Não definidos" }}</p>
+      </div>
+    </div>
+    
+    <!-- Biblioteca de Imagens -->
+    <div class="card mb-4">
+      <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">Imagens do Conceito ({{ total_imagens }})</h6>
+        <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalUploadImagem">
+          <i class="fas fa-upload me-1"></i> Adicionar Imagem
+        </button>
+      </div>
+      <div class="card-body">
+        {% if total_imagens == 0 %}
+        <div class="text-center py-5">
+          <p class="text-muted mb-3">Nenhuma imagem foi adicionada a este conceito.</p>
+          <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalUploadImagem">
+            <i class="fas fa-upload me-1"></i> Adicionar Primeira Imagem
+          </button>
+        </div>
+        {% else %}
+        
+        <!-- Navegação por Categorias -->
+        <ul class="nav nav-tabs mb-3" id="imagemTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="todas-tab" data-bs-toggle="tab" data-bs-target="#todas" type="button">
+              Todas ({{ total_imagens }})
+            </button>
+          </li>
+          {% for angulo, imagens in imagens_por_categoria.items %}
+            {% if imagens %}
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="{{ angulo }}-tab" data-bs-toggle="tab" data-bs-target="#{{ angulo }}" type="button">
+                {{ angulo|title }} ({{ imagens.count }})
+              </button>
+            </li>
+            {% endif %}
+          {% endfor %}
+        </ul>
+        
+        <!-- Conteúdo das Tabs -->
+        <div class="tab-content" id="imagemTabsContent">
+          <div class="tab-pane fade show active" id="todas" role="tabpanel">
+            <div class="row">
+              {% for imagem in conceito.imagens.all %}
+              <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <span>{{ imagem.get_angulo_vista_display }}</span>
+                    <div class="dropdown">
+                      <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        Ações
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                          <a class="dropdown-item" href="{{ imagem.imagem.url }}" target="_blank">
+                            <i class="fas fa-search me-1"></i> Visualizar
+                          </a>
+                        </li>
+                        <li>
+                          <a class="dropdown-item" href="{{ imagem.imagem.url }}" download>
+                            <i class="fas fa-download me-1"></i> Download
+                          </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                          <button class="dropdown-item text-danger" data-bs-toggle="modal" 
+                                  data-bs-target="#modalExcluirImagem" 
+                                  data-imagem-id="{{ imagem.id }}"
+                                  data-imagem-desc="{{ imagem.descricao }}">
+                            <i class="fas fa-trash me-1"></i> Excluir
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <img src="{{ imagem.imagem.url }}" class="card-img-top" alt="{{ imagem.descricao }}" 
+                       style="height: 200px; object-fit: cover;">
+                  <div class="card-body">
+                    <p class="card-text">{{ imagem.descricao }}</p>
+                    <p class="small text-muted mb-0">Adicionada em {{ imagem.criado_em|date:"d/m/Y H:i" }}</p>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          
+          {% for angulo, imagens in imagens_por_categoria.items %}
+            {% if imagens %}
+            <div class="tab-pane fade" id="{{ angulo }}" role="tabpanel">
+              <div class="row">
+                {% for imagem in imagens %}
+                <div class="col-md-4 mb-4">
+                  <!-- Card para cada imagem (similar ao bloco acima) -->
+                  <div class="card h-100">
+                    <!-- ... conteúdo do card ... -->
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para Upload de Imagem -->
+<div class="modal fade" id="modalUploadImagem" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Adicionar Imagem</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formUploadImagem" method="post" enctype="multipart/form-data" 
+              action="{% url 'projetista:upload_imagem' conceito_id=conceito.id %}">
+          {% csrf_token %}
+          
+          <div class="mb-3">
+            <label for="{{ form_imagem.imagem.id_for_label }}" class="form-label">{{ form_imagem.imagem.label }}</label>
+            {{ form_imagem.imagem }}
+            <div class="form-text">Formatos aceitos: JPG, PNG, WEBP. Tamanho máximo: 10MB.</div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="{{ form_imagem.descricao.id_for_label }}" class="form-label">{{ form_imagem.descricao.label }}</label>
+            {{ form_imagem.descricao }}
+          </div>
+          
+          <div class="mb-3">
+            <label for="{{ form_imagem.angulo_vista.id_for_label }}" class="form-label">{{ form_imagem.angulo_vista.label }}</label>
+            {{ form_imagem.angulo_vista }}
+            <div class="form-text">Selecione o tipo de vista ou ângulo desta imagem.</div>
+          </div>
+          
+          <div id="previewImagem" class="text-center mb-3 d-none">
+            <h6 class="mb-2">Pré-visualização:</h6>
+            <img id="imagemPreview" src="#" alt="Pré-visualização" class="img-fluid rounded" style="max-height: 200px;">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-success" id="btnEnviarImagem">
+          <i class="fas fa-upload me-1"></i> Enviar Imagem
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Confirmar Exclusão -->
+<div class="modal fade" id="modalExcluirImagem" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmar Exclusão</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <p>Tem certeza que deseja excluir a imagem "<span id="imagemDescricao"></span>"?</p>
+        <p class="text-danger mb-0">Esta ação não pode ser desfeita.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <form id="formExcluirImagem" method="post" action="">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">
+            <i class="fas fa-trash me-1"></i> Excluir
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Pré-visualização da imagem
+    const inputImagem = document.getElementById('{{ form_imagem.imagem.id_for_label }}');
+    const previewDiv = document.getElementById('previewImagem');
+    const imagemPreview = document.getElementById('imagemPreview');
+    
+    if (inputImagem) {
+      inputImagem.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+          // Verificar tamanho do arquivo
+          const maxSize = 10 * 1024 * 1024; // 10MB
+          if (this.files[0].size > maxSize) {
+            alert('A imagem é muito grande. O tamanho máximo é 10MB.');
+            this.value = '';
+            previewDiv.classList.add('d-none');
+            return;
+          }
+          
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            imagemPreview.src = e.target.result;
+            previewDiv.classList.remove('d-none');
+          }
+          reader.readAsDataURL(this.files[0]);
+        } else {
+          previewDiv.classList.add('d-none');
+        }
+      });
+    }
+    
+    // Upload da imagem
+    const btnEnviar = document.getElementById('btnEnviarImagem');
+    const formUpload = document.getElementById('formUploadImagem');
+    
+    if (btnEnviar && formUpload) {
+      btnEnviar.addEventListener('click', function() {
+        // Validar antes de enviar
+        const inputFile = formUpload.querySelector('input[type="file"]');
+        const inputDesc = formUpload.querySelector('input[name="descricao"]');
+        
+        if (!inputFile.files || inputFile.files.length === 0) {
+          alert('Por favor, selecione uma imagem.');
+          return;
+        }
+        
+        if (!inputDesc.value.trim()) {
+          alert('Por favor, forneça uma descrição para a imagem.');
+          return;
+        }
+        
+        // Enviar o formulário
+        formUpload.submit();
+      });
+    }
+    
+    // Modal de exclusão
+    const modalExcluir = document.getElementById('modalExcluirImagem');
+    if (modalExcluir) {
+      modalExcluir.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const imagemId = button.getAttribute('data-imagem-id');
+        const imagemDesc = button.getAttribute('data-imagem-desc');
+        
+        document.getElementById('imagemDescricao').textContent = imagemDesc;
+        document.getElementById('formExcluirImagem').action = 
+          `{% url 'projetista:excluir_imagem' imagem_id=0 %}`.replace('0', imagemId);
+      });
+    }
+  });
+</script>
+{% endblock %}

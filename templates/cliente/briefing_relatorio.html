@@ -342,10 +342,10 @@
 
         <!-- Seção PROJETO -->
         <div class="section">
-            <div class="card-header">Projeto</div>
+            <div class="card-header">RESUMO DO BRIEFING</div>
             
             <!-- Resumo do Projeto -->
-            <h3>Resumo do Projeto</h3>
+            <h3>Status do Briefing</h3>
             <div class="area-section">
                 <div class="two-column">
                     <div class="column">
@@ -375,8 +375,8 @@
             <h3>Dados do Projeto</h3>
             <div class="area-section">
                 <div class="info-row">
-                    <div class="label">Número do Projeto:</div>
-                    <div class="value">{{ empresa.nome }} - {{ projeto.nome }}</div>
+                    <div class="label">Cliente:</div>
+                    <div class="value">{{ empresa.nome }}</div>
                 </div>
                 <div class="info-row">
                     <div class="label">Nome do Projeto:</div>
@@ -505,7 +505,7 @@
 
         <!-- ETAPA 2: ESTANDE -->
         <div class="section">
-            <div class="card-header">ETAPA 2: ESTANDE</div>
+            <div class="card-header">ETAPA 2: CARACTERÍSTICAS</div>
             
             <!-- Informações do Estande -->
             <h3>Informações do Estande</h3>
@@ -607,7 +607,7 @@
         <!-- ETAPA 3: ÁREAS DO ESTANDE -->
         {% if projeto.tipo_projeto != 'outros' %}
         <div class="section">
-            <div class="card-header">ETAPA 3: ÁREAS DO ESTANDE</div>
+            <div class="card-header">ETAPA 3: DIVISÕES</div>
             
             <!-- Área de Atendimento -->
             <h3>Área de Atendimento</h3>
@@ -856,30 +856,6 @@
         </div>
 
 </div>
-
-<!-- Status de Validação -->
-{% if briefing.validacoes.exists %}
-<div class="section">
-    <div class="card-header">Status de Validação</div>
-    {% for validacao in briefing.validacoes.all %}
-    <div class="area-section">
-        <div class="info-row">
-            <div class="label">{{ validacao.get_secao_display }}:</div>
-            <div class="value">
-                <span class="status status-{{ validacao.status }}">
-                    {{ validacao.get_status_display }}
-                </span>
-                {% if validacao.mensagem %}
-                <div style="margin-top: 5px; font-size: 13px;">
-                    {{ validacao.mensagem }}
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    {% endfor %}
-</div>
-{% endif %}
 
 <div class="footer">
     <p>Afinal Cenografia - Documento gerado automaticamente</p>

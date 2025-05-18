@@ -9,9 +9,14 @@ from .base import (
 from .projeto import (
     projeto_list,
     projeto_detail,
-    ver_briefing,
+    ver_briefing
+)
+
+from .conceito import (
     gerar_conceito,
-    salvar_conceito
+    conceito_detalhes,
+    upload_imagem,
+    excluir_imagem
 )
 
 from .mensagens import (
@@ -31,8 +36,12 @@ __all__ = [
     'projeto_list',
     'projeto_detail',
     'ver_briefing',
+    
+    # Conceito views
     'gerar_conceito',
-    'salvar_conceito',
+    'conceito_detalhes',
+    'upload_imagem',
+    'excluir_imagem',
     
     # Mensagens views
     'mensagens',
