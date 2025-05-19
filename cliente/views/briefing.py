@@ -297,7 +297,9 @@ def iniciar_briefing(request, projeto_id):
 
     # Verifica se o projeto já tem um briefing
     if projeto.has_briefing:
-        return redirect('cliente:briefing_etapa', projeto_id=projeto.id, etapa=projeto.briefing.etapa_atual)
+        # Obtemos o briefing mais recente para acessar sua etapa_atual
+        briefing_atual = Briefing.objects.filter(projeto=projeto).order_by('-updated_at').first()
+        return redirect('cliente:briefing_etapa', projeto_id=projeto.id, etapa=briefing_atual.etapa_atual)
 
     # Cria um novo briefing para o projeto
     briefing = Briefing.objects.create(projeto=projeto)
@@ -592,7 +594,8 @@ def gerar_relatorio_briefing(request, projeto_id):
             logger.error(f"Erro ao gerar relatório PDF: {e}")
             messages.error(request, f'Erro ao gerar o relatório: {str(e)}')
             return redirect('cliente:projeto_detail', pk=projeto_id)
-        
+
+
 @login_required
 @require_POST
 def validar_briefing(request, projeto_id):
@@ -609,9 +612,14 @@ def validar_briefing(request, projeto_id):
     if not projeto.has_briefing:
         return JsonResponse({'success': False, 'message': 'Este projeto não possui um briefing iniciado.'})
     
-    # Obtém o briefing
-    briefing = projeto.briefing
-    
+    # Obtém o briefing mais recente/ativo
+    try:
+        briefing = Briefing.objects.filter(projeto=projeto).order_by('-updated_at').first()
+        if not briefing:
+            return JsonResponse({'success': False, 'message': 'Este projeto não possui um briefing iniciado.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Erro ao obter briefing: {str(e)}'})
+        
     # Valida cada seção individualmente para garantir que todas estão atualizadas
     for secao in ['evento', 'estande', 'areas_estande', 'dados_complementares']:
         validar_secao_briefing(briefing, secao)
@@ -655,7 +663,6 @@ def validar_briefing(request, projeto_id):
     })
 
 
-
 @login_required
 @require_POST
 def upload_arquivo_referencia(request, projeto_id):
@@ -669,12 +676,14 @@ def upload_arquivo_referencia(request, projeto_id):
     # Obtém o projeto e verifica se pertence à mesma empresa
     projeto = get_object_or_404(Projeto, pk=projeto_id, empresa=empresa)
     
-    # Verifica se o projeto tem um briefing associado
-    if not projeto.has_briefing:
-        return JsonResponse({'success': False, 'message': 'Este projeto não possui um briefing iniciado.'})
-    
-    # Obtém o briefing
-    briefing = projeto.briefing
+    # Verifica se o projeto tem um briefing associado e obtém o briefing mais recente
+    try:
+        # Tenta obter o briefing ativo/mais recente
+        briefing = Briefing.objects.filter(projeto=projeto).order_by('-updated_at').first()
+        if not briefing:
+            return JsonResponse({'success': False, 'message': 'Este projeto não possui um briefing iniciado.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Erro ao obter briefing: {str(e)}'})
     
     # Processa o upload
     if request.method == 'POST' and request.FILES.get('arquivo'):
@@ -723,7 +732,7 @@ def upload_arquivo_referencia(request, projeto_id):
                     'id': arquivo.id,
                     'nome': arquivo.nome,
                     'url': arquivo.arquivo.url,
-                    'tipo': arquivo.tipo  # Corrigido aqui
+                    'tipo': arquivo.tipo
                 }
             })
             
