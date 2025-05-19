@@ -1,0 +1,203 @@
+
+{% extends 'projetista/conceito/base_conceito.html' %}
+
+{% block etapa_content %}
+<div class="alert alert-info">
+  <i class="fas fa-info-circle me-2"></i> Nesta etapa você vai expandir a imagem principal em múltiplas vistas complementares do estande.
+</div>
+
+<!-- Imagem Principal (Referência) -->
+<div class="card mb-4">
+  <div class="card-header bg-light" data-bs-toggle="collapse" data-bs-target="#imagemPrincipalCard" style="cursor: pointer;">
+    <div class="d-flex justify-content-between align-items-center">
+      <h6 class="mb-0">Imagem Principal (Referência)</h6>
+      <i class="fas fa-chevron-down"></i>
+    </div>
+  </div>
+  <div id="imagemPrincipalCard" class="collapse show">
+    <div class="card-body text-center">
+      <img src="{{ imagem_principal.imagem.url }}" alt="{{ imagem_principal.descricao }}" class="img-fluid rounded shadow" style="max-height: 300px;">
+      <p class="mt-2 mb-0">{{ imagem_principal.descricao }}</p>
+      <p class="text-muted small mb-0">
+        <span class="badge bg-info me-2">{{ imagem_principal.get_angulo_vista_display }}</span>
+        {% if imagem_principal.ia_gerada %}
+        <span class="badge bg-secondary me-2">Gerada por IA</span>
+        {% endif %}
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Geração de Múltiplas Vistas -->
+<div class="card mb-4">
+  <div class="card-header bg-light">
+    <h6 class="mb-0">Gerar Vistas Complementares</h6>
+  </div>
+  <div class="card-body">
+    <div class="row">
+      <!-- Geração Automática -->
+      <div class="col-md-6 border-end">
+        <h6 class="mb-3">Geração Automática de Vistas</h6>
+        <form method="post">
+          {% csrf_token %}
+          
+          <div class="mb-3">
+            <label class="form-label">Vistas a Gerar</label>
+            <div class="row">
+              {% for angulo, nome in imagem_principal.ANGULOS_CHOICES %}
+              <div class="col-md-6">
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" name="vistas[]" value="{{ angulo }}" id="vista{{ angulo|capfirst }}" 
+                    {% if angulo == 'perspectiva' %}disabled{% else %}checked{% endif %}>
+                  <label class="form-check-label" for="vista{{ angulo|capfirst }}">
+                    {{ nome }}
+                  </label>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="{{ form_geracao.instrucoes_adicionais.id_for_label }}" class="form-label">Instruções Adicionais</label>
+            {{ form_geracao.instrucoes_adicionais }}
+          </div>
+          
+          <div class="d-grid">
+            <button type="submit" name="gerar_vistas" class="btn btn-primary">
+              <i class="fas fa-cube me-1"></i> Gerar Vistas Complementares
+            </button>
+          </div>
+          
+          <div class="text-center mt-3 text-muted">
+            <p><i class="fas fa-info-circle me-1"></i> Esta funcionalidade será ativada nas próximas fases de desenvolvimento.</p>
+          </div>
+        </form>
+      </div>
+      
+      <!-- Upload Manual -->
+      <div class="col-md-6">
+        <h6 class="mb-3">Upload Manual de Vista</h6>
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          
+          <div class="mb-3">
+            <label for="{{ form_upload.angulo_vista.id_for_label }}" class="form-label">Ângulo da Vista</label>
+            {{ form_upload.angulo_vista }}
+          </div>
+          
+          <div class="mb-3">
+            <label for="{{ form_upload.descricao.id_for_label }}" class="form-label">Descrição</label>
+            {{ form_upload.descricao }}
+          </div>
+          
+          <div class="mb-3">
+            <label for="{{ form_upload.imagem.id_for_label }}" class="form-label">Selecionar Imagem</label>
+            {{ form_upload.imagem }}
+          </div>
+          
+          <div class="d-grid">
+            <button type="submit" name="upload_imagem" class="btn btn-success">
+              <i class="fas fa-upload me-1"></i> Enviar Imagem
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Visualização das Vistas Complementares -->
+<div class="card mb-4">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h6 class="mb-0">Vistas Complementares ({{ total_vistas }})</h6>
+    <span class="badge bg-primary">{{ total_vistas }} de 7 vistas recomendadas</span>
+  </div>
+  <div class="card-body">
+    {% if total_vistas == 0 %}
+    <div class="text-center py-5">
+      <i class="fas fa-images fa-3x text-muted mb-3"></i>
+      <p class="mb-0">Nenhuma vista complementar adicionada.</p>
+      <p class="text-muted small">Adicione pelo menos 3 vistas diferentes para completar esta etapa.</p>
+    </div>
+    {% else %}
+    
+    <ul class="nav nav-tabs" id="vistasTab" role="tablist">
+      {% for angulo, nome in imagem_principal.ANGULOS_CHOICES %}
+      {% if imagens_por_categoria|get_item:angulo and angulo != 'perspectiva' %}
+      <li class="nav-item" role="presentation">
+        <button class="nav-link {% if forloop.first %}active{% endif %}" id="{{ angulo }}-tab" data-bs-toggle="tab" 
+                data-bs-target="#{{ angulo }}-pane" type="button" role="tab" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+          {{ nome }} ({{ imagens_por_categoria|get_item:angulo|length }})
+        </button>
+      </li>
+      {% endif %}
+      {% endfor %}
+    </ul>
+    
+    <div class="tab-content p-3" id="vistasTabContent">
+      {% for angulo, nome in imagem_principal.ANGULOS_CHOICES %}
+      {% if imagens_por_categoria|get_item:angulo and angulo != 'perspectiva' %}
+      <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" id="{{ angulo }}-pane" role="tabpanel" aria-labelledby="{{ angulo }}-tab">
+        <div class="row">
+          {% for imagem in imagens_por_categoria|get_item:angulo %}
+          <div class="col-md-6 mb-4">
+            <div class="card h-100">
+              <div class="card-img-top text-center p-2" style="background-color: #f8f9fa; height: 220px; display: flex; align-items: center; justify-content: center;">
+                <img src="{{ imagem.imagem.url }}" alt="{{ imagem.descricao }}" class="img-fluid" style="max-height: 200px;">
+              </div>
+              <div class="card-body">
+                <h6 class="card-title">{{ imagem.descricao }}</h6>
+                <p class="card-text small text-muted">
+                  <span class="badge bg-info me-2">{{ imagem.get_angulo_vista_display }}</span>
+                  {% if imagem.ia_gerada %}
+                  <span class="badge bg-secondary me-2">Gerada por IA</span>
+                  {% endif %}
+                  <span>Adicionada em {{ imagem.criado_em|date:"d/m/Y H:i" }}</span>
+                </p>
+              </div>
+              <div class="card-footer bg-white">
+                <div class="d-flex justify-content-between">
+                  <a href="#" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-eye me-1"></i> Ampliar
+                  </a>
+                  <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="imagem_id" value="{{ imagem.id }}">
+                    <button type="submit" name="remover_imagem" class="btn btn-sm btn-outline-danger" 
+                            onclick="return confirm('Tem certeza que deseja remover esta imagem?');">
+                      <i class="fas fa-trash me-1"></i> Remover
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block botoes_navegacao %}
+<div class="d-flex justify-content-between mt-4">
+  <form method="post" style="display: inline;">
+    {% csrf_token %}
+    <button type="submit" name="voltar" class="btn btn-outline-secondary">
+      <i class="fas fa-arrow-left me-1"></i> Voltar para Imagem Principal
+    </button>
+  </form>
+  
+  <form method="post" style="display: inline;">
+    {% csrf_token %}
+    <button type="submit" name="concluir" class="btn btn-success" {% if not etapa_concluida %}disabled{% endif %}>
+      <i class="fas fa-check me-1"></i> Concluir Conceito Visual
+    </button>
+  </form>
+</div>
+{% endblock %}

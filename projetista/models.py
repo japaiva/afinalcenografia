@@ -2,11 +2,15 @@
 
 from django.db import models
 from django.utils import timezone
+from django.utils.text import slugify
 from core.storage import MinioStorage
 from projetos.models import Projeto, Briefing
 from core.models import Usuario, Agente
 
 class ConceitoVisual(models.Model):
+    """
+    Modelo principal para armazenar conceitos visuais de estandes
+    """
     # Relacionamentos
     projeto = models.ForeignKey(
         Projeto, on_delete=models.CASCADE,
@@ -37,6 +41,11 @@ class ConceitoVisual(models.Model):
         blank=True, null=True,
         verbose_name="Materiais Principais"
     )
+    elementos_interativos = models.TextField(
+        blank=True, null=True,
+        verbose_name="Elementos Interativos",
+        help_text="Descrição de como os visitantes interagirão com o espaço"
+    )
     
     # Campos de controle e IA
     ia_gerado = models.BooleanField(
@@ -48,6 +57,19 @@ class ConceitoVisual(models.Model):
         null=True, blank=True,
         related_name='conceitos_gerados',
         verbose_name="Agente Utilizado"
+    )
+    
+    # Campos de processo em etapas
+    ETAPA_CHOICES = [
+        (1, 'Conceito Textual'),
+        (2, 'Imagem Principal'),
+        (3, 'Múltiplas Vistas'),
+        (4, 'Concluído')
+    ]
+    etapa_atual = models.PositiveSmallIntegerField(
+        choices=ETAPA_CHOICES,
+        default=1,
+        verbose_name="Etapa Atual"
     )
     
     # Status
@@ -65,6 +87,17 @@ class ConceitoVisual(models.Model):
         verbose_name="Status"
     )
     
+    # Campos para IA de imagem
+    imagem_principal_prompt = models.TextField(
+        blank=True, null=True,
+        verbose_name="Prompt para Imagem Principal"
+    )
+    imagem_principal_id = models.CharField(
+        max_length=255,
+        blank=True, null=True,
+        verbose_name="ID da Imagem Principal"
+    )
+    
     # Campos de auditoria
     criado_em = models.DateTimeField(
         auto_now_add=True,
@@ -80,12 +113,36 @@ class ConceitoVisual(models.Model):
             return f"{self.titulo} - {self.projeto.nome}"
         return f"Conceito para {self.projeto.nome}"
     
+    def gerar_slug(self):
+        """Gera um slug único para o conceito visual"""
+        if self.titulo:
+            base_slug = slugify(self.titulo)
+        else:
+            base_slug = slugify(f"conceito-{self.projeto.nome}")
+        return f"{base_slug}-{self.id}"
+    
+    def etapa_concluida(self, etapa):
+        """Verifica se uma determinada etapa está concluída"""
+        if etapa == 1:
+            # Etapa 1: Conceito Textual está completo quando tem título e descrição
+            return bool(self.titulo and self.descricao)
+        elif etapa == 2:
+            # Etapa 2: Imagem Principal está completa quando existe uma imagem principal
+            return self.imagens.filter(principal=True).exists()
+        elif etapa == 3:
+            # Etapa 3: Múltiplas Vistas está completa quando tem pelo menos 3 ângulos diferentes
+            return self.imagens.values('angulo_vista').distinct().count() >= 3
+        return False
+    
     class Meta:
         verbose_name = "Conceito Visual"
         verbose_name_plural = "Conceitos Visuais"
         ordering = ['-criado_em']
 
 class ImagemConceitoVisual(models.Model):
+    """
+    Modelo para armazenar imagens do conceito visual, incluindo a principal e múltiplas vistas
+    """
     # Vistas/ângulos pré-definidos para categorização
     ANGULOS_CHOICES = [
         ('frontal', 'Vista Frontal'),
@@ -117,6 +174,10 @@ class ImagemConceitoVisual(models.Model):
         default='outro',
         verbose_name="Ângulo/Vista"
     )
+    principal = models.BooleanField(
+        default=False,
+        verbose_name="Imagem Principal"
+    )
     ia_gerada = models.BooleanField(
         default=False,
         verbose_name="Gerada por IA"
@@ -125,6 +186,25 @@ class ImagemConceitoVisual(models.Model):
         default=0,
         verbose_name="Ordem de Exibição"
     )
+    
+    # Campos para controle de versões
+    versao = models.PositiveSmallIntegerField(
+        default=1,
+        verbose_name="Versão"
+    )
+    imagem_anterior = models.ForeignKey(
+        'self', on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='versoes_posteriores',
+        verbose_name="Versão Anterior"
+    )
+    
+    # Campos para IA
+    prompt_geracao = models.TextField(
+        blank=True, null=True,
+        verbose_name="Prompt de Geração"
+    )
+    
     criado_em = models.DateTimeField(
         auto_now_add=True,
         verbose_name="Criado em"

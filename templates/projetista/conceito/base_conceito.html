@@ -1,0 +1,132 @@
+{% extends 'projetista/base_projetista.html' %}
+{% load projetista_filters %}
+
+{% block title %}Conceito Visual | {{ projeto.nome }}{% endblock %}
+
+{% block content %}
+<div class="card shadow mb-4">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">
+      <i class="fas fa-lightbulb me-2"></i> Conceito Visual - {{ projeto.nome }}
+    </h5>
+    <a href="{% url 'projetista:projeto_detail' pk=projeto.id %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i> Voltar ao Projeto
+    </a>
+  </div>
+  
+  <div class="card-body">
+    <!-- Barra de Progresso -->
+    <div class="mb-4">
+      <div class="d-flex justify-content-between mb-2">
+        <span>Progresso do Conceito Visual</span>
+        <span>Etapa {{ etapa_atual }} de 3</span>
+      </div>
+      <div class="progress" style="height: 10px;">
+        <div class="progress-bar bg-success" role="progressbar" style="width: {{ etapa_atual|multiply:33.33 }}%"></div>
+      </div>
+    </div>
+    
+    <!-- Navegação entre Etapas (estilo horizontal) -->
+    <div class="mb-4">
+      <div class="d-flex justify-content-center">
+        <div class="step-workflow d-flex align-items-center justify-content-between w-100 px-5">
+          <div class="step-item text-center {% if etapa_atual >= 1 %}active{% endif %}">
+            <div class="step-circle {% if etapa_atual > 1 %}completed{% elif etapa_atual == 1 %}current{% endif %}">
+              1
+            </div>
+            <div class="step-title mt-2">Conceito Textual</div>
+          </div>
+          
+          <div class="step-line flex-grow-1 mx-3"></div>
+          
+          <div class="step-item text-center {% if etapa_atual >= 2 %}active{% endif %}">
+            <div class="step-circle {% if etapa_atual > 2 %}completed{% elif etapa_atual == 2 %}current{% endif %}">
+              2
+            </div>
+            <div class="step-title mt-2">Imagem Principal</div>
+          </div>
+          
+          <div class="step-line flex-grow-1 mx-3"></div>
+          
+          <div class="step-item text-center {% if etapa_atual >= 3 %}active{% endif %}">
+            <div class="step-circle {% if etapa_atual > 3 %}completed{% elif etapa_atual == 3 %}current{% endif %}">
+              3
+            </div>
+            <div class="step-title mt-2">Múltiplas Vistas</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Conteúdo específico da etapa -->
+    {% block etapa_content %}{% endblock %}
+    
+    <!-- Barra de botões de navegação entre etapas -->
+    {% block botoes_navegacao %}{% endblock %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Estilos para o fluxo de etapas horizontal */
+.step-workflow {
+  position: relative;
+}
+
+.step-item {
+  position: relative;
+  z-index: 1;
+}
+
+.step-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #e9ecef;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  margin: 0 auto;
+  border: 2px solid #e9ecef;
+}
+
+.step-title {
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.step-line {
+  height: 3px;
+  background-color: #e9ecef;
+  position: relative;
+  top: -20px;
+}
+
+/* Estados das etapas */
+.step-item.active .step-title {
+  color: #212529;
+  font-weight: 600;
+}
+
+.step-circle.current {
+  background-color: #007bff;
+  color: #fff;
+  border-color: #007bff;
+}
+
+.step-circle.completed {
+  background-color: #28a745;
+  color: #fff;
+  border-color: #28a745;
+}
+
+.step-item.active + .step-line,
+.step-item.active .step-line {
+  background-color: #28a745;
+}
+</style>
+{% endblock %}
