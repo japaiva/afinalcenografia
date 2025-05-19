@@ -7,11 +7,6 @@
 {% endblock %}
 
 {% block nav_items %}
-<li class="nav-item">
-  <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'projetista:dashboard' %}">
-    Dashboard
-  </a>
-</li>
 
 <!-- Divisor vertical -->
 <li class="nav-item">
