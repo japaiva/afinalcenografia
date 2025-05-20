@@ -8,20 +8,22 @@
   </div>
   
   <div class="card-body">
-    <!-- Seção de Referências Visuais e Prioridades -->
+    <!-- Seção de Geração de Conceito por IA -->
     {% if not conceito or not conceito.etapa_concluida %}
     <div class="mb-4 p-3 border rounded bg-light">
-      
-      <form method="post" enctype="multipart/form-data" id="formGerarConceito">
-        {% csrf_token %}
-        
-        
-        <div class="d-grid">
-          <button type="submit" name="gerar_conceito" class="btn btn-primary">
-            <i class="fas fa-magic me-1"></i> Gerar Conceito
-          </button>
+        <div id="loading-conceito" style="display: none;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Gerando conceito...</span>
+            </div>
+            <p class="text-muted mt-2">Isto pode levar alguns segundos...</p>
         </div>
-      </form>
+        
+        <div id="resultado-conceito" style="display: none;"></div>
+        
+        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+        <button type="button" onclick="gerarConceitoTextual({{ projeto.id }})" class="btn btn-primary">
+            <i class="fas fa-magic me-1"></i> Gerar Conceito com IA
+        </button>
     </div>
     {% endif %}
     
@@ -74,14 +76,146 @@
         <button type="submit" name="salvar" class="btn btn-secondary me-2">
           <i class="fas fa-save me-1"></i> Salvar Rascunho
         </button>
-        <button type="submit" name="avancar" class="btn btn-primary" {% if not conceito or not conceito.etapa_concluida %}disabled{% endif %}>
+
+        <button type="submit" name="avancar" class="btn btn-primary" {% if not conceito or not conceito.etapa1_concluida %}disabled{% endif %}>
           <i class="fas fa-arrow-right me-1"></i> Avançar
         </button>
+
       </div>
     </form>
   </div>
 </div>
+
 {% endblock %}
 
 {% block botoes_navegacao %}
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- JavaScript para geração de conceito -->
+<script>
+// Função para gerar conceito visual via IA
+function gerarConceitoTextual(projetoId) {
+    // Elementos da UI
+    const loadingElement = $('#loading-conceito');
+    const resultadoElement = $('#resultado-conceito');
+    const botaoGerar = $('button[onclick^="gerarConceitoTextual"]');
+    
+    // Atualizar UI para mostrar que está processando
+    loadingElement.show();
+    resultadoElement.hide();
+    
+    // Desabilitar o botão durante o processamento
+    botaoGerar.prop('disabled', true);
+    botaoGerar.html('<i class="fas fa-spinner fa-spin me-1"></i> Gerando...');
+    
+    // Log para debug
+    console.log("Iniciando geração de conceito...");
+    
+    // Fazer a chamada ajax
+    $.ajax({
+        url: `/projetista/conceito/${projetoId}/gerar-conceito-ia/`,
+        type: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrfToken()
+        },
+        success: function(response) {
+            console.log("Resposta recebida:", response);
+            
+            // Ocultar indicador de carregamento
+            loadingElement.hide();
+            
+            if (response.success) {
+                // Exibir mensagem de sucesso
+                if (typeof toastr !== 'undefined') {
+                    toastr.success('Conceito gerado com sucesso!');
+                }
+                
+                // Mostrar mensagem de sucesso também no resultado
+                resultadoElement.html(`
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Conceito gerado com sucesso!</strong>
+                        <p class="mb-0 mt-1">Recarregando a página para exibir o conceito...</p>
+                    </div>
+                `).show();
+                
+                // Forçar recarregamento completo da página (sem cache)
+                console.log("Recarregando página em 1.5 segundos...");
+                setTimeout(function() {
+                    window.location.href = window.location.href.split('?')[0] + '?t=' + new Date().getTime();
+                }, 1500);
+            } else {
+                // Exibir mensagem de erro
+                if (typeof toastr !== 'undefined') {
+                    toastr.error(response.message);
+                }
+                
+                // Mostrar mensagem de erro também no resultado
+                resultadoElement.html(`
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Erro ao gerar conceito</strong>
+                        <p class="mb-0 mt-1">${response.message || 'Ocorreu um erro desconhecido.'}</p>
+                        ${response.details ? `<p class="mb-0 small text-muted">${response.details}</p>` : ''}
+                    </div>
+                `).show();
+                
+                // Restaurar botão
+                botaoGerar.prop('disabled', false);
+                botaoGerar.html('<i class="fas fa-magic me-1"></i> Gerar Conceito');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error("Erro na requisição:", error);
+            
+            // Ocultar indicador de carregamento
+            loadingElement.hide();
+            
+            // Exibir mensagem de erro
+            if (typeof toastr !== 'undefined') {
+                toastr.error('Erro ao gerar conceito: ' + error);
+            }
+            
+            // Mostrar mensagem de erro também no resultado
+            resultadoElement.html(`
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>Erro de comunicação</strong>
+                    <p class="mb-0 mt-1">Não foi possível conectar com o servidor. Por favor, tente novamente.</p>
+                    <p class="mb-0 small text-muted">${error}</p>
+                </div>
+            `).show();
+            
+            // Restaurar botão
+            botaoGerar.prop('disabled', false);
+            botaoGerar.html('<i class="fas fa-magic me-1"></i> Gerar Conceito');
+        }
+    });
+}
+
+// Função auxiliar para obter o token CSRF
+function getCsrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+// Configurações iniciais ao carregar a página
+$(document).ready(function() {
+    console.log("Página carregada, inicializando...");
+    
+    // Verificar se o Toastr está disponível
+    if (typeof toastr !== 'undefined') {
+        console.log("Toastr encontrado, configurando...");
+        // Configurar o Toastr (opcional)
+        toastr.options = {
+            closeButton: true,
+            progressBar: true,
+            positionClass: "toast-top-right",
+            timeOut: 5000
+        };
+    } else {
+        console.log("Toastr não encontrado, usando alertas padrão.");
+    }
+});
+</script>
 {% endblock %}

@@ -159,9 +159,6 @@ LOGOUT_REDIRECT_URL = '/login/'
 # Mensagens
 MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
 
-# OpenAI
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
-
 # Segurança
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
