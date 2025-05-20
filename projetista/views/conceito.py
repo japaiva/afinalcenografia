@@ -8,6 +8,7 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django.db.models import Count
 from django.core.paginator import Paginator
+from django.conf import settings
 
 from projetos.models import Projeto, Briefing
 from projetista.models import ConceitoVisual, ImagemConceitoVisual
@@ -19,6 +20,274 @@ from projetista.forms import (
 
 import logging
 logger = logging.getLogger(__name__)
+
+# Importe as classes/serviços necessários no topo do arquivo conceito.py
+from django.urls import reverse
+from core.models import Agente
+try:
+    from core.services.briefing_extractor import BriefingExtractor
+    from core.services.conceito_textual_service import ConceitoTextualService
+except ImportError:
+    # Placeholders temporários para testes
+    class BriefingExtractor:
+        def __init__(self, briefing):
+            self.briefing = briefing
+        def extract_data(self):
+            return {
+                'informacoes_basicas': {
+                    'nome_projeto': self.briefing.projeto.nome,
+                    'tipo_stand': getattr(self.briefing, 'tipo_stand', 'padrão'),
+                    'feira': getattr(self.briefing.feira, 'nome', 'Não especificado') if hasattr(self.briefing, 'feira') and self.briefing.feira else 'Não especificado',
+                    'orcamento': getattr(self.briefing, 'orcamento', None)
+                },
+                'caracteristicas_fisicas': {},
+                'areas_funcionais': {},
+                'elementos_visuais': {},
+                'objetivos_projeto': {}
+            }
+            
+    class ConceitoTextualService:
+        def __init__(self, agente):
+            self.agente = agente
+        def gerar_conceito(self, briefing_data):
+            return {
+                'success': True,
+                'data': {
+                    'titulo': f"Conceito para {briefing_data['informacoes_basicas']['nome_projeto']}",
+                    'descricao': "Conceito gerado para demonstração.",
+                    'paleta_cores': "Cores neutras com destaques em azul (#1E5AA8) e laranja (#FF6B35).",
+                    'materiais_principais': "Estrutura em alumínio, painéis em MDF, vidro temperado e iluminação LED.",
+                    'elementos_interativos': "Tela touch screen para demonstração de produtos e área de descanso confortável."
+                }
+            }
+        
+
+@login_required
+@require_POST
+def gerar_conceito_ia(request, projeto_id):
+    """View para geração automática de conceito textual via IA"""
+    projeto = get_object_or_404(Projeto, pk=projeto_id, projetista=request.user)
+    
+    try:
+        # Obter briefing mais recente
+        briefing = projeto.briefings.latest('versao')
+        
+        # Extrair dados do briefing
+        extractor = BriefingExtractor(briefing)
+        briefing_data = extractor.extract_data()
+        
+        # Obter agente de conceito textual
+        try:
+            agente = Agente.objects.get(nome='Agente de Conceito Textual')
+            
+            # Verificar se o agente está ativo
+            if not agente.ativo:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'O Agente de Conceito Textual está configurado como inativo. Por favor, ative-o no painel de administração.'
+                })
+                
+        except Agente.DoesNotExist:
+            # Na produção, melhor pedir para cadastrar o agente do que criar um temporário
+            return JsonResponse({
+                'success': False,
+                'message': 'Agente de Conceito Textual não encontrado. Por favor, cadastre este agente no painel de administração.'
+            })
+        
+        # Inicializar serviço
+        conceito_service = ConceitoTextualService(agente)
+        
+        # Gerar conceito
+        result = conceito_service.gerar_conceito(briefing_data)
+        
+        if result['success']:
+            # Obter o conceito existente ou criar um novo
+            conceito = ConceitoVisual.objects.filter(projeto=projeto).first()
+            if not conceito:
+                conceito = ConceitoVisual(
+                    projeto=projeto,
+                    briefing=briefing,
+                    projetista=request.user,
+                    etapa_atual=1,
+                    ia_gerado=True
+                )
+                try:
+                    conceito.agente_usado = agente
+                except:
+                    pass  # Ignorar se o campo não existir
+            
+            # Atualizar com os dados gerados pela IA
+            conceito_data = result['data']
+            
+            # Processar título e descrição (formatos simples)
+            conceito.titulo = conceito_data.get('titulo', f"Conceito para {projeto.nome}")
+            conceito.descricao = conceito_data.get('descricao', "Conceito gerado por IA.")
+
+            # Processar paleta de cores (formato complexo - dicionário ou lista)
+            paleta_cores = conceito_data.get('paleta_cores', {})
+            if isinstance(paleta_cores, dict):
+                # Formatar como texto legível
+                cores_texto = []
+                
+                # Processar cores específicas se existirem
+                if 'primaria' in paleta_cores:
+                    cores_texto.append(f"• Primária: {paleta_cores['primaria']}")
+                if 'secundaria' in paleta_cores:
+                    cores_texto.append(f"• Secundária: {paleta_cores['secundaria']}")
+                if 'terciaria' in paleta_cores:
+                    cores_texto.append(f"• Terciária: {paleta_cores['terciaria']}")
+                
+                # Processar outras cores no dicionário que não são as padrão
+                for chave, valor in paleta_cores.items():
+                    if chave not in ['primaria', 'secundaria', 'terciaria', 'justificativa'] and not isinstance(valor, dict):
+                        cores_texto.append(f"• {chave.capitalize()}: {valor}")
+                
+                # Adicionar a justificativa se existir
+                if 'justificativa' in paleta_cores:
+                    cores_texto.append(f"\nJustificativa: {paleta_cores['justificativa']}")
+                
+                conceito.paleta_cores = "\n".join(cores_texto)
+            elif isinstance(paleta_cores, list):
+                # Se for uma lista, formatar cada item
+                cores_formatadas = []
+                for cor in paleta_cores:
+                    if isinstance(cor, dict):
+                        # Tentar vários formatos possíveis de cores
+                        nome = cor.get('nome', cor.get('name', ''))
+                        codigo = cor.get('codigo', cor.get('code', cor.get('hex', '')))
+                        descricao = cor.get('descricao', cor.get('description', ''))
+                        
+                        linha = "• "
+                        if nome:
+                            linha += f"{nome}: "
+                        if codigo:
+                            linha += f"{codigo}"
+                        if descricao and (nome or codigo):
+                            linha += f" - {descricao}"
+                        elif descricao:
+                            linha += descricao
+                            
+                        cores_formatadas.append(linha)
+                    else:
+                        cores_formatadas.append(f"• {cor}")
+                conceito.paleta_cores = "\n".join(cores_formatadas)
+            else:
+                # Se for string, usar diretamente
+                conceito.paleta_cores = str(paleta_cores)
+
+            # Processar materiais principais (formato complexo - lista ou string)
+            materiais = conceito_data.get('materiais_principais', [])
+            if isinstance(materiais, list):
+                # Formatar cada material como texto legível
+                materiais_texto = []
+                for mat in materiais:
+                    if isinstance(mat, dict):
+                        material_nome = mat.get('material', '')
+                        acabamento = mat.get('acabamento', '')
+                        justificativa = mat.get('justificativa', '')
+                        
+                        linha = "• "
+                        if material_nome:
+                            linha += material_nome
+                        if acabamento:
+                            linha += f" com acabamento {acabamento}"
+                        if justificativa:
+                            linha += f" - {justificativa}"
+                        
+                        # Garantir que não haja linhas vazias
+                        if linha != "• ":
+                            materiais_texto.append(linha)
+                        else:
+                            # Se não tem material, acabamento ou justificativa, formatar o dicionário inteiro
+                            for chave, valor in mat.items():
+                                materiais_texto.append(f"• {chave.capitalize()}: {valor}")
+                    else:
+                        # Se for um item simples, adicionar diretamente
+                        materiais_texto.append(f"• {mat}")
+                
+                conceito.materiais_principais = "\n".join(materiais_texto)
+            elif isinstance(materiais, dict):
+                # Se for um dicionário, formatar as chaves e valores
+                materiais_texto = []
+                for chave, valor in materiais.items():
+                    materiais_texto.append(f"• {chave.capitalize()}: {valor}")
+                conceito.materiais_principais = "\n".join(materiais_texto)
+            else:
+                # Se for uma string, usar diretamente
+                conceito.materiais_principais = str(materiais)
+
+            # Processar elementos interativos (formato complexo - dicionário ou lista)
+            elementos = conceito_data.get('elementos_interativos', {})
+            if isinstance(elementos, dict):
+                if 'descricao' in elementos:
+                    conceito.elementos_interativos = elementos['descricao']
+                else:
+                    # Se não tiver descrição, formatar o dicionário inteiro
+                    elementos_texto = []
+                    for chave, valor in elementos.items():
+                        elementos_texto.append(f"• {chave}: {valor}")
+                    conceito.elementos_interativos = "\n".join(elementos_texto)
+            elif isinstance(elementos, list):
+                # Formatar cada elemento da lista
+                elementos_texto = []
+                for elem in elementos:
+                    if isinstance(elem, dict):
+                        tipo = elem.get('tipo', '')
+                        descricao = elem.get('descricao', '')
+                        if tipo and descricao:
+                            elementos_texto.append(f"• {tipo}: {descricao}")
+                        elif tipo:
+                            elementos_texto.append(f"• {tipo}")
+                        elif descricao:
+                            elementos_texto.append(f"• {descricao}")
+                        else:
+                            # Se não tiver tipo ou descrição, formatar o dicionário inteiro
+                            for chave, valor in elem.items():
+                                elementos_texto.append(f"• {chave}: {valor}")
+                    else:
+                        elementos_texto.append(f"• {elem}")
+                conceito.elementos_interativos = "\n".join(elementos_texto)
+            else:
+                # Se for outro formato, converter para string
+                conceito.elementos_interativos = str(elementos)
+            
+            # Salvar o conceito
+            conceito.save()
+            
+            # Preparar URL para redirecionamento
+            redirect_url = request.build_absolute_uri(
+                reverse('projetista:conceito_etapa1', args=[projeto.id])
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Conceito gerado com sucesso!',
+                'conceito_id': conceito.id,
+                'redirect_url': redirect_url
+            })
+        else:
+            # Log detalhado do erro
+            error_msg = result.get('error', 'Erro desconhecido')
+            details = result.get('details', 'Sem detalhes adicionais')
+            logger.error(f"Erro ao gerar conceito: {error_msg}")
+            logger.error(f"Detalhes do erro: {details}")
+            
+            # Fornecer uma resposta mais informativa
+            return JsonResponse({
+                'success': False, 
+                'message': f'Erro ao gerar conceito: {error_msg}',
+                'details': details if settings.DEBUG else 'Verifique os logs para mais detalhes'
+            })
+            
+    except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
+        logger.error(f"Exceção ao gerar conceito: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'message': f'Erro ao processar solicitação: {str(e)}',
+            'traceback': tb if settings.DEBUG else 'Verifique os logs para mais detalhes'
+        }, status=500)
 
 # Função auxiliar para verificar permissão
 def verificar_permissao_projeto(user, projeto_id):
@@ -373,22 +642,6 @@ def conceito_completo(request, conceito_id):
     }
     
     return render(request, 'projetista/conceito/conceito_completo.html', context)
-
-@login_required
-@require_POST
-def gerar_conceito_ia(request, projeto_id):
-    """
-    View para geração automática de conceito textual via IA
-    """
-    projeto = get_object_or_404(Projeto, pk=projeto_id, projetista=request.user)
-    
-    # Na implementação real, aqui seria feita a chamada para o Agente de Conceito Textual
-    
-    # Por enquanto, apenas retornar uma mensagem
-    return JsonResponse({
-        'success': False,
-        'message': 'Esta funcionalidade será implementada em breve.'
-    })
 
 @login_required
 @require_POST

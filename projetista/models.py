@@ -121,6 +121,18 @@ class ConceitoVisual(models.Model):
             base_slug = slugify(f"conceito-{self.projeto.nome}")
         return f"{base_slug}-{self.id}"
     
+    def etapa1_concluida(self):
+        """Verifica se a etapa 1 está concluída"""
+        return self.etapa_concluida(1)
+
+    def etapa2_concluida(self):
+        """Verifica se a etapa 2 está concluída"""
+        return self.etapa_concluida(2)
+
+    def etapa3_concluida(self):
+        """Verifica se a etapa 3 está concluída"""
+        return self.etapa_concluida(3)
+    
     def etapa_concluida(self, etapa):
         """Verifica se uma determinada etapa está concluída"""
         if etapa == 1:

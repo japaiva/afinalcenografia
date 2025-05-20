@@ -58,4 +58,5 @@ urlpatterns = [
     path('mensagens/', mensagens, name='mensagens'),
     path('mensagens/nova/', nova_mensagem, name='nova_mensagem'),
     path('mensagens/projeto/<int:projeto_id>/', mensagens_projeto, name='mensagens_projeto'),
+
 ]
