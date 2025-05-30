@@ -217,6 +217,7 @@ class ImagemConceitoVisual(models.Model):
         verbose_name="Prompt de Geração"
     )
     
+    
     criado_em = models.DateTimeField(
         auto_now_add=True,
         verbose_name="Criado em"

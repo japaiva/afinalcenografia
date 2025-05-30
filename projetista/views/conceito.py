@@ -122,135 +122,125 @@ def gerar_conceito_ia(request, projeto_id):
             # Processar título e descrição (formatos simples)
             conceito.titulo = conceito_data.get('titulo', f"Conceito para {projeto.nome}")
             conceito.descricao = conceito_data.get('descricao', "Conceito gerado por IA.")
-
-            # Processar paleta de cores (formato complexo - dicionário ou lista)
             paleta_cores = conceito_data.get('paleta_cores', {})
-            if isinstance(paleta_cores, dict):
-                # Formatar como texto legível
-                cores_texto = []
-                
-                # Processar cores específicas se existirem
-                if 'primaria' in paleta_cores:
-                    cores_texto.append(f"• Primária: {paleta_cores['primaria']}")
-                if 'secundaria' in paleta_cores:
-                    cores_texto.append(f"• Secundária: {paleta_cores['secundaria']}")
-                if 'terciaria' in paleta_cores:
-                    cores_texto.append(f"• Terciária: {paleta_cores['terciaria']}")
-                
-                # Processar outras cores no dicionário que não são as padrão
-                for chave, valor in paleta_cores.items():
-                    if chave not in ['primaria', 'secundaria', 'terciaria', 'justificativa'] and not isinstance(valor, dict):
-                        cores_texto.append(f"• {chave.capitalize()}: {valor}")
-                
-                # Adicionar a justificativa se existir
-                if 'justificativa' in paleta_cores:
-                    cores_texto.append(f"\nJustificativa: {paleta_cores['justificativa']}")
-                
-                conceito.paleta_cores = "\n".join(cores_texto)
-            elif isinstance(paleta_cores, list):
-                # Se for uma lista, formatar cada item
+            materiais = conceito_data.get('materiais_principais', [])
+            elementos = conceito_data.get('elementos_interativos', {})
+            
+            # Para paleta de cores
+            if isinstance(paleta_cores, list):
                 cores_formatadas = []
                 for cor in paleta_cores:
                     if isinstance(cor, dict):
-                        # Tentar vários formatos possíveis de cores
-                        nome = cor.get('nome', cor.get('name', ''))
-                        codigo = cor.get('codigo', cor.get('code', cor.get('hex', '')))
-                        descricao = cor.get('descricao', cor.get('description', ''))
+                        # Verificar várias possíveis chaves
+                        nome = cor.get('cor', 
+                                    cor.get('nome', 
+                                            cor.get('color', 
+                                                    cor.get('hex', ''))))
+                        descricao = cor.get('descricao', 
+                                        cor.get('description', ''))
                         
-                        linha = "• "
                         if nome:
-                            linha += f"{nome}: "
-                        if codigo:
-                            linha += f"{codigo}"
-                        if descricao and (nome or codigo):
-                            linha += f" - {descricao}"
-                        elif descricao:
-                            linha += descricao
+                            linha = f"• {nome}"
+                            if descricao:
+                                linha += f": {descricao}"
+                        else:
+                            # Se não encontrou chaves específicas, usar a primeira chave do dicionário
+                            if cor:
+                                chave = list(cor.keys())[0]
+                                valor = cor[chave]
+                                if isinstance(valor, str):
+                                    linha = f"• {chave}: {valor}"
+                                elif isinstance(valor, list) and valor:  # Se for uma lista de cores
+                                    subcores = []
+                                    for subcor in valor:
+                                        if isinstance(subcor, dict):
+                                            subcor_nome = subcor.get('cor', subcor.get('nome', ''))
+                                            subcor_desc = subcor.get('descricao', '')
+                                            if subcor_nome:
+                                                subcor_texto = f"{subcor_nome}"
+                                                if subcor_desc:
+                                                    subcor_texto += f" - {subcor_desc}"
+                                                subcores.append(subcor_texto)
+                                        elif isinstance(subcor, str):
+                                            subcores.append(subcor)
+                                    linha = f"• {chave}: {', '.join(subcores)}"
+                                else:
+                                    linha = f"• {chave}"
+                            else:
+                                linha = "• Cor não especificada"
                             
                         cores_formatadas.append(linha)
-                    else:
-                        cores_formatadas.append(f"• {cor}")
+                
                 conceito.paleta_cores = "\n".join(cores_formatadas)
-            else:
-                # Se for string, usar diretamente
-                conceito.paleta_cores = str(paleta_cores)
+            elif isinstance(paleta_cores, dict):
+                # Se for um dicionário com categorias de cores
+                cores_formatadas = []
+                for categoria, cores in paleta_cores.items():
+                    if isinstance(cores, list):
+                        # Lista de cores dentro de uma categoria
+                        subcores = []
+                        for cor in cores:
+                            if isinstance(cor, dict):
+                                cor_nome = cor.get('cor', cor.get('nome', ''))
+                                cor_desc = cor.get('descricao', '')
+                                if cor_nome:
+                                    subcor_texto = f"{cor_nome}"
+                                    if cor_desc:
+                                        subcor_texto += f" - {cor_desc}"
+                                    subcores.append(subcor_texto)
+                            elif isinstance(cor, str):
+                                subcores.append(cor)
+                        
+                        if subcores:
+                            cores_formatadas.append(f"• {categoria.capitalize()}: {', '.join(subcores)}")
+                
+                conceito.paleta_cores = "\n".join(cores_formatadas)
 
-            # Processar materiais principais (formato complexo - lista ou string)
-            materiais = conceito_data.get('materiais_principais', [])
+            # Para materiais principais
             if isinstance(materiais, list):
-                # Formatar cada material como texto legível
                 materiais_texto = []
                 for mat in materiais:
                     if isinstance(mat, dict):
                         material_nome = mat.get('material', '')
                         acabamento = mat.get('acabamento', '')
-                        justificativa = mat.get('justificativa', '')
-                        
-                        linha = "• "
-                        if material_nome:
-                            linha += material_nome
+                        linha = f"• {material_nome}"
                         if acabamento:
-                            linha += f" com acabamento {acabamento}"
-                        if justificativa:
-                            linha += f" - {justificativa}"
-                        
-                        # Garantir que não haja linhas vazias
-                        if linha != "• ":
-                            materiais_texto.append(linha)
-                        else:
-                            # Se não tem material, acabamento ou justificativa, formatar o dicionário inteiro
-                            for chave, valor in mat.items():
-                                materiais_texto.append(f"• {chave.capitalize()}: {valor}")
-                    else:
-                        # Se for um item simples, adicionar diretamente
-                        materiais_texto.append(f"• {mat}")
+                            linha += f": {acabamento}"
+                        materiais_texto.append(linha)
                 
                 conceito.materiais_principais = "\n".join(materiais_texto)
-            elif isinstance(materiais, dict):
-                # Se for um dicionário, formatar as chaves e valores
-                materiais_texto = []
-                for chave, valor in materiais.items():
-                    materiais_texto.append(f"• {chave.capitalize()}: {valor}")
-                conceito.materiais_principais = "\n".join(materiais_texto)
-            else:
-                # Se for uma string, usar diretamente
-                conceito.materiais_principais = str(materiais)
 
-            # Processar elementos interativos (formato complexo - dicionário ou lista)
-            elementos = conceito_data.get('elementos_interativos', {})
-            if isinstance(elementos, dict):
-                if 'descricao' in elementos:
-                    conceito.elementos_interativos = elementos['descricao']
-                else:
-                    # Se não tiver descrição, formatar o dicionário inteiro
+                # Para elementos interativos
+                if isinstance(elementos, list):
                     elementos_texto = []
-                    for chave, valor in elementos.items():
-                        elementos_texto.append(f"• {chave}: {valor}")
+                    for elem in elementos:
+                        if isinstance(elem, dict):
+                            # Verificar várias possíveis chaves para o nome do elemento
+                            elemento = elem.get('elemento', 
+                                            elem.get('nome', 
+                                                    elem.get('tipo', 
+                                                            elem.get('title', ''))))
+                            descricao = elem.get('descricao', 
+                                                elem.get('description', 
+                                                        elem.get('texto', '')))
+                            
+                            if elemento:
+                                linha = f"• {elemento}"
+                                if descricao:
+                                    linha += f": {descricao}"
+                            else:
+                                # Se não encontrou nenhuma chave específica, usar a primeira chave do dicionário
+                                if elem:
+                                    chave = list(elem.keys())[0]
+                                    valor = elem[chave]
+                                    linha = f"• {chave}: {valor}"
+                                else:
+                                    linha = "• Item não especificado"
+                                    
+                            elementos_texto.append(linha)
+                    
                     conceito.elementos_interativos = "\n".join(elementos_texto)
-            elif isinstance(elementos, list):
-                # Formatar cada elemento da lista
-                elementos_texto = []
-                for elem in elementos:
-                    if isinstance(elem, dict):
-                        tipo = elem.get('tipo', '')
-                        descricao = elem.get('descricao', '')
-                        if tipo and descricao:
-                            elementos_texto.append(f"• {tipo}: {descricao}")
-                        elif tipo:
-                            elementos_texto.append(f"• {tipo}")
-                        elif descricao:
-                            elementos_texto.append(f"• {descricao}")
-                        else:
-                            # Se não tiver tipo ou descrição, formatar o dicionário inteiro
-                            for chave, valor in elem.items():
-                                elementos_texto.append(f"• {chave}: {valor}")
-                    else:
-                        elementos_texto.append(f"• {elem}")
-                conceito.elementos_interativos = "\n".join(elementos_texto)
-            else:
-                # Se for outro formato, converter para string
-                conceito.elementos_interativos = str(elementos)
-            
+
             # Salvar o conceito
             conceito.save()
             
@@ -426,6 +416,15 @@ def conceito_etapa2(request, projeto_id):
     # Obter imagem principal se existir
     imagem_principal = conceito.imagens.filter(principal=True).first()
     
+    # Histórico de versões (se existir imagem principal)
+    versoes_anteriores = []
+    if imagem_principal:
+        # Obter versões anteriores da imagem
+        versoes_anteriores = conceito.imagens.filter(
+            principal=False,  # Não são mais a principal
+            angulo_vista='perspectiva'  # Mesmo ângulo da principal
+        ).order_by('-versao')[:5]  # Mostrar até 5 versões anteriores
+    
     # Formulário para geração de imagem
     form_geracao = GeracaoImagemForm()
     
@@ -437,11 +436,75 @@ def conceito_etapa2(request, projeto_id):
     
     if request.method == 'POST':
         if 'gerar_imagem' in request.POST:
-            # Simulação de geração de imagem via IA (será implementada posteriormente)
-            form_geracao = GeracaoImagemForm(request.POST)
-            if form_geracao.is_valid():
-                # Aqui entraria a lógica real de geração via IA
-                messages.info(request, "A funcionalidade de geração automática será implementada em breve.")
+            # Processar geração de imagem via IA
+            estilo_visualizacao = request.POST.get('estilo_visualizacao', 'fotorrealista')
+            iluminacao = request.POST.get('iluminacao', 'diurna')
+            instrucoes_adicionais = request.POST.get('instrucoes_adicionais', '')
+            
+            try:
+                # Obter agente de imagem principal
+                try:
+                    agente = Agente.objects.get(nome='Agente de Imagem Principal')
+                    
+                    # Verificar se o agente está ativo
+                    if not agente.ativo:
+                        messages.warning(request, 'O Agente de Imagem Principal está inativo. Por favor, contate o administrador.')
+                        return redirect('projetista:conceito_etapa2', projeto_id=projeto.id)
+                        
+                except Agente.DoesNotExist:
+                    messages.warning(request, 'Agente de Imagem Principal não encontrado. Por favor, cadastre este agente no painel de administração.')
+                    return redirect('projetista:conceito_etapa2', projeto_id=projeto.id)
+                
+                # Inicializar serviço
+                from core.services.imagem_principal_service import ImagemPrincipalService
+                imagem_service = ImagemPrincipalService(agente)
+                
+                # Gerar imagem
+                result = imagem_service.gerar_imagem_principal(
+                    conceito, 
+                    estilo_visualizacao=estilo_visualizacao,
+                    iluminacao=iluminacao,
+                    instrucoes_adicionais=instrucoes_adicionais
+                )
+                
+                if result['success']:
+                    # Se já existir uma imagem principal, desmarcar como principal
+                    if imagem_principal:
+                        imagem_principal.principal = False
+                        imagem_principal.save(update_fields=['principal'])
+                    
+                    # Criar nova imagem
+                    img_data = result['image_data']
+                    filename = result['filename']
+                    
+                    # Criar objeto de imagem
+                    nova_imagem = ImagemConceitoVisual(
+                        conceito=conceito,
+                        descricao=f"Perspectiva principal ({estilo_visualizacao}, {iluminacao})",
+                        angulo_vista='perspectiva',
+                        principal=True,
+                        ia_gerada=True,
+                        versao=1 if not imagem_principal else imagem_principal.versao + 1,
+                        imagem_anterior=imagem_principal,
+                        prompt_geracao=result['prompt_used']
+                    )
+                    
+                    # Criar ContentFile a partir dos dados da imagem
+                    from django.core.files.base import ContentFile
+                    file_content = ContentFile(img_data)
+                    nova_imagem.imagem.save(filename, file_content, save=False)
+                    nova_imagem.save()
+                    
+                    messages.success(request, 'Imagem principal gerada com sucesso!')
+                    return redirect('projetista:conceito_etapa2', projeto_id=projeto.id)
+                else:
+                    messages.error(request, f"Erro ao gerar imagem: {result.get('error', 'Erro desconhecido')}")
+                    
+            except Exception as e:
+                import traceback
+                tb = traceback.format_exc()
+                logger.error(f"Erro ao gerar imagem principal: {str(e)}", exc_info=True)
+                messages.error(request, f"Erro ao processar solicitação: {str(e)}")
         
         elif 'upload_imagem' in request.POST:
             # Processar upload manual de imagem
@@ -450,11 +513,18 @@ def conceito_etapa2(request, projeto_id):
                 imagem = form_upload.save(commit=False)
                 imagem.conceito = conceito
                 imagem.principal = True
+                imagem.angulo_vista = 'perspectiva'  # Forçar ângulo perspectiva
                 
                 # Se já existir uma imagem principal, desmarcar como principal
                 if imagem_principal:
                     imagem_principal.principal = False
                     imagem_principal.save(update_fields=['principal'])
+                    
+                    # Definir versão e relacionamento
+                    imagem.versao = imagem_principal.versao + 1
+                    imagem.imagem_anterior = imagem_principal
+                else:
+                    imagem.versao = 1
                 
                 imagem.save()
                 
@@ -462,11 +532,100 @@ def conceito_etapa2(request, projeto_id):
                 return redirect('projetista:conceito_etapa2', projeto_id=projeto.id)
         
         elif 'modificar_imagem' in request.POST and imagem_principal:
-            # Simulação de modificação de imagem via IA (será implementada posteriormente)
-            form_modificacao = ModificacaoImagemForm(request.POST)
-            if form_modificacao.is_valid():
-                # Aqui entraria a lógica real de modificação via IA
-                messages.info(request, "A funcionalidade de modificação será implementada em breve.")
+            # Processar modificação de imagem
+            instrucoes_modificacao = request.POST.get('instrucoes_modificacao', '')
+            imagem_id = request.POST.get('imagem_id')
+            
+            if not instrucoes_modificacao.strip():
+                messages.warning(request, "Por favor, forneça instruções para modificação da imagem.")
+                return redirect('projetista:conceito_etapa2', projeto_id=projeto.id)
+            
+            try:
+                # Obter a imagem a ser modificada
+                imagem = get_object_or_404(ImagemConceitoVisual, pk=imagem_id, conceito=conceito)
+                
+                # Obter agente de imagem principal
+                try:
+                    agente = Agente.objects.get(nome='Agente de Imagem Principal')
+                    if not agente.ativo:
+                        messages.warning(request, 'O Agente de Imagem Principal está inativo.')
+                        return redirect('projetista:conceito_etapa2', projeto_id=projeto.id)
+                except Agente.DoesNotExist:
+                    messages.warning(request, 'Agente de Imagem Principal não encontrado.')
+                    return redirect('projetista:conceito_etapa2', projeto_id=projeto.id)
+                
+                # Inicializar serviço
+                from core.services.imagem_principal_service import ImagemPrincipalService
+                imagem_service = ImagemPrincipalService(agente)
+                
+                # Obter prompt original e adicionar modificações
+                prompt_original = imagem.prompt_geracao or "Estande em perspectiva 3/4"
+                prompt_atualizado = f"{prompt_original}\n\nMODIFICAÇÕES ADICIONAIS:\n{instrucoes_modificacao}"
+                
+                # Limitar tamanho do prompt
+                if len(prompt_atualizado) > 4000:
+                    prompt_atualizado = prompt_atualizado[:4000]
+                
+                # Gerar nova versão da imagem
+                result = imagem_service._gerar_imagem_com_api(prompt_atualizado)
+                
+                if result['success']:
+                    # Desmarcar imagem atual como principal
+                    imagem.principal = False
+                    imagem.save(update_fields=['principal'])
+                    
+                    # Criar nova imagem (nova versão)
+                    img_data = result['image_data']
+                    filename = f"estande_{conceito.id}_v{imagem.versao + 1}.png"
+                    
+                    # Criar objeto de imagem
+                    nova_imagem = ImagemConceitoVisual(
+                        conceito=conceito,
+                        descricao=f"{imagem.descricao} (refinada)",
+                        angulo_vista='perspectiva',
+                        principal=True,
+                        ia_gerada=True,
+                        versao=imagem.versao + 1,
+                        imagem_anterior=imagem,
+                        prompt_geracao=prompt_atualizado
+                    )
+                    
+                    # Criar ContentFile a partir dos dados da imagem
+                    from django.core.files.base import ContentFile
+                    file_content = ContentFile(img_data)
+                    nova_imagem.imagem.save(filename, file_content, save=False)
+                    nova_imagem.save()
+                    
+                    messages.success(request, 'Imagem refinada com sucesso!')
+                    return redirect('projetista:conceito_etapa2', projeto_id=projeto.id)
+                else:
+                    messages.error(request, f"Erro ao refinar imagem: {result.get('error', 'Erro desconhecido')}")
+                
+            except Exception as e:
+                logger.error(f"Erro ao modificar imagem: {str(e)}", exc_info=True)
+                messages.error(request, f"Erro ao processar modificação: {str(e)}")
+        
+        elif 'restaurar_versao' in request.POST:
+            # Restaurar uma versão anterior como principal
+            versao_id = request.POST.get('versao_id')
+            if versao_id:
+                try:
+                    # Obter a versão a ser restaurada
+                    versao = get_object_or_404(ImagemConceitoVisual, pk=versao_id, conceito=conceito)
+                    
+                    # Desmarcar imagem atual como principal
+                    if imagem_principal:
+                        imagem_principal.principal = False
+                        imagem_principal.save(update_fields=['principal'])
+                    
+                    # Marcar versão selecionada como principal
+                    versao.principal = True
+                    versao.save(update_fields=['principal'])
+                    
+                    messages.success(request, 'Versão anterior restaurada como principal!')
+                    return redirect('projetista:conceito_etapa2', projeto_id=projeto.id)
+                except Exception as e:
+                    messages.error(request, f'Erro ao restaurar versão: {str(e)}')
         
         elif 'remover_imagem' in request.POST:
             imagem_id = request.POST.get('imagem_id')
@@ -498,6 +657,7 @@ def conceito_etapa2(request, projeto_id):
         'projeto': projeto,
         'conceito': conceito,
         'imagem_principal': imagem_principal,
+        'versoes_anteriores': versoes_anteriores,
         'form_geracao': form_geracao,
         'form_upload': form_upload,
         'form_modificacao': form_modificacao,
@@ -506,6 +666,54 @@ def conceito_etapa2(request, projeto_id):
     }
     
     return render(request, 'projetista/conceito/etapa2_imagem.html', context)
+
+# Método auxiliar para gerar imagem com API
+def _gerar_imagem_com_api(self, prompt):
+    """Método auxiliar para gerar imagem usando a API DALL-E"""
+    try:
+        # Chamada à API da OpenAI (DALL-E 3)
+        response = requests.post(
+            "https://api.openai.com/v1/images/generations",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self.api_key}"
+            },
+            json={
+                "model": self.model,
+                "prompt": prompt,
+                "n": 1,
+                "size": "1024x1024",
+                "response_format": "b64_json"
+            }
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            image_data = result['data'][0]['b64_json']
+            
+            # Convertendo base64 para arquivo de imagem
+            img_data = base64.b64decode(image_data)
+            
+            return {
+                'success': True,
+                'image_data': img_data,
+                'prompt_used': prompt,
+                'raw_response': result
+            }
+        else:
+            logger.error(f"Erro na API DALL-E: {response.status_code} - {response.text}")
+            return {
+                'success': False,
+                'error': f"Erro na API: {response.status_code}",
+                'details': response.text
+            }
+    
+    except Exception as e:
+        logger.error(f"Exceção ao gerar imagem: {str(e)}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
 
 @login_required
 def conceito_etapa3(request, projeto_id):

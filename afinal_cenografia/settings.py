@@ -163,7 +163,10 @@ MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-CSRF_TRUSTED_ORIGINS = ['https://afinal.spsystems.pro']
+CSRF_TRUSTED_ORIGINS = [
+    'https://afinal.spsystems.pro',
+    'https://afinal-ia.com.br'
+]
 
 # Default primary key
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

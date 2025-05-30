@@ -95,17 +95,16 @@
 <!-- JavaScript para geração de conceito -->
 <script>
 // Função para gerar conceito visual via IA
+
 function gerarConceitoTextual(projetoId) {
     // Elementos da UI
     const loadingElement = $('#loading-conceito');
     const resultadoElement = $('#resultado-conceito');
     const botaoGerar = $('button[onclick^="gerarConceitoTextual"]');
     
-    // Atualizar UI para mostrar que está processando
+    // Atualizar UI
     loadingElement.show();
     resultadoElement.hide();
-    
-    // Desabilitar o botão durante o processamento
     botaoGerar.prop('disabled', true);
     botaoGerar.html('<i class="fas fa-spinner fa-spin me-1"></i> Gerando...');
     
@@ -127,31 +126,21 @@ function gerarConceitoTextual(projetoId) {
             
             if (response.success) {
                 // Exibir mensagem de sucesso
-                if (typeof toastr !== 'undefined') {
-                    toastr.success('Conceito gerado com sucesso!');
-                }
-                
-                // Mostrar mensagem de sucesso também no resultado
                 resultadoElement.html(`
                     <div class="alert alert-success">
                         <i class="fas fa-check-circle me-2"></i>
                         <strong>Conceito gerado com sucesso!</strong>
-                        <p class="mb-0 mt-1">Recarregando a página para exibir o conceito...</p>
+                        <p class="mb-0 mt-1">Recarregando a página em 3 segundos...</p>
                     </div>
                 `).show();
                 
                 // Forçar recarregamento completo da página (sem cache)
-                console.log("Recarregando página em 1.5 segundos...");
+                console.log("Recarregando página em 3 segundos...");
                 setTimeout(function() {
-                    window.location.href = window.location.href.split('?')[0] + '?t=' + new Date().getTime();
-                }, 1500);
+                    window.location.reload(true); // Força refresh completo
+                }, 3000);
             } else {
                 // Exibir mensagem de erro
-                if (typeof toastr !== 'undefined') {
-                    toastr.error(response.message);
-                }
-                
-                // Mostrar mensagem de erro também no resultado
                 resultadoElement.html(`
                     <div class="alert alert-danger">
                         <i class="fas fa-exclamation-triangle me-2"></i>
@@ -172,12 +161,7 @@ function gerarConceitoTextual(projetoId) {
             // Ocultar indicador de carregamento
             loadingElement.hide();
             
-            // Exibir mensagem de erro
-            if (typeof toastr !== 'undefined') {
-                toastr.error('Erro ao gerar conceito: ' + error);
-            }
-            
-            // Mostrar mensagem de erro também no resultado
+            // Mostrar mensagem de erro
             resultadoElement.html(`
                 <div class="alert alert-danger">
                     <i class="fas fa-exclamation-circle me-2"></i>
