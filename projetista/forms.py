@@ -1,7 +1,10 @@
 # projetista/forms.py
 
 from django import forms
-from projetista.models import ConceitoVisual, ImagemConceitoVisual, PackageVistasPreset
+from projetista.models import ConceitoVisual, ImagemConceitoVisual
+
+# Verificar se PackageVistasPreset existe, senão comentar/remover
+# from projetista.models import PackageVistasPreset
 
 class ConceitoVisualForm(forms.ModelForm):
     """Formulário para manipulação do conceito visual (Etapa 1)"""
@@ -78,24 +81,9 @@ class GeracaoImagemForm(forms.Form):
     )
 
 class GeracaoMultiplasVistasForm(forms.Form):
-    """Formulário para geração de múltiplas vistas via IA"""
+    """Formulário para geração de múltiplas vistas via IA - Versão Simplificada"""
     
-    # Pacotes pré-definidos
-    PACOTE_CHOICES = [
-        ('cliente', 'Apresentação para Cliente (6-8 vistas)'),
-        ('tecnico_basico', 'Técnico Básico (12-15 vistas)'),
-        ('fotogrametria', 'Fotogrametria Completa (20+ vistas)'),
-        ('personalizado', 'Personalizado (escolher vistas)')
-    ]
-    
-    pacote_vistas = forms.ChoiceField(
-        choices=PACOTE_CHOICES,
-        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
-        initial='cliente',
-        label="Tipo de Pacote"
-    )
-    
-    # Vistas para cliente (sempre visíveis)
+    # Vistas para cliente
     vistas_cliente = forms.MultipleChoiceField(
         choices=[
             ('perspectiva_externa', 'Perspectiva Externa Principal'),
@@ -104,7 +92,6 @@ class GeracaoMultiplasVistasForm(forms.Form):
             ('area_produtos', 'Área de Produtos/Destaque'),
         ],
         widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
-        initial=['perspectiva_externa', 'entrada_recepcao', 'interior_principal'],
         required=False,
         label="Vistas para Cliente"
     )
@@ -208,6 +195,27 @@ class GeracaoMultiplasVistasForm(forms.Form):
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         label="Gerar vistas para cliente primeiro"
     )
+    
+    def clean(self):
+        """
+        Validação para garantir que pelo menos uma vista seja selecionada
+        """
+        cleaned_data = super().clean()
+        
+        # Coletar todas as vistas selecionadas
+        vistas_selecionadas = []
+        vistas_selecionadas.extend(cleaned_data.get('vistas_cliente', []))
+        vistas_selecionadas.extend(cleaned_data.get('vistas_externas', []))
+        vistas_selecionadas.extend(cleaned_data.get('plantas_elevacoes', []))
+        vistas_selecionadas.extend(cleaned_data.get('vistas_internas', []))
+        vistas_selecionadas.extend(cleaned_data.get('detalhes', []))
+        
+        if not vistas_selecionadas:
+            raise forms.ValidationError(
+                "Selecione pelo menos uma vista para gerar."
+            )
+        
+        return cleaned_data
 
 class ModificacaoImagemForm(forms.Form):
     """Formulário para modificar uma imagem existente"""

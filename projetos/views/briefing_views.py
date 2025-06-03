@@ -281,14 +281,12 @@ def validar_briefing(request, projeto_id):
         'todas_aprovadas': todas_aprovadas
     })
 
-
-
-
 def validar_secao_briefing(briefing, secao):
     """
-    Função que valida uma seção do briefing utilizando análise básica ou IA
+    Função que valida uma seção do briefing usando APENAS campos que existem no modelo
     """
     import json
+    import re
     
     # Obtém o objeto de validação existente ou cria um novo
     validacao, created = BriefingValidacao.objects.get_or_create(
@@ -297,108 +295,126 @@ def validar_secao_briefing(briefing, secao):
         defaults={'status': 'pendente'}
     )
     
-    # Tenta carregar o cliente LLM para o agente "Validador de Briefing"
+    # Tenta carregar o cliente LLM
     usar_ia = False
     try:
         if get_llm_client:
-            # Obtém o cliente LLM, modelo e configurações
             client, model, temperature, system_prompt, task_instructions = get_llm_client("Validador de Briefing")
-            
-            # Se conseguiu obter o cliente, usar validação por IA
             usar_ia = client is not None
     except Exception as e:
         logger.error(f"Erro ao obter cliente LLM para validação: {str(e)}")
         usar_ia = False
     
-    # Verificação básica (sem IA) como fallback
+    # Verificação básica (sem IA)
     if not usar_ia:
         logger.info(f"Usando validação básica para a seção '{secao}' do briefing {briefing.id}")
         
         if secao == 'evento':
-            # Verificar se é um projeto do tipo "outros" sem feira
             if briefing.projeto.tipo_projeto == 'outros' and not briefing.feira:
-                # Validar os campos específicos para projetos sem feira
-                if (briefing.nome_evento and briefing.local_evento and briefing.endereco_estande and 
-                    briefing.data_horario_evento and briefing.organizador_evento and 
-                    briefing.periodo_montagem_evento and briefing.periodo_desmontagem_evento):
+                # Para projetos sem feira, verificar campos manuais
+                campos_preenchidos = sum([
+                    bool(briefing.nome_evento),
+                    bool(briefing.local_evento), 
+                    bool(briefing.endereco_estande),
+                    bool(briefing.data_horario_evento),
+                    bool(briefing.organizador_evento),
+                    bool(briefing.periodo_montagem_evento),
+                    bool(briefing.periodo_desmontagem_evento)
+                ])
+                
+                if campos_preenchidos >= 5:  # Pelo menos 5 dos 7 campos
                     validacao.status = 'aprovado'
                     validacao.mensagem = 'Informações do evento completas.'
                 else:
                     validacao.status = 'atencao'
-                    validacao.mensagem = 'Alguns campos importantes do evento estão incompletos. Por favor, preencha todos os campos obrigatórios.'
+                    validacao.mensagem = f'Preencha mais campos do evento ({campos_preenchidos}/7 preenchidos).'
             else:
-                # Validação para projetos com feira (padrão)
+                # Para projetos com feira, só precisa do endereço do estande
                 if briefing.endereco_estande:
                     validacao.status = 'aprovado'
-                    validacao.mensagem = 'Informações do evento completas.'
+                    validacao.mensagem = 'Localização do estande definida.'
                 else:
                     validacao.status = 'atencao'
-                    validacao.mensagem = 'Alguns campos importantes do evento estão incompletos.'
+                    validacao.mensagem = 'Informe a localização do estande no pavilhão.'
         
         elif secao == 'estande':
-            if (briefing.medida_frente or briefing.area_estande) and briefing.estilo_estande:
+            # Verificar se tem dimensões básicas E estilo
+            tem_dimensoes = bool(briefing.medida_frente or briefing.area_estande)
+            tem_estilo = bool(briefing.estilo_estande)
+            
+            if tem_dimensoes and tem_estilo:
                 validacao.status = 'aprovado'
-                validacao.mensagem = 'Características do estande completas.'
+                validacao.mensagem = 'Características do estande definidas.'
+            elif tem_dimensoes:
+                validacao.status = 'atencao'
+                validacao.mensagem = 'Defina o estilo/conceito do estande.'
+            elif tem_estilo:
+                validacao.status = 'atencao'
+                validacao.mensagem = 'Informe as dimensões do estande.'
             else:
                 validacao.status = 'atencao'
-                validacao.mensagem = 'Informações sobre dimensões ou estilo do estande estão incompletas.'
+                validacao.mensagem = 'Defina dimensões e estilo do estande.'
         
         elif secao == 'areas_estande':
-            # Verificar se existe alguma área configurada
-            if briefing.tem_qualquer_area_estande():
+            # Verificar se tem alguma área configurada
+            if hasattr(briefing, 'tem_qualquer_area_estande') and briefing.tem_qualquer_area_estande():
                 validacao.status = 'aprovado'
-                validacao.mensagem = 'Áreas do estande definidas.'
+                validacao.mensagem = 'Divisões do estande configuradas.'
             else:
                 validacao.status = 'atencao'
-                validacao.mensagem = 'Nenhuma área do estande foi configurada.'
+                validacao.mensagem = 'Configure as áreas internas do estande.'
         
         elif secao == 'dados_complementares':
-            if briefing.referencias_dados:
+            # Verificar referências ou arquivos
+            tem_referencias = bool(briefing.referencias_dados)
+            tem_logotipo = bool(briefing.logotipo)
+            tem_campanha = bool(briefing.campanha_dados)
+            tem_arquivos = BriefingArquivoReferencia.objects.filter(briefing=briefing).exists()
+            
+            if tem_referencias or tem_arquivos or tem_logotipo or tem_campanha:
                 validacao.status = 'aprovado'
-                validacao.mensagem = 'Dados complementares completos.'
+                validacao.mensagem = 'Informações complementares fornecidas.'
             else:
                 validacao.status = 'atencao'
-                validacao.mensagem = 'Adicione mais informações sobre referências visuais.'
+                validacao.mensagem = 'Adicione referências visuais ou informações complementares.'
+        
+        feedback = validacao.mensagem
+        
     else:
-        # Validação usando o agente de IA
+        # Validação usando IA
         logger.info(f"Usando validação com IA para a seção '{secao}' do briefing {briefing.id}")
         
         try:
-            # Preparar os dados do briefing para análise
+            # Dados básicos sempre presentes
             briefing_data = {
                 "secao": secao,
                 "nome_projeto": briefing.projeto.nome,
-                "etapa_atual": briefing.etapa_atual,
+                "tipo_projeto": briefing.projeto.tipo_projeto,
             }
             
-            # Adicionar campos específicos de cada seção
+            # Campos específicos por seção (APENAS os que existem)
             if secao == 'evento':
-                # Se a feira estiver associada ao projeto
-                if briefing.projeto.feira:
+                briefing_data.update({
+                    "endereco_estande": briefing.endereco_estande,
+                    "tem_feira_associada": briefing.feira is not None,
+                })
+                
+                if briefing.feira:
                     briefing_data.update({
-                        "endereco_estande": briefing.endereco_estande,
-                        "nome_feira": briefing.projeto.feira.nome,
-                        "local_feira": briefing.projeto.feira.local,
-                        "data_feira_inicio": str(briefing.projeto.feira.data_inicio) if briefing.projeto.feira.data_inicio else None,
-                        "data_feira_fim": str(briefing.projeto.feira.data_fim) if briefing.projeto.feira.data_fim else None,
-                        "horario_feira": briefing.projeto.feira.data_horario,
-                        "promotora_feira": briefing.projeto.feira.promotora,  # Adicionando o organizador
-                        "periodo_montagem": briefing.projeto.feira.periodo_montagem,
-                        "periodo_desmontagem": briefing.projeto.feira.periodo_desmontagem,
+                        "nome_feira": briefing.feira.nome,
+                        "local_feira": briefing.feira.local,
                     })
-                else:
-                    # Se não houver feira associada
-                    briefing_data.update({
-                        "endereco_estande": briefing.endereco_estande,
-                        "nome_feira": None,
-                        "local_feira": None,
-                        "data_feira_inicio": None,
-                        "data_feira_fim": None,
-                        "horario_feira": None,
-                        "promotora_feira": None,  # Adicionando o organizador
-                        "periodo_montagem": None,
-                        "periodo_desmontagem": None,
-                    })
+                
+                # Campos para eventos manuais (tipo 'outros')
+                briefing_data.update({
+                    "nome_evento": briefing.nome_evento,
+                    "local_evento": briefing.local_evento,
+                    "organizador_evento": briefing.organizador_evento,
+                    "data_horario_evento": briefing.data_horario_evento,
+                    "periodo_montagem_evento": briefing.periodo_montagem_evento,
+                    "periodo_desmontagem_evento": briefing.periodo_desmontagem_evento,
+                })
+                
             elif secao == 'estande':
                 briefing_data.update({
                     "medida_frente": str(briefing.medida_frente) if briefing.medida_frente else None,
@@ -412,10 +428,11 @@ def validar_secao_briefing(briefing, secao):
                     "tipo_testeira": briefing.get_tipo_testeira_display() if briefing.tipo_testeira else None,
                     "tipo_venda": briefing.get_tipo_venda_display() if briefing.tipo_venda else None,
                     "tipo_ativacao": briefing.tipo_ativacao,
-                    "objetivo_estande": briefing.objetivo_estande,
+                    "tipo_stand": briefing.get_tipo_stand_display() if briefing.tipo_stand else None,
                 })
+                
             elif secao == 'areas_estande':
-                # Dados das áreas de exposição
+                # Areas de exposição
                 areas_exposicao = []
                 for area in AreaExposicao.objects.filter(briefing=briefing):
                     areas_exposicao.append({
@@ -431,7 +448,7 @@ def validar_secao_briefing(briefing, secao):
                         "metragem": str(area.metragem) if area.metragem else None,
                     })
                 
-                # Dados das salas de reunião
+                # Salas de reunião
                 salas_reuniao = []
                 for sala in SalaReuniao.objects.filter(briefing=briefing):
                     salas_reuniao.append({
@@ -440,7 +457,7 @@ def validar_secao_briefing(briefing, secao):
                         "metragem": str(sala.metragem) if sala.metragem else None,
                     })
                 
-                # Dados das copas
+                # Copas
                 copas = []
                 for copa in Copa.objects.filter(briefing=briefing):
                     copas.append({
@@ -448,7 +465,7 @@ def validar_secao_briefing(briefing, secao):
                         "metragem": str(copa.metragem) if copa.metragem else None,
                     })
                 
-                # Dados dos depósitos
+                # Depósitos
                 depositos = []
                 for deposito in Deposito.objects.filter(briefing=briefing):
                     depositos.append({
@@ -461,7 +478,9 @@ def validar_secao_briefing(briefing, secao):
                     "salas_reuniao": salas_reuniao,
                     "copas": copas,
                     "depositos": depositos,
+                    "total_areas": len(areas_exposicao) + len(salas_reuniao) + len(copas) + len(depositos)
                 })
+                
             elif secao == 'dados_complementares':
                 briefing_data.update({
                     "referencias_dados": briefing.referencias_dados,
@@ -473,133 +492,177 @@ def validar_secao_briefing(briefing, secao):
                     ]
                 })
             
-            # Instrução para o validador
-            if task_instructions:
-                # Usar as instruções personalizadas do agente
-                user_prompt = task_instructions
-            else:
-                # Instrução padrão
-                user_prompt = f"""
-                Por favor, valide a seção '{secao}' do briefing com base nos dados fornecidos:
-                {json.dumps(briefing_data, indent=2, ensure_ascii=False)}
-                
-                Analise se as informações estão completas, consistentes e realistas.
-                Retorne um JSON com o seguinte formato:
-                {{
-                    "status": "[aprovado/atencao/reprovado]",
-                    "mensagem": "Mensagem explicando o resultado da validação",
-                    "feedback": "Feedback mais detalhado para apresentar ao cliente"
-                }}
-                """
+            # Prompt otimizado para Groq
+            prompt_validacao = f"""Analise a seção '{secao}' do briefing e retorne apenas um JSON válido.
+
+DADOS: {json.dumps(briefing_data, ensure_ascii=False)}
+
+Responda APENAS com JSON no formato:
+{{"status": "aprovado|atencao|reprovado", "mensagem": "resumo", "feedback": "detalhes"}}
+
+Critérios:
+- aprovado: informações completas e consistentes
+- atencao: informações incompletas mas utilizáveis  
+- reprovado: informações inconsistentes ou insuficientes"""
+
+            # Detectar provider e fazer chamada apropriada
+            provider_name = "unknown"
+            if hasattr(client, '__class__'):
+                class_name = str(client.__class__).lower()
+                if 'groq' in class_name:
+                    provider_name = "groq"
+                elif 'openai' in class_name:
+                    provider_name = "openai"
+                elif 'anthropic' in class_name:
+                    provider_name = "anthropic"
             
-            # Detectar tipo de cliente e enviar solicitação apropriada
-            if hasattr(client, 'chat') and hasattr(client.chat, 'completions'):  # OpenAI
-                logger.info(f"Enviando requisição de validação para OpenAI (modelo: {model})")
+            logger.info(f"Usando provider: {provider_name}")
+            
+            if provider_name == "groq":
+                # Groq - sem response_format
                 response = client.chat.completions.create(
                     model=model,
                     messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
+                        {"role": "system", "content": system_prompt or "Você é um validador de briefings cenográficos."},
+                        {"role": "user", "content": prompt_validacao}
                     ],
-                    temperature=temperature,
+                    temperature=temperature or 0.1,
+                    max_tokens=300
+                )
+                content = response.choices[0].message.content
+                
+            elif provider_name == "openai":
+                # OpenAI - com response_format
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system_prompt or "Você é um validador de briefings cenográficos."},
+                        {"role": "user", "content": prompt_validacao}
+                    ],
+                    temperature=temperature or 0.1,
+                    max_tokens=300,
                     response_format={"type": "json_object"}
                 )
+                content = response.choices[0].message.content
                 
-                result = json.loads(response.choices[0].message.content)
-                logger.info(f"Resposta de validação recebida da OpenAI: {result.get('status', 'desconhecido')}")
-                
-            elif hasattr(client, 'messages') and hasattr(client.messages, 'create'):  # Anthropic
-                logger.info(f"Enviando requisição de validação para Anthropic (modelo: {model})")
+            elif provider_name == "anthropic":
+                # Anthropic
                 response = client.messages.create(
                     model=model,
-                    system=system_prompt,
+                    system=system_prompt or "Você é um validador de briefings cenográficos.",
                     messages=[
-                        {"role": "user", "content": user_prompt}
+                        {"role": "user", "content": prompt_validacao}
                     ],
-                    temperature=temperature,
-                    max_tokens=1000
+                    temperature=temperature or 0.1,
+                    max_tokens=300
                 )
-                
-                # Extrair o JSON da resposta (Claude pode adicionar texto antes/depois do JSON)
                 content = response.content[0].text
                 
-                # Tentar encontrar e extrair somente o JSON
-                start_idx = content.find('{')
-                end_idx = content.rfind('}') + 1
-                if start_idx >= 0 and end_idx > start_idx:
-                    json_str = content[start_idx:end_idx]
-                    result = json.loads(json_str)
-                else:
-                    # Fallback
-                    result = {
-                        "status": "atencao",
-                        "mensagem": "Não foi possível analisar completamente esta seção.",
-                        "feedback": "O sistema encontrou um problema ao validar os dados. Por favor, revise manualmente."
-                    }
-                logger.info(f"Resposta de validação recebida da Anthropic: {result.get('status', 'desconhecido')}")
             else:
-                # Provedor não suportado
-                logger.warning("Provedor de IA não suportado para validação")
-                result = {
-                    "status": "atencao",
-                    "mensagem": "Validação avançada indisponível",
-                    "feedback": "O sistema está configurado com um provedor não suportado. Usando validação básica."
-                }
+                # Fallback genérico
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system_prompt or "Você é um validador de briefings cenográficos."},
+                        {"role": "user", "content": prompt_validacao}
+                    ],
+                    temperature=temperature or 0.1,
+                    max_tokens=300
+                )
+                content = response.choices[0].message.content
+            
+            # Limpar e extrair JSON
+            content = content.strip()
+            content = re.sub(r'^```json\s*', '', content)
+            content = re.sub(r'\s*```$', '', content)
+            
+            # Encontrar JSON válido
+            json_match = re.search(r'\{.*\}', content, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(0)
+            else:
+                json_str = content
+            
+            # Parse do JSON
+            try:
+                result = json.loads(json_str)
+            except json.JSONDecodeError as e:
+                logger.error(f"Erro JSON: {e}, conteúdo: {content[:200]}")
+                raise Exception("Resposta da IA inválida")
+            
+            # Validar campos obrigatórios
+            if not all(field in result for field in ['status', 'mensagem', 'feedback']):
+                raise Exception("Campos obrigatórios ausentes na resposta")
+            
+            # Validar status
+            if result['status'] not in ['aprovado', 'atencao', 'reprovado']:
+                result['status'] = 'atencao'
+            
+            # Atualizar validação
+            validacao.status = result['status']
+            validacao.mensagem = result['mensagem'][:255]
+            feedback = result['feedback']
+            
+            logger.info(f"Validação IA: {validacao.status}")
                 
-            # Atualizar o objeto de validação com o resultado da IA
-            validacao.status = result.get("status", "atencao")
-            validacao.mensagem = result.get("mensagem", "Validação realizada")
-            
-            # Feedback detalhado para o cliente
-            feedback = result.get("feedback", "")
-            
         except Exception as e:
-            # Em caso de erro, usar validação básica
-            import traceback
-            logger.error(f"Erro na validação com IA: {str(e)}")
-            logger.error(traceback.format_exc())
+            logger.error(f"Erro na validação IA: {str(e)}")
             
-            validacao.status = 'atencao'
-            validacao.mensagem = 'Verificação automática indisponível. Por favor, revise manualmente.'
-            feedback = "O sistema encontrou um problema ao analisar esta seção. Recomendamos revisar cuidadosamente as informações fornecidas."
+            # Fallback para validação básica
+            if secao == 'evento':
+                if briefing.endereco_estande:
+                    validacao.status = 'aprovado'
+                    validacao.mensagem = 'Localização verificada'
+                    feedback = 'Localização do estande foi informada.'
+                else:
+                    validacao.status = 'atencao'
+                    validacao.mensagem = 'Localização em falta'
+                    feedback = 'Informe onde ficará o estande no pavilhão.'
+            elif secao == 'estande':
+                if briefing.area_estande and briefing.estilo_estande:
+                    validacao.status = 'aprovado'
+                    validacao.mensagem = 'Características básicas definidas'
+                    feedback = 'Dimensões e estilo foram informados.'
+                else:
+                    validacao.status = 'atencao'
+                    validacao.mensagem = 'Complete as características'
+                    feedback = 'Defina melhor as dimensões e estilo do estande.'
+            elif secao == 'areas_estande':
+                if hasattr(briefing, 'tem_qualquer_area_estande') and briefing.tem_qualquer_area_estande():
+                    validacao.status = 'aprovado'
+                    validacao.mensagem = 'Áreas configuradas'
+                    feedback = 'Divisões internas foram definidas.'
+                else:
+                    validacao.status = 'atencao'
+                    validacao.mensagem = 'Configure as áreas'
+                    feedback = 'Defina como será dividido o espaço interno.'
+            else:  # dados_complementares
+                if briefing.referencias_dados:
+                    validacao.status = 'aprovado'
+                    validacao.mensagem = 'Referências fornecidas'
+                    feedback = 'Referências visuais foram informadas.'
+                else:
+                    validacao.status = 'atencao'
+                    validacao.mensagem = 'Adicione referências'
+                    feedback = 'Forneça referências visuais para o projeto.'
     
-    # Salvar o resultado da validação
+    # Salvar validação
     validacao.save()
     
-    # Adicionar mensagem de feedback no chat
-    if validacao.status == 'aprovado':
-        mensagem = f"Analisei a seção '{secao.replace('_', ' ').title()}' e tudo parece estar completo e consistente!"
-        if 'feedback' in locals() and feedback:
-            mensagem += f" {feedback}"
-            
-        BriefingConversation.objects.create(
-            briefing=briefing,
-            mensagem=mensagem,
-            origem='ia',
-            etapa=briefing.etapa_atual
-        )
-    elif validacao.status == 'atencao':
-        mensagem = f"Analisei a seção '{secao.replace('_', ' ').title()}' e tenho algumas observações: {validacao.mensagem}"
-        if 'feedback' in locals() and feedback:
-            mensagem += f" {feedback}"
+    # Adicionar feedback no chat
+    if feedback:
+        emoji = "✅" if validacao.status == 'aprovado' else "⚠️" if validacao.status == 'atencao' else "❌"
+        mensagem_chat = f"{emoji} {secao.replace('_', ' ').title()}: {feedback}"
         
         BriefingConversation.objects.create(
             briefing=briefing,
-            mensagem=mensagem,
+            mensagem=mensagem_chat,
             origem='ia',
             etapa=briefing.etapa_atual
         )
-    elif validacao.status == 'reprovado':
-        mensagem = f"Encontrei problemas importantes na seção '{secao.replace('_', ' ').title()}': {validacao.mensagem}"
-        if 'feedback' in locals() and feedback:
-            mensagem += f" {feedback}"
-        
-        BriefingConversation.objects.create(
-            briefing=briefing,
-            mensagem=mensagem,
-            origem='ia',
-            etapa=briefing.etapa_atual
-        )
+    
+    logger.info(f"Validação '{secao}' finalizada: {validacao.status}")
+
 
 @login_required
 @cliente_required
