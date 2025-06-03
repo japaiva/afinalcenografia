@@ -390,8 +390,22 @@
                     <div class="label">Orçamento:</div>
                     <div class="value">{% if projeto.orcamento %}R$ {{ projeto.orcamento|moeda_brasileira }}{% else %}{% if briefing.orcamento %}R$ {{ briefing.orcamento|floatformat:2 }}{% else %}Não informado{% endif %}{% endif %}</div>
                 </div>
+            </div>
+
+            <!-- NOVA SEÇÃO: Descrição da Empresa -->
+            <h3>Descrição da Empresa</h3>
+            <div class="area-section">
                 <div class="info-row">
-                    <div class="label">Objetivo do Projeto:</div>
+                    <div class="label">Sobre a Empresa:</div>
+                    <div class="value">{% if projeto.empresa.descricao %}{{ projeto.empresa.descricao }}{% else %}Não informado{% endif %}</div>
+                </div>
+            </div>
+
+            <!-- NOVA SEÇÃO: Objetivo do Projeto -->
+            <h3>Objetivo do Projeto</h3>
+            <div class="area-section">
+                <div class="info-row">
+                    <div class="label">Objetivo:</div>
                     <div class="value">{% if projeto.descricao %}{{ projeto.descricao }}{% else %}{% if briefing.objetivo_evento %}{{ briefing.objetivo_evento }}{% else %}Não informado{% endif %}{% endif %}</div>
                 </div>
             </div>
@@ -586,8 +600,8 @@
                 </div>
             </div>
             
-            <!-- Funcionalidades / Objetivo do Estande -->
-            <h3>Funcionalidades / Objetivo do Estande</h3>
+            <!-- Funcionalidades (REMOVIDO: Objetivo do Estande) -->
+            <h3>Funcionalidades</h3>
             <div class="area-section">
                 <div class="info-row">
                     <div class="label">Venda:</div>
@@ -596,10 +610,6 @@
                 <div class="info-row">
                     <div class="label">Ativação:</div>
                     <div class="value">{% if briefing.tipo_ativacao %}{{ briefing.tipo_ativacao }}{% else %}Não informado{% endif %}</div>
-                </div>
-                <div class="info-row">
-                    <div class="label">Objetivo do Estande:</div>
-                    <div class="value">{% if briefing.objetivo_estande %}{{ briefing.objetivo_estande }}{% else %}Não informado{% endif %}</div>
                 </div>
             </div>
         </div>
@@ -818,8 +828,6 @@
         </div>
         </div>
         
-
-    
     <!-- Informações Complementares -->
     <h3>Informações Complementares</h3>
     <div class="area-section">
@@ -861,3 +869,7 @@
     <p>Afinal Cenografia - Documento gerado automaticamente</p>
     <p>&copy; {% now "Y" %} Afinal Cenografia - Todos os direitos reservados</p>
 </div>
+
+    </div>
+</body>
+</html>

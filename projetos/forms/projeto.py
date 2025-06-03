@@ -1,3 +1,5 @@
+# projetos/forms/projeto.py - Atualização completa
+
 from django import forms
 from django.forms.widgets import Input
 from projetos.models import Projeto, ProjetoReferencia
@@ -38,6 +40,14 @@ class MultipleFileField(forms.FileField):
 
 
 class ProjetoForm(forms.ModelForm):
+    # NOVO CAMPO para editar descrição da empresa no contexto do projeto
+    descricao_empresa = forms.CharField(
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        required=False,
+        label="Descrição da Empresa",
+        help_text="Esta descrição pode ser ajustada para o contexto específico deste projeto"
+    )
+    
     class Meta:
         model = Projeto
         fields = [
@@ -51,7 +61,7 @@ class ProjetoForm(forms.ModelForm):
             'feira': forms.Select(attrs={'class': 'form-select', 'id': 'id_feira'}),
         }
         labels = {
-            'descricao': 'Objetivo',
+            'descricao': 'Objetivo do Projeto',
             'tipo_projeto': 'Tipo de Projeto',
             'nome': 'Nome do Projeto',
         }
@@ -63,6 +73,10 @@ class ProjetoForm(forms.ModelForm):
         self.fields['feira'].required = False
         self.fields['orcamento'].required = True
         self.fields['descricao'].required = True
+
+        # Pré-preencher com a descrição padrão da empresa
+        if self.instance and self.instance.empresa and self.instance.empresa.descricao:
+            self.fields['descricao_empresa'].initial = self.instance.empresa.descricao
 
         # Lógica condicional para campo nome
         tipo_projeto = self.initial.get('tipo_projeto') or self.data.get('tipo_projeto')
@@ -97,6 +111,12 @@ class ProjetoForm(forms.ModelForm):
 
         if projeto.tipo_projeto == 'feira_negocios' and projeto.feira:
             projeto.nome = projeto.feira.nome
+
+        # NOVA LÓGICA: Atualizar a descrição da empresa se foi modificada
+        descricao_empresa = self.cleaned_data.get('descricao_empresa')
+        if descricao_empresa and projeto.empresa:
+            projeto.empresa.descricao = descricao_empresa
+            projeto.empresa.save()
 
         if commit:
             projeto.save()

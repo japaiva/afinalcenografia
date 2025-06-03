@@ -167,6 +167,14 @@ class Empresa(models.Model):
     telefone = models.CharField(max_length=20, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
     logo = models.ImageField(upload_to='logos/', blank=True, null=True, storage=MinioStorage())
+    
+    # NOVO CAMPO ADICIONADO
+    descricao = models.TextField(
+        blank=True, null=True, 
+        verbose_name="Descrição da Empresa",
+        help_text="Descrição da empresa que pode ser editada por projeto"
+    )
+    
     ativa = models.BooleanField(default=True)
     data_cadastro = models.DateTimeField(auto_now_add=True)
     

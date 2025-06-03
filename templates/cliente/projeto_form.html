@@ -4,109 +4,148 @@
 {% block title %}{% if form.instance.pk %}Editar{% else %}Novo{% endif %} Projeto{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-md-8 col-lg-6">
-    <div class="card shadow">
-      <div class="card-header bg-light d-flex justify-content-between align-items-center">
-        <h5 class="card-title mb-0">
-          <i class="fas fa-edit me-2"></i> {% if form.instance.pk %}Editar{% else %}Novo{% endif %} Projeto
-        </h5>
-        <a href="{% url 'cliente:projeto_list' %}" class="btn btn-outline-secondary btn-sm">
-          <i class="fas fa-arrow-left me-1"></i> Voltar
-        </a>
+<div class="card shadow">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">
+      <i class="fas fa-edit me-2"></i> {% if form.instance.pk %}Editar{% else %}Novo{% endif %} Projeto
+    </h5>
+    <a href="{% url 'cliente:projeto_list' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i> Voltar
+    </a>
+  </div>
+  
+  <div class="card-body">
+    <form method="post" {% if form.is_multipart %}enctype="multipart/form-data"{% endif %} id="projetoForm">
+      {% csrf_token %}
+      
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+          {% for error in form.non_field_errors %}
+            <p class="mb-0">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+      
+      <div class="row g-3">
+        <!-- Número do Projeto (apenas para edição) -->
+        {% if form.instance.pk %}
+        <div class="col-md-6">
+          <label class="form-label">Número do Projeto</label>
+          <input type="text" class="form-control" value="{{ form.instance.numero }}" readonly>
+        </div>
+        {% endif %}
+        
+        <!-- Tipo de Projeto -->
+        <div class="col-md-6">
+          <label for="{{ form.tipo_projeto.id_for_label }}" class="form-label">Tipo de Projeto*</label>
+          {{ form.tipo_projeto }}
+          {% if form.tipo_projeto.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.tipo_projeto.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+          <div class="form-text">Selecione o tipo de projeto.</div>
+        </div>
+        
+        <!-- Feira -->
+        <div class="col-md-6" id="feira-container">
+          <label for="{{ form.feira.id_for_label }}" class="form-label">Feira <span id="feira-obrigatoria">*</span></label>
+          {{ form.feira }}
+          {% if form.feira.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.feira.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+          <div class="form-text" id="feira-info">Selecione a feira associada a este projeto.</div>
+        </div>
+        
+        <!-- Nome do Projeto -->
+        <div class="col-md-6" id="nome-container" style="display: none;">
+          <label for="{{ form.nome.id_for_label }}" class="form-label">Nome do Projeto*</label>
+          {{ form.nome }}
+          {% if form.nome.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.nome.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+          <div class="form-text" id="nome-info">Digite um nome para seu projeto.</div>
+        </div>
+        
+        <!-- Orçamento -->
+        <div class="col-md-6">
+          <label for="{{ form.orcamento.id_for_label }}" class="form-label">Orçamento (R$)*</label>
+          {{ form.orcamento }}
+          {% if form.orcamento.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.orcamento.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Descrição da Empresa -->
+        <div class="col-12">
+          <label for="{{ form.descricao_empresa.id_for_label }}" class="form-label">Descrição da Empresa</label>
+          {{ form.descricao_empresa }}
+          {% if form.descricao_empresa.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.descricao_empresa.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+          <div class="form-text">Descreva sua empresa, o que ela faz e o que torna ela especial para seu cliente.</div>
+        </div>
+
+        <!-- Objetivo do Projeto -->
+        <div class="col-12">
+          <label for="{{ form.descricao.id_for_label }}" class="form-label">Objetivo do Projeto*</label>
+          {{ form.descricao }}
+          {% if form.descricao.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.descricao.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+          <div class="form-text">Detalhe o que pretende obter com essa iniciativa.</div>
+        </div>
+        
+        <!-- Status (apenas mostrar, não editável) -->
+        {% if form.instance.pk %}
+        <div class="col-md-6">
+          <label class="form-label">Status</label>
+          <input type="text" class="form-control" value="{{ form.instance.get_status_display }}" readonly>
+          <div style="display:none;">{{ form.status }}</div>
+        </div>
+        {% else %}
+        <div style="display:none;">{{ form.status }}</div>
+        {% endif %}
+        
+        <!-- Campos não exibidos mas mantidos para evitar erros de validação -->
+        {% for field in form %}
+          {% if field.name != 'nome' and field.name != 'feira' and field.name != 'orcamento' and field.name != 'descricao' and field.name != 'status' and field.name != 'tipo_projeto' and field.name != 'descricao_empresa' %}
+            <div style="display:none;">{{ field }}</div>
+          {% endif %}
+        {% endfor %}
       </div>
       
-      <div class="card-body">
-        <!-- Mantenha o enctype original caso a view esteja esperando isso -->
-        <form method="post" {% if form.is_multipart %}enctype="multipart/form-data"{% endif %} class="row g-3" id="projetoForm">
-          {% csrf_token %}
-          
-          <!-- Número do Projeto (apenas para edição) -->
-          {% if form.instance.pk %}
-          <div class="col-12">
-            <label class="form-label">Número do Projeto</label>
-            <input type="text" class="form-control" value="{{ form.instance.numero }}" readonly>
-          </div>
-          {% endif %}
-          
-          <!-- Tipo de Projeto - Campo novo -->
-          <div class="col-12">
-            <label for="{{ form.tipo_projeto.id_for_label }}" class="form-label">Tipo de Projeto*</label>
-            {{ form.tipo_projeto }}
-            {% if form.tipo_projeto.errors %}
-              <div class="text-danger small">{{ form.tipo_projeto.errors.0 }}</div>
-            {% endif %}
-            <div class="form-text">Selecione o tipo de projeto.</div>
-          </div>
-          
-          <!-- Feira - Só obrigatório para tipo "Feira Negócios" -->
-          <div class="col-12" id="feira-container">
-            <label for="{{ form.feira.id_for_label }}" class="form-label">Feira <span id="feira-obrigatoria">*</span></label>
-            {{ form.feira }}
-            {% if form.feira.errors %}
-              <div class="text-danger small">{{ form.feira.errors.0 }}</div>
-            {% endif %}
-            <div class="form-text" id="feira-info">Selecione a feira associada a este projeto.</div>
-          </div>
-          
-          <!-- Nome do Projeto - Oculto inicialmente para feira_negocios -->
-          <div class="col-12" id="nome-container" style="display: none;">
-            <label for="{{ form.nome.id_for_label }}" class="form-label">Nome do Projeto*</label>
-            {{ form.nome }}
-            {% if form.nome.errors %}
-              <div class="text-danger small">{{ form.nome.errors.0 }}</div>
-            {% endif %}
-            <div class="form-text" id="nome-info">Digite um nome descritivo para seu projeto.</div>
-          </div>
-          
-          <!-- Orçamento -->
-          <div class="col-12">
-            <label for="{{ form.orcamento.id_for_label }}" class="form-label">Orçamento (R$)*</label>
-            {{ form.orcamento }}
-            {% if form.orcamento.errors %}
-              <div class="text-danger small">{{ form.orcamento.errors.0 }}</div>
-            {% endif %}
-          </div>
-          
-          <div class="col-12">
-            <label for="{{ form.descricao.id_for_label }}" class="form-label">Objetivo*</label>
-            {{ form.descricao }}
-            {% if form.descricao.errors %}
-              <div class="text-danger small">{{ form.descricao.errors.0 }}</div>
-            {% endif %}
-          </div>
-          
-          <!-- Status (apenas mostrar, não editável) -->
-          {% if form.instance.pk %}
-          <div class="col-12">
-            <label class="form-label">Status</label>
-            <input type="text" class="form-control" value="{{ form.instance.get_status_display }}" readonly>
-            <!-- Campo original escondido para manter o valor -->
-            <div style="display:none;">{{ form.status }}</div>
-          </div>
-          {% else %}
-          <!-- Use o próprio campo status mas escondido -->
-          <div style="display:none;">{{ form.status }}</div>
-          {% endif %}
-          
-          <!-- Campos não exibidos mas mantidos para evitar erros de validação -->
-          {% for field in form %}
-            {% if field.name != 'nome' and field.name != 'feira' and field.name != 'orcamento' and field.name != 'descricao' and field.name != 'status' and field.name != 'tipo_projeto' %}
-              <div style="display:none;">{{ field }}</div>
-            {% endif %}
-          {% endfor %}
-          
-          <!-- Botão de Salvar -->
-          <div class="col-12 d-flex justify-content-end mt-4">
-            <button type="submit" class="btn btn-primary">Salvar</button>
-          </div>
-        </form>
+      <div class="d-flex justify-content-end mt-4">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save me-1"></i> Salvar
+        </button>
       </div>
-    </div>
+    </form>
   </div>
 </div>
 
-<!-- AutoNumeric + lógica existente -->
 <script src="https://cdn.jsdelivr.net/npm/autonumeric@4.6.0"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -124,47 +163,36 @@ document.addEventListener('DOMContentLoaded', function() {
   {% if not form.instance.pk %}
   const statusField = form.querySelector('[name="status"]');
   if (statusField) {
-    statusField.value = 'aguardando_manual'; // Status padrão corrigido para 'aguardando_manual'
+    statusField.value = 'aguardando_manual';
   }
   {% endif %}
   
   // Função para atualizar a visibilidade e comportamento dos campos
   function atualizarCampos() {
     if (tipoProjeto.value === 'feira_negocios') {
-      // Para feira de negócios, mostrar sempre o campo feira
       feiraContainer.style.display = 'block';
-      feiraObrigatoria.style.display = 'none';  // Feira não é obrigatória
-      feiraInfo.textContent = 'Selecione a feira. Caso não a encontre entre as opções, deixe em branco e envie o manual do expositor em MENSAGENS.';
+      feiraObrigatoria.style.display = 'none';
+      feiraInfo.textContent = 'Selecione a feira. Caso não a encontre, deixe em branco e envie o manual do expositor depois neste app.';
       
-      // Para feira de negócios, mostrar o nome apenas se não tiver feira selecionada
       if (feiraField.value) {
-        // Se tiver feira selecionada, oculta o nome e preenche automaticamente
         nomeContainer.style.display = 'none';
         const feiraOption = feiraField.options[feiraField.selectedIndex];
         nomeField.value = feiraOption.text;
       } else {
-        // Se não tiver feira, mostra o campo nome com texto de ajuda específico
         nomeContainer.style.display = 'block';
         nomeInfo.textContent = 'Digite o nome da Feira (ainda sem manual).';
       }
     } else {
-      // Para outros tipos, exibimos o nome e ocultamos a feira
       nomeContainer.style.display = 'block';
       nomeInfo.textContent = '';
       feiraContainer.style.display = 'none';
       feiraField.removeAttribute('required');
-      
-      // Nome é editável
       nomeField.removeAttribute('readonly');
-      
-      // Limpar valor da feira quando não for feira de negócios
       feiraField.value = '';
     }
   }
   
-  // Atualizar campos quando o tipo de projeto mudar
   tipoProjeto.addEventListener('change', function() {
-    // Atualizar status conforme o tipo de projeto
     const statusField = form.querySelector('[name="status"]');
     if (statusField && !form.getAttribute('data-instance-pk')) {
       if (this.value === 'feira_negocios') {
@@ -176,37 +204,30 @@ document.addEventListener('DOMContentLoaded', function() {
     
     atualizarCampos();
     
-    // Limpar nome se mudar de feira para outros
     if (this.value !== 'feira_negocios') {
       nomeField.value = '';
       nomeField.focus();
     } else if (feiraField.value) {
-      // Se voltar para feira e já tiver uma feira selecionada
       const feiraOption = feiraField.options[feiraField.selectedIndex];
       nomeField.value = feiraOption.text;
     }
   });
   
-  // Atualizar nome quando a feira for alterada (para tipo feira_negocios)
   feiraField.addEventListener('change', function() {
     if (tipoProjeto.value === 'feira_negocios') {
       if (this.value) {
-        // Se selecionou uma feira, oculta o campo nome e preenche automaticamente
         nomeContainer.style.display = 'none';
         const feiraOption = this.options[this.selectedIndex];
         nomeField.value = feiraOption.text;
         
-        // Atualizar status para briefing_pendente se uma feira for selecionada
         const statusField = form.querySelector('[name="status"]');
         if (statusField && !form.getAttribute('data-instance-pk')) {
           statusField.value = 'briefing_pendente';
         }
       } else {
-        // Se removeu a feira, mostra o campo nome com texto específico
         nomeContainer.style.display = 'block';
         nomeInfo.textContent = 'Digite o nome da Feira (ainda sem manual).';
         
-        // Atualizar status para aguardando_manual se a feira for removida
         const statusField = form.querySelector('[name="status"]');
         if (statusField && !form.getAttribute('data-instance-pk')) {
           statusField.value = 'aguardando_manual';
@@ -215,17 +236,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
   
-  // Marcar se a instância tem PK para uso no JavaScript
   {% if form.instance.pk %}
   form.setAttribute('data-instance-pk', 'true');
   {% endif %}
   
-  // Configuração inicial
   atualizarCampos();
 
-  // Previne múltiplos envios
   form.addEventListener('submit', function(event) {
-    // Verificar se todos os campos obrigatórios estão preenchidos
     const tipoProjetoValue = tipoProjeto.value;
     const feiraValue = feiraField.value;
     const nomeValue = nomeField.value;
@@ -244,7 +261,6 @@ document.addEventListener('DOMContentLoaded', function() {
       alert('Por favor, preencha todos os campos obrigatórios.');
     }
     
-    // Se for feira de negócios, feira não é mais obrigatória
     if (tipoProjetoValue === 'feira_negocios' && !feiraValue && !nomeValue) {
       formValido = false;
       alert('Para projetos do tipo Feira de Negócios sem uma feira selecionada, você precisa fornecer um nome para o projeto.');
@@ -256,7 +272,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     const submitButton = form.querySelector('button[type="submit"]');
     submitButton.disabled = true;
-    submitButton.innerHTML = 'Processando...';
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Processando...';
   });
 
   // Máscara BRL no campo orçamento
@@ -270,34 +286,6 @@ document.addEventListener('DOMContentLoaded', function() {
       unformatOnSubmit: true
     });
   }
-  
-  // Formatar campos de data
-  const camposData = document.querySelectorAll('input[type="datetime-local"]');
-  camposData.forEach(function(campo) {
-    if (campo.value && !campo.value.includes('T')) {
-      // Formatar data armazenada para formato datetime-local
-      const data = new Date(campo.value);
-      const ano = data.getFullYear();
-      const mes = String(data.getMonth() + 1).padStart(2, '0');
-      const dia = String(data.getDate()).padStart(2, '0');
-      const hora = String(data.getHours()).padStart(2, '0');
-      const minuto = String(data.getMinutes()).padStart(2, '0');
-      
-      campo.value = `${ano}-${mes}-${dia}T${hora}:${minuto}`;
-    }
-  });
 });
-
-document.addEventListener('DOMContentLoaded', function() {
-  // Forçar o status correto para 'aguardando_manual' na inicialização
-  const tipoProjeto = document.getElementById('id_tipo_projeto');
-  const statusField = document.querySelector('[name="status"]');
-  
-  // Se o tipo for feira_negocios
-  if (statusField && tipoProjeto.value === 'feira_negocios') {
-    statusField.value = 'aguardando_manual';
-  }
-});
-
 </script>
 {% endblock %}

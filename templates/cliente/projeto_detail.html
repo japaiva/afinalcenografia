@@ -49,14 +49,19 @@
         <div class="card-body">
           <div class="row mb-2">
             <div class="col-md-6">
-              <strong>Tipo de Projeto:</strong> {{ projeto.get_tipo_projeto_display }}
+              <strong>Empresa:</strong> {{ projeto.empresa.nome }}
             </div>
             <div class="col-md-6">
-              <strong>Orçamento:</strong> {{ projeto.orcamento|moeda_brasileira }}
+              <strong>Tipo de Projeto:</strong> {{ projeto.get_tipo_projeto_display }}
             </div>
           </div>
           
+
+          
           <div class="row mb-2">
+            <div class="col-md-6">
+              <strong>Orçamento:</strong> {{ projeto.orcamento|moeda_brasileira }}
+            </div>
             <div class="col-md-6">
               <strong>Status:</strong>
               <span class="badge 
@@ -76,14 +81,29 @@
                 {{ projeto.get_status_display }}
               </span>
             </div>
+          </div>
+          
+          <div class="row mb-2">
             <div class="col-md-6">
               <strong>Data de Criação:</strong> {{ projeto.created_at|date:"d/m/Y" }}
             </div>
+            <div class="col-md-6">
+              <!-- Espaço para futuras informações -->
+            </div>
           </div>
+
+          <!-- NOVA SEÇÃO: Descrição da Empresa -->
+          {% if projeto.empresa.descricao %}
+          <div class="row mb-2">
+            <div class="col-md-12">
+              <strong>Sobre a Empresa:</strong> {{ projeto.empresa.descricao }}
+            </div>
+          </div>
+          {% endif %}
           
           <div class="row">
             <div class="col-md-12">
-              <strong>Objetivo:</strong> {{ projeto.descricao|default:"Não informado" }}
+              <strong>Objetivo do Projeto:</strong> {{ projeto.descricao|default:"Não informado" }}
             </div>
           </div>
         </div>

@@ -1,3 +1,5 @@
+{% load formatadores %}
+
 <div class="card shadow">
   <div class="card-header bg-light d-flex justify-content-between align-items-center">
     <h5 class="card-title mb-0">
@@ -79,14 +81,14 @@
     {% endif %}
 
         
-    <!-- Resumo do Briefing (nova estrutura) -->
+    <!-- Resumo do Briefing -->
     <div class="card mb-4">
     <div class="card-header bg-primary text-white">
         <h5 class="mb-0">Resumo do Briefing</h5>
     </div>
     <div class="card-body">
         <div class="row">
-        <!-- Status do Briefing (antigo progresso) -->
+        <!-- Status do Briefing -->
         <div class="col-md-6">
             <div class="card h-100">
             <div class="card-header bg-light">
@@ -120,7 +122,7 @@
             </div>
         </div>
         
-        <!-- Dados do Briefing (antiga parte de detalhes do projeto) -->
+        <!-- Dados do Briefing -->
         <div class="col-md-6">
             <div class="card h-100">
             <div class="card-header bg-light">
@@ -130,6 +132,14 @@
                 <div class="mb-2">
                 <strong>Cliente:</strong> {{ projeto.empresa.nome }}
                 </div>
+
+                {% if projeto.empresa.descricao %}
+                <div class="mb-2">
+                <strong>Sobre a Empresa:</strong> 
+                <small class="text-muted d-block">{{ projeto.empresa.descricao|truncatechars:150 }}</small>
+                </div>
+                {% endif %}
+
                 <div class="mb-2">
                 <strong>Nome do Projeto:</strong> {{ projeto.nome }}
                 </div>
@@ -137,22 +147,27 @@
                 <strong>Tipo de Projeto:</strong> 
                 <span class="badge bg-primary">{{ projeto.get_tipo_projeto_display }}</span>
                 </div>
+                
+
+                <div class="mb-2">
+                <strong>Objetivo do Projeto:</strong> 
+                {% if projeto.descricao %}
+                    <small class="text-muted d-block">{{ projeto.descricao|truncatechars:150 }}</small>
+                {% else %}
+                    <small class="text-muted">Não informado</small>
+                {% endif %}
+                </div>
+                
+
                 <div class="mb-2">
                 <strong>Orçamento:</strong> 
                 {% if briefing.orcamento %}
-                    R$ {{ briefing.orcamento|floatformat:2 }}
+                    R$ {{ briefing.orcamento|moeda_brasileira }}
                 {% else %}
                     Não informado
                 {% endif %}
                 </div>
-                <div class="mb-2">
-                <strong>Objetivo do Projeto:</strong> 
-                {% if briefing.objetivo_estande %}
-                    {{ briefing.objetivo_estande|truncatechars:100 }}
-                {% else %}
-                    Não informado
-                {% endif %}
-                </div>
+
             </div>
             </div>
         </div>
@@ -208,88 +223,88 @@
                   <!-- Campos para projetos com feira -->
                   {% with feira=briefing.feira|default:projeto.feira %}
                   <div class="col-md-6">
-                    <label class="form-label fw-bold">Feira/Evento</label>
-                    <p class="border-bottom pb-2">{{ feira.nome|default:"Não informado" }}</p>
+                    <label class="form-label fw-bold text-primary">Feira/Evento</label>
+                    <div class="p-2 bg-light rounded">{{ feira.nome|default:"Não informado" }}</div>
                   </div>
                   
                   <div class="col-md-6">
-                    <label class="form-label fw-bold">Local</label>
-                    <p class="border-bottom pb-2">{{ feira.local|default:"Não informado" }}</p>
+                    <label class="form-label fw-bold text-primary">Local</label>
+                    <div class="p-2 bg-light rounded">{{ feira.local|default:"Não informado" }}</div>
                   </div>
                   
                   <div class="col-md-6">
-                    <label class="form-label fw-bold">Cidade/UF</label>
-                    <p class="border-bottom pb-2">
+                    <label class="form-label fw-bold text-primary">Cidade/UF</label>
+                    <div class="p-2 bg-light rounded">
                       {% if feira.cidade %}
                         {{ feira.cidade }}/{{ feira.estado|default:"--" }}
                       {% else %}
                         Não informado
                       {% endif %}
-                    </p>
+                    </div>
                   </div>
                   
                   <div class="col-md-6">
-                    <label class="form-label fw-bold">Organizador</label>
-                    <p class="border-bottom pb-2">{{ feira.promotora|default:"Não informado" }}</p>
+                    <label class="form-label fw-bold text-primary">Organizador</label>
+                    <div class="p-2 bg-light rounded">{{ feira.promotora|default:"Não informado" }}</div>
                   </div>
                   
                   <div class="col-md-6">
-                    <label class="form-label fw-bold">Período do Evento</label>
-                    <p class="border-bottom pb-2">
+                    <label class="form-label fw-bold text-primary">Período do Evento</label>
+                    <div class="p-2 bg-light rounded">
                       {% if feira.data_inicio %}
                         {{ feira.data_inicio|date:"d/m/Y" }} a {{ feira.data_fim|date:"d/m/Y"|default:"--" }}
                       {% else %}
                         Não informado
                       {% endif %}
-                    </p>
+                    </div>
                   </div>
                   
                   <div class="col-md-6">
-                    <label class="form-label fw-bold">Horário</label>
-                    <p class="border-bottom pb-2">{{ feira.data_horario|default:"Não informado" }}</p>
+                    <label class="form-label fw-bold text-primary">Horário</label>
+                    <div class="p-2 bg-light rounded">{{ feira.data_horario|default:"Não informado" }}</div>
                   </div>
                   
                   <div class="col-md-6">
-                    <label class="form-label fw-bold">Período de Montagem</label>
-                    <p class="border-bottom pb-2">{{ feira.periodo_montagem|default:"Não informado" }}</p>
+                    <label class="form-label fw-bold text-primary">Período de Montagem</label>
+                    <div class="p-2 bg-light rounded">{{ feira.periodo_montagem|default:"Não informado" }}</div>
                   </div>
                   
                   <div class="col-md-6">
-                    <label class="form-label fw-bold">Período de Desmontagem</label>
-                    <p class="border-bottom pb-2">{{ feira.periodo_desmontagem|default:"Não informado" }}</p>
+                    <label class="form-label fw-bold text-primary">Período de Desmontagem</label>
+                    <div class="p-2 bg-light rounded">{{ feira.periodo_desmontagem|default:"Não informado" }}</div>
                   </div>
                   {% endwith %}
                   
                   {% else %}
                   <!-- Campos para projetos do tipo "outros" -->
                   <div class="col-md-6">
-                    <label class="form-label fw-bold">Evento</label>
-                    <p class="border-bottom pb-2">{{ briefing.nome_evento|default:"Não informado" }}</p>
+                    <label class="form-label fw-bold text-primary">Evento</label>
+                    <div class="p-2 bg-light rounded">{{ briefing.nome_evento|default:"Não informado" }}</div>
                   </div>
                   
                   <div class="col-md-6">
-                    <label class="form-label fw-bold">Local</label>
-                    <p class="border-bottom pb-2">{{ briefing.local_evento|default:"Não informado" }}</p>
+                    <label class="form-label fw-bold text-primary">Local</label>
+                    <div class="p-2 bg-light rounded">{{ briefing.local_evento|default:"Não informado" }}</div>
                   </div>
                   
                   <div class="col-md-6">
-                    <label class="form-label fw-bold">Organizador</label>
-                    <p class="border-bottom pb-2">{{ briefing.organizador_evento|default:"Não informado" }}</p>
+                    <label class="form-label fw-bold text-primary">Organizador</label>
+                    <div class="p-2 bg-light rounded">{{ briefing.organizador_evento|default:"Não informado" }}</div>
                   </div>
                   
                   <div class="col-md-6">
-                    <label class="form-label fw-bold">Data e Horário</label>
-                    <p class="border-bottom pb-2">{{ briefing.data_horario_evento|default:"Não informado" }}</p>
+                    <label class="form-label fw-bold text-primary">Data e Horário</label>
+                    <div class="p-2 bg-light rounded">{{ briefing.data_horario_evento|default:"Não informado" }}</div>
                   </div>
                   
                   <div class="col-md-6">
-                    <label class="form-label fw-bold">Período de Montagem</label>
-                    <p class="border-bottom pb-2">{{ briefing.periodo_montagem_evento|default:"Não informado" }}</p>
+                    <label class="form-label fw-bold text-primary">Período de Montagem</label>
+                    <div class="p-2 bg-light rounded">{{ briefing.periodo_montagem_evento|default:"Não informado" }}</div>
                   </div>
                   
                   <div class="col-md-6">
-                    <label class="form-label fw-bold">Período de Desmontagem</label>
-                    <p class="border-bottom pb-2">{{ briefing.periodo_desmontagem_evento|default:"Não informado" }}</p>
+                    <label class="form-label fw-bold text-primary">Período de Desmontagem</label>
+                    <div class="p-2 bg-light rounded">{{ briefing.periodo_desmontagem_evento|default:"Não informado" }}</div>
                   </div>
                   {% endif %}
                 </div>
@@ -306,12 +321,12 @@
               <div class="card-body">
                 <div class="row g-3">
                   <div class="col-md-12">
-                    <label class="form-label fw-bold">Endereço do Estande</label>
-                    <p class="border-bottom pb-2">{{ briefing.endereco_estande|default:"Não informado" }}</p>
+                    <label class="form-label fw-bold text-primary">Endereço do Estande</label>
+                    <div class="p-2 bg-light rounded">{{ briefing.endereco_estande|default:"Não informado" }}</div>
                   </div>
                   
                   <div class="col-md-12">
-                    <label class="form-label fw-bold">Mapa do Estande</label>
+                    <label class="form-label fw-bold text-primary">Mapa do Estande</label>
                     {% if mapa_arquivo %}
                       <div class="mt-2">
                         <a href="{{ mapa_arquivo.arquivo.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
@@ -328,7 +343,7 @@
                         {% endwith %}
                       </div>
                     {% else %}
-                      <p class="border-bottom pb-2">Não enviado</p>
+                      <div class="p-2 bg-light rounded">Não enviado</div>
                     {% endif %}
                   </div>
                 </div>
@@ -349,9 +364,9 @@
               </div>
               <div class="card-body">
                 <div class="row g-3">
-                  <!-- Planta do Estande - MODIFICADO -->
+                  <!-- Planta do Estande -->
                   <div class="col-md-12 mb-3">
-                    <label class="form-label fw-bold">Planta / Esboço</label>
+                    <label class="form-label fw-bold text-primary">Planta / Esboço</label>
                     <div class="row">
                       {% for arquivo in planta_arquivos %}
                         <div class="col-md-6 mb-3">
@@ -372,45 +387,45 @@
                         </div>
                       {% empty %}
                         <div class="col-12">
-                          <p class="text-muted">Nenhuma planta enviada.</p>
+                          <div class="p-2 bg-light rounded">Nenhuma planta enviada.</div>
                         </div>
                       {% endfor %}
                     </div>
                   </div>
                   
                   <div class="col-md-3">
-                    <label class="form-label fw-bold">Medida Frente (m)</label>
-                    <p class="border-bottom pb-2">{{ briefing.medida_frente|default:"Não informado" }}</p>
+                    <label class="form-label fw-bold text-primary">Medida Frente (m)</label>
+                    <div class="p-2 bg-light rounded">{{ briefing.medida_frente|default:"Não informado" }}</div>
                   </div>
                   
                   <div class="col-md-3">
-                    <label class="form-label fw-bold">Medida Fundo (m)</label>
-                    <p class="border-bottom pb-2">{{ briefing.medida_fundo|default:"Não informado" }}</p>
+                    <label class="form-label fw-bold text-primary">Medida Fundo (m)</label>
+                    <div class="p-2 bg-light rounded">{{ briefing.medida_fundo|default:"Não informado" }}</div>
                   </div>
                   
                   <div class="col-md-3">
-                    <label class="form-label fw-bold">Lateral Esquerda (m)</label>
-                    <p class="border-bottom pb-2">{{ briefing.medida_lateral_esquerda|default:"Não informado" }}</p>
+                    <label class="form-label fw-bold text-primary">Lateral Esquerda (m)</label>
+                    <div class="p-2 bg-light rounded">{{ briefing.medida_lateral_esquerda|default:"Não informado" }}</div>
                   </div>
                   
                   <div class="col-md-3">
-                    <label class="form-label fw-bold">Lateral Direita (m)</label>
-                    <p class="border-bottom pb-2">{{ briefing.medida_lateral_direita|default:"Não informado" }}</p>
+                    <label class="form-label fw-bold text-primary">Lateral Direita (m)</label>
+                    <div class="p-2 bg-light rounded">{{ briefing.medida_lateral_direita|default:"Não informado" }}</div>
                   </div>
                   
                   <div class="col-md-4">
-                    <label class="form-label fw-bold">Área Total (m²)</label>
-                    <p class="border-bottom pb-2">{{ briefing.area_estande|default:"Não informado" }}</p>
+                    <label class="form-label fw-bold text-primary">Área Total (m²)</label>
+                    <div class="p-2 bg-light rounded">{{ briefing.area_estande|default:"Não informado" }}</div>
                   </div>
                   
                   <div class="col-md-4">
-                    <label class="form-label fw-bold">Materiais</label>
-                    <p class="border-bottom pb-2">{{ briefing.get_material_display|default:"Não informado" }}</p>
+                    <label class="form-label fw-bold text-primary">Materiais</label>
+                    <div class="p-2 bg-light rounded">{{ briefing.get_material_display|default:"Não informado" }}</div>
                   </div>
                   
                   <div class="col-md-4">
-                    <label class="form-label fw-bold">Tipo de Estande</label>
-                    <p class="border-bottom pb-2">{{ briefing.get_tipo_stand_display|default:"Não informado" }}</p>
+                    <label class="form-label fw-bold text-primary">Tipo de Estande</label>
+                    <div class="p-2 bg-light rounded">{{ briefing.get_tipo_stand_display|default:"Não informado" }}</div>
                     
                     {% if briefing.tipo_stand %}
                     <div class="text-center mt-2">
@@ -423,8 +438,8 @@
                   </div>
                   
                   <div class="col-md-12">
-                    <label class="form-label fw-bold">Estilo do Estande</label>
-                    <p class="border-bottom pb-2">{{ briefing.estilo_estande|default:"Não informado" }}</p>
+                    <label class="form-label fw-bold text-primary">Estilo do Estande</label>
+                    <div class="p-2 bg-light rounded">{{ briefing.estilo_estande|default:"Não informado" }}</div>
                   </div>
                 </div>
               </div>
@@ -440,13 +455,13 @@
               <div class="card-body">
                 <div class="row g-3">
                   <div class="col-md-6">
-                    <label class="form-label fw-bold">Piso Elevado</label>
-                    <p class="border-bottom pb-2">{{ briefing.get_piso_elevado_display|default:"Não informado" }}</p>
+                    <label class="form-label fw-bold text-primary">Piso Elevado</label>
+                    <div class="p-2 bg-light rounded">{{ briefing.get_piso_elevado_display|default:"Não informado" }}</div>
                   </div>
                   
                   <div class="col-md-6">
-                    <label class="form-label fw-bold">Tipo Testeira</label>
-                    <p class="border-bottom pb-2">{{ briefing.get_tipo_testeira_display|default:"Não informado" }}</p>
+                    <label class="form-label fw-bold text-primary">Tipo Testeira</label>
+                    <div class="p-2 bg-light rounded">{{ briefing.get_tipo_testeira_display|default:"Não informado" }}</div>
                   </div>
                 </div>
               </div>
@@ -457,25 +472,18 @@
           <div class="col-12">
             <div class="card mb-3">
               <div class="card-header bg-light">
-                <h6 class="mb-0">Funcionalidades / Objetivo do Estande</h6>
+                <h6 class="mb-0">Funcionalidades</h6>
               </div>
               <div class="card-body">
                 <div class="row g-3">
                   <div class="col-md-4">
-                    <label class="form-label fw-bold">Venda</label>
-                    <p class="border-bottom pb-2">{{ briefing.get_tipo_venda_display|default:"Não informado" }}</p>
+                    <label class="form-label fw-bold text-primary">Venda</label>
+                    <div class="p-2 bg-light rounded">{{ briefing.get_tipo_venda_display|default:"Não informado" }}</div>
                   </div>
                   
                   <div class="col-md-8">
-                    <label class="form-label fw-bold">Tipo de Ativação</label>
-                    <p class="border-bottom pb-2">{{ briefing.tipo_ativacao|default:"Não informado" }}</p>
-                  </div>
-                  
-                  <div class="col-md-12">
-                    <label class="form-label fw-bold">Objetivo do Estande</label>
-                    <div class="p-3 bg-light rounded">
-                      {{ briefing.objetivo_estande|linebreaks|default:"Não informado" }}
-                    </div>
+                    <label class="form-label fw-bold text-primary">Tipo de Ativação</label>
+                    <div class="p-2 bg-light rounded">{{ briefing.tipo_ativacao|default:"Não informado" }}</div>
                   </div>
                 </div>
               </div>
@@ -502,7 +510,7 @@
                         <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" 
                             data-bs-toggle="collapse" data-bs-target="#collapseArea{{ forloop.counter }}" 
                             aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" aria-controls="collapseArea{{ forloop.counter }}">
-                        Área de Atendimento {{ forloop.counter }} {% if area.metragem and area.metragem > 0 %}- {{ area.metragem }} m²{% endif %}
+                        Área de Atendimento {{ forloop.counter }} 
                         </button>
                     </h2>
                     <div id="collapseArea{{ forloop.counter }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" 
@@ -510,14 +518,14 @@
                         <div class="accordion-body">
                         <div class="row g-3">
                             <div class="col-md-4">
-                            <label class="form-label fw-bold">Metragem</label>
-                            <p class="border-bottom pb-2">
+                            <label class="form-label fw-bold text-primary">Metragem</label>
+                            <div class="p-2 bg-light rounded">
                                 {% if area.metragem and area.metragem > 0 %}{{ area.metragem }} m²{% else %}Não informada{% endif %}
-                            </p>
+                            </div>
                             </div>
                             
                             <div class="col-md-8">
-                            <label class="form-label fw-bold">Itens</label>
+                            <label class="form-label fw-bold text-primary">Itens</label>
                             <ul class="list-group mb-3">
                                 {% if area.tem_lounge %}<li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i> Lounge</li>{% endif %}
                                 {% if area.tem_vitrine_exposicao %}<li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i> Vitrine Exposição</li>{% endif %}
@@ -527,20 +535,20 @@
                                 {% if area.tem_balcao_vitrine %}<li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i> Balcão Vitrine</li>{% endif %}
                                 {% if area.tem_caixa_vendas %}<li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i> Caixa para Vendas</li>{% endif %}
                                 {% if not area.tem_lounge and not area.tem_vitrine_exposicao and not area.tem_balcao_recepcao and not area.tem_mesas_atendimento and not area.tem_balcao_cafe and not area.tem_balcao_vitrine and not area.tem_caixa_vendas %}
-                                <li class="list-group-item">Nenhum item selecionado</li>
+                                <li class="list-group-item text-muted">Nenhum item selecionado</li>
                                 {% endif %}
                             </ul>
                             </div>
                             
                             <div class="col-md-6">
-                            <label class="form-label fw-bold">Equipamentos</label>
+                            <label class="form-label fw-bold text-primary">Equipamentos</label>
                             <div class="p-3 bg-light rounded">
                                 {{ area.equipamentos|linebreaks|default:"Não informado" }}
                             </div>
                             </div>
                             
                             <div class="col-md-6">
-                            <label class="form-label fw-bold">Observações</label>
+                            <label class="form-label fw-bold text-primary">Observações</label>
                             <div class="p-3 bg-light rounded">
                                 {{ area.observacoes|linebreaks|default:"Não informado" }}
                             </div>
@@ -583,19 +591,19 @@
                         <div class="accordion-body">
                         <div class="row g-3">
                             <div class="col-md-6">
-                            <label class="form-label fw-bold">Capacidade</label>
-                            <p class="border-bottom pb-2">{{ sala.capacidade }} pessoas</p>
+                            <label class="form-label fw-bold text-primary">Capacidade</label>
+                            <div class="p-2 bg-light rounded">{{ sala.capacidade }} pessoas</div>
                             </div>
                             
                             <div class="col-md-6">
-                            <label class="form-label fw-bold">Metragem</label>
-                            <p class="border-bottom pb-2">
+                            <label class="form-label fw-bold text-primary">Metragem</label>
+                            <div class="p-2 bg-light rounded">
                                 {% if sala.metragem and sala.metragem > 0 %}{{ sala.metragem }} m²{% else %}Não informada{% endif %}
-                            </p>
+                            </div>
                             </div>
                             
                             <div class="col-md-12">
-                            <label class="form-label fw-bold">Equipamentos</label>
+                            <label class="form-label fw-bold text-primary">Equipamentos</label>
                             <div class="p-3 bg-light rounded">
                                 {{ sala.equipamentos|linebreaks|default:"Não informado" }}
                             </div>
@@ -623,23 +631,23 @@
             </div>
             <div class="card-body">
             {% if copas %}
-                {% with copa=copas.first %}
-                <div class="row g-3">
+                {% for copa in copas %}
+                <div class="row g-3 {% if not forloop.last %}mb-4 pb-3 border-bottom{% endif %}">
                 <div class="col-md-4">
-                    <label class="form-label fw-bold">Metragem</label>
-                    <p class="border-bottom pb-2">
+                    <label class="form-label fw-bold text-primary">Metragem</label>
+                    <div class="p-2 bg-light rounded">
                     {% if copa.metragem and copa.metragem > 0 %}{{ copa.metragem }} m²{% else %}Não informada{% endif %}
-                    </p>
+                    </div>
                 </div>
                 
                 <div class="col-md-8">
-                    <label class="form-label fw-bold">Equipamentos</label>
+                    <label class="form-label fw-bold text-primary">Equipamentos</label>
                     <div class="p-3 bg-light rounded">
                     {{ copa.equipamentos|linebreaks|default:"Não informado" }}
                     </div>
                 </div>
                 </div>
-                {% endwith %}
+                {% endfor %}
             {% else %}
                 <div class="alert alert-info mb-0">
                 Nenhuma copa configurada.
@@ -657,23 +665,23 @@
             </div>
             <div class="card-body">
             {% if depositos %}
-                {% with deposito=depositos.first %}
-                <div class="row g-3">
+                {% for deposito in depositos %}
+                <div class="row g-3 {% if not forloop.last %}mb-4 pb-3 border-bottom{% endif %}">
                 <div class="col-md-4">
-                    <label class="form-label fw-bold">Metragem</label>
-                    <p class="border-bottom pb-2">
+                    <label class="form-label fw-bold text-primary">Metragem</label>
+                    <div class="p-2 bg-light rounded">
                     {% if deposito.metragem and deposito.metragem > 0 %}{{ deposito.metragem }} m²{% else %}Não informada{% endif %}
-                    </p>
+                    </div>
                 </div>
                 
                 <div class="col-md-8">
-                    <label class="form-label fw-bold">Equipamentos</label>
+                    <label class="form-label fw-bold text-primary">Equipamentos</label>
                     <div class="p-3 bg-light rounded">
                     {{ deposito.equipamentos|linebreaks|default:"Não informado" }}
                     </div>
                 </div>
                 </div>
-                {% endwith %}
+                {% endfor %}
             {% else %}
                 <div class="alert alert-info mb-0">
                 Nenhum depósito configurado.
@@ -697,15 +705,16 @@
               <div class="card-body">
                 <div class="row g-3">
                   <div class="col-md-12">
-                    <label class="form-label fw-bold">Detalhamento</label>
+                    <label class="form-label fw-bold text-primary">Detalhamento</label>
                     <div class="p-3 bg-light rounded">
                       {{ briefing.referencias_dados|linebreaks|default:"Não informado" }}
                     </div>
                   </div>
                   
-                  <!-- Arquivos de Referência - MODIFICADO -->
+                  <!-- Arquivos de Referência -->
                   <div class="col-md-12">
-                    <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-3">
+                    <label class="form-label fw-bold text-primary">Arquivos de Referência</label>
+                    <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-3 mt-1">
                       {% for arquivo in referencia_arquivos %}
                         <div class="col">
                           <div class="card h-100">
@@ -720,7 +729,7 @@
                         </div>
                       {% empty %}
                         <div class="col-12">
-                          <p class="alert alert-light">Nenhum arquivo de referência enviado.</p>
+                          <div class="alert alert-light">Nenhum arquivo de referência enviado.</div>
                         </div>
                       {% endfor %}
                     </div>
@@ -739,15 +748,16 @@
               <div class="card-body">
                 <div class="row g-3">
                   <div class="col-md-12">
-                    <label class="form-label fw-bold">Detalhamento</label>
+                    <label class="form-label fw-bold text-primary">Detalhamento</label>
                     <div class="p-3 bg-light rounded">
                       {{ briefing.campanha_dados|linebreaks|default:"Não informado" }}
                     </div>
                   </div>
                   
-                  <!-- Arquivos de Campanha - MODIFICADO -->
+                  <!-- Arquivos de Campanha -->
                   <div class="col-md-12">
-                    <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-3">
+                    <label class="form-label fw-bold text-primary">Arquivos de Campanha</label>
+                    <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-3 mt-1">
                       {% for arquivo in campanha_arquivos %}
                         <div class="col">
                           <div class="card h-100">
@@ -762,7 +772,7 @@
                         </div>
                       {% empty %}
                         <div class="col-12">
-                          <p class="alert alert-light">Nenhum arquivo de campanha enviado.</p>
+                          <div class="alert alert-light">Nenhum arquivo de campanha enviado.</div>
                         </div>
                       {% endfor %}
                     </div>
@@ -771,7 +781,6 @@
               </div>
             </div>
           </div>
-
 
         <!-- Informações Complementares -->
         <div class="col-12">
@@ -782,7 +791,7 @@
             <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-12">
-                <label class="form-label fw-bold">Detalhamento</label>
+                <label class="form-label fw-bold text-primary">Detalhamento</label>
                 <div class="p-3 bg-light rounded">
                     {{ briefing.logotipo|linebreaks|default:"Não informado" }}
                 </div>
@@ -790,7 +799,8 @@
                 
                 <!-- Outros Arquivos -->
                 <div class="col-md-12">
-                <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-3">
+                <label class="form-label fw-bold text-primary">Outros Arquivos</label>
+                <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-3 mt-1">
                     {% for arquivo in outros_arquivos %}
                     <div class="col">
                         <div class="card h-100">
@@ -806,7 +816,7 @@
                     </div>
                     {% empty %}
                     <div class="col-12">
-                        <p class="alert alert-light">Nenhum arquivo adicional enviado.</p>
+                        <div class="alert alert-light">Nenhum arquivo adicional enviado.</div>
                     </div>
                     {% endfor %}
                 </div>
@@ -815,6 +825,8 @@
             </div>
         </div>
         </div>          
+        </div>
+      </div>
             
      
      <!-- Conversas -->

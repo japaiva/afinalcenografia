@@ -143,15 +143,21 @@ class ParametroForm(forms.ModelForm):
 class EmpresaForm(forms.ModelForm):
     class Meta:
         model = Empresa
-        fields = ['nome', 'cnpj', 'endereco', 'telefone', 'email', 'logo', 'ativa']
+        fields = ['nome', 'cnpj', 'endereco', 'telefone', 'email', 'logo', 'descricao', 'ativa']
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nome da empresa'}),
             'cnpj': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'CNPJ'}),
             'endereco': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Endereço'}),
             'telefone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Telefone'}),
             'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email'}),
+            'descricao': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 4, 
+                'placeholder': 'Descrição da empresa (pode ser editada nos projetos)'
+            }),
             'ativa': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
 
 class ParametroIndexacaoForm(forms.ModelForm):
     class Meta:

@@ -38,6 +38,20 @@
             </div>
           {% endif %}
         </div>
+
+                <!-- NOVO CAMPO: Descrição da Empresa -->
+        <div class="col-12">
+          <label for="{{ form.descricao.id_for_label }}" class="form-label">Descrição da Empresa</label>
+          {{ form.descricao }}
+          {% if form.descricao.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.descricao.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+          <div class="form-text">Descreva sua empresa, o que ela faz e o que torna ela especial para seu cliente.</div>
+        </div>
         
         <!-- CNPJ -->
         <div class="col-md-6">
@@ -90,6 +104,7 @@
             </div>
           {% endif %}
         </div>
+
         
         <!-- Logo -->
         <div class="col-md-6">
@@ -130,4 +145,71 @@
     </form>
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Máscara para CNPJ
+  const cnpjField = document.getElementById('id_cnpj');
+  if (cnpjField) {
+    cnpjField.addEventListener('input', function(e) {
+      let value = e.target.value.replace(/\D/g, '');
+      value = value.replace(/^(\d{2})(\d)/, '$1.$2');
+      value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+      value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
+      value = value.replace(/(\d{4})(\d)/, '$1-$2');
+      e.target.value = value;
+    });
+  }
+  
+  // Máscara para telefone
+  const telefoneField = document.getElementById('id_telefone');
+  if (telefoneField) {
+    telefoneField.addEventListener('input', function(e) {
+      let value = e.target.value.replace(/\D/g, '');
+      
+      if (value.length <= 10) {
+        // Telefone fixo: (00) 0000-0000
+        value = value.replace(/^(\d{2})(\d)/, '($1) $2');
+        value = value.replace(/(\d{4})(\d)/, '$1-$2');
+      } else {
+        // Celular: (00) 00000-0000
+        value = value.replace(/^(\d{2})(\d)/, '($1) $2');
+        value = value.replace(/(\d{5})(\d)/, '$1-$2');
+      }
+      
+      e.target.value = value;
+    });
+  }
+  
+  // Preview da logo antes do upload
+  const logoField = document.getElementById('id_logo');
+  if (logoField) {
+    logoField.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          // Remover preview anterior se existir
+          const existingPreview = document.getElementById('logo-preview');
+          if (existingPreview) {
+            existingPreview.remove();
+          }
+          
+          // Criar novo preview
+          const preview = document.createElement('div');
+          preview.id = 'logo-preview';
+          preview.className = 'mt-2';
+          preview.innerHTML = `
+            <small class="text-muted">Preview da nova logo:</small><br>
+            <img src="${e.target.result}" alt="Preview" style="max-width: 150px; max-height: 100px;" class="border rounded">
+          `;
+          
+          logoField.parentNode.appendChild(preview);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+});
+</script>
 {% endblock %}

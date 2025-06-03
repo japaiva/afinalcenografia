@@ -233,7 +233,7 @@
   <!-- Funcionalidades / Objetivo do Estande -->
   <div class="card mb-4">
     <div class="card-header bg-primary text-white">
-      <h5 class="mb-0">Funcionalidades / Objetivo do Estande</h5>
+      <h5 class="mb-0">Funcionalidades</h5>
     </div>
     <div class="card-body">
       <div class="row">
@@ -310,19 +310,17 @@
           {% endif %}
         </div>
         
+        <!-- ALTERAÇÃO: Campo Objetivo do Projeto (somente leitura) -->
         <div class="col-md-12 mb-3">
-          <label for="{{ form.objetivo_estande.id_for_label }}" class="form-label">
-            Objetivo do Estande
-          </label>
-          {{ form.objetivo_estande }}
-          <div class="form-text text-muted">Descreva o objetivo principal do seu estande</div>
-          {% if form.objetivo_estande.errors %}
-            <div class="form-text text-danger">
-              {% for error in form.objetivo_estande.errors %}
-                {{ error }}
-              {% endfor %}
-            </div>
-          {% endif %}
+          <label class="form-label">Objetivo do Projeto</label>
+          <div class="form-control bg-light" style="min-height: 60px; color: #6c757d;">
+            {{ projeto.descricao|default:"Nenhum objetivo especificado para este projeto." }}
+          </div>
+
+          <!-- Campo original oculto para manter a compatibilidade -->
+          <div style="display: none;">
+            {{ form.objetivo_estande }}
+          </div>
         </div>
       </div>
     </div>
