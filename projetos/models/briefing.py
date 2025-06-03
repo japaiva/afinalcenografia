@@ -175,7 +175,7 @@ class Briefing(models.Model):
             ('sem_elevacao', 'Sem Elevação'),
             ('3cm', 'Elevado 3cm'),
             ('10cm', 'Elevado 10cm'),
-            ('outro', 'Outra Elevação'),
+            ('livre', 'A ser definida'),
         ),
         blank=True, null=True,
         verbose_name="Piso Elevado"
@@ -185,7 +185,7 @@ class Briefing(models.Model):
         choices=(
             ('reta', 'Reta'),
             ('curva', 'Curva'),
-            ('outro', 'Outro'),
+            ('livre', 'A ser definida'),
         ),
         blank=True, null=True,
         verbose_name="Tipo Testeira"

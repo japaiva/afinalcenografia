@@ -1,171 +1,280 @@
-
 {% extends 'projetista/conceito/base_conceito.html' %}
+{% load projetista_filters %}
 
 {% block etapa_content %}
-<div class="alert alert-info">
-  <i class="fas fa-info-circle me-2"></i> Nesta etapa você vai expandir a imagem principal em múltiplas vistas complementares do estande.
+
+<!-- Estatísticas e Progresso -->
+<div class="row mb-4">
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body">
+        <h3 class="text-primary">{{ total_vistas }}</h3>
+        <p class="small mb-0">Vistas Criadas</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body">
+        <h3 class="text-success">{{ vistas_essenciais }}</h3>
+        <p class="small mb-0">Essenciais p/ Fotogrametria</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body">
+        <h3 class="text-info">{{ completude_fotogrametria|floatformat:0 }}%</h3>
+        <p class="small mb-0">Completude 3D</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body">
+        <h3 class="text-warning">{{ imagens_por_categoria.cliente|length }}</h3>
+        <p class="small mb-0">Para Cliente</p>
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- Imagem Principal (Referência) -->
+<!-- Imagem Principal (Referência Compacta) -->
 <div class="card mb-4">
   <div class="card-header bg-light" data-bs-toggle="collapse" data-bs-target="#imagemPrincipalCard" style="cursor: pointer;">
     <div class="d-flex justify-content-between align-items-center">
-      <h6 class="mb-0">Imagem Principal (Referência)</h6>
+      <h6 class="mb-0">📐 Imagem Principal (Referência)</h6>
       <i class="fas fa-chevron-down"></i>
     </div>
   </div>
-  <div id="imagemPrincipalCard" class="collapse show">
+  <div id="imagemPrincipalCard" class="collapse">
     <div class="card-body text-center">
-      <img src="{{ imagem_principal.imagem.url }}" alt="{{ imagem_principal.descricao }}" class="img-fluid rounded shadow" style="max-height: 300px;">
-      <p class="mt-2 mb-0">{{ imagem_principal.descricao }}</p>
-      <p class="text-muted small mb-0">
-        <span class="badge bg-info me-2">{{ imagem_principal.get_angulo_vista_display }}</span>
-        {% if imagem_principal.ia_gerada %}
-        <span class="badge bg-secondary me-2">Gerada por IA</span>
-        {% endif %}
-      </p>
+      <img src="{{ imagem_principal.imagem.url }}" alt="{{ imagem_principal.descricao }}" class="img-fluid rounded shadow" style="max-height: 200px;">
+      <p class="mt-2 mb-0 small">{{ imagem_principal.descricao }}</p>
     </div>
   </div>
 </div>
 
-<!-- Geração de Múltiplas Vistas -->
+<!-- Geração de Múltiplas Vistas - Interface Principal -->
 <div class="card mb-4">
-  <div class="card-header bg-light">
-    <h6 class="mb-0">Gerar Vistas Complementares</h6>
+  <div class="card-header bg-primary text-white">
+    <h6 class="mb-0">🎯 Gerar Múltiplas Vistas</h6>
   </div>
   <div class="card-body">
-    <div class="row">
-      <!-- Geração Automática -->
-      <div class="col-md-6 border-end">
-        <h6 class="mb-3">Geração Automática de Vistas</h6>
-        <form method="post">
-          {% csrf_token %}
-          
-          <div class="mb-3">
-            <label class="form-label">Vistas a Gerar</label>
-            <div class="row">
-              {% for angulo, nome in imagem_principal.ANGULOS_CHOICES %}
-              <div class="col-md-6">
-                <div class="form-check mb-2">
-                  <input class="form-check-input" type="checkbox" name="vistas[]" value="{{ angulo }}" id="vista{{ angulo|capfirst }}" 
-                    {% if angulo == 'perspectiva' %}disabled{% else %}checked{% endif %}>
-                  <label class="form-check-label" for="vista{{ angulo|capfirst }}">
-                    {{ nome }}
-                  </label>
-                </div>
-              </div>
-              {% endfor %}
-            </div>
+    
+    <!-- Pacotes Rápidos -->
+    <div class="row mb-4">
+      <div class="col-md-4">
+        <div class="card border-info h-100">
+          <div class="card-header bg-info text-white text-center py-2">
+            <strong>👥 Cliente</strong>
           </div>
-          
-          <div class="mb-3">
-            <label for="{{ form_geracao.instrucoes_adicionais.id_for_label }}" class="form-label">Instruções Adicionais</label>
-            {{ form_geracao.instrucoes_adicionais }}
+          <div class="card-body text-center">
+            <p class="small mb-2">6-8 vistas impactantes</p>
+            <ul class="list-unstyled small text-start">
+              <li>✓ Perspectiva externa</li>
+              <li>✓ Entrada/recepção</li>
+              <li>✓ Interior principal</li>
+              <li>✓ Área de produtos</li>
+            </ul>
+            <form method="post" style="display: inline;">
+              {% csrf_token %}
+              <button type="submit" name="gerar_pacote_cliente" class="btn btn-info btn-sm w-100">
+                <i class="fas fa-users me-1"></i> Gerar Pacote
+              </button>
+            </form>
           </div>
-          
-          <div class="d-grid">
-            <button type="submit" name="gerar_vistas" class="btn btn-primary">
-              <i class="fas fa-cube me-1"></i> Gerar Vistas Complementares
-            </button>
-          </div>
-          
-          <div class="text-center mt-3 text-muted">
-            <p><i class="fas fa-info-circle me-1"></i> Esta funcionalidade será ativada nas próximas fases de desenvolvimento.</p>
-          </div>
-        </form>
+        </div>
       </div>
       
-      <!-- Upload Manual -->
-      <div class="col-md-6">
-        <h6 class="mb-3">Upload Manual de Vista</h6>
-        <form method="post" enctype="multipart/form-data">
-          {% csrf_token %}
-          
-          <div class="mb-3">
-            <label for="{{ form_upload.angulo_vista.id_for_label }}" class="form-label">Ângulo da Vista</label>
-            {{ form_upload.angulo_vista }}
+      <div class="col-md-4">
+        <div class="card border-warning h-100">
+          <div class="card-header bg-warning text-dark text-center py-2">
+            <strong>🔧 Técnico</strong>
           </div>
-          
-          <div class="mb-3">
-            <label for="{{ form_upload.descricao.id_for_label }}" class="form-label">Descrição</label>
-            {{ form_upload.descricao }}
-          </div>
-          
-          <div class="mb-3">
-            <label for="{{ form_upload.imagem.id_for_label }}" class="form-label">Selecionar Imagem</label>
-            {{ form_upload.imagem }}
-          </div>
-          
-          <div class="d-grid">
-            <button type="submit" name="upload_imagem" class="btn btn-success">
-              <i class="fas fa-upload me-1"></i> Enviar Imagem
+          <div class="card-body text-center">
+            <p class="small mb-2">12-15 vistas técnicas</p>
+            <ul class="list-unstyled small text-start">
+              <li>✓ Todas as elevações</li>
+              <li>✓ Planta baixa</li>
+              <li>✓ Vistas internas</li>
+              <li>✓ Quinas principais</li>
+            </ul>
+            <button class="btn btn-warning btn-sm w-100" data-bs-toggle="modal" data-bs-target="#geracaoTecnicoModal">
+              <i class="fas fa-tools me-1"></i> Gerar Pacote
             </button>
           </div>
-        </form>
+        </div>
       </div>
+      
+      <div class="col-md-4">
+        <div class="card border-success h-100">
+          <div class="card-header bg-success text-white text-center py-2">
+            <strong>📷 Fotogrametria</strong>
+          </div>
+          <div class="card-body text-center">
+            <p class="small mb-2">20+ vistas completas</p>
+            <ul class="list-unstyled small text-start">
+              <li>✓ Cobertura 360°</li>
+              <li>✓ Todas as paredes</li>
+              <li>✓ Múltiplas perspectivas</li>
+              <li>✓ Detalhes técnicos</li>
+            </ul>
+            <form method="post" style="display: inline;">
+              {% csrf_token %}
+              <button type="submit" name="gerar_pacote_fotogrametria" class="btn btn-success btn-sm w-100">
+                <i class="fas fa-cube me-1"></i> Gerar Pacote
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Divisor -->
+    <div class="text-center mb-3">
+      <span class="badge bg-secondary">OU</span>
+    </div>
+    
+    <!-- Geração Personalizada -->
+    <div class="text-center">
+      <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#geracaoPersonalizadaModal">
+        <i class="fas fa-sliders-h me-1"></i> Geração Personalizada
+      </button>
+      
+      <button class="btn btn-outline-success ms-2" data-bs-toggle="modal" data-bs-target="#uploadManualModal">
+        <i class="fas fa-upload me-1"></i> Upload Manual
+      </button>
     </div>
   </div>
 </div>
 
-<!-- Visualização das Vistas Complementares -->
+<!-- Visualização das Vistas por Categoria -->
 <div class="card mb-4">
   <div class="card-header bg-light d-flex justify-content-between align-items-center">
-    <h6 class="mb-0">Vistas Complementares ({{ total_vistas }})</h6>
-    <span class="badge bg-primary">{{ total_vistas }} de 7 vistas recomendadas</span>
+    <h6 class="mb-0">🖼️ Vistas Criadas</h6>
+    <div>
+      <span class="badge bg-primary">{{ total_vistas }} total</span>
+      <span class="badge bg-success">{{ completude_fotogrametria|floatformat:0 }}% 3D</span>
+    </div>
   </div>
   <div class="card-body">
     {% if total_vistas == 0 %}
     <div class="text-center py-5">
       <i class="fas fa-images fa-3x text-muted mb-3"></i>
       <p class="mb-0">Nenhuma vista complementar adicionada.</p>
-      <p class="text-muted small">Adicione pelo menos 3 vistas diferentes para completar esta etapa.</p>
+      <p class="text-muted small">Use os pacotes acima para gerar vistas automaticamente.</p>
     </div>
     {% else %}
     
-    <ul class="nav nav-tabs" id="vistasTab" role="tablist">
-      {% for angulo, nome in imagem_principal.ANGULOS_CHOICES %}
-      {% if imagens_por_categoria|get_item:angulo and angulo != 'perspectiva' %}
+    <!-- Abas por Categoria -->
+    <ul class="nav nav-pills mb-3" id="categoriasTab" role="tablist">
       <li class="nav-item" role="presentation">
-        <button class="nav-link {% if forloop.first %}active{% endif %}" id="{{ angulo }}-tab" data-bs-toggle="tab" 
-                data-bs-target="#{{ angulo }}-pane" type="button" role="tab" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
-          {{ nome }} ({{ imagens_por_categoria|get_item:angulo|length }})
+        <button class="nav-link active" id="todas-tab" data-bs-toggle="pill" data-bs-target="#todas-pane" type="button" role="tab">
+          <i class="fas fa-th me-1"></i> Todas ({{ total_vistas }})
+        </button>
+      </li>
+      
+      {% for categoria_code, categoria_nome in imagens_por_categoria.items %}
+      {% if imagens_por_categoria|get_item:categoria_code %}
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="{{ categoria_code }}-tab" data-bs-toggle="pill" data-bs-target="#{{ categoria_code }}-pane" type="button" role="tab">
+          {% if categoria_code == 'cliente' %}👥{% elif categoria_code == 'tecnica_externa' %}🏗️{% elif categoria_code == 'tecnica_interna' %}🏠{% elif categoria_code == 'planta_elevacao' %}📐{% else %}🔍{% endif %}
+          {{ categoria_nome }} ({{ imagens_por_categoria|get_item:categoria_code|length }})
         </button>
       </li>
       {% endif %}
       {% endfor %}
     </ul>
     
-    <div class="tab-content p-3" id="vistasTabContent">
-      {% for angulo, nome in imagem_principal.ANGULOS_CHOICES %}
-      {% if imagens_por_categoria|get_item:angulo and angulo != 'perspectiva' %}
-      <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" id="{{ angulo }}-pane" role="tabpanel" aria-labelledby="{{ angulo }}-tab">
+    <div class="tab-content" id="categoriasTabContent">
+      <!-- Tab: Todas as vistas -->
+      <div class="tab-pane fade show active" id="todas-pane" role="tabpanel">
         <div class="row">
-          {% for imagem in imagens_por_categoria|get_item:angulo %}
-          <div class="col-md-6 mb-4">
+          {% for categoria_code, categoria_nome in imagens_por_categoria.items %}
+          {% for imagem in imagens_por_categoria|get_item:categoria_code %}
+          <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
             <div class="card h-100">
-              <div class="card-img-top text-center p-2" style="background-color: #f8f9fa; height: 220px; display: flex; align-items: center; justify-content: center;">
-                <img src="{{ imagem.imagem.url }}" alt="{{ imagem.descricao }}" class="img-fluid" style="max-height: 200px;">
+              <div class="card-img-top position-relative" style="height: 160px; background: #f8f9fa;">
+                <img src="{{ imagem.imagem.url }}" alt="{{ imagem.descricao }}" 
+                     class="img-fluid position-absolute top-50 start-50 translate-middle" 
+                     style="max-height: 140px; max-width: 90%;">
+                
+                <!-- Badges -->
+                <div class="position-absolute top-0 start-0 p-1">
+                  {% if imagem.essencial_fotogrametria %}
+                  <span class="badge bg-success" title="Essencial para fotogrametria">📷</span>
+                  {% endif %}
+                  {% if imagem.ia_gerada %}
+                  <span class="badge bg-info" title="Gerada por IA">🤖</span>
+                  {% endif %}
+                </div>
+              </div>
+              
+              <div class="card-body p-2">
+                <h6 class="card-title small mb-1">{{ imagem.get_angulo_vista_display }}</h6>
+                <p class="card-text small text-muted mb-1">{{ imagem.descricao|truncatechars:40 }}</p>
+                <p class="small mb-0">
+                  <span class="badge bg-light text-dark">{{ imagem.get_categoria_display }}</span>
+                </p>
+              </div>
+              
+              <div class="card-footer p-2 bg-white">
+                <div class="d-flex justify-content-between">
+                  <a href="{{ imagem.imagem.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="imagem_id" value="{{ imagem.id }}">
+                    <button type="submit" name="remover_imagem" class="btn btn-sm btn-outline-danger" 
+                            onclick="return confirm('Remover esta vista?');">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+          {% endfor %}
+        </div>
+      </div>
+      
+      <!-- Tabs por categoria -->
+      {% for categoria_code, categoria_nome in imagens_por_categoria.items %}
+      {% if imagens_por_categoria|get_item:categoria_code %}
+      <div class="tab-pane fade" id="{{ categoria_code }}-pane" role="tabpanel">
+        <div class="row">
+          {% for imagem in imagens_por_categoria|get_item:categoria_code %}
+          <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100">
+              <div class="card-img-top text-center p-2" style="background-color: #f8f9fa; height: 200px; display: flex; align-items: center; justify-content: center;">
+                <img src="{{ imagem.imagem.url }}" alt="{{ imagem.descricao }}" class="img-fluid" style="max-height: 180px;">
               </div>
               <div class="card-body">
-                <h6 class="card-title">{{ imagem.descricao }}</h6>
+                <h6 class="card-title">{{ imagem.get_angulo_vista_display }}</h6>
+                <p class="card-text">{{ imagem.descricao }}</p>
                 <p class="card-text small text-muted">
-                  <span class="badge bg-info me-2">{{ imagem.get_angulo_vista_display }}</span>
-                  {% if imagem.ia_gerada %}
-                  <span class="badge bg-secondary me-2">Gerada por IA</span>
+                  {% if imagem.essencial_fotogrametria %}
+                  <span class="badge bg-success me-1">Essencial 3D</span>
                   {% endif %}
-                  <span>Adicionada em {{ imagem.criado_em|date:"d/m/Y H:i" }}</span>
+                  {% if imagem.ia_gerada %}
+                  <span class="badge bg-info me-1">IA</span>
+                  {% endif %}
+                  <span>{{ imagem.criado_em|date:"d/m/Y H:i" }}</span>
                 </p>
               </div>
               <div class="card-footer bg-white">
                 <div class="d-flex justify-content-between">
-                  <a href="#" class="btn btn-sm btn-outline-primary">
+                  <a href="{{ imagem.imagem.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
                     <i class="fas fa-eye me-1"></i> Ampliar
                   </a>
                   <form method="post" style="display: inline;">
                     {% csrf_token %}
                     <input type="hidden" name="imagem_id" value="{{ imagem.id }}">
                     <button type="submit" name="remover_imagem" class="btn btn-sm btn-outline-danger" 
-                            onclick="return confirm('Tem certeza que deseja remover esta imagem?');">
+                            onclick="return confirm('Tem certeza que deseja remover esta vista?');">
                       <i class="fas fa-trash me-1"></i> Remover
                     </button>
                   </form>
@@ -182,6 +291,156 @@
     {% endif %}
   </div>
 </div>
+
+<!-- Modal: Geração Personalizada -->
+<div class="modal fade" id="geracaoPersonalizadaModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">🎯 Geração Personalizada de Vistas</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <div class="modal-body">
+          
+          <!-- Configurações Gerais -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <label class="form-label">Estilo de Visualização</label>
+              {{ form_geracao_multiplas.estilo_visualizacao }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Iluminação</label>
+              {{ form_geracao_multiplas.iluminacao }}
+            </div>
+          </div>
+          
+          <!-- Seleção de Vistas por Categoria -->
+          <div class="row">
+            <div class="col-md-6">
+              <div class="card mb-3">
+                <div class="card-header bg-info text-white">
+                  <h6 class="mb-0">👥 Vistas para Cliente</h6>
+                </div>
+                <div class="card-body">
+                  {{ form_geracao_multiplas.vistas_cliente }}
+                </div>
+              </div>
+              
+              <div class="card mb-3">
+                <div class="card-header bg-secondary text-white">
+                  <h6 class="mb-0">📐 Plantas e Elevações</h6>
+                </div>
+                <div class="card-body">
+                  {{ form_geracao_multiplas.plantas_elevacoes }}
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="card mb-3">
+                <div class="card-header bg-warning text-dark">
+                  <h6 class="mb-0">🏗️ Vistas Externas</h6>
+                </div>
+                <div class="card-body">
+                  {{ form_geracao_multiplas.vistas_externas }}
+                </div>
+              </div>
+              
+              <div class="card mb-3">
+                <div class="card-header bg-success text-white">
+                  <h6 class="mb-0">🏠 Vistas Internas</h6>
+                </div>
+                <div class="card-body">
+                  {{ form_geracao_multiplas.vistas_internas }}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-12">
+              <div class="card mb-3">
+                <div class="card-header bg-dark text-white">
+                  <h6 class="mb-0">🔍 Detalhes Específicos</h6>
+                </div>
+                <div class="card-body">
+                  {{ form_geracao_multiplas.detalhes }}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Instruções Adicionais -->
+          <div class="mb-3">
+            <label class="form-label">Instruções Adicionais</label>
+            {{ form_geracao_multiplas.instrucoes_adicionais }}
+          </div>
+          
+          <!-- Opções -->
+          <div class="form-check">
+            {{ form_geracao_multiplas.prioridade_cliente }}
+            <label class="form-check-label" for="{{ form_geracao_multiplas.prioridade_cliente.id_for_label }}">
+              Gerar vistas para cliente primeiro (mais rápido)
+            </label>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" name="gerar_multiplas_vistas" class="btn btn-primary">
+            <i class="fas fa-magic me-1"></i> Gerar Vistas Selecionadas
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Upload Manual -->
+<div class="modal fade" id="uploadManualModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">📁 Upload Manual de Vista</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Ângulo/Vista</label>
+            {{ form_upload.angulo_vista }}
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Categoria</label>
+            {{ form_upload.categoria }}
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Descrição</label>
+            {{ form_upload.descricao }}
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Arquivo de Imagem</label>
+            {{ form_upload.imagem }}
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" name="upload_imagem" class="btn btn-success">
+            <i class="fas fa-upload me-1"></i> Enviar Imagem
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block botoes_navegacao %}
@@ -193,11 +452,74 @@
     </button>
   </form>
   
-  <form method="post" style="display: inline;">
-    {% csrf_token %}
-    <button type="submit" name="concluir" class="btn btn-success" {% if not etapa_concluida %}disabled{% endif %}>
-      <i class="fas fa-check me-1"></i> Concluir Conceito Visual
-    </button>
-  </form>
+  <div>
+    <div class="btn-group me-2">
+      <button type="button" class="btn btn-outline-info dropdown-toggle" data-bs-toggle="dropdown">
+        <i class="fas fa-download me-1"></i> Exportar
+      </button>
+      <ul class="dropdown-menu">
+        <li><a class="dropdown-item" href="#"><i class="fas fa-users me-2"></i> Vistas para Cliente</a></li>
+        <li><a class="dropdown-item" href="#"><i class="fas fa-cube me-2"></i> Pacote Fotogrametria</a></li>
+        <li><a class="dropdown-item" href="#"><i class="fas fa-file-pdf me-2"></i> Relatório Completo</a></li>
+      </ul>
+    </div>
+    
+    <form method="post" style="display: inline;">
+      {% csrf_token %}
+      <button type="submit" name="concluir" class="btn btn-success" {% if not etapa_concluida %}disabled{% endif %}>
+        <i class="fas fa-check me-1"></i> Concluir Conceito Visual
+      </button>
+    </form>
+  </div>
 </div>
+
+<!-- Informações de Progresso -->
+{% if not etapa_concluida %}
+<div class="alert alert-info mt-3">
+  <i class="fas fa-info-circle me-2"></i> 
+  <strong>Para concluir esta etapa:</strong> É necessário ter pelo menos 3 vistas diferentes. 
+  Recomendamos o pacote "Cliente" como mínimo para aprovação.
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+$(document).ready(function() {
+    // Mostrar/ocultar seções do formulário personalizado baseado no pacote selecionado
+    $('input[name="pacote_vistas"]').change(function() {
+        const pacote = $(this).val();
+        
+        if (pacote === 'personalizado') {
+            $('.vistas-personalizadas').show();
+        } else {
+            $('.vistas-personalizadas').hide();
+        }
+    });
+    
+    // Atualizar contador de vistas selecionadas
+    function updateCounter() {
+        const total = $('.form-check-input:checked').length;
+        $('#vistas-count').text(total);
+    }
+    
+    $('.form-check-input').change(updateCounter);
+    
+    // Preview de imagem no upload
+    $('#id_imagem').change(function() {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                $('#image-preview').html(`<img src="${e.target.result}" class="img-fluid rounded" style="max-height: 200px;">`);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    // Tooltips para badges
+    $('[title]').tooltip();
+});
+</script>
 {% endblock %}

@@ -15,10 +15,13 @@ from projetista.models import ConceitoVisual, ImagemConceitoVisual
 from projetista.forms import (
     ConceitoVisualForm, ImagemConceitoForm, 
     GeracaoImagemForm, ModificacaoImagemForm,
-    ExportacaoConceitoForm
+    ExportacaoConceitoForm,
+    GeracaoMultiplasVistasForm, FiltroVistasForm
 )
 
 import logging
+import requests
+import base64
 logger = logging.getLogger(__name__)
 
 # Importe as classes/serviços necessários no topo do arquivo conceito.py
@@ -715,10 +718,13 @@ def _gerar_imagem_com_api(self, prompt):
             'error': str(e)
         }
 
+
+# Atualização da view conceito_etapa3 em conceito.py
+
 @login_required
 def conceito_etapa3(request, projeto_id):
     """
-    Etapa 3: Geração de múltiplas vistas
+    Etapa 3: Geração de múltiplas vistas - Versão Expandida
     """
     projeto = get_object_or_404(Projeto, pk=projeto_id, projetista=request.user)
     
@@ -733,27 +739,112 @@ def conceito_etapa3(request, projeto_id):
     # Obter a imagem principal
     imagem_principal = conceito.imagens.filter(principal=True).first()
     
-    # Obter as outras imagens (vistas complementares)
-    imagens_complementares = conceito.imagens.filter(principal=False)
-    
-    # Agrupar imagens por categoria
+    # Obter as outras imagens (vistas complementares) organizadas por categoria
     imagens_por_categoria = {}
-    for angulo, nome in ImagemConceitoVisual.ANGULOS_CHOICES:
-        imagens_por_categoria[angulo] = imagens_complementares.filter(angulo_vista=angulo)
+    for categoria_code, categoria_nome in ImagemConceitoVisual.CATEGORIA_CHOICES:
+        imagens_por_categoria[categoria_code] = conceito.imagens.filter(
+            categoria=categoria_code, 
+            principal=False
+        ).order_by('ordem', 'criado_em')
     
-    # Formulário para geração de vistas adicionais
-    form_geracao = GeracaoImagemForm()
+    # Estatísticas das vistas
+    total_vistas = conceito.imagens.filter(principal=False).count()
+    vistas_essenciais = conceito.imagens.filter(essencial_fotogrametria=True).count()
+    completude_fotogrametria = conceito.get_completude_fotogrametria()
     
-    # Formulário para upload manual
+    # Formulários
+    form_geracao_multiplas = GeracaoMultiplasVistasForm()
     form_upload = ImagemConceitoForm()
+    form_filtro = FiltroVistasForm()
+    
+    # Definir pacotes pré-configurados
+    pacotes_predefinidos = {
+        'cliente': {
+            'nome': 'Apresentação Cliente',
+            'vistas': ['perspectiva_externa', 'entrada_recepcao', 'interior_principal', 'area_produtos'],
+            'descricao': 'Vistas impactantes para apresentação'
+        },
+        'tecnico_basico': {
+            'nome': 'Técnico Básico', 
+            'vistas': ['perspectiva_externa', 'planta_baixa', 'elevacao_frontal', 'elevacao_lateral_esquerda', 
+                      'elevacao_lateral_direita', 'elevacao_fundos', 'interior_principal', 'entrada_recepcao'],
+            'descricao': 'Vistas essenciais para desenvolvimento'
+        },
+        'fotogrametria': {
+            'nome': 'Fotogrametria Completa',
+            'vistas': ['perspectiva_externa', 'planta_baixa', 'elevacao_frontal', 'elevacao_lateral_esquerda', 
+                      'elevacao_lateral_direita', 'elevacao_fundos', 'quina_frontal_esquerda', 'quina_frontal_direita',
+                      'interior_parede_norte', 'interior_parede_sul', 'interior_parede_leste', 'interior_parede_oeste',
+                      'interior_perspectiva_1', 'interior_perspectiva_2', 'interior_perspectiva_3'],
+            'descricao': 'Cobertura completa para reconstrução 3D'
+        }
+    }
     
     if request.method == 'POST':
-        if 'gerar_vistas' in request.POST:
-            # Simulação de geração de múltiplas vistas via IA (será implementada posteriormente)
-            form_geracao = GeracaoImagemForm(request.POST)
-            if form_geracao.is_valid():
-                # Aqui entraria a lógica real de geração via IA
-                messages.info(request, "A funcionalidade de geração automática de vistas adicionais será implementada em breve.")
+        if 'gerar_multiplas_vistas' in request.POST:
+            form_geracao_multiplas = GeracaoMultiplasVistasForm(request.POST)
+            if form_geracao_multiplas.is_valid():
+                try:
+                    # Obter agente de múltiplas vistas
+                    try:
+                        agente = Agente.objects.get(nome='Agente de Múltiplas Vistas')
+                        if not agente.ativo:
+                            messages.warning(request, 'O Agente de Múltiplas Vistas está inativo.')
+                            return redirect('projetista:conceito_etapa3', projeto_id=projeto.id)
+                    except Agente.DoesNotExist:
+                        messages.warning(request, 'Agente de Múltiplas Vistas não encontrado.')
+                        return redirect('projetista:conceito_etapa3', projeto_id=projeto.id)
+                    
+                    # Coletar vistas selecionadas
+                    vistas_para_gerar = []
+                    pacote_escolhido = form_geracao_multiplas.cleaned_data['pacote_vistas']
+                    
+                    if pacote_escolhido in pacotes_predefinidos:
+                        vistas_para_gerar = pacotes_predefinidos[pacote_escolhido]['vistas']
+                    else:  # personalizado
+                        vistas_para_gerar.extend(form_geracao_multiplas.cleaned_data.get('vistas_cliente', []))
+                        vistas_para_gerar.extend(form_geracao_multiplas.cleaned_data.get('vistas_externas', []))
+                        vistas_para_gerar.extend(form_geracao_multiplas.cleaned_data.get('plantas_elevacoes', []))
+                        vistas_para_gerar.extend(form_geracao_multiplas.cleaned_data.get('vistas_internas', []))
+                        vistas_para_gerar.extend(form_geracao_multiplas.cleaned_data.get('detalhes', []))
+                    
+                    # Filtrar vistas que já existem
+                    vistas_existentes = conceito.imagens.values_list('angulo_vista', flat=True)
+                    vistas_para_gerar = [v for v in vistas_para_gerar if v not in vistas_existentes]
+                    
+                    if not vistas_para_gerar:
+                        messages.info(request, 'Todas as vistas selecionadas já existem.')
+                        return redirect('projetista:conceito_etapa3', projeto_id=projeto.id)
+                    
+                    # Inicializar serviço de múltiplas vistas
+                    from core.services.multiplas_vistas_service import MultiplasVistasService
+                    multiplas_service = MultiplasVistasService(agente)
+                    
+                    # Configurações de geração
+                    config_geracao = {
+                        'estilo_visualizacao': form_geracao_multiplas.cleaned_data['estilo_visualizacao'],
+                        'iluminacao': form_geracao_multiplas.cleaned_data['iluminacao'],
+                        'instrucoes_adicionais': form_geracao_multiplas.cleaned_data['instrucoes_adicionais'],
+                        'prioridade_cliente': form_geracao_multiplas.cleaned_data['prioridade_cliente']
+                    }
+                    
+                    # Gerar vistas
+                    result = multiplas_service.gerar_multiplas_vistas(
+                        conceito, 
+                        imagem_principal,
+                        vistas_para_gerar,
+                        **config_geracao
+                    )
+                    
+                    if result['success']:
+                        messages.success(request, f"Iniciada a geração de {len(vistas_para_gerar)} vistas. O processo pode levar alguns minutos.")
+                        return redirect('projetista:conceito_etapa3', projeto_id=projeto.id)
+                    else:
+                        messages.error(request, f"Erro ao gerar vistas: {result.get('error', 'Erro desconhecido')}")
+                        
+                except Exception as e:
+                    logger.error(f"Erro ao gerar múltiplas vistas: {str(e)}", exc_info=True)
+                    messages.error(request, f"Erro ao processar solicitação: {str(e)}")
         
         elif 'upload_imagem' in request.POST:
             # Processar upload manual de imagem complementar
@@ -777,6 +868,116 @@ def conceito_etapa3(request, projeto_id):
                     return redirect('projetista:conceito_etapa3', projeto_id=projeto.id)
                 except Exception as e:
                     messages.error(request, f'Erro ao remover imagem: {str(e)}')
+
+        elif 'gerar_pacote_cliente' in request.POST:
+            # Gerar rapidamente o pacote para cliente
+            try:
+                # Obter agente de múltiplas vistas
+                try:
+                    agente = Agente.objects.get(nome='Agente de Múltiplas Vistas')
+                    if not agente.ativo:
+                        messages.warning(request, 'O Agente de Múltiplas Vistas está inativo.')
+                        return redirect('projetista:conceito_etapa3', projeto_id=projeto.id)
+                except Agente.DoesNotExist:
+                    messages.warning(request, 'Agente de Múltiplas Vistas não encontrado.')
+                    return redirect('projetista:conceito_etapa3', projeto_id=projeto.id)
+                
+                # Vistas do pacote cliente
+                vistas_cliente = pacotes_predefinidos['cliente']['vistas']
+                
+                # Filtrar vistas que já existem
+                vistas_existentes = conceito.imagens.values_list('angulo_vista', flat=True)
+                vistas_para_gerar = [v for v in vistas_cliente if v not in vistas_existentes]
+                
+                if not vistas_para_gerar:
+                    messages.info(request, 'Todas as vistas do pacote cliente já existem.')
+                    return redirect('projetista:conceito_etapa3', projeto_id=projeto.id)
+                
+                # Inicializar serviço de múltiplas vistas
+                from core.services.multiplas_vistas_service import MultiplasVistasService
+                multiplas_service = MultiplasVistasService(agente)
+                
+                # Configurações para cliente
+                config_geracao = {
+                    'estilo_visualizacao': 'fotorrealista',
+                    'iluminacao': 'evento',
+                    'instrucoes_adicionais': 'Foque no impacto visual para apresentação ao cliente',
+                    'prioridade_cliente': True
+                }
+                
+                # Gerar vistas
+                result = multiplas_service.gerar_multiplas_vistas(
+                    conceito, 
+                    imagem_principal,
+                    vistas_para_gerar,
+                    **config_geracao
+                )
+                
+                if result['success']:
+                    total_geradas = len(result['vistas_geradas'])
+                    total_falharam = len(result['vistas_falharam'])
+                    
+                    if total_geradas > 0:
+                        messages.success(request, f"Pacote Cliente: {total_geradas} vistas geradas com sucesso!")
+                    
+                    if total_falharam > 0:
+                        messages.warning(request, f"{total_falharam} vistas falharam na geração.")
+                        
+                    return redirect('projetista:conceito_etapa3', projeto_id=projeto.id)
+                else:
+                    messages.error(request, f"Erro ao gerar pacote cliente: {result.get('error', 'Erro desconhecido')}")
+                    
+            except Exception as e:
+                logger.error(f"Erro ao gerar pacote cliente: {str(e)}", exc_info=True)
+                messages.error(request, f"Erro ao processar solicitação: {str(e)}")
+
+        elif 'gerar_pacote_fotogrametria' in request.POST:
+            # Gerar pacote completo para fotogrametria
+            try:
+                # Obter agente
+                agente = Agente.objects.get(nome='Agente de Múltiplas Vistas')
+                
+                # Vistas do pacote fotogrametria
+                vistas_fotogrametria = pacotes_predefinidos['fotogrametria']['vistas']
+                
+                # Filtrar vistas que já existem
+                vistas_existentes = conceito.imagens.values_list('angulo_vista', flat=True)
+                vistas_para_gerar = [v for v in vistas_fotogrametria if v not in vistas_existentes]
+                
+                if not vistas_para_gerar:
+                    messages.info(request, 'Todas as vistas do pacote fotogrametria já existem.')
+                    return redirect('projetista:conceito_etapa3', projeto_id=projeto.id)
+                
+                # Inicializar serviço
+                from core.services.multiplas_vistas_service import MultiplasVistasService
+                multiplas_service = MultiplasVistasService(agente)
+                
+                # Configurações para fotogrametria
+                config_geracao = {
+                    'estilo_visualizacao': 'fotorrealista',
+                    'iluminacao': 'diurna',
+                    'instrucoes_adicionais': 'Vistas técnicas para reconstrução 3D precisa',
+                    'prioridade_cliente': False
+                }
+                
+                # Gerar vistas
+                result = multiplas_service.gerar_multiplas_vistas(
+                    conceito, 
+                    imagem_principal,
+                    vistas_para_gerar,
+                    **config_geracao
+                )
+                
+                if result['success']:
+                    total_geradas = len(result['vistas_geradas'])
+                    messages.success(request, f"Pacote Fotogrametria: iniciada geração de {len(vistas_para_gerar)} vistas. {total_geradas} já concluídas!")
+                    return redirect('projetista:conceito_etapa3', projeto_id=projeto.id)
+                else:
+                    messages.error(request, f"Erro: {result.get('error', 'Erro desconhecido')}")
+                    
+            except Exception as e:
+                logger.error(f"Erro ao gerar pacote fotogrametria: {str(e)}", exc_info=True)
+                messages.error(request, f"Erro: {str(e)}")
         
         elif 'concluir' in request.POST:
             # Concluir o processo de conceito visual
@@ -798,16 +999,20 @@ def conceito_etapa3(request, projeto_id):
         'projeto': projeto,
         'conceito': conceito,
         'imagem_principal': imagem_principal,
-        'imagens_complementares': imagens_complementares,
         'imagens_por_categoria': imagens_por_categoria,
-        'total_vistas': imagens_complementares.count(),
-        'form_geracao': form_geracao,
+        'total_vistas': total_vistas,
+        'vistas_essenciais': vistas_essenciais,
+        'completude_fotogrametria': completude_fotogrametria,
+        'form_geracao_multiplas': form_geracao_multiplas,
         'form_upload': form_upload,
+        'form_filtro': form_filtro,
+        'pacotes_predefinidos': pacotes_predefinidos,
         'etapa_atual': 3,
         'etapa_concluida': conceito.etapa_concluida(3),
     }
     
     return render(request, 'projetista/conceito/etapa3_vistas.html', context)
+
 
 @login_required
 def conceito_completo(request, conceito_id):

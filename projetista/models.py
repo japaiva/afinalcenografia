@@ -146,6 +146,43 @@ class ConceitoVisual(models.Model):
             return self.imagens.values('angulo_vista').distinct().count() >= 3
         return False
     
+    def get_vistas_cliente(self):
+        """Retorna vistas importantes para apresentação ao cliente"""
+        vistas_prioritarias = [
+            'perspectiva_externa',
+            'entrada_recepcao', 
+            'interior_principal',
+            'area_produtos'
+        ]
+        return self.imagens.filter(angulo_vista__in=vistas_prioritarias)
+    
+    def get_vistas_tecnicas(self):
+        """Retorna todas as vistas técnicas para fotogrametria"""
+        vistas_tecnicas = [
+            'planta_baixa',
+            'elevacao_frontal',
+            'elevacao_lateral_esquerda',
+            'elevacao_lateral_direita', 
+            'elevacao_fundos'
+        ]
+        return self.imagens.filter(angulo_vista__in=vistas_tecnicas)
+    
+    def get_completude_fotogrametria(self):
+        """Calcula percentual de completude para fotogrametria"""
+        vistas_essenciais = [
+            'perspectiva_externa', 'planta_baixa',
+            'elevacao_frontal', 'elevacao_lateral_esquerda', 
+            'elevacao_lateral_direita', 'elevacao_fundos',
+            'interior_parede_norte', 'interior_parede_sul',
+            'interior_parede_leste', 'interior_parede_oeste'
+        ]
+        
+        vistas_existentes = self.imagens.filter(
+            angulo_vista__in=vistas_essenciais
+        ).values_list('angulo_vista', flat=True).distinct()
+        
+        return (len(vistas_existentes) / len(vistas_essenciais)) * 100
+    
     class Meta:
         verbose_name = "Conceito Visual"
         verbose_name_plural = "Conceitos Visuais"
@@ -155,16 +192,52 @@ class ImagemConceitoVisual(models.Model):
     """
     Modelo para armazenar imagens do conceito visual, incluindo a principal e múltiplas vistas
     """
-    # Vistas/ângulos pré-definidos para categorização
+    # Vistas/ângulos expandidos para fotogrametria
     ANGULOS_CHOICES = [
-        ('frontal', 'Vista Frontal'),
-        ('perspectiva', 'Perspectiva Externa'),
-        ('lateral_esquerda', 'Lateral Esquerda'),
-        ('lateral_direita', 'Lateral Direita'),
-        ('interior', 'Vista Interior'),
-        ('superior', 'Vista Superior/Planta'),
-        ('detalhe', 'Detalhe'),
-        ('outro', 'Outro Ângulo')
+        # VISTAS PARA CLIENTE (Impactantes)
+        ('perspectiva_externa', 'Perspectiva Externa Principal'),
+        ('entrada_recepcao', 'Vista da Entrada/Recepção'),
+        ('interior_principal', 'Vista Interna Principal'),
+        ('area_produtos', 'Área de Produtos/Destaque'),
+        
+        # VISTAS TÉCNICAS EXTERNAS
+        ('elevacao_frontal', 'Elevação Frontal'),
+        ('elevacao_lateral_esquerda', 'Elevação Lateral Esquerda'),
+        ('elevacao_lateral_direita', 'Elevação Lateral Direita'),
+        ('elevacao_fundos', 'Elevação Fundos'),
+        ('quina_frontal_esquerda', 'Quina Frontal-Esquerda'),
+        ('quina_frontal_direita', 'Quina Frontal-Direita'),
+        
+        # PLANTA E VISTAS SUPERIORES
+        ('planta_baixa', 'Planta Baixa'),
+        ('vista_superior', 'Vista Superior'),
+        
+        # VISTAS INTERNAS SISTEMÁTICAS
+        ('interior_parede_norte', 'Interior - Parede Norte'),
+        ('interior_parede_sul', 'Interior - Parede Sul'),
+        ('interior_parede_leste', 'Interior - Parede Leste'),
+        ('interior_parede_oeste', 'Interior - Parede Oeste'),
+        ('interior_perspectiva_1', 'Interior - Perspectiva 1'),
+        ('interior_perspectiva_2', 'Interior - Perspectiva 2'),
+        ('interior_perspectiva_3', 'Interior - Perspectiva 3'),
+        
+        # DETALHES ESPECÍFICOS
+        ('detalhe_balcao', 'Detalhe do Balcão'),
+        ('detalhe_display', 'Detalhe dos Displays'),
+        ('detalhe_iluminacao', 'Detalhe da Iluminação'),
+        ('detalhe_entrada', 'Detalhe da Entrada'),
+        
+        # OUTROS
+        ('outro', 'Outro Ângulo'),
+    ]
+    
+    # Categorias para organização
+    CATEGORIA_CHOICES = [
+        ('cliente', 'Apresentação para Cliente'),
+        ('tecnica_externa', 'Técnica Externa'),
+        ('tecnica_interna', 'Técnica Interna'),
+        ('planta_elevacao', 'Plantas e Elevações'),
+        ('detalhes', 'Detalhes Específicos'),
     ]
     
     conceito = models.ForeignKey(
@@ -185,6 +258,12 @@ class ImagemConceitoVisual(models.Model):
         choices=ANGULOS_CHOICES,
         default='outro',
         verbose_name="Ângulo/Vista"
+    )
+    categoria = models.CharField(
+        max_length=20,
+        choices=CATEGORIA_CHOICES,
+        default='cliente',
+        verbose_name="Categoria"
     )
     principal = models.BooleanField(
         default=False,
@@ -217,6 +296,23 @@ class ImagemConceitoVisual(models.Model):
         verbose_name="Prompt de Geração"
     )
     
+    # Campos para fotogrametria
+    essencial_fotogrametria = models.BooleanField(
+        default=False,
+        verbose_name="Essencial para Fotogrametria"
+    )
+    coordenada_x = models.FloatField(
+        null=True, blank=True,
+        verbose_name="Coordenada X (opcional)"
+    )
+    coordenada_y = models.FloatField(
+        null=True, blank=True,
+        verbose_name="Coordenada Y (opcional)"
+    )
+    coordenada_z = models.FloatField(
+        null=True, blank=True,
+        verbose_name="Coordenada Z (opcional)"
+    )
     
     criado_em = models.DateTimeField(
         auto_now_add=True,
@@ -226,7 +322,61 @@ class ImagemConceitoVisual(models.Model):
     def __str__(self):
         return f"{self.get_angulo_vista_display()} - {self.conceito}"
     
+    def save(self, *args, **kwargs):
+        # Auto-categorizar baseado no ângulo da vista
+        if not self.categoria:
+            if self.angulo_vista in ['perspectiva_externa', 'entrada_recepcao', 'interior_principal', 'area_produtos']:
+                self.categoria = 'cliente'
+            elif self.angulo_vista.startswith('elevacao_') or self.angulo_vista.startswith('quina_'):
+                self.categoria = 'tecnica_externa'
+            elif self.angulo_vista.startswith('interior_'):
+                self.categoria = 'tecnica_interna'
+            elif self.angulo_vista in ['planta_baixa', 'vista_superior']:
+                self.categoria = 'planta_elevacao'
+            elif self.angulo_vista.startswith('detalhe_'):
+                self.categoria = 'detalhes'
+        
+        # Marcar como essencial para fotogrametria
+        vistas_essenciais = [
+            'perspectiva_externa', 'planta_baixa',
+            'elevacao_frontal', 'elevacao_lateral_esquerda', 
+            'elevacao_lateral_direita', 'elevacao_fundos',
+            'interior_parede_norte', 'interior_parede_sul',
+            'interior_parede_leste', 'interior_parede_oeste'
+        ]
+        self.essencial_fotogrametria = self.angulo_vista in vistas_essenciais
+        
+        super().save(*args, **kwargs)
+    
     class Meta:
         verbose_name = "Imagem de Conceito"
         verbose_name_plural = "Imagens de Conceito"
-        ordering = ['ordem', 'criado_em']
+        ordering = ['categoria', 'ordem', 'criado_em']
+        
+class PackageVistasPreset(models.Model):
+    """
+    Modelo para definir pacotes pré-definidos de vistas
+    """
+    nome = models.CharField(max_length=100, verbose_name="Nome do Pacote")
+    descricao = models.TextField(verbose_name="Descrição")
+    vistas_incluidas = models.JSONField(
+        verbose_name="Vistas Incluídas",
+        help_text="Lista dos angulos_vista incluídos neste pacote"
+    )
+    tipo = models.CharField(
+        max_length=20,
+        choices=[
+            ('cliente', 'Apresentação Cliente'),
+            ('tecnico', 'Técnico Completo'),
+            ('fotogrametria', 'Fotogrametria'),
+            ('basico', 'Básico')
+        ],
+        verbose_name="Tipo do Pacote"
+    )
+    ativo = models.BooleanField(default=True)
+    ordem = models.PositiveSmallIntegerField(default=0)
+    
+    class Meta:
+        verbose_name = "Pacote de Vistas"
+        verbose_name_plural = "Pacotes de Vistas"
+        ordering = ['tipo', 'ordem']
