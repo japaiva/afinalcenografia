@@ -105,186 +105,6 @@ def concluir_briefing(request, projeto_id):
     return render(request, 'cliente/briefing_conclusao.html', context)
 
 @login_required
-@cliente_required
-def briefing_etapa(request, projeto_id, etapa):
-    """Gerencia cada etapa do briefing"""
-    from projetos.services.briefing_service import proxima_etapa_logica, obter_titulo_etapa
-
-    projeto = get_object_or_404(Projeto, pk=projeto_id, empresa=request.user.empresa)
-
-    try:
-        briefing = Briefing.objects.get(projeto=projeto)
-    except Briefing.DoesNotExist:
-        return redirect('cliente:iniciar_briefing', projeto_id=projeto.id)
-
-    etapa = int(etapa)
-    if etapa < 1 or etapa > 4:
-        etapa = 1
-
-    # Formulários por etapa
-    if etapa == 1:
-        form_class = BriefingEtapa1Form
-        secao = 'evento'
-    elif etapa == 2:
-        form_class = BriefingEtapa2Form
-        secao = 'estande'
-    elif etapa == 3:
-        form_class = BriefingEtapa3Form
-        secao = 'areas_estande'
-    else:
-        form_class = BriefingEtapa4Form
-        secao = 'dados_complementares'
-
-    if request.method == 'POST':
-        if etapa == 3:
-            form = form_class(request.POST)
-            if form.is_valid():
-                with transaction.atomic():
-                    # Checkboxes principais
-                    tem_area_exposicao = form.cleaned_data.get('tem_area_exposicao', False)
-                    tem_sala_reuniao = form.cleaned_data.get('tem_sala_reuniao', False)
-                    tem_copa = form.cleaned_data.get('tem_copa', False)
-                    tem_deposito = form.cleaned_data.get('tem_deposito', False)
-
-                    if not tem_area_exposicao:
-                        AreaExposicao.objects.filter(briefing=briefing).delete()
-
-                    if not tem_sala_reuniao:
-                        SalaReuniao.objects.filter(briefing=briefing).delete()
-
-                    if not tem_copa:
-                        Copa.objects.filter(briefing=briefing).delete()
-
-                    if not tem_deposito:
-                        Deposito.objects.filter(briefing=briefing).delete()
-
-                    # Áreas de exposição
-                    if tem_area_exposicao:
-                        AreaExposicao.objects.filter(briefing=briefing).delete()
-                        num_areas = int(request.POST.get('num_areas_exposicao', 1))
-                        for i in range(num_areas):
-                            if f'area_exposicao-{i}-metragem' in request.POST:
-                                area = AreaExposicao(briefing=briefing)
-                                area.tem_lounge = request.POST.get(f'area_exposicao-{i}-tem_lounge') == 'on'
-                                area.tem_vitrine_exposicao = request.POST.get(f'area_exposicao-{i}-tem_vitrine_exposicao') == 'on'
-                                area.tem_balcao_recepcao = request.POST.get(f'area_exposicao-{i}-tem_balcao_recepcao') == 'on'
-                                area.tem_mesas_atendimento = request.POST.get(f'area_exposicao-{i}-tem_mesas_atendimento') == 'on'
-                                area.tem_balcao_cafe = request.POST.get(f'area_exposicao-{i}-tem_balcao_cafe') == 'on'
-                                area.tem_balcao_vitrine = request.POST.get(f'area_exposicao-{i}-tem_balcao_vitrine') == 'on'
-                                area.tem_caixa_vendas = request.POST.get(f'area_exposicao-{i}-tem_caixa_vendas') == 'on'
-                                area.equipamentos = request.POST.get(f'area_exposicao-{i}-equipamentos', '')
-                                area.observacoes = request.POST.get(f'area_exposicao-{i}-observacoes', '')
-                                try:
-                                    area.metragem = float(request.POST.get(f'area_exposicao-{i}-metragem', 0))
-                                except (ValueError, TypeError):
-                                    area.metragem = 0
-                                area.save()
-
-                    # Salas de reunião
-                    if tem_sala_reuniao:
-                        SalaReuniao.objects.filter(briefing=briefing).delete()
-                        num_salas = int(request.POST.get('num_salas_reuniao', 1))
-                        for i in range(num_salas):
-                            if f'sala_reuniao-{i}-capacidade' in request.POST:
-                                sala = SalaReuniao(briefing=briefing)
-                                try:
-                                    sala.capacidade = int(request.POST.get(f'sala_reuniao-{i}-capacidade', 0))
-                                except (ValueError, TypeError):
-                                    sala.capacidade = 0
-                                sala.equipamentos = request.POST.get(f'sala_reuniao-{i}-equipamentos', '')
-                                try:
-                                    sala.metragem = float(request.POST.get(f'sala_reuniao-{i}-metragem', 0))
-                                except (ValueError, TypeError):
-                                    sala.metragem = 0
-                                sala.save()
-
-                    # Copa
-                    if tem_copa and 'copa-equipamentos' in request.POST:
-                        copa, _ = Copa.objects.get_or_create(briefing=briefing)
-                        copa.equipamentos = request.POST.get('copa-equipamentos', '')
-                        try:
-                            copa.metragem = float(request.POST.get('copa-metragem', 0))
-                        except (ValueError, TypeError):
-                            copa.metragem = 0
-                        copa.save()
-
-                    # Depósito
-                    if tem_deposito and 'deposito-equipamentos' in request.POST:
-                        deposito, _ = Deposito.objects.get_or_create(briefing=briefing)
-                        deposito.equipamentos = request.POST.get('deposito-equipamentos', '')
-                        try:
-                            deposito.metragem = float(request.POST.get('deposito-metragem', 0))
-                        except (ValueError, TypeError):
-                            deposito.metragem = 0
-                        deposito.save()
-
-                briefing.etapa_atual = etapa
-                briefing.save()
-        else:
-            form = form_class(request.POST, request.FILES, instance=briefing)
-            if form.is_valid():
-                form.save()
-                briefing.etapa_atual = etapa
-                briefing.save()
-
-        if 'avancar' in request.POST and etapa < 4:
-            return redirect('cliente:briefing_etapa', projeto_id=projeto.id, etapa=proxima_etapa_logica(projeto.tipo_projeto, etapa))
-        elif 'concluir' in request.POST:
-            return redirect('cliente:concluir_briefing', projeto_id=projeto.id)
-
-    else:
-        if etapa == 3:
-            form = BriefingEtapa3Form(initial={
-                'tem_area_exposicao': AreaExposicao.objects.filter(briefing=briefing).exists(),
-                'tem_sala_reuniao': SalaReuniao.objects.filter(briefing=briefing).exists(),
-                'tem_copa': Copa.objects.filter(briefing=briefing).exists(),
-                'tem_deposito': Deposito.objects.filter(briefing=briefing).exists(),
-            })
-        else:
-            form = form_class(instance=briefing)
-
-    conversas = BriefingConversation.objects.filter(briefing=briefing, etapa=etapa).order_by('-timestamp')[:20]
-    validacoes = BriefingValidacao.objects.filter(briefing=briefing)
-    validacao_atual = validacoes.filter(secao=secao).first()
-    arquivos = BriefingArquivoReferencia.objects.filter(briefing=briefing)
-
-    context = {
-        'projeto': projeto,
-        'briefing': briefing,
-        'etapa': etapa,
-        'form': form,
-        'conversas': conversas,
-        'validacoes': validacoes,
-        'validacao_atual': validacao_atual,
-        'mensagem_form': BriefingMensagemForm(),
-        'arquivo_form': BriefingArquivoReferenciaForm(),
-        'arquivos': arquivos,
-        'titulo_etapa': obter_titulo_etapa(etapa),
-        'pode_avancar': etapa < 4,
-        'pode_voltar': etapa > 1,
-        'todas_aprovadas': all(v.status == 'aprovado' for v in validacoes),
-    }
-
-    if etapa == 3:
-        areas_exposicao = list(AreaExposicao.objects.filter(briefing=briefing)) or [None]
-        salas_reuniao = list(SalaReuniao.objects.filter(briefing=briefing)) or [None]
-        copa = Copa.objects.filter(briefing=briefing).first()
-        deposito = Deposito.objects.filter(briefing=briefing).first()
-
-        context.update({
-            'areas_exposicao': areas_exposicao,
-            'salas_reuniao': salas_reuniao,
-            'copa_form': CopaForm(instance=copa) if copa else CopaForm(prefix='copa'),
-            'deposito_form': DepositoForm(instance=deposito) if deposito else DepositoForm(prefix='deposito'),
-            'num_areas_exposicao': len(areas_exposicao),
-            'num_salas_reuniao': len(salas_reuniao),
-        })
-
-    # Renderiza template dinâmico por etapa (ex: briefing_etapa3.html)
-    template_name = f'cliente/briefing_etapa{etapa}.html'
-    return render(request, template_name, context)
-
-@login_required
 def iniciar_briefing(request, projeto_id):
     """
     View para iniciar o briefing de um projeto
@@ -844,3 +664,243 @@ def briefing_perguntar_feira(request, briefing_id):
         'feira': feira,
     }
     return render(request, 'cliente/briefing_perguntar_feira.html', context)
+
+@login_required
+@cliente_required
+def briefing_etapa(request, projeto_id, etapa):
+    """Gerencia cada etapa do briefing - VERSÃO FINAL"""
+    from projetos.services.briefing_service import proxima_etapa_logica, obter_titulo_etapa
+
+    projeto = get_object_or_404(Projeto, pk=projeto_id, empresa=request.user.empresa)
+
+    try:
+        briefing = Briefing.objects.get(projeto=projeto)
+        print(f"🔍 INÍCIO - Briefing {briefing.id}: endereço='{briefing.endereco_estande}'")
+    except Briefing.DoesNotExist:
+        return redirect('cliente:iniciar_briefing', projeto_id=projeto.id)
+
+    etapa = int(etapa)
+    if etapa < 1 or etapa > 4:
+        etapa = 1
+
+    # Formulários por etapa
+    if etapa == 1:
+        form_class = BriefingEtapa1Form
+        secao = 'evento'
+    elif etapa == 2:
+        form_class = BriefingEtapa2Form
+        secao = 'estande'
+    elif etapa == 3:
+        form_class = BriefingEtapa3Form
+        secao = 'areas_estande'
+    else:
+        form_class = BriefingEtapa4Form
+        secao = 'dados_complementares'
+
+    if request.method == 'POST':
+        if etapa == 3:
+            form = form_class(request.POST)
+            if form.is_valid():
+                with transaction.atomic():
+                    # Checkboxes principais
+                    tem_area_exposicao = form.cleaned_data.get('tem_area_exposicao', False)
+                    tem_sala_reuniao = form.cleaned_data.get('tem_sala_reuniao', False)
+                    tem_copa = form.cleaned_data.get('tem_copa', False)
+                    tem_deposito = form.cleaned_data.get('tem_deposito', False)
+
+                    if not tem_area_exposicao:
+                        AreaExposicao.objects.filter(briefing=briefing).delete()
+
+                    if not tem_sala_reuniao:
+                        SalaReuniao.objects.filter(briefing=briefing).delete()
+
+                    if not tem_copa:
+                        Copa.objects.filter(briefing=briefing).delete()
+
+                    if not tem_deposito:
+                        Deposito.objects.filter(briefing=briefing).delete()
+
+                    # Áreas de exposição
+                    if tem_area_exposicao:
+                        AreaExposicao.objects.filter(briefing=briefing).delete()
+                        num_areas = int(request.POST.get('num_areas_exposicao', 1))
+                        for i in range(num_areas):
+                            if f'area_exposicao-{i}-metragem' in request.POST:
+                                area = AreaExposicao(briefing=briefing)
+
+                                # DEBUG: Verificar valor da metragem recebido
+                                metragem_str = request.POST.get(f'area_exposicao-{i}-metragem', 0)
+                                print(f"🏢 Área {i+1} metragem recebida: '{metragem_str}' (tipo: {type(metragem_str)})")
+
+                                area.tem_lounge = request.POST.get(f'area_exposicao-{i}-tem_lounge') == 'on'
+                                area.tem_vitrine_exposicao = request.POST.get(f'area_exposicao-{i}-tem_vitrine_exposicao') == 'on'
+                                area.tem_balcao_recepcao = request.POST.get(f'area_exposicao-{i}-tem_balcao_recepcao') == 'on'
+                                area.tem_mesas_atendimento = request.POST.get(f'area_exposicao-{i}-tem_mesas_atendimento') == 'on'
+                                area.tem_balcao_cafe = request.POST.get(f'area_exposicao-{i}-tem_balcao_cafe') == 'on'
+                                area.tem_balcao_vitrine = request.POST.get(f'area_exposicao-{i}-tem_balcao_vitrine') == 'on'
+                                area.tem_caixa_vendas = request.POST.get(f'area_exposicao-{i}-tem_caixa_vendas') == 'on'
+                                area.equipamentos = request.POST.get(f'area_exposicao-{i}-equipamentos', '')
+                                area.observacoes = request.POST.get(f'area_exposicao-{i}-observacoes', '')
+                                try:
+                                    area.metragem = float(request.POST.get(f'area_exposicao-{i}-metragem', 0))
+                                except (ValueError, TypeError):
+                                    area.metragem = 0
+                                area.save()
+
+                    # Salas de reunião
+                    if tem_sala_reuniao:
+                        SalaReuniao.objects.filter(briefing=briefing).delete()
+                        num_salas = int(request.POST.get('num_salas_reuniao', 1))
+                        for i in range(num_salas):
+                            if f'sala_reuniao-{i}-capacidade' in request.POST:
+                                sala = SalaReuniao(briefing=briefing)
+
+                                # DEBUG: Verificar valores recebidos
+                                capacidade_str = request.POST.get(f'sala_reuniao-{i}-capacidade', 0)
+                                metragem_str = request.POST.get(f'sala_reuniao-{i}-metragem', 0)
+                                print(f"🏛️ Sala {i+1} capacidade: '{capacidade_str}', metragem: '{metragem_str}'")
+
+
+
+                                try:
+                                    sala.capacidade = int(request.POST.get(f'sala_reuniao-{i}-capacidade', 0))
+                                except (ValueError, TypeError):
+                                    sala.capacidade = 0
+                                sala.equipamentos = request.POST.get(f'sala_reuniao-{i}-equipamentos', '')
+                                try:
+                                    sala.metragem = float(request.POST.get(f'sala_reuniao-{i}-metragem', 0))
+                                except (ValueError, TypeError):
+                                    sala.metragem = 0
+                                sala.save()
+
+                    # Copa e Depósito usando arrays corretamente
+                    if tem_copa:
+                        copa, created = Copa.objects.get_or_create(briefing=briefing)
+                        metragem_array = request.POST.getlist('metragem')
+                        equipamentos_array = request.POST.getlist('equipamentos')
+                        copa_metragem = metragem_array[0] if metragem_array else '0'
+                        copa_equipamentos = equipamentos_array[0] if equipamentos_array else ''
+                        copa.equipamentos = copa_equipamentos
+                        try:
+                            copa.metragem = float(copa_metragem) if copa_metragem else 0
+                        except (ValueError, TypeError):
+                            copa.metragem = 0
+                        copa.save()
+
+                    if tem_deposito:
+                        deposito, created = Deposito.objects.get_or_create(briefing=briefing)
+                        metragem_array = request.POST.getlist('metragem')
+                        equipamentos_array = request.POST.getlist('equipamentos')
+                        deposito_metragem = metragem_array[1] if len(metragem_array) > 1 else '0'
+                        deposito_equipamentos = equipamentos_array[1] if len(equipamentos_array) > 1 else ''
+                        deposito.equipamentos = deposito_equipamentos
+                        try:
+                            deposito.metragem = float(deposito_metragem) if deposito_metragem else 0
+                        except (ValueError, TypeError):
+                            deposito.metragem = 0
+                        deposito.save()
+                        
+                briefing.etapa_atual = etapa
+                briefing.save()
+                print(f"🔍 ETAPA 3 SALVA - Endereço: '{briefing.endereco_estande}'")
+            else:
+                print("Form etapa 3 inválido:", form.errors)
+        else:
+            # Para outras etapas, usar o formulário normalmente
+            form = form_class(request.POST, request.FILES, instance=briefing)
+            if form.is_valid():
+                briefing_saved = form.save()
+                briefing_saved.etapa_atual = etapa
+                briefing_saved.save()
+                
+                # DEBUG: Verificar se endereco_estande foi salvo na etapa 1
+                if etapa == 1:
+                    print(f"ETAPA 1 SALVA - Endereço: '{briefing_saved.endereco_estande}'")
+            else:
+                print(f"Form etapa {etapa} inválido:", form.errors)
+
+        if 'avancar' in request.POST and etapa < 4:
+            briefing.refresh_from_db()
+            print(f"🔍 ANTES REDIRECT - Endereço: '{briefing.endereco_estande}'")
+            return redirect('cliente:briefing_etapa', projeto_id=projeto.id, etapa=proxima_etapa_logica(projeto.tipo_projeto, etapa))
+        elif 'concluir' in request.POST:
+            return redirect('cliente:concluir_briefing', projeto_id=projeto.id)
+
+    else:
+        # GET request - exibir formulário
+        # DEBUG: Verificar endereço antes de carregar o form
+        if etapa == 1:
+            print(f"=== DEBUG GET ETAPA 1 ===")
+            print(f"Briefing ID: {briefing.id}")
+            print(f"Endereço atual no banco: '{briefing.endereco_estande}'")
+            print(f"Tipo projeto: {briefing.projeto.tipo_projeto}")
+            if briefing.projeto.tipo_projeto == 'outros':
+                print(f"Nome evento: '{briefing.nome_evento}'")
+                print(f"Local evento: '{briefing.local_evento}'")
+                print(f"Organizador: '{briefing.organizador_evento}'")
+            print("===========================")
+            
+        if etapa == 3:
+
+            # DEBUG: Verificar dados das áreas antes de renderizar
+            areas_existentes = AreaExposicao.objects.filter(briefing=briefing)
+            salas_existentes = SalaReuniao.objects.filter(briefing=briefing)
+            
+            print(f"🔍 GET ETAPA 3 - Áreas existentes: {areas_existentes.count()}")
+            for i, area in enumerate(areas_existentes):
+                print(f"  Área {i+1}: metragem={area.metragem} equipamentos='{area.equipamentos}'")
+            
+            print(f"🔍 GET ETAPA 3 - Salas existentes: {salas_existentes.count()}")
+            for i, sala in enumerate(salas_existentes):
+                print(f"  Sala {i+1}: capacidade={sala.capacidade} metragem={sala.metragem} equipamentos='{sala.equipamentos}'")
+
+
+            form = BriefingEtapa3Form(initial={
+                'tem_area_exposicao': AreaExposicao.objects.filter(briefing=briefing).exists(),
+                'tem_sala_reuniao': SalaReuniao.objects.filter(briefing=briefing).exists(),
+                'tem_copa': Copa.objects.filter(briefing=briefing).exists(),
+                'tem_deposito': Deposito.objects.filter(briefing=briefing).exists(),
+            })
+        else:
+            form = form_class(instance=briefing)
+
+    conversas = BriefingConversation.objects.filter(briefing=briefing, etapa=etapa).order_by('-timestamp')[:20]
+    validacoes = BriefingValidacao.objects.filter(briefing=briefing)
+    validacao_atual = validacoes.filter(secao=secao).first()
+    arquivos = BriefingArquivoReferencia.objects.filter(briefing=briefing)
+
+    context = {
+        'projeto': projeto,
+        'briefing': briefing,
+        'etapa': etapa,
+        'form': form,
+        'conversas': conversas,
+        'validacoes': validacoes,
+        'validacao_atual': validacao_atual,
+        'mensagem_form': BriefingMensagemForm(),
+        'arquivo_form': BriefingArquivoReferenciaForm(),
+        'arquivos': arquivos,
+        'titulo_etapa': obter_titulo_etapa(etapa),
+        'pode_avancar': etapa < 4,
+        'pode_voltar': etapa > 1,
+        'todas_aprovadas': all(v.status == 'aprovado' for v in validacoes),
+    }
+
+    if etapa == 3:
+        areas_exposicao = list(AreaExposicao.objects.filter(briefing=briefing)) or [None]
+        salas_reuniao = list(SalaReuniao.objects.filter(briefing=briefing)) or [None]
+        copa = Copa.objects.filter(briefing=briefing).first()
+        deposito = Deposito.objects.filter(briefing=briefing).first()
+
+        context.update({
+            'areas_exposicao': areas_exposicao,
+            'salas_reuniao': salas_reuniao,
+            'copa_form': CopaForm(instance=copa) if copa else CopaForm(prefix='copa'),
+            'deposito_form': DepositoForm(instance=deposito) if deposito else DepositoForm(prefix='deposito'),
+            'num_areas_exposicao': len(areas_exposicao),
+            'num_salas_reuniao': len(salas_reuniao),
+        })
+
+    # Renderiza template dinâmico por etapa
+    template_name = f'cliente/briefing_etapa{etapa}.html'
+    return render(request, template_name, context)

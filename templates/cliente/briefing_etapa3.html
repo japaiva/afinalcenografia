@@ -122,7 +122,7 @@
                     <label class="form-label">Metragem (m²)</label>
                     <div class="input-group">
                       <input type="number" class="form-control" name="area_exposicao-{{ forloop.counter0 }}-metragem" 
-                             id="area_exposicao-{{ forloop.counter0 }}-metragem" step="0.01" value="{{ area.metragem|default:'' }}">
+                             id="area_exposicao-{{ forloop.counter0 }}-metragem" step="0.01" value="{{ area.metragem|default_if_none:''|stringformat:'g' }}">
                       <span class="input-group-text">m²</span>
                     </div>
                   </div>
@@ -191,7 +191,7 @@
                     <label class="form-label">Metragem (m²)</label>
                     <div class="input-group">
                       <input type="number" class="form-control" name="sala_reuniao-{{ forloop.counter0 }}-metragem" 
-                             id="sala_reuniao-{{ forloop.counter0 }}-metragem" step="0.01" value="{{ sala.metragem|default:'' }}">
+                             id="sala_reuniao-{{ forloop.counter0 }}-metragem" step="0.01" value="{{ sala.metragem|default_if_none:''|stringformat:'g'  }}">
                       <span class="input-group-text">m²</span>
                     </div>
                   </div>
