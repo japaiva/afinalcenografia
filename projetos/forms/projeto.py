@@ -1,4 +1,4 @@
-# projetos/forms/projeto.py - Atualização completa
+# projetos/forms/projeto.py - Correção do erro de empresa
 
 from django import forms
 from django.forms.widgets import Input
@@ -67,6 +67,9 @@ class ProjetoForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        # CORREÇÃO: Extrair empresa do kwargs se fornecida na view
+        self.empresa_usuario = kwargs.pop('empresa', None)
+        
         super().__init__(*args, **kwargs)
 
         self.fields['feira'].queryset = Feira.objects.filter(ativa=True).order_by('-data_inicio')
@@ -74,9 +77,24 @@ class ProjetoForm(forms.ModelForm):
         self.fields['orcamento'].required = True
         self.fields['descricao'].required = True
 
-        # Pré-preencher com a descrição padrão da empresa
-        if self.instance and self.instance.empresa and self.instance.empresa.descricao:
-            self.fields['descricao_empresa'].initial = self.instance.empresa.descricao
+        # CORREÇÃO: Verificação mais segura para descrição da empresa
+        empresa_para_descricao = None
+        
+        # Para projetos existentes (edição)
+        if self.instance and self.instance.pk:
+            try:
+                if hasattr(self.instance, 'empresa') and self.instance.empresa:
+                    empresa_para_descricao = self.instance.empresa
+            except Projeto.empresa.RelatedObjectDoesNotExist:
+                # Se não tem empresa associada, usar a empresa do usuário se disponível
+                empresa_para_descricao = self.empresa_usuario
+        else:
+            # Para projetos novos, usar a empresa do usuário
+            empresa_para_descricao = self.empresa_usuario
+        
+        # Pré-preencher com a descrição da empresa se disponível
+        if empresa_para_descricao and empresa_para_descricao.descricao:
+            self.fields['descricao_empresa'].initial = empresa_para_descricao.descricao
 
         # Lógica condicional para campo nome
         tipo_projeto = self.initial.get('tipo_projeto') or self.data.get('tipo_projeto')
@@ -106,6 +124,10 @@ class ProjetoForm(forms.ModelForm):
     def save(self, commit=True):
         projeto = super().save(commit=False)
 
+        # CORREÇÃO: Garantir que a empresa está definida antes de chamar métodos que dependem dela
+        if not projeto.pk and not projeto.empresa and self.empresa_usuario:
+            projeto.empresa = self.empresa_usuario
+
         if not projeto.pk:
             projeto.definir_status_inicial()
 
@@ -114,9 +136,12 @@ class ProjetoForm(forms.ModelForm):
 
         # NOVA LÓGICA: Atualizar a descrição da empresa se foi modificada
         descricao_empresa = self.cleaned_data.get('descricao_empresa')
-        if descricao_empresa and projeto.empresa:
-            projeto.empresa.descricao = descricao_empresa
-            projeto.empresa.save()
+        if descricao_empresa:
+            # Usar a empresa do projeto ou a empresa do usuário
+            empresa_para_atualizar = projeto.empresa or self.empresa_usuario
+            if empresa_para_atualizar and empresa_para_atualizar.descricao != descricao_empresa:
+                empresa_para_atualizar.descricao = descricao_empresa
+                empresa_para_atualizar.save()
 
         if commit:
             projeto.save()

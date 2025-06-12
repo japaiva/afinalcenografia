@@ -1,5 +1,11 @@
 # gestor/views/feira_rag.py
 
+# - feira_reset_data_confirm
+# - feira_search_unified
+# - briefing_vincular_feira
+# - briefing_responder_pergunta
+# - feira_reset_data
+
 import json
 import logging
 import os  # Para manipulação de arquivos no reset_data_confirm
@@ -15,79 +21,6 @@ from core.services.rag_service import integrar_feira_com_briefing, RAGService
 from projetos.models.briefing import Briefing
 
 logger = logging.getLogger(__name__)
-
-@login_required
-#@require_admin_or_gestor
-@require_POST
-def feira_reset_data(request, pk):
-    """
-    Exclui todos os dados processados de uma feira: chunks, QAs e vetores.
-    """
-    feira = get_object_or_404(Feira, pk=pk)
-    
-    try:
-            
-        # 1. Obter todos os QAs para depois excluir seus vetores
-        qa_pairs = FeiraManualQA.objects.filter(feira=feira)
-        qa_embedding_ids = [qa.embedding_id for qa in qa_pairs if qa.embedding_id]
-        
-        # 2. Excluir os chunks processados
-        chunk_count = FeiraManualChunk.objects.filter(feira=feira).count()
-        FeiraManualChunk.objects.filter(feira=feira).delete()
-        
-        # 3. Excluir os QAs gerados
-        qa_count = qa_pairs.count()
-        qa_pairs.delete()
-        
-        # 4. Excluir os vetores do banco vetorial
-        vector_count = 0
-        if qa_embedding_ids:
-            try:
-                from core.utils.pinecone_utils import get_index
-                index = get_index()
-                if index:
-                    namespace = f"feira_{feira.id}"
-                    # Tentativa 1: excluir por IDs específicos
-                    index.delete(ids=qa_embedding_ids, namespace=namespace)
-                    vector_count = len(qa_embedding_ids)
-                    
-                    # Tentativa 2: excluir todo o namespace (mais confiável)
-                    try:
-                        # Alguns bancos vetoriais permitem excluir namespaces inteiros
-                        index.delete(delete_all=True, namespace=namespace)
-                    except:
-                        # Se não suportar, já tentamos excluir por IDs acima
-                        pass
-            except Exception as e:
-                logger.error(f"Erro ao excluir vetores: {str(e)}")
-                messages.warning(request, f"Alguns vetores podem não ter sido excluídos: {str(e)}")
-        
-        # 5. Resetar o status de processamento da feira
-        feira.manual_processado = False
-        feira.processamento_status = 'pendente'
-        feira.progresso_processamento = 0
-        feira.mensagem_erro = None
-        feira.save()
-        
-        # Contabilizar o que foi excluído para a mensagem
-        messages.success(
-            request, 
-            f'Dados da feira "{feira.nome}" excluídos com sucesso: '
-            f'{chunk_count} chunks, {qa_count} perguntas/respostas e {vector_count} vetores.'
-        )
-        
-        # Registrar no log
-        logger.info(
-            f"Usuário {request.user.username} resetou dados da feira {feira.id}: "
-            f"{chunk_count} chunks, {qa_count} QAs, {vector_count} vetores"
-        )
-        
-        return redirect('gestor:feira_detail', pk=feira.id)
-        
-    except Exception as e:
-        messages.error(request, f'Erro ao excluir dados da feira: {str(e)}')
-        logger.error(f"Erro ao resetar feira {feira.id}: {str(e)}")
-        return redirect('gestor:feira_detail', pk=feira.id)
 
 @login_required
 @require_POST

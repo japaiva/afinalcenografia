@@ -1,3 +1,42 @@
+# gestor/views/base.py
+
+# MAIN:
+# - dashboard
+# - GestorLoginView
+# - home
+#
+# CRUD Empresa:
+# - empresa_list
+# - empresa_create
+# - empresa_update
+# - empresa_toggle_status
+# - empresa_delete
+#
+# CRUD Usuário:
+# - usuario_list
+# - usuario_create
+# - usuario_update
+# - usuario_toggle_status
+# - usuario_delete
+#
+# CRUD Parâmetro:
+# - parametro_list
+# - parametro_create
+# - parametro_update
+# - parametro_delete
+#
+# CRUD Agente:
+# - agente_list
+# - agente_create
+# - agente_update
+# - agente_delete
+#
+# CRUD Parâmetro de Indexação:
+# - parametro_indexacao_list
+# - parametro_indexacao_create
+# - parametro_indexacao_update
+# - parametro_indexacao_delete
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
@@ -5,13 +44,16 @@ from django.contrib import messages
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.http import JsonResponse
 from django.urls import reverse_lazy
+from django.db.models import Q
 
 from core.models import Usuario, Parametro, Empresa, ParametroIndexacao, Agente
 from core.forms import UsuarioForm, ParametroForm, EmpresaForm, ParametroIndexacaoForm, AgenteForm
 from core.decorators import gestor_required
 from projetos.models import Projeto
 
-# PAGINAS PRINCIPAIS
+##############################
+# MAIN
+##############################
 
 @login_required
 @gestor_required
@@ -47,8 +89,9 @@ class GestorLoginView(LoginView):
 def home(request):
     return render(request, 'gestor/home.html')
 
-
+##############################
 # CRUD EMPRESA
+##############################
 
 @login_required
 def empresa_list(request):
@@ -112,7 +155,39 @@ def empresa_toggle_status(request, pk):
     
     return redirect('gestor:empresa_list')
 
-# CRUD USUÁRIO
+@login_required
+def empresa_delete(request, pk):
+    empresa = get_object_or_404(Empresa, pk=pk)
+    
+    # Verificar se há usuários vinculados
+    usuarios_vinculados = Usuario.objects.filter(empresa=empresa).count()
+    
+    if request.method == 'POST':
+        confirm = request.POST.get('confirm_delete')
+        if confirm == 'sim':
+            try:
+                nome_empresa = empresa.nome
+                empresa.delete()
+                messages.success(request, f'Empresa "{nome_empresa}" excluída com sucesso.')
+                storage = messages.get_messages(request)
+                storage.used = True
+                return redirect('gestor:empresa_list')
+            except Exception as e:
+                messages.error(request, f'Erro ao excluir empresa: {str(e)}')
+        else:
+            messages.info(request, 'Exclusão cancelada.')
+            return redirect('gestor:empresa_list')
+    
+    context = {
+        'empresa': empresa,
+        'usuarios_vinculados': usuarios_vinculados,
+        'pode_excluir': usuarios_vinculados == 0
+    }
+    return render(request, 'gestor/empresa_confirm_delete.html', context)
+
+##############################
+# CRUD USUARIO
+##############################
 
 @login_required
 def usuario_list(request):
@@ -176,7 +251,51 @@ def usuario_toggle_status(request, pk):
     
     return redirect('gestor:usuario_list')
 
-# CRUD PARÂMETROS
+@login_required
+def usuario_delete(request, pk):
+    usuario = get_object_or_404(Usuario, pk=pk)
+    
+    # Verificar se é o próprio usuário logado
+    if usuario == request.user:
+        messages.error(request, 'Você não pode excluir sua própria conta.')
+        return redirect('gestor:usuario_list')
+    
+    # Verificar se há projetos vinculados (se aplicável)
+    try:
+        from projetos.models import Projeto
+        projetos_vinculados = Projeto.objects.filter(
+            Q(criado_por=usuario) | Q(projetista=usuario)
+        ).count()
+    except ImportError:
+        projetos_vinculados = 0
+    
+    if request.method == 'POST':
+        confirm = request.POST.get('confirm_delete')
+        if confirm == 'sim':
+            try:
+                username = usuario.username
+                usuario.delete()
+                messages.success(request, f'Usuário "{username}" excluído com sucesso.')
+                storage = messages.get_messages(request)
+                storage.used = True
+                return redirect('gestor:usuario_list')
+            except Exception as e:
+                messages.error(request, f'Erro ao excluir usuário: {str(e)}')
+        else:
+            messages.info(request, 'Exclusão cancelada.')
+            return redirect('gestor:usuario_list')
+    
+    context = {
+        'usuario': usuario,
+        'projetos_vinculados': projetos_vinculados,
+        'pode_excluir': projetos_vinculados == 0,
+        'is_own_account': usuario == request.user
+    }
+    return render(request, 'gestor/usuario_confirm_delete.html', context)
+
+##############################
+# PARAMETRO
+##############################
 
 @login_required
 def parametro_list(request):
@@ -241,10 +360,9 @@ def parametro_delete(request, pk):
         return redirect('gestor:parametro_list')
     return render(request, 'gestor/parametro_confirm_delete.html', {'parametro': parametro})
 
-
-
-
-# agente
+##############################
+# AGENTE
+##############################
 
 @login_required
 def agente_list(request):
@@ -324,6 +442,10 @@ def agente_delete(request, pk):
         return redirect('gestor:agente_list')
     
     return render(request, 'gestor/agente_confirm_delete.html', {'agente': agente})
+
+##############################
+# PARAMENTRO INDEXACAO
+##############################
 
 @login_required
 def parametro_indexacao_list(request):

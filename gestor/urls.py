@@ -19,13 +19,18 @@ urlpatterns = [
     path('empresas/novo/', views.empresa_create, name='empresa_create'),
     path('empresas/<int:pk>/editar/', views.empresa_update, name='empresa_update'),
     path('empresas/<int:pk>/alternar-status/', views.empresa_toggle_status, name='empresa_toggle_status'),
+    path('empresas/<int:pk>/excluir/', views.empresa_delete, name='empresa_delete'),
     
+
+
     # CRUD Usuário
     path('usuarios/', views.usuario_list, name='usuario_list'),
     path('usuarios/novo/', views.usuario_create, name='usuario_create'),
     path('usuarios/<int:pk>/editar/', views.usuario_update, name='usuario_update'),
     path('usuarios/<int:pk>/alternar-status/', views.usuario_toggle_status, name='usuario_toggle_status'),
+    path('usuarios/<int:pk>/excluir/', views.usuario_delete, name='usuario_delete'),
     
+
     # CRUD Parâmetros
     path('parametros/', views.parametro_list, name='parametro_list'),
     path('parametros/novo/', views.parametro_create, name='parametro_create'),
@@ -65,7 +70,7 @@ urlpatterns = [
     path('feiras/<int:pk>/status/', views.feira_toggle_status, name='feira_toggle_status'),
     path('feiras/<int:pk>/search/', views.feira_search, name='feira_search'),
     path('feiras/<int:pk>/reprocess/', views.feira_reprocess, name='feira_reprocess'),
-    
+    path('feiras/<int:pk>/excluir/', views.feira_delete, name='feira_delete'),
 
     path('feiras/<int:pk>/progress/', views.feira_progress, name='feira_progress'),
     

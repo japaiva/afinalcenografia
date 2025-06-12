@@ -1,5 +1,16 @@
 # gestor/views/feira_qa.py
 
+# - feira_qa_list
+# - feira_qa_get
+# - feira_qa_update
+# - feira_qa_delete
+# - feira_qa_regenerate_single
+# - feira_qa_stats
+# - feira_qa_regenerate
+# - process_qa_background
+# - feira_qa_progress
+# - feira_qa_add
+
 import json
 import logging
 import threading
@@ -626,52 +637,7 @@ def feira_qa_regenerate(request, feira_id):
             'success': False,
             'message': f'Erro ao iniciar processamento Q&A: {str(e)}'
         })
-    
-@login_required
-def feira_qa_progress(request, pk):
-    """
-    Retorna o progresso atual do processamento de Q&A da feira.
-    """
-    try:
-        feira = Feira.objects.get(pk=pk)
-        
-        # Contar QAs já criados
-        qa_count = FeiraManualQA.objects.filter(feira=feira).count()
-        
-        # Verificar se há uma thread de processamento de QA ativa
-        import threading
-        qa_processando = any(t.name.startswith(f'QA-{feira.id}') for t in threading.enumerate())
-        
-        # Determinar status com base na thread
-        if qa_processando:
-            status = 'processando'
-            processed = False
-        elif qa_count > 0:
-            status = 'concluido'
-            processed = True
-        else:
-            status = 'pendente'
-            processed = False
-        
-        return JsonResponse({
-            'success': True,
-            'status': status,
-            'message': None,
-            'processed': processed,
-            'total_qa': qa_count,
-            'expected_qa': min(qa_count + 10, 50)  # Estimativa de quantos QAs esperamos no total
-        })
-    except Feira.DoesNotExist:
-        return JsonResponse({
-            'success': False,
-            'error': 'Feira não encontrada'
-        }, status=404)
-    except Exception as e:
-        return JsonResponse({
-            'success': False, 
-            'error': str(e)
-        }, status=500)
-
+ 
 @login_required
 @require_POST
 def feira_qa_add(request, feira_id):
@@ -755,4 +721,27 @@ def feira_qa_add(request, feira_id):
         return JsonResponse({
             'success': False,
             'message': str(e)
+        }, status=500)
+    
+@login_required
+def feira_qa_progress(request, pk):
+    try:
+        feira = Feira.objects.get(pk=pk)
+        return JsonResponse({
+            'success': True,
+            'progress': feira.qa_progresso_processamento if hasattr(feira, 'qa_progresso_processamento') else 0,
+            'status': feira.qa_processamento_status if hasattr(feira, 'qa_processamento_status') else 'pendente',
+            'message': feira.qa_mensagem_erro if hasattr(feira, 'qa_mensagem_erro') else None,
+            'processed': feira.qa_processado if hasattr(feira, 'qa_processado') else False,
+            'total_qa': FeiraManualQA.objects.filter(feira=feira).count()
+        })
+    except Feira.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Feira não encontrada'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False, 
+            'error': str(e)
         }, status=500)

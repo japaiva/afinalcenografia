@@ -1,5 +1,8 @@
 # gestor/views/feira_extracao.py
 
+# - feira_extrair_dados
+# - feira_aplicar_dados
+
 import json
 import logging
 from django.shortcuts import get_object_or_404

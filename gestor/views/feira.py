@@ -1,5 +1,16 @@
 # gestor/views/feira.py
 
+# - processar_manual_background
+# - feira_list
+# - feira_create
+# - feira_update
+# - feira_delete
+# - feira_toggle_status
+# - feira_search
+# - feira_reprocess
+# - feira_progress
+# - feira_detail
+
 import logging
 import threading
 from django.shortcuts import render, redirect, get_object_or_404
@@ -110,6 +121,60 @@ def feira_update(request, pk):
     }
     
     return render(request, 'gestor/feira_form.html', context)
+
+@login_required
+def feira_delete(request, pk):
+    feira = get_object_or_404(Feira, pk=pk)
+    
+    # Verificar se há projetos vinculados
+    try:
+        from projetos.models import Projeto
+        projetos_vinculados = Projeto.objects.filter(feira=feira).count()
+    except ImportError:
+        projetos_vinculados = 0
+    
+    # Contar chunks e QAs vinculados
+    chunks_vinculados = feira.chunks_manual.count() if hasattr(feira, 'chunks_manual') else 0
+    qa_vinculados = FeiraManualQA.objects.filter(feira=feira).count()
+    
+    if request.method == 'POST':
+        confirm = request.POST.get('confirm_delete')
+        if confirm == 'sim':
+            try:
+                nome_feira = feira.nome
+                
+                # Deletar chunks e QAs primeiro (cascade deve fazer isso, mas garantindo)
+                if chunks_vinculados > 0:
+                    feira.chunks_manual.all().delete()
+                if qa_vinculados > 0:
+                    FeiraManualQA.objects.filter(feira=feira).delete()
+                
+                feira.delete()
+                messages.success(request, f'Feira "{nome_feira}" excluída com sucesso.')
+                storage = messages.get_messages(request)
+                storage.used = True
+                return redirect('gestor:feira_list')
+            except Exception as e:
+                messages.error(request, f'Erro ao excluir feira: {str(e)}')
+        else:
+            messages.info(request, 'Exclusão cancelada.')
+            
+            # Verificar de onde veio para redirecionar corretamente
+            referer = request.META.get('HTTP_REFERER', '')
+            if 'detail' in referer:
+                return redirect('gestor:feira_detail', pk=feira.id)
+            else:
+                return redirect('gestor:feira_list')
+    
+    context = {
+        'feira': feira,
+        'projetos_vinculados': projetos_vinculados,
+        'chunks_vinculados': chunks_vinculados,
+        'qa_vinculados': qa_vinculados,
+        'pode_excluir': projetos_vinculados == 0
+    }
+    return render(request, 'gestor/feira_confirm_delete.html', context)
+
 
 @login_required
 def feira_toggle_status(request, pk):

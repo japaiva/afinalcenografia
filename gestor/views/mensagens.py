@@ -1,5 +1,10 @@
 #gestor/views/mensagens.py
 
+# - limpar_mensagens
+# - mensagens
+# - nova_mensagem
+# - mensagens_projeto
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -139,7 +144,7 @@ def nova_mensagem(request):
                 )
                 anexo.save()
             
-            django_messages.success(request, 'Mensagem enviada com sucesso!')
+            messages.success(request, 'Mensagem enviada com sucesso!')
             return redirect('gestor:mensagens_projeto', projeto_id=projeto.id)
     
     # Empresa selecionada para filtrar projetos

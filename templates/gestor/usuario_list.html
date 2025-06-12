@@ -59,13 +59,24 @@
                 </span>
               </td>
               <td class="text-end">
-                <a href="{% url 'gestor:usuario_update' usuario.id %}" class="btn btn-sm btn-outline-primary me-1" title="Editar">
-                  <i class="fas fa-edit"></i>
-                </a>
-                <a href="{% url 'gestor:usuario_toggle_status' usuario.id %}" class="btn btn-sm {% if usuario.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}" 
-                   title="{% if usuario.is_active %}Desativar{% else %}Ativar{% endif %}">
-                  <i class="fas {% if usuario.is_active %}fa-ban{% else %}fa-check-circle{% endif %}"></i>
-                </a>
+                <div class="btn-group" role="group">
+                  <a href="{% url 'gestor:usuario_update' usuario.id %}" class="btn btn-sm btn-outline-primary" title="Editar">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  <a href="{% url 'gestor:usuario_toggle_status' usuario.id %}" class="btn btn-sm {% if usuario.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}" 
+                     title="{% if usuario.is_active %}Desativar{% else %}Ativar{% endif %}">
+                    <i class="fas {% if usuario.is_active %}fa-ban{% else %}fa-check-circle{% endif %}"></i>
+                  </a>
+                  {% if usuario != request.user %}
+                    <a href="{% url 'gestor:usuario_delete' usuario.id %}" class="btn btn-sm btn-outline-danger" title="Excluir">
+                      <i class="fas fa-trash"></i>
+                    </a>
+                  {% else %}
+                    <button class="btn btn-sm btn-outline-secondary" disabled title="Não é possível excluir sua própria conta">
+                      <i class="fas fa-lock"></i>
+                    </button>
+                  {% endif %}
+                </div>
               </td>
             </tr>
           {% empty %}

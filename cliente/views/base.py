@@ -7,10 +7,8 @@ from django.contrib.auth.views import LoginView
 from django.urls import reverse_lazy
 
 from core.models import Usuario, Empresa
-from core.forms import EmpresaForm  # Importe o formulário da empresa
+from core.forms import EmpresaForm
 from core.decorators import cliente_required
-from projetos.models import Projeto, ProjetoReferencia
-from projetos.forms import ProjetoForm
 
 # PAGINAS PRINCIPAIS
 
@@ -18,21 +16,27 @@ from projetos.forms import ProjetoForm
 @cliente_required
 def dashboard(request):
     """
-    Dashboard do Portal do Cliente
+    Dashboard principal do Portal do Cliente
     """
     # Obtém a empresa do usuário logado
     empresa = request.user.empresa
     
     # Obtém as estatísticas de projetos do cliente
+    from projetos.models import Projeto
     total_projetos = Projeto.objects.filter(empresa=empresa).count()
     projetos_ativos = Projeto.objects.filter(empresa=empresa, status='ativo').count()
+    
+    # Projetos recentes
+    projetos_recentes = Projeto.objects.filter(empresa=empresa).order_by('-created_at')[:5]
     
     context = {
         'empresa': empresa,
         'total_projetos': total_projetos,
         'projetos_ativos': projetos_ativos,
+        'projetos_recentes': projetos_recentes,
     }
     return render(request, 'cliente/dashboard.html', context)
+
 class ClienteLoginView(LoginView):
     template_name = 'cliente/login.html'
     
@@ -132,97 +136,7 @@ def empresa_detail(request):
     }
     return render(request, 'cliente/empresa_detail.html', context)
 
-# CRUD PROJETOS
-
-@login_required
-@cliente_required
-def projeto_list(request):
-    """
-    Lista de projetos da empresa do cliente
-    """
-    # Obtém a empresa do usuário logado
-    empresa = request.user.empresa
-    
-    # Obtém projetos da empresa
-    projetos_list = Projeto.objects.filter(empresa=empresa).order_by('-created_at')
-    
-    # Configurar paginação (10 itens por página)
-    paginator = Paginator(projetos_list, 10)
-    page = request.GET.get('page', 1)
-    
-    try:
-        projetos = paginator.page(page)
-    except PageNotAnInteger:
-        # Se a página não for um inteiro, exibe a primeira página
-        projetos = paginator.page(1)
-    except EmptyPage:
-        # Se a página estiver fora do intervalo, exibe a última página
-        projetos = paginator.page(paginator.num_pages)
-    
-    context = {
-        'empresa': empresa,
-        'projetos': projetos,
-    }
-    return render(request, 'cliente/projeto_list.html', context)
-
-
-@login_required
-@cliente_required
-def projeto_detail(request, pk):
-    """
-    Detalhes de um projeto específico
-    """
-    # Obtém a empresa do usuário logado
-    empresa = request.user.empresa
-    
-    # Obtém o projeto específico (verificando se pertence à mesma empresa)
-    projeto = get_object_or_404(Projeto, pk=pk, empresa=empresa)
-    
-    context = {
-        'empresa': empresa,
-        'projeto': projeto,
-    }
-    return render(request, 'cliente/projeto_detail.html', context)
-
-@login_required
-@cliente_required
-def projeto_create(request):
-    """
-    View para criar um novo projeto e redirecionar diretamente para o briefing
-    """
-    # Obtém a empresa do usuário logado
-    empresa = request.user.empresa
-    
-    if request.method == 'POST':
-        form = ProjetoForm(request.POST, request.FILES)
-        if form.is_valid():
-            projeto = form.save(commit=False)
-            projeto.empresa = empresa
-            projeto.cliente = request.user
-            projeto.save()
-            
-            # Processar os arquivos de referência, se houver
-            if 'arquivos_referencia' in request.FILES:
-                for arquivo in request.FILES.getlist('arquivos_referencia'):
-                    ProjetoReferencia.objects.create(
-                        projeto=projeto,
-                        nome=arquivo.name,
-                        arquivo=arquivo,
-                        tipo=determinar_tipo_arquivo(arquivo.name)
-                    )
-            
-            messages.success(request, 'Projeto criado com sucesso!')
-            
-            # Redirecionar diretamente para iniciar o briefing
-            return redirect('cliente:iniciar_briefing', projeto_id=projeto.id)
-    else:
-        form = ProjetoForm()
-    
-    context = {
-        'empresa': empresa,
-        'form': form,
-    }
-    return render(request, 'cliente/projeto_form.html', context)
+# FUNCOES UTILITARIAS
 
 def determinar_tipo_arquivo(nome_arquivo):
     """
@@ -238,61 +152,7 @@ def determinar_tipo_arquivo(nome_arquivo):
     else:
         return 'outro'
 
-@login_required
-@cliente_required
-def projeto_update(request, pk):
-    # Obtém a empresa do usuário logado
-    empresa = request.user.empresa
-    
-    # Obtém o projeto específico (verificando se pertence à mesma empresa)
-    projeto = get_object_or_404(Projeto, pk=pk, empresa=empresa)
-    
-    if request.method == 'POST':
-        form = ProjetoForm(request.POST, request.FILES, instance=projeto)  # Importante: inclua request.FILES
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Projeto atualizado com sucesso.')
-            # Limpa todas as mensagens após adicionar para evitar duplicação
-            storage = messages.get_messages(request)
-            storage.used = True
-            return redirect('cliente:projeto_detail', pk=projeto.pk)
-    else:
-        form = ProjetoForm(instance=projeto)
-    
-    context = {
-        'empresa': empresa,
-        'projeto': projeto,
-        'form': form,
-    }
-    return render(request, 'cliente/projeto_form.html', context)
-
-@login_required
-@cliente_required
-def projeto_delete(request, pk):
-    """
-    Exclusão de um projeto existente
-    """
-    # Obtém a empresa do usuário logado
-    empresa = request.user.empresa
-    
-    # Obtém o projeto específico (verificando se pertence à mesma empresa)
-    projeto = get_object_or_404(Projeto, pk=pk, empresa=empresa)
-    
-    if request.method == 'POST':
-        projeto.delete()
-        messages.success(request, 'Projeto excluído com sucesso.')
-        # Limpa todas as mensagens após adicionar para evitar duplicação
-        storage = messages.get_messages(request)
-        storage.used = True
-        return redirect('cliente:projeto_list')
-    
-    context = {
-        'empresa': empresa,
-        'projeto': projeto,
-    }
-    return render(request, 'cliente/projeto_confirm_delete.html', context)
-
-# Adicione estas funções ao views.py do app cliente
+# ADICIONE ESTAS FUNCOES PARA COMPATIBILIDADE (caso sejam usadas em templates ou URLs)
 
 @login_required
 @cliente_required
@@ -302,6 +162,8 @@ def briefing(request):
     """
     # Obtém a empresa do usuário logado
     empresa = request.user.empresa
+    
+    from projetos.models import Projeto, ProjetoReferencia
     
     if request.method == 'POST':
         # Aqui você processaria os dados do formulário
@@ -336,91 +198,3 @@ def briefing(request):
         'empresa': empresa,
     }
     return render(request, 'cliente/briefing.html', context)
-
-@login_required
-@cliente_required
-def mensagens(request):
-    """
-    Central de mensagens do cliente
-    """
-    # Obtém a empresa do usuário logado
-    empresa = request.user.empresa
-    
-    # Obtém projetos do cliente para listar nas conversas
-    projetos = Projeto.objects.filter(empresa=empresa)
-    
-    # Para demonstração, podemos criar uma lista de conversas fictícias
-    conversas = [
-        {
-            'projeto': projeto,
-            'ultima_mensagem': f"Últimas atualizações sobre {projeto.nome}",
-            'data': projeto.updated_at,
-            'nao_lidas': 0
-        } for projeto in projetos
-    ]
-    
-    context = {
-        'empresa': empresa,
-        'conversas': conversas,
-        'projetos': projetos,
-    }
-    return render(request, 'cliente/central_mensagens.html', context)
-
-@login_required
-@cliente_required
-def nova_mensagem(request):
-    """
-    Criação de nova mensagem
-    """
-    # Obtém a empresa do usuário logado
-    empresa = request.user.empresa
-    
-    # Obtém projetos do cliente para selecionar
-    projetos = Projeto.objects.filter(empresa=empresa)
-    
-    if request.method == 'POST':
-        # Aqui você processaria a mensagem
-        # Para demonstração, vamos apenas redirecionar
-        messages.success(request, 'Mensagem enviada com sucesso!')
-        return redirect('cliente:mensagens')
-    
-    context = {
-        'empresa': empresa,
-        'projetos': projetos,
-    }
-    return render(request, 'cliente/nova_mensagem.html', context)
-
-@login_required
-@cliente_required
-def mensagens_projeto(request, projeto_id):
-    """
-    Mensagens de um projeto específico
-    """
-    # Obtém a empresa do usuário logado
-    empresa = request.user.empresa
-    
-    # Obtém o projeto específico
-    projeto = get_object_or_404(Projeto, pk=projeto_id, empresa=empresa)
-    
-    # Para demonstração, podemos criar uma lista de mensagens fictícias
-    mensagens_lista = [
-        {
-            'remetente': 'Você',
-            'conteudo': 'Precisamos de ajustes no projeto.',
-            'data': projeto.updated_at,
-            'is_cliente': True
-        },
-        {
-            'remetente': 'Afinal Cenografia',
-            'conteudo': 'Claro, vamos analisar e retornar em breve.',
-            'data': projeto.updated_at,
-            'is_cliente': False
-        }
-    ]
-    
-    context = {
-        'empresa': empresa,
-        'projeto': projeto,
-        'mensagens': mensagens_lista,
-    }
-    return render(request, 'cliente/mensagens_projeto.html', context)

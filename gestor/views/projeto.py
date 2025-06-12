@@ -1,5 +1,11 @@
 # gestor/views/projeto.py
 
+# - projeto_list
+# - projeto_detail
+# - projeto_alterar_status
+# - projeto_atribuir
+# - ver_briefing
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -177,29 +183,6 @@ def projeto_atribuir(request, pk, usuario_id):
     
     return redirect('gestor:projeto_detail', pk=projeto.pk)
 
-
-@login_required
-def feira_qa_progress(request, pk):
-    try:
-        feira = Feira.objects.get(pk=pk)
-        return JsonResponse({
-            'success': True,
-            'progress': feira.qa_progresso_processamento if hasattr(feira, 'qa_progresso_processamento') else 0,
-            'status': feira.qa_processamento_status if hasattr(feira, 'qa_processamento_status') else 'pendente',
-            'message': feira.qa_mensagem_erro if hasattr(feira, 'qa_mensagem_erro') else None,
-            'processed': feira.qa_processado if hasattr(feira, 'qa_processado') else False,
-            'total_qa': FeiraManualQA.objects.filter(feira=feira).count()
-        })
-    except Feira.DoesNotExist:
-        return JsonResponse({
-            'success': False,
-            'error': 'Feira não encontrada'
-        }, status=404)
-    except Exception as e:
-        return JsonResponse({
-            'success': False, 
-            'error': str(e)
-        }, status=500)
     
 @login_required
 def ver_briefing(request, projeto_id, versao=None):
