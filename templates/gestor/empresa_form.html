@@ -27,7 +27,6 @@
       {% endif %}
       
       <div class="row g-3">
-        <!-- Nome da Empresa -->
         <div class="col-md-6">
           <label for="{{ form.nome.id_for_label }}" class="form-label">Nome da Empresa*</label>
           {{ form.nome }}
@@ -40,7 +39,6 @@
           {% endif %}
         </div>
         
-        <!-- CNPJ -->
         <div class="col-md-6">
           <label for="{{ form.cnpj.id_for_label }}" class="form-label">CNPJ*</label>
           {{ form.cnpj }}
@@ -52,8 +50,19 @@
             </div>
           {% endif %}
         </div>
+
+        <div class="col-12">
+          <label for="{{ form.razao_social.id_for_label }}" class="form-label">Razão Social</label>
+          {{ form.razao_social }}
+          {% if form.razao_social.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.razao_social.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
         
-        <!-- Endereço -->
         <div class="col-12">
           <label for="{{ form.endereco.id_for_label }}" class="form-label">Endereço</label>
           {{ form.endereco }}
@@ -66,7 +75,6 @@
           {% endif %}
         </div>
         
-        <!-- Telefone -->
         <div class="col-md-6">
           <label for="{{ form.telefone.id_for_label }}" class="form-label">Telefone</label>
           {{ form.telefone }}
@@ -79,7 +87,6 @@
           {% endif %}
         </div>
         
-        <!-- Email -->
         <div class="col-md-6">
           <label for="{{ form.email.id_for_label }}" class="form-label">E-mail</label>
           {{ form.email }}
@@ -92,7 +99,6 @@
           {% endif %}
         </div>
         
-        <!-- Logo -->
         <div class="col-md-6">
           <label for="{{ form.logo.id_for_label }}" class="form-label">Logo</label>
           {{ form.logo }}
@@ -111,7 +117,6 @@
           {% endif %}
         </div>
         
-        <!-- Status -->
         <div class="col-md-6">
           <div class="form-check form-switch mt-4">
             {{ form.ativa }}

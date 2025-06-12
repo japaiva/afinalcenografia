@@ -174,6 +174,8 @@ class Empresa(models.Model):
         verbose_name="Descrição da Empresa",
         help_text="Descrição da empresa que pode ser editada por projeto"
     )
+    # NOVO CAMPO: Razão Social
+    razao_social = models.CharField(max_length=200, blank=True, null=True, verbose_name="Razão Social")
     
     ativa = models.BooleanField(default=True)
     data_cadastro = models.DateTimeField(auto_now_add=True)
@@ -194,6 +196,12 @@ class Usuario(AbstractUser):
         ('projetista', 'Projetista'),
         ('cliente', 'Cliente'),
     ]
+    
+    SEXO_CHOICES = [
+        ('M', 'Masculino'),
+        ('F', 'Feminino'),
+        ('O', 'Outro/Não Informar'),
+    ]
 
     # Desabilitar relacionamentos explicitamente
     groups = None  # Remove o relacionamento com grupos
@@ -207,6 +215,8 @@ class Usuario(AbstractUser):
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
     telefone = models.CharField(max_length=20, blank=True, null=True)
+    # NOVO CAMPO: Sexo
+    sexo = models.CharField(max_length=1, choices=SEXO_CHOICES, blank=True, null=True, verbose_name="Sexo")
     
 
         # No modelo Feira (models.py)

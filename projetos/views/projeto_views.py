@@ -45,27 +45,57 @@ def projeto_detail(request, pk):
     }
     return render(request, 'cliente/projeto_detail.html', context)
 
+
+
+# cliente/views/projeto.py
+# CORREÇÃO para a view projeto_create
+
 @login_required
-@cliente_required
 def projeto_create(request):
-    """Criação de novo projeto"""
+    """
+    View para criar um novo projeto - VERSÃO CORRIGIDA
+    """
+    empresa = request.user.empresa
+
     if request.method == 'POST':
-        form = ProjetoForm(request.POST)
+        # CORREÇÃO: Passa a empresa para o formulário
+        form = ProjetoForm(request.POST, empresa=empresa)
         if form.is_valid():
             projeto = form.save(commit=False)
-            projeto.empresa = request.user.empresa
-            projeto.criado_por = request.user
-            projeto.save()
             
+            # CORREÇÃO: Definir criado_por (empresa já foi definida no formulário)
+            projeto.criado_por = request.user
+
+            # Salvar o projeto (status já definido no método save do formulário)
+            projeto.save()
+
+            # Cria um marco para registrar a criação do projeto
+            ProjetoMarco.objects.create(
+                projeto=projeto,
+                tipo='criacao_projeto',
+                observacao='Projeto criado pelo cliente',
+                registrado_por=request.user
+            )
+
             messages.success(request, 'Projeto criado com sucesso!')
+
+            # Mensagem específica baseada no status final
+            if projeto.tipo_projeto == 'feira_negocios' and not projeto.feira:
+                messages.warning(request, 'Você não selecionou uma feira. Por favor, envie o manual do expositor da feira pelo sistema de mensagens.')
+
             return redirect('cliente:projeto_detail', pk=projeto.id)
+
     else:
-        form = ProjetoForm()
-    
-    context = {
-        'form': form
-    }
-    return render(request, 'cliente/projeto_form.html', context)
+        # CORREÇÃO: Passa a empresa para o formulário também no GET
+        form = ProjetoForm(
+            initial={'tipo_projeto': 'feira_negocios'},
+            empresa=empresa
+        )
+
+    return render(request, 'cliente/projeto_form.html', {
+        'empresa': empresa,
+        'form': form,
+    })
 
 @login_required
 @cliente_required

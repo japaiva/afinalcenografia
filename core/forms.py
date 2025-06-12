@@ -74,7 +74,7 @@ class UsuarioForm(forms.ModelForm):
     
     class Meta:
         model = Usuario
-        fields = ['username', 'first_name', 'last_name', 'email', 'nivel', 'empresa', 'telefone', 'is_active']
+        fields = ['username', 'first_name', 'last_name', 'email', 'nivel', 'empresa', 'telefone', 'sexo', 'is_active']
         widgets = {
             'telefone': forms.TextInput(attrs={'class': 'form-control'}),
             'username': forms.TextInput(attrs={'class': 'form-control'}),
@@ -83,6 +83,7 @@ class UsuarioForm(forms.ModelForm):
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'nivel': forms.Select(attrs={'class': 'form-select'}),
             'empresa': forms.Select(attrs={'class': 'form-select'}),
+            'sexo': forms.Select(attrs={'class': 'form-select'}),
         }
     
     def __init__(self, *args, **kwargs):
@@ -143,7 +144,7 @@ class ParametroForm(forms.ModelForm):
 class EmpresaForm(forms.ModelForm):
     class Meta:
         model = Empresa
-        fields = ['nome', 'cnpj', 'endereco', 'telefone', 'email', 'logo', 'descricao', 'ativa']
+        fields = ['nome', 'cnpj', 'endereco', 'telefone', 'email', 'logo', 'descricao', 'razao_social', 'ativa']
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nome da empresa'}),
             'cnpj': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'CNPJ'}),
@@ -155,6 +156,7 @@ class EmpresaForm(forms.ModelForm):
                 'rows': 4, 
                 'placeholder': 'Descrição da empresa (pode ser editada nos projetos)'
             }),
+            'razao_social': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Razão Social'}),
             'ativa': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 

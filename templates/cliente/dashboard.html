@@ -3,7 +3,6 @@
 {% block title %}Portal do Cliente | {{ block.super }}{% endblock %}
 
 {% block content %}
-<!-- Banner de boas-vindas -->
 <div class="card shadow mb-4">
   <div class="card-body bg-light">
     <div class="row align-items-center">
@@ -15,14 +14,22 @@
         {% endif %}
       </div>
       <div class="col-md-10">
-        <h2 class="mb-2">Bem-vindo, {{ user.first_name }}!</h2>
+        <h2 class="mb-2">
+          {% if user.sexo == 'M' %}
+            Bem-vindo,
+          {% elif user.sexo == 'F' %}
+            Bem-vinda,
+          {% else %}
+            Bem-vindo(a),
+          {% endif %}
+          {{ user.first_name }}!
+        </h2>
         <p class="text-muted mb-0">{{ empresa.nome }} • Último acesso: {{ user.last_login|date:"d/m/Y H:i" }}</p>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Ações Rápidas -->
 <div class="card shadow">
   <div class="card-header bg-white">
     <h4 class="card-title mb-0">
@@ -32,7 +39,6 @@
   
   <div class="card-body p-4">
     <div class="row g-4">
-      <!-- Novo Projeto -->
       <div class="col-md-4">
         <a href="{% url 'cliente:projeto_create' %}" class="text-decoration-none">
           <div class="card h-100 border-0 shadow-sm hover-card">
@@ -46,7 +52,6 @@
         </a>
       </div>
       
-      <!-- Meus Projetos -->
       <div class="col-md-4">
         <a href="{% url 'cliente:projeto_list' %}" class="text-decoration-none">
           <div class="card h-100 border-0 shadow-sm hover-card">
@@ -60,7 +65,6 @@
         </a>
       </div>
       
-      <!-- Mensagens -->
       <div class="col-md-4">
         <a href="{% url 'cliente:mensagens' %}" class="text-decoration-none">
           <div class="card h-100 border-0 shadow-sm hover-card">
@@ -83,64 +87,6 @@
   </div>
 </div>
 
-<!-- Projetos Recentes (Opcional) -->
-{% if projetos_recentes %}
-<div class="card shadow mt-4">
-  <div class="card-header bg-white d-flex justify-content-between align-items-center">
-    <h4 class="card-title mb-0">
-      <i class="fas fa-history text-secondary me-2"></i> Projetos Recentes
-    </h4>
-    <a href="{% url 'cliente:projeto_list' %}" class="btn btn-sm btn-outline-primary">Ver todos</a>
-  </div>
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-hover mb-0">
-        <thead class="table-light">
-          <tr>
-            <th>Nome</th>
-            <th>Status</th>
-            <th>Última atualização</th>
-            <th class="text-end">Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for projeto in projetos_recentes %}
-          <tr>
-            <td>
-              <a href="{% url 'cliente:projeto_detail' projeto.id %}" class="fw-bold text-decoration-none">
-                {{ projeto.nome }}
-              </a>
-            </td>
-            <td>
-              {% if projeto.status == 'rascunho' %}
-                <span class="badge bg-secondary">Rascunho</span>
-              {% elif projeto.status == 'validando' %}
-                <span class="badge bg-warning text-dark">Em validação</span>
-              {% elif projeto.status == 'aprovado' %}
-                <span class="badge bg-success">Aprovado</span>
-              {% elif projeto.status == 'em_producao' %}
-                <span class="badge bg-info">Em produção</span>
-              {% elif projeto.status == 'finalizado' %}
-                <span class="badge bg-primary">Finalizado</span>
-              {% endif %}
-            </td>
-            <td>{{ projeto.updated_at|date:"d/m/Y H:i" }}</td>
-            <td class="text-end">
-              <a href="{% url 'cliente:projeto_detail' projeto.id %}" class="btn btn-sm btn-outline-secondary">
-                <i class="fas fa-eye"></i>
-              </a>
-              <a href="{% url 'cliente:projeto_edit' projeto.id %}" class="btn btn-sm btn-outline-primary">
-                <i class="fas fa-edit"></i>
-              </a>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-{% endif %}
 
 {% endblock %}
 

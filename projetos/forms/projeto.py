@@ -1,4 +1,4 @@
-# projetos/forms/projeto.py - Correção do erro de empresa
+# projetos/forms/projeto.py - Correção do erro de campo desconhecido
 
 from django import forms
 from django.forms.widgets import Input
@@ -40,7 +40,8 @@ class MultipleFileField(forms.FileField):
 
 
 class ProjetoForm(forms.ModelForm):
-    # NOVO CAMPO para editar descrição da empresa no contexto do projeto
+    # CAMPO ADICIONAL para editar descrição da empresa no contexto do projeto
+    # CORREÇÃO: Este campo não faz parte do modelo Projeto, então não vai no Meta.fields
     descricao_empresa = forms.CharField(
         widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         required=False,
@@ -50,6 +51,7 @@ class ProjetoForm(forms.ModelForm):
     
     class Meta:
         model = Projeto
+        # CORREÇÃO: Removido 'descricao_empresa' dos fields pois não existe no modelo
         fields = [
             'tipo_projeto', 'nome', 'descricao', 'orcamento', 'feira'
         ]
@@ -124,10 +126,11 @@ class ProjetoForm(forms.ModelForm):
     def save(self, commit=True):
         projeto = super().save(commit=False)
 
-        # CORREÇÃO: Garantir que a empresa está definida antes de chamar métodos que dependem dela
-        if not projeto.pk and not projeto.empresa and self.empresa_usuario:
+        # CORREÇÃO: Garantir que a empresa está definida ANTES de qualquer verificação
+        if not projeto.pk and self.empresa_usuario:
             projeto.empresa = self.empresa_usuario
 
+        # CORREÇÃO: Só chamar definir_status_inicial se for um projeto novo
         if not projeto.pk:
             projeto.definir_status_inicial()
 
@@ -137,8 +140,8 @@ class ProjetoForm(forms.ModelForm):
         # NOVA LÓGICA: Atualizar a descrição da empresa se foi modificada
         descricao_empresa = self.cleaned_data.get('descricao_empresa')
         if descricao_empresa:
-            # Usar a empresa do projeto ou a empresa do usuário
-            empresa_para_atualizar = projeto.empresa or self.empresa_usuario
+            # Usar a empresa do projeto (que já foi definida acima)
+            empresa_para_atualizar = projeto.empresa
             if empresa_para_atualizar and empresa_para_atualizar.descricao != descricao_empresa:
                 empresa_para_atualizar.descricao = descricao_empresa
                 empresa_para_atualizar.save()
