@@ -241,10 +241,6 @@ class Parametro(models.Model):
     
     class Meta:
         db_table = 'parametros'
-
-
-
-
 class PerfilUsuario(models.Model):
     usuario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='perfil')
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, null=True, blank=True)

@@ -1,15 +1,16 @@
 # projetista/forms.py
 
 from django import forms
-from projetista.models import ConceitoVisual, ImagemConceitoVisual
+from projetista.models import ConceitoVisualLegado, ConceitoVisualNovo, PlantaBaixa, Modelo3D
 
-# Verificar se PackageVistasPreset existe, senão comentar/remover
-# from projetista.models import PackageVistasPreset
+# =============================================================================
+# FORMULÁRIOS PARA O SISTEMA LEGADO (compatibilidade)
+# =============================================================================
 
-class ConceitoVisualForm(forms.ModelForm):
-    """Formulário para manipulação do conceito visual (Etapa 1)"""
+class ConceitoVisualLegadoForm(forms.ModelForm):
+    """Formulário para manipulação do conceito visual legado (Etapa 1)"""
     class Meta:
-        model = ConceitoVisual
+        model = ConceitoVisualLegado
         fields = [
             'titulo', 'descricao', 'paleta_cores', 
             'materiais_principais', 'elementos_interativos'
@@ -41,30 +42,59 @@ class ConceitoVisualForm(forms.ModelForm):
             }),
         }
 
-class ImagemConceitoForm(forms.ModelForm):
-    """Formulário para upload de imagens do conceito"""
+# =============================================================================
+# FORMULÁRIOS PARA O NOVO SISTEMA
+# =============================================================================
+
+class ConceitoVisualNovoForm(forms.ModelForm):
+    """Formulário para o novo sistema de conceito visual"""
     class Meta:
-        model = ImagemConceitoVisual
-        fields = ['imagem', 'descricao', 'angulo_vista', 'categoria']
+        model = ConceitoVisualNovo
+        fields = [
+            'descricao', 'estilo_visualizacao', 'iluminacao', 'instrucoes_adicionais'
+        ]
         widgets = {
-            'imagem': forms.FileInput(attrs={
-                'class': 'form-control',
-                'accept': 'image/jpeg,image/png,image/webp'
-            }),
             'descricao': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Descrição breve da imagem'
+                'placeholder': 'Descrição do conceito visual'
             }),
-            'angulo_vista': forms.Select(attrs={
+            'estilo_visualizacao': forms.Select(attrs={
                 'class': 'form-select'
             }),
-            'categoria': forms.Select(attrs={
+            'iluminacao': forms.Select(attrs={
                 'class': 'form-select'
+            }),
+            'instrucoes_adicionais': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Instruções específicas para geração'
             }),
         }
 
 class GeracaoImagemForm(forms.Form):
     """Formulário para geração de imagem via IA"""
+    estilo_visualizacao = forms.ChoiceField(
+        choices=[
+            ('fotorrealista', 'Fotorrealista'),
+            ('artistico', 'Artístico'),
+            ('tecnico', 'Técnico'),
+            ('conceitual', 'Conceitual')
+        ],
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        initial='fotorrealista'
+    )
+    
+    iluminacao = forms.ChoiceField(
+        choices=[
+            ('diurna', 'Iluminação Diurna'),
+            ('noturna', 'Iluminação Noturna'),
+            ('feira', 'Iluminação de Feira'),
+            ('dramatica', 'Iluminação Dramática')
+        ],
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        initial='feira'
+    )
+    
     instrucoes_adicionais = forms.CharField(
         widget=forms.Textarea(attrs={
             'class': 'form-control',
@@ -73,15 +103,9 @@ class GeracaoImagemForm(forms.Form):
         }),
         required=False
     )
-    
-    angulo = forms.ChoiceField(
-        choices=ImagemConceitoVisual.ANGULOS_CHOICES,
-        widget=forms.Select(attrs={'class': 'form-select'}),
-        initial='perspectiva_externa'
-    )
 
 class GeracaoMultiplasVistasForm(forms.Form):
-    """Formulário para geração de múltiplas vistas via IA - Versão Simplificada"""
+    """Formulário para geração de múltiplas vistas via IA"""
     
     # Vistas para cliente
     vistas_cliente = forms.MultipleChoiceField(
@@ -188,14 +212,6 @@ class GeracaoMultiplasVistasForm(forms.Form):
         label="Instruções Adicionais"
     )
     
-    # Prioridade de geração
-    prioridade_cliente = forms.BooleanField(
-        required=False,
-        initial=True,
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-        label="Gerar vistas para cliente primeiro"
-    )
-    
     def clean(self):
         """
         Validação para garantir que pelo menos uma vista seja selecionada
@@ -228,65 +244,36 @@ class ModificacaoImagemForm(forms.Form):
         required=True
     )
 
-class ExportacaoConceitoForm(forms.Form):
-    """Formulário para exportação do conceito visual"""
-    FORMATO_CHOICES = [
-        ('pdf', 'PDF - Relatório Completo'),
-        ('images', 'ZIP - Pacote de Imagens'),
-        ('pptx', 'PPTX - Apresentação para Cliente'),
-        ('photogrammetry', 'ZIP - Pacote Fotogrametria'),
-    ]
-    
-    formato = forms.ChoiceField(
-        choices=FORMATO_CHOICES,
-        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
-        initial='pdf'
+class UploadImagemForm(forms.Form):
+    """Formulário para upload manual de imagem"""
+    imagem = forms.ImageField(
+        widget=forms.FileInput(attrs={
+            'class': 'form-control',
+            'accept': 'image/jpeg,image/png,image/webp'
+        })
     )
-    
-    incluir_briefing = forms.BooleanField(
-        required=False, 
-        initial=True,
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    descricao = forms.CharField(
+        max_length=255,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Descrição da imagem'
+        })
     )
-    
-    alta_resolucao = forms.BooleanField(
-        required=False, 
-        initial=True,
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
-    )
-    
-    # Filtro por categoria para exportação
-    categorias_exportar = forms.MultipleChoiceField(
-        choices=ImagemConceitoVisual.CATEGORIA_CHOICES,
-        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
-        required=False,
-        initial=['cliente'],
-        label="Categorias a Exportar"
-    )
-
-class FiltroVistasForm(forms.Form):
-    """Formulário para filtrar vistas na visualização"""
-    categoria = forms.ChoiceField(
-        choices=[('todas', 'Todas as Categorias')] + ImagemConceitoVisual.CATEGORIA_CHOICES,
-        widget=forms.Select(attrs={'class': 'form-select'}),
-        initial='todas',
-        required=False
-    )
-    
-    essencial_fotogrametria = forms.BooleanField(
-        required=False,
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-        label="Apenas essenciais para fotogrametria"
-    )
-    
-    ia_gerada = forms.ChoiceField(
+    angulo_vista = forms.ChoiceField(
         choices=[
-            ('todas', 'Todas'),
-            ('ia', 'Apenas geradas por IA'),
-            ('manual', 'Apenas upload manual')
+            ('perspectiva', 'Perspectiva Externa'),
+            ('frontal', 'Vista Frontal'),
+            ('lateral', 'Vista Lateral'),
+            ('interior', 'Vista Interior'),
+            ('detalhe', 'Detalhe'),
         ],
-        widget=forms.Select(attrs={'class': 'form-select'}),
-        initial='todas',
-        required=False,
-        label="Origem"
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    categoria = forms.ChoiceField(
+        choices=[
+            ('cliente', 'Para Cliente'),
+            ('tecnica', 'Técnica'),
+            ('referencia', 'Referência'),
+        ],
+        widget=forms.Select(attrs={'class': 'form-select'})
     )

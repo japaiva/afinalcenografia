@@ -13,21 +13,7 @@ from projetos.models import (
     Projeto, Briefing, BriefingConversation, BriefingValidacao, BriefingArquivoReferencia
 )
 
-# Vamos importar o modelo ConceitoVisual do app projetista, se ele existir
-try:
-    from projetista.models import ConceitoVisual
-except ImportError:
-    # Se o modelo não existir, vamos criar uma classe temporária para fins de desenvolvimento
-    # Esta classe não será usada para persistência, apenas para evitar erros durante o desenvolvimento
-    class ConceitoVisual:
-        objects = type('MockManager', (), {
-            'get': lambda *args, **kwargs: None,
-            'filter': lambda *args, **kwargs: [],
-            'create': lambda *args, **kwargs: None
-        })()
-        
-        class DoesNotExist(Exception):
-            pass
+from projetista.models import PlantaBaixa, ConceitoVisualNovo, Modelo3D
 
 @login_required
 def projeto_list(request):
@@ -81,6 +67,10 @@ def projeto_list(request):
     
     return render(request, 'projetista/projeto_list.html', context)
 
+
+# projetista/views.py (ou onde está a função projeto_detail)
+
+
 @login_required
 def projeto_detail(request, pk):
     """
@@ -94,12 +84,33 @@ def projeto_detail(request, pk):
     mensagens = projeto.mensagens.all().order_by('-data_envio')[:5]  # Últimas 5 mensagens
     plantas = projeto.plantas.all()
     referencias = projeto.referencias.all()
-    
+
     # Verificar se existe conceito visual
     tem_conceito = False
     if hasattr(projeto, 'conceitos_visuais'):
         tem_conceito = projeto.conceitos_visuais.exists()
+
+    # NOVO SISTEMA - Status dos 3 botões
+    planta_baixa = PlantaBaixa.objects.filter(projeto=projeto).order_by('-versao').first()
+    conceito_visual = ConceitoVisualNovo.objects.filter(projeto=projeto).order_by('-versao').first()
+    modelo_3d = Modelo3D.objects.filter(projeto=projeto).order_by('-versao').first()
     
+    status = {
+        'planta_baixa': {
+            'disponivel': True,  # Sempre disponível
+            'concluido': planta_baixa and planta_baixa.status == 'pronta',
+        },
+        'conceito_visual': {
+            'disponivel': planta_baixa and planta_baixa.status == 'pronta',
+            'concluido': conceito_visual and conceito_visual.status == 'pronto',
+        },
+        'modelo_3d': {
+            'disponivel': (planta_baixa and planta_baixa.status == 'pronta' and 
+                          conceito_visual and conceito_visual.status == 'pronto'),
+            'concluido': modelo_3d and modelo_3d.status == 'pronto',
+        }
+    }
+
     context = {
         'projeto': projeto,
         'briefings': briefings,
@@ -108,8 +119,9 @@ def projeto_detail(request, pk):
         'plantas': plantas,
         'referencias': referencias,
         'tem_conceito': tem_conceito,
+        'status': status,  # NOVA LINHA ADICIONADA
     }
-    
+
     return render(request, 'projetista/projeto_detail.html', context)
 
 @login_required

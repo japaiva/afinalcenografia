@@ -12,29 +12,29 @@ from .projeto import (
     ver_briefing
 )
 
-# Importa as funções legadas e as novas do conceito.py
-from .conceito import (
-    # Funções legadas (mantidas para compatibilidade)
-    gerar_conceito,
-    conceito_detalhes,
-    upload_imagem,
-    excluir_imagem,
+from .novo_conceito import (
+    # Dashboard principal
+    novo_conceito_dashboard,
     
-    # Novas funções do fluxo em 3 etapas
-    conceito_visual,
-    conceito_etapa1,
-    conceito_etapa2,
-    conceito_etapa3,
-    conceito_completo,
+    # Planta Baixa
+    gerar_planta_baixa,
+    visualizar_planta_baixa,
+    download_planta_svg,
     
-    # APIs para integração com IA
-    gerar_conceito_ia,
-    gerar_imagem_ia,
-    gerar_vistas_ia,
-    modificar_imagem_ia,
+    # Conceito Visual
+    gerar_conceito_visual,
+    visualizar_conceito_visual,
+    refinar_conceito_visual,
     
-    # Exportação
-    exportar_conceito
+    # Modelo 3D
+    gerar_modelo_3d,
+    visualizar_modelo_3d,
+    download_modelo_3d,
+    
+    # Utilitários e AJAX
+    status_projeto_conceito,
+    restaurar_versao,
+    excluir_versao
 )
 
 from .mensagens import (
@@ -55,27 +55,28 @@ __all__ = [
     'projeto_detail',
     'ver_briefing',
     
-    # Conceito views legadas
-    'gerar_conceito',
-    'conceito_detalhes',
-    'upload_imagem',
-    'excluir_imagem',
+    # Novo Conceito - Dashboard
+    'novo_conceito_dashboard',
     
-    # Novas conceito views
-    'conceito_visual',
-    'conceito_etapa1',
-    'conceito_etapa2',
-    'conceito_etapa3',
-    'conceito_completo',
+    # Novo Conceito - Planta Baixa
+    'gerar_planta_baixa',
+    'visualizar_planta_baixa',
+    'download_planta_svg',
     
-    # APIs para IA
-    'gerar_conceito_ia',
-    'gerar_imagem_ia',
-    'gerar_vistas_ia',
-    'modificar_imagem_ia',
+    # Novo Conceito - Conceito Visual
+    'gerar_conceito_visual',
+    'visualizar_conceito_visual',
+    'refinar_conceito_visual',
     
-    # Exportação
-    'exportar_conceito',
+    # Novo Conceito - Modelo 3D
+    'gerar_modelo_3d',
+    'visualizar_modelo_3d',
+    'download_modelo_3d',
+    
+    # Novo Conceito - Utilitários
+    'status_projeto_conceito',
+    'restaurar_versao',
+    'excluir_versao',
     
     # Mensagens views
     'mensagens',

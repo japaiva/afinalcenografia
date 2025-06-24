@@ -8,10 +8,12 @@ from .views import (
     # Projeto views
     projeto_list, projeto_detail, ver_briefing,
     
-    # Conceito views (legadas e novas)
-    gerar_conceito, conceito_detalhes, upload_imagem, excluir_imagem,
-    conceito_visual, conceito_etapa1, conceito_etapa2, conceito_etapa3, conceito_completo,
-    gerar_conceito_ia, gerar_imagem_ia, gerar_vistas_ia, modificar_imagem_ia, exportar_conceito,
+    # NOVO SISTEMA - Views do novo_conceito.py
+    novo_conceito_dashboard, 
+    gerar_planta_baixa, visualizar_planta_baixa, download_planta_svg,
+    gerar_conceito_visual, visualizar_conceito_visual, refinar_conceito_visual,
+    gerar_modelo_3d, visualizar_modelo_3d, download_modelo_3d,
+    status_projeto_conceito, restaurar_versao, excluir_versao,
     
     # Mensagens views
     mensagens, nova_mensagem, mensagens_projeto
@@ -20,43 +22,51 @@ from .views import (
 app_name = 'projetista'
 
 urlpatterns = [
-    # Nova URL para login
-    path('login/', ProjetistaLoginView.as_view(), name='login'),
-    
-    # Páginas principais
+    # =========================================================================
+    # AUTENTICAÇÃO E HOME
+    # =========================================================================
     path('', home, name='home'),
+    path('login/', ProjetistaLoginView.as_view(), name='login'),
     path('dashboard/', dashboard, name='dashboard'),
     
-    # Gestão de Projetos
+    # =========================================================================
+    # GESTÃO DE PROJETOS
+    # =========================================================================
     path('projetos/', projeto_list, name='projeto_list'),
     path('projetos/<int:pk>/', projeto_detail, name='projeto_detail'),
     path('projetos/<int:projeto_id>/briefing/', ver_briefing, name='ver_briefing'),
     
-    # URLs legadas do conceito visual (para compatibilidade)
-    path('projetos/<int:projeto_id>/gerar-conceito/', gerar_conceito, name='gerar_conceito'),
-    path('conceito/<int:conceito_id>/', conceito_detalhes, name='conceito_detalhes'),
-    path('conceito/<int:conceito_id>/upload-imagem/', upload_imagem, name='upload_imagem'),
-    path('imagem/<int:imagem_id>/excluir/', excluir_imagem, name='excluir_imagem'),
+    # =========================================================================
+    # NOVO SISTEMA - 3 BOTÕES (Planta, Conceito, Modelo 3D)
+    # =========================================================================
     
-    # Novas URLs para o fluxo de 3 etapas
-    path('projetos/<int:projeto_id>/conceito/', conceito_visual, name='conceito_visual'),
-    path('projetos/<int:projeto_id>/conceito/etapa1/', conceito_etapa1, name='conceito_etapa1'),
-    path('projetos/<int:projeto_id>/conceito/etapa2/', conceito_etapa2, name='conceito_etapa2'),
-    path('projetos/<int:projeto_id>/conceito/etapa3/', conceito_etapa3, name='conceito_etapa3'),
-    path('conceito/<int:conceito_id>/completo/', conceito_completo, name='conceito_completo'),
+    # Dashboard principal do novo sistema
+    path('projetos/<int:projeto_id>/novo-conceito/', novo_conceito_dashboard, name='novo_conceito_dashboard'),
     
-    # APIs para integração com IA
-    path('conceito/<int:projeto_id>/gerar-conceito-ia/', gerar_conceito_ia, name='gerar_conceito_ia'),
-    path('conceito/<int:conceito_id>/gerar-imagem-ia/', gerar_imagem_ia, name='gerar_imagem_ia'),
-    path('conceito/<int:conceito_id>/gerar-vistas-ia/', gerar_vistas_ia, name='gerar_vistas_ia'),
-    path('conceito/imagem/<int:imagem_id>/modificar-ia/', modificar_imagem_ia, name='modificar_imagem_ia'),
+    # PLANTA BAIXA
+    path('projetos/<int:projeto_id>/planta-baixa/gerar/', gerar_planta_baixa, name='gerar_planta_baixa'),
+    path('projetos/<int:projeto_id>/planta-baixa/', visualizar_planta_baixa, name='visualizar_planta_baixa'),
+    path('planta-baixa/<int:planta_id>/download-svg/', download_planta_svg, name='download_planta_svg'),
     
-    # Exportação
-    path('conceito/<int:conceito_id>/exportar/<str:formato>/', exportar_conceito, name='exportar_conceito'),
+    # CONCEITO VISUAL NOVO
+    path('projetos/<int:projeto_id>/conceito-visual/gerar/', gerar_conceito_visual, name='gerar_conceito_visual'),
+    path('projetos/<int:projeto_id>/conceito-visual/', visualizar_conceito_visual, name='visualizar_conceito_visual'),
+    path('conceito-visual/<int:conceito_id>/refinar/', refinar_conceito_visual, name='refinar_conceito_visual'),
     
-    # Sistema de Mensagens
+    # MODELO 3D
+    path('projetos/<int:projeto_id>/modelo-3d/gerar/', gerar_modelo_3d, name='gerar_modelo_3d'),
+    path('projetos/<int:projeto_id>/modelo-3d/', visualizar_modelo_3d, name='visualizar_modelo_3d'),
+    path('modelo-3d/<int:modelo_id>/download/<str:formato>/', download_modelo_3d, name='download_modelo_3d'),
+    
+    # UTILITÁRIOS E AJAX
+    path('projetos/<int:projeto_id>/status/', status_projeto_conceito, name='status_projeto_conceito'),
+    path('restaurar-versao/<str:tipo>/<int:objeto_id>/', restaurar_versao, name='restaurar_versao'),
+    path('excluir-versao/<str:tipo>/<int:objeto_id>/', excluir_versao, name='excluir_versao'),
+    
+    # =========================================================================
+    # SISTEMA DE MENSAGENS
+    # =========================================================================
     path('mensagens/', mensagens, name='mensagens'),
     path('mensagens/nova/', nova_mensagem, name='nova_mensagem'),
     path('mensagens/projeto/<int:projeto_id>/', mensagens_projeto, name='mensagens_projeto'),
-
 ]

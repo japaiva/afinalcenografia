@@ -1,4 +1,4 @@
-# projetista/models.py
+# projetista/models.py - VERSÃO ATUALIZADA
 
 from django.db import models
 from django.utils import timezone
@@ -6,96 +6,80 @@ from django.utils.text import slugify
 from core.storage import MinioStorage
 from projetos.models import Projeto, Briefing
 from core.models import Usuario, Agente
+import json
 
-class ConceitoVisual(models.Model):
+class PlantaBaixa(models.Model):
     """
-    Modelo principal para armazenar conceitos visuais de estandes
+    Modelo para plantas baixas geradas algoritmicamente
     """
     # Relacionamentos
     projeto = models.ForeignKey(
         Projeto, on_delete=models.CASCADE,
-        related_name='conceitos_visuais'
+        related_name='plantas_baixas'
     )
     briefing = models.ForeignKey(
         Briefing, on_delete=models.CASCADE,
-        related_name='conceitos_visuais'
+        related_name='plantas_baixas'
     )
     projetista = models.ForeignKey(
         Usuario, on_delete=models.SET_NULL,
-        null=True, related_name='conceitos_criados'
+        null=True, related_name='plantas_criadas'
     )
     
-    # Campos principais
-    titulo = models.CharField(
-        max_length=255, blank=True, null=True,
-        verbose_name="Título do Conceito"
+    # Arquivos gerados
+    arquivo_svg = models.FileField(
+        upload_to='plantas_baixas/svg/',
+        storage=MinioStorage(),
+        verbose_name="Arquivo SVG da Planta"
     )
-    descricao = models.TextField(
-        verbose_name="Descrição do Conceito"
-    )
-    paleta_cores = models.TextField(
-        blank=True, null=True,
-        verbose_name="Paleta de Cores"
-    )
-    materiais_principais = models.TextField(
-        blank=True, null=True,
-        verbose_name="Materiais Principais"
-    )
-    elementos_interativos = models.TextField(
-        blank=True, null=True,
-        verbose_name="Elementos Interativos",
-        help_text="Descrição de como os visitantes interagirão com o espaço"
-    )
-    
-    # Campos de controle e IA
-    ia_gerado = models.BooleanField(
-        default=False,
-        verbose_name="Gerado por IA"
-    )
-    agente_usado = models.ForeignKey(
-        Agente, on_delete=models.SET_NULL,
+    arquivo_png = models.FileField(
+        upload_to='plantas_baixas/png/',
+        storage=MinioStorage(),
         null=True, blank=True,
-        related_name='conceitos_gerados',
-        verbose_name="Agente Utilizado"
+        verbose_name="Preview PNG"
     )
     
-    # Campos de processo em etapas
-    ETAPA_CHOICES = [
-        (1, 'Conceito Textual'),
-        (2, 'Imagem Principal'),
-        (3, 'Múltiplas Vistas'),
-        (4, 'Concluído')
-    ]
-    etapa_atual = models.PositiveSmallIntegerField(
-        choices=ETAPA_CHOICES,
+    # Dados estruturados
+    dados_json = models.JSONField(
+        verbose_name="Dados Estruturados",
+        help_text="Coordenadas, áreas, componentes da planta"
+    )
+    
+    # Metadados de geração
+    algoritmo_usado = models.CharField(
+        max_length=100,
+        default='layout_generator_v1',
+        verbose_name="Algoritmo Utilizado"
+    )
+    parametros_geracao = models.JSONField(
+        null=True, blank=True,
+        verbose_name="Parâmetros de Geração"
+    )
+    
+    # Versionamento
+    versao = models.PositiveSmallIntegerField(
         default=1,
-        verbose_name="Etapa Atual"
+        verbose_name="Versão"
+    )
+    planta_anterior = models.ForeignKey(
+        'self', on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='versoes_posteriores',
+        verbose_name="Versão Anterior"
     )
     
     # Status
     STATUS_CHOICES = [
-        ('em_elaboracao', 'Em Elaboração'),
-        ('aguardando_imagens', 'Aguardando Imagens'),
-        ('finalizado', 'Finalizado'),
-        ('aprovado', 'Aprovado'),
-        ('rejeitado', 'Rejeitado')
+        ('gerando', 'Gerando'),
+        ('pronta', 'Pronta'),
+        ('erro', 'Erro na Geração'),
+        ('refinada_ia', 'Refinada por IA')
     ]
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default='em_elaboracao',
+        default='gerando',
         verbose_name="Status"
-    )
-    
-    # Campos para IA de imagem
-    imagem_principal_prompt = models.TextField(
-        blank=True, null=True,
-        verbose_name="Prompt para Imagem Principal"
-    )
-    imagem_principal_id = models.CharField(
-        max_length=255,
-        blank=True, null=True,
-        verbose_name="ID da Imagem Principal"
     )
     
     # Campos de auditoria
@@ -109,274 +93,332 @@ class ConceitoVisual(models.Model):
     )
     
     def __str__(self):
-        if self.titulo:
-            return f"{self.titulo} - {self.projeto.nome}"
-        return f"Conceito para {self.projeto.nome}"
+        return f"Planta Baixa v{self.versao} - {self.projeto.nome}"
     
-    def gerar_slug(self):
-        """Gera um slug único para o conceito visual"""
-        if self.titulo:
-            base_slug = slugify(self.titulo)
-        else:
-            base_slug = slugify(f"conceito-{self.projeto.nome}")
-        return f"{base_slug}-{self.id}"
+    def get_area_total(self):
+        """Retorna área total calculada"""
+        if self.dados_json and 'area_total' in self.dados_json:
+            return self.dados_json['area_total']
+        return None
     
-    def etapa1_concluida(self):
-        """Verifica se a etapa 1 está concluída"""
-        return self.etapa_concluida(1)
-
-    def etapa2_concluida(self):
-        """Verifica se a etapa 2 está concluída"""
-        return self.etapa_concluida(2)
-
-    def etapa3_concluida(self):
-        """Verifica se a etapa 3 está concluída"""
-        return self.etapa_concluida(3)
-    
-    def etapa_concluida(self, etapa):
-        """Verifica se uma determinada etapa está concluída"""
-        if etapa == 1:
-            # Etapa 1: Conceito Textual está completo quando tem título e descrição
-            return bool(self.titulo and self.descricao)
-        elif etapa == 2:
-            # Etapa 2: Imagem Principal está completa quando existe uma imagem principal
-            return self.imagens.filter(principal=True).exists()
-        elif etapa == 3:
-            # Etapa 3: Múltiplas Vistas está completa quando tem pelo menos 3 ângulos diferentes
-            return self.imagens.values('angulo_vista').distinct().count() >= 3
-        return False
-    
-    def get_vistas_cliente(self):
-        """Retorna vistas importantes para apresentação ao cliente"""
-        vistas_prioritarias = [
-            'perspectiva_externa',
-            'entrada_recepcao', 
-            'interior_principal',
-            'area_produtos'
-        ]
-        return self.imagens.filter(angulo_vista__in=vistas_prioritarias)
-    
-    def get_vistas_tecnicas(self):
-        """Retorna todas as vistas técnicas para fotogrametria"""
-        vistas_tecnicas = [
-            'planta_baixa',
-            'elevacao_frontal',
-            'elevacao_lateral_esquerda',
-            'elevacao_lateral_direita', 
-            'elevacao_fundos'
-        ]
-        return self.imagens.filter(angulo_vista__in=vistas_tecnicas)
-    
-    def get_completude_fotogrametria(self):
-        """Calcula percentual de completude para fotogrametria"""
-        vistas_essenciais = [
-            'perspectiva_externa', 'planta_baixa',
-            'elevacao_frontal', 'elevacao_lateral_esquerda', 
-            'elevacao_lateral_direita', 'elevacao_fundos',
-            'interior_parede_norte', 'interior_parede_sul',
-            'interior_parede_leste', 'interior_parede_oeste'
-        ]
-        
-        vistas_existentes = self.imagens.filter(
-            angulo_vista__in=vistas_essenciais
-        ).values_list('angulo_vista', flat=True).distinct()
-        
-        return (len(vistas_existentes) / len(vistas_essenciais)) * 100
+    def get_ambientes(self):
+        """Retorna lista de ambientes da planta"""
+        if self.dados_json and 'ambientes' in self.dados_json:
+            return self.dados_json['ambientes']
+        return []
     
     class Meta:
-        verbose_name = "Conceito Visual"
-        verbose_name_plural = "Conceitos Visuais"
+        verbose_name = "Planta Baixa"
+        verbose_name_plural = "Plantas Baixas"
         ordering = ['-criado_em']
 
-class ImagemConceitoVisual(models.Model):
+
+class ConceitoVisualNovo(models.Model):
     """
-    Modelo para armazenar imagens do conceito visual, incluindo a principal e múltiplas vistas
+    Novo modelo para conceitos visuais baseados em planta baixa
     """
-    # Vistas/ângulos expandidos para fotogrametria
-    ANGULOS_CHOICES = [
-        # VISTAS PARA CLIENTE (Impactantes)
-        ('perspectiva_externa', 'Perspectiva Externa Principal'),
-        ('entrada_recepcao', 'Vista da Entrada/Recepção'),
-        ('interior_principal', 'Vista Interna Principal'),
-        ('area_produtos', 'Área de Produtos/Destaque'),
-        
-        # VISTAS TÉCNICAS EXTERNAS
-        ('elevacao_frontal', 'Elevação Frontal'),
-        ('elevacao_lateral_esquerda', 'Elevação Lateral Esquerda'),
-        ('elevacao_lateral_direita', 'Elevação Lateral Direita'),
-        ('elevacao_fundos', 'Elevação Fundos'),
-        ('quina_frontal_esquerda', 'Quina Frontal-Esquerda'),
-        ('quina_frontal_direita', 'Quina Frontal-Direita'),
-        
-        # PLANTA E VISTAS SUPERIORES
-        ('planta_baixa', 'Planta Baixa'),
-        ('vista_superior', 'Vista Superior'),
-        
-        # VISTAS INTERNAS SISTEMÁTICAS
-        ('interior_parede_norte', 'Interior - Parede Norte'),
-        ('interior_parede_sul', 'Interior - Parede Sul'),
-        ('interior_parede_leste', 'Interior - Parede Leste'),
-        ('interior_parede_oeste', 'Interior - Parede Oeste'),
-        ('interior_perspectiva_1', 'Interior - Perspectiva 1'),
-        ('interior_perspectiva_2', 'Interior - Perspectiva 2'),
-        ('interior_perspectiva_3', 'Interior - Perspectiva 3'),
-        
-        # DETALHES ESPECÍFICOS
-        ('detalhe_balcao', 'Detalhe do Balcão'),
-        ('detalhe_display', 'Detalhe dos Displays'),
-        ('detalhe_iluminacao', 'Detalhe da Iluminação'),
-        ('detalhe_entrada', 'Detalhe da Entrada'),
-        
-        # OUTROS
-        ('outro', 'Outro Ângulo'),
-    ]
-    
-    # Categorias para organização
-    CATEGORIA_CHOICES = [
-        ('cliente', 'Apresentação para Cliente'),
-        ('tecnica_externa', 'Técnica Externa'),
-        ('tecnica_interna', 'Técnica Interna'),
-        ('planta_elevacao', 'Plantas e Elevações'),
-        ('detalhes', 'Detalhes Específicos'),
-    ]
-    
-    conceito = models.ForeignKey(
-        ConceitoVisual, on_delete=models.CASCADE,
-        related_name='imagens'
+    # Relacionamentos
+    projeto = models.ForeignKey(
+        Projeto, on_delete=models.CASCADE,
+        related_name='conceitos_visuais_novos'
     )
+    briefing = models.ForeignKey(
+        Briefing, on_delete=models.CASCADE,
+        related_name='conceitos_visuais_novos'
+    )
+    planta_baixa = models.ForeignKey(
+        PlantaBaixa, on_delete=models.CASCADE,
+        related_name='conceitos_visuais',
+        verbose_name="Planta Baixa Base"
+    )
+    projetista = models.ForeignKey(
+        Usuario, on_delete=models.SET_NULL,
+        null=True, related_name='conceitos_novos_criados'
+    )
+    
+    # Imagem principal
     imagem = models.ImageField(
-        upload_to='conceitos_visuais/',
+        upload_to='conceitos_novos/',
         storage=MinioStorage(),
-        verbose_name="Imagem"
+        verbose_name="Imagem do Conceito"
     )
+    
+    # Metadados da imagem
     descricao = models.CharField(
         max_length=255,
-        verbose_name="Descrição"
+        verbose_name="Descrição do Conceito"
     )
-    angulo_vista = models.CharField(
+    estilo_visualizacao = models.CharField(
         max_length=50,
-        choices=ANGULOS_CHOICES,
-        default='outro',
-        verbose_name="Ângulo/Vista"
+        choices=[
+            ('fotorrealista', 'Fotorrealista'),
+            ('artistico', 'Artístico'),
+            ('tecnico', 'Técnico'),
+            ('conceitual', 'Conceitual')
+        ],
+        default='fotorrealista',
+        verbose_name="Estilo de Visualização"
     )
-    categoria = models.CharField(
-        max_length=20,
-        choices=CATEGORIA_CHOICES,
-        default='cliente',
-        verbose_name="Categoria"
-    )
-    principal = models.BooleanField(
-        default=False,
-        verbose_name="Imagem Principal"
-    )
-    ia_gerada = models.BooleanField(
-        default=False,
-        verbose_name="Gerada por IA"
-    )
-    ordem = models.PositiveSmallIntegerField(
-        default=0,
-        verbose_name="Ordem de Exibição"
+    iluminacao = models.CharField(
+        max_length=50,
+        choices=[
+            ('diurna', 'Iluminação Diurna'),
+            ('noturna', 'Iluminação Noturna'),
+            ('feira', 'Iluminação de Feira'),
+            ('dramatica', 'Iluminação Dramática')
+        ],
+        default='feira',
+        verbose_name="Tipo de Iluminação"
     )
     
-    # Campos para controle de versões
+    # IA e geração
+    ia_gerado = models.BooleanField(
+        default=True,
+        verbose_name="Gerado por IA"
+    )
+    agente_usado = models.ForeignKey(
+        Agente, on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='conceitos_novos_gerados',
+        verbose_name="Agente Utilizado"
+    )
+    prompt_geracao = models.TextField(
+        blank=True, null=True,
+        verbose_name="Prompt de Geração"
+    )
+    instrucoes_adicionais = models.TextField(
+        blank=True, null=True,
+        verbose_name="Instruções Adicionais"
+    )
+    
+    # Versionamento
     versao = models.PositiveSmallIntegerField(
         default=1,
         verbose_name="Versão"
     )
-    imagem_anterior = models.ForeignKey(
+    conceito_anterior = models.ForeignKey(
         'self', on_delete=models.SET_NULL,
         null=True, blank=True,
         related_name='versoes_posteriores',
         verbose_name="Versão Anterior"
     )
     
-    # Campos para IA
-    prompt_geracao = models.TextField(
-        blank=True, null=True,
-        verbose_name="Prompt de Geração"
+    # Status
+    STATUS_CHOICES = [
+        ('gerando', 'Gerando'),
+        ('pronto', 'Pronto'),
+        ('erro', 'Erro na Geração'),
+        ('aprovado', 'Aprovado pelo Cliente')
+    ]
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='gerando',
+        verbose_name="Status"
     )
     
-    # Campos para fotogrametria
-    essencial_fotogrametria = models.BooleanField(
-        default=False,
-        verbose_name="Essencial para Fotogrametria"
-    )
-    coordenada_x = models.FloatField(
-        null=True, blank=True,
-        verbose_name="Coordenada X (opcional)"
-    )
-    coordenada_y = models.FloatField(
-        null=True, blank=True,
-        verbose_name="Coordenada Y (opcional)"
-    )
-    coordenada_z = models.FloatField(
-        null=True, blank=True,
-        verbose_name="Coordenada Z (opcional)"
-    )
-    
+    # Campos de auditoria
     criado_em = models.DateTimeField(
         auto_now_add=True,
         verbose_name="Criado em"
     )
+    atualizado_em = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Atualizado em"
+    )
     
     def __str__(self):
-        return f"{self.get_angulo_vista_display()} - {self.conceito}"
-    
-    def save(self, *args, **kwargs):
-        # Auto-categorizar baseado no ângulo da vista
-        if not self.categoria:
-            if self.angulo_vista in ['perspectiva_externa', 'entrada_recepcao', 'interior_principal', 'area_produtos']:
-                self.categoria = 'cliente'
-            elif self.angulo_vista.startswith('elevacao_') or self.angulo_vista.startswith('quina_'):
-                self.categoria = 'tecnica_externa'
-            elif self.angulo_vista.startswith('interior_'):
-                self.categoria = 'tecnica_interna'
-            elif self.angulo_vista in ['planta_baixa', 'vista_superior']:
-                self.categoria = 'planta_elevacao'
-            elif self.angulo_vista.startswith('detalhe_'):
-                self.categoria = 'detalhes'
-        
-        # Marcar como essencial para fotogrametria
-        vistas_essenciais = [
-            'perspectiva_externa', 'planta_baixa',
-            'elevacao_frontal', 'elevacao_lateral_esquerda', 
-            'elevacao_lateral_direita', 'elevacao_fundos',
-            'interior_parede_norte', 'interior_parede_sul',
-            'interior_parede_leste', 'interior_parede_oeste'
-        ]
-        self.essencial_fotogrametria = self.angulo_vista in vistas_essenciais
-        
-        super().save(*args, **kwargs)
+        return f"Conceito v{self.versao} - {self.projeto.nome}"
     
     class Meta:
-        verbose_name = "Imagem de Conceito"
-        verbose_name_plural = "Imagens de Conceito"
-        ordering = ['categoria', 'ordem', 'criado_em']
-        
-class PackageVistasPreset(models.Model):
+        verbose_name = "Conceito Visual Novo"
+        verbose_name_plural = "Conceitos Visuais Novos"
+        ordering = ['-criado_em']
+
+
+class Modelo3D(models.Model):
     """
-    Modelo para definir pacotes pré-definidos de vistas
+    Modelo para cenas 3D navegáveis
     """
-    nome = models.CharField(max_length=100, verbose_name="Nome do Pacote")
-    descricao = models.TextField(verbose_name="Descrição")
-    vistas_incluidas = models.JSONField(
-        verbose_name="Vistas Incluídas",
-        help_text="Lista dos angulos_vista incluídos neste pacote"
+    # Relacionamentos
+    projeto = models.ForeignKey(
+        Projeto, on_delete=models.CASCADE,
+        related_name='modelos_3d'
     )
-    tipo = models.CharField(
+    briefing = models.ForeignKey(
+        Briefing, on_delete=models.CASCADE,
+        related_name='modelos_3d'
+    )
+    planta_baixa = models.ForeignKey(
+        PlantaBaixa, on_delete=models.CASCADE,
+        related_name='modelos_3d',
+        verbose_name="Planta Baixa Base"
+    )
+    conceito_visual = models.ForeignKey(
+        ConceitoVisualNovo, on_delete=models.CASCADE,
+        related_name='modelos_3d',
+        verbose_name="Conceito Visual Base"
+    )
+    projetista = models.ForeignKey(
+        Usuario, on_delete=models.SET_NULL,
+        null=True, related_name='modelos_3d_criados'
+    )
+    
+    # Arquivos 3D
+    arquivo_gltf = models.FileField(
+        upload_to='modelos_3d/gltf/',
+        storage=MinioStorage(),
+        verbose_name="Arquivo GLTF/GLB"
+    )
+    arquivo_obj = models.FileField(
+        upload_to='modelos_3d/obj/',
+        storage=MinioStorage(),
+        null=True, blank=True,
+        verbose_name="Arquivo OBJ (opcional)"
+    )
+    arquivo_skp = models.FileField(
+        upload_to='modelos_3d/skp/',
+        storage=MinioStorage(),
+        null=True, blank=True,
+        verbose_name="Arquivo SketchUp (opcional)"
+    )
+    
+    # Preview
+    imagem_preview = models.ImageField(
+        upload_to='modelos_3d/previews/',
+        storage=MinioStorage(),
+        null=True, blank=True,
+        verbose_name="Imagem de Preview"
+    )
+    
+    # Configurações da cena 3D
+    dados_cena = models.JSONField(
+        verbose_name="Dados da Cena 3D",
+        help_text="Posições de câmera, iluminação, materiais, etc."
+    )
+    
+    # Biblioteca de componentes usados
+    componentes_usados = models.JSONField(
+        null=True, blank=True,
+        verbose_name="Componentes Utilizados",
+        help_text="Lista de componentes da biblioteca MinIO usados"
+    )
+    
+    # Configurações de navegação
+    camera_inicial = models.JSONField(
+        null=True, blank=True,
+        verbose_name="Posição Inicial da Câmera"
+    )
+    pontos_interesse = models.JSONField(
+        null=True, blank=True,
+        verbose_name="Pontos de Interesse",
+        help_text="Posições de câmera pré-definidas para navegação"
+    )
+    
+    # Versionamento
+    versao = models.PositiveSmallIntegerField(
+        default=1,
+        verbose_name="Versão"
+    )
+    modelo_anterior = models.ForeignKey(
+        'self', on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='versoes_posteriores',
+        verbose_name="Versão Anterior"
+    )
+    
+    # Status
+    STATUS_CHOICES = [
+        ('gerando', 'Gerando Modelo'),
+        ('processando', 'Processando Componentes'),
+        ('pronto', 'Pronto'),
+        ('erro', 'Erro na Geração'),
+        ('exportado', 'Exportado')
+    ]
+    status = models.CharField(
         max_length=20,
-        choices=[
-            ('cliente', 'Apresentação Cliente'),
-            ('tecnico', 'Técnico Completo'),
-            ('fotogrametria', 'Fotogrametria'),
-            ('basico', 'Básico')
-        ],
-        verbose_name="Tipo do Pacote"
+        choices=STATUS_CHOICES,
+        default='gerando',
+        verbose_name="Status"
     )
-    ativo = models.BooleanField(default=True)
-    ordem = models.PositiveSmallIntegerField(default=0)
+    
+    # Campos de auditoria
+    criado_em = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Criado em"
+    )
+    atualizado_em = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Atualizado em"
+    )
+    
+    def __str__(self):
+        return f"Modelo 3D v{self.versao} - {self.projeto.nome}"
+    
+    def get_formatos_disponiveis(self):
+        """Retorna lista de formatos disponíveis para download"""
+        formatos = []
+        if self.arquivo_gltf:
+            formatos.append('GLTF/GLB')
+        if self.arquivo_obj:
+            formatos.append('OBJ')
+        if self.arquivo_skp:
+            formatos.append('SketchUp')
+        return formatos
+    
+    def get_estatisticas_modelo(self):
+        """Retorna estatísticas do modelo 3D"""
+        if self.dados_cena and 'estatisticas' in self.dados_cena:
+            return self.dados_cena['estatisticas']
+        return {}
     
     class Meta:
-        verbose_name = "Pacote de Vistas"
-        verbose_name_plural = "Pacotes de Vistas"
-        ordering = ['tipo', 'ordem']
+        verbose_name = "Modelo 3D"
+        verbose_name_plural = "Modelos 3D"
+        ordering = ['-criado_em']
+
+
+# Manter o modelo antigo para compatibilidade (renomeado)
+class ConceitoVisualLegado(models.Model):
+    """
+    Modelo legado do conceito visual (antigo sistema de 3 etapas)
+    Mantido para compatibilidade com dados existentes
+    """
+    # [Manter toda a estrutura do ConceitoVisual original]
+    projeto = models.ForeignKey(
+        Projeto, on_delete=models.CASCADE,
+        related_name='conceitos_visuais_legados'
+    )
+    briefing = models.ForeignKey(
+        Briefing, on_delete=models.CASCADE,
+        related_name='conceitos_visuais_legados'
+    )
+    projetista = models.ForeignKey(
+        Usuario, on_delete=models.SET_NULL,
+        null=True, related_name='conceitos_legados_criados'
+    )
+    
+    # Campos principais do sistema antigo
+    titulo = models.CharField(max_length=255, blank=True, null=True)
+    descricao = models.TextField()
+    paleta_cores = models.TextField(blank=True, null=True)
+    materiais_principais = models.TextField(blank=True, null=True)
+    elementos_interativos = models.TextField(blank=True, null=True)
+    
+    ia_gerado = models.BooleanField(default=False)
+    agente_usado = models.ForeignKey(
+        Agente, on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='conceitos_legados_gerados'
+    )
+    
+    etapa_atual = models.PositiveSmallIntegerField(default=1)
+    status = models.CharField(max_length=20, default='em_elaboracao')
+    
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Conceito Visual (Legado)"
+        verbose_name_plural = "Conceitos Visuais (Legados)"
+        db_table = 'projetista_conceitovisual'  # Manter tabela original
