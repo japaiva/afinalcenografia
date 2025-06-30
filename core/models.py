@@ -8,6 +8,201 @@ from core.storage import MinioStorage
 from django.core.validators import MinValueValidator, MaxValueValidator
 import uuid
 import os
+import json
+
+class Agente(models.Model):
+    """
+    Modelo para agentes individuais (podem ser usados sozinhos ou em crews)
+    """
+    TIPO_AGENTE_CHOICES = [
+        ('individual', 'Agente Individual'),
+        ('crew_member', 'Membro de Crew'),
+    ]
+    
+    nome = models.CharField(max_length=200, help_text="Nome descritivo do agente")
+    tipo = models.CharField(max_length=20, choices=TIPO_AGENTE_CHOICES, default='individual')
+    descricao = models.TextField(blank=True, help_text="Descrição da função do agente")
+    
+    # Configurações LLM
+    llm_provider = models.CharField(max_length=50, default='openai')
+    llm_model = models.CharField(max_length=100, help_text="Ex: gpt-4, claude-3-opus")
+    llm_temperature = models.FloatField(
+        default=0.3,
+        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)]
+    )
+    
+    # Prompts e instruções
+    llm_system_prompt = models.TextField(help_text="Prompt base do agente")
+    task_instructions = models.TextField(blank=True, help_text="Instruções específicas para tarefas")
+    
+    # CrewAI específico (para agentes que fazem parte de crews)
+    crew_role = models.CharField(max_length=200, blank=True, help_text="Papel específico dentro do crew")
+    crew_goal = models.TextField(blank=True, help_text="Objetivo específico dentro do crew")
+    crew_backstory = models.TextField(blank=True, help_text="Background do agente no contexto do crew")
+    
+    # Status e configurações
+    ativo = models.BooleanField(default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['nome']
+        verbose_name = 'Agente'
+        verbose_name_plural = 'Agentes'
+    
+    def __str__(self):
+        return f"{self.nome} ({self.get_tipo_display()})"
+    
+    def is_crew_member(self):
+        return self.tipo == 'crew_member'
+
+
+class Crew(models.Model):
+    """
+    Modelo para crews (grupos de agentes trabalhando juntos)
+    """
+    PROCESSO_CHOICES = [
+        ('sequential', 'Sequencial'),
+        ('hierarchical', 'Hierárquico'),
+    ]
+    
+    nome = models.CharField(max_length=200, help_text="Nome do crew")
+    descricao = models.TextField(help_text="Descrição do que o crew faz")
+    
+    # Configurações do CrewAI
+    processo = models.CharField(max_length=20, choices=PROCESSO_CHOICES, default='sequential')
+    verbose = models.BooleanField(default=True, help_text="Logs detalhados durante execução")
+    memory = models.BooleanField(default=True, help_text="Usar memória entre execuções")
+    
+    # Manager (para processo hierárquico)
+    manager_llm_provider = models.CharField(max_length=50, default='openai', blank=True)
+    manager_llm_model = models.CharField(max_length=100, blank=True, help_text="Modelo para o manager")
+    manager_llm_temperature = models.FloatField(
+        default=0.2,
+        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)],
+        blank=True, null=True
+    )
+    
+    # Status
+    ativo = models.BooleanField(default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['nome']
+        verbose_name = 'Crew'
+        verbose_name_plural = 'Crews'
+    
+    def __str__(self):
+        return self.nome
+
+
+class CrewMembro(models.Model):
+    """
+    Relacionamento entre Crew e Agentes com configurações específicas
+    """
+    crew = models.ForeignKey(Crew, on_delete=models.CASCADE, related_name='membros')
+    agente = models.ForeignKey(Agente, on_delete=models.CASCADE, related_name='crews')
+    
+    # Configurações específicas dentro do crew
+    ordem_execucao = models.PositiveIntegerField(default=1, help_text="Ordem de execução no crew")
+    pode_delegar = models.BooleanField(default=False, help_text="Pode delegar tarefas para outros agentes")
+    max_iter = models.PositiveIntegerField(default=15, help_text="Máximo de iterações para este agente")
+    max_execution_time = models.PositiveIntegerField(default=300, help_text="Tempo máximo de execução em segundos")
+    
+    # Status
+    ativo = models.BooleanField(default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['crew', 'ordem_execucao']
+        unique_together = ['crew', 'agente']
+        verbose_name = 'Membro do Crew'
+        verbose_name_plural = 'Membros do Crew'
+    
+    def __str__(self):
+        return f"{self.crew.nome} → {self.agente.nome} (#{self.ordem_execucao})"
+
+
+class CrewTask(models.Model):
+    """
+    Tarefas específicas dentro de um Crew
+    """
+    crew = models.ForeignKey(Crew, on_delete=models.CASCADE, related_name='tasks')
+    agente_responsavel = models.ForeignKey(Agente, on_delete=models.CASCADE, related_name='tasks_responsavel')
+    
+    nome = models.CharField(max_length=200, help_text="Nome da tarefa")
+    descricao = models.TextField(help_text="Descrição detalhada da tarefa")
+    expected_output = models.TextField(help_text="Descrição do output esperado")
+    
+    # Configurações da tarefa
+    ordem_execucao = models.PositiveIntegerField(default=1)
+    async_execution = models.BooleanField(default=False, help_text="Execução assíncrona")
+    
+    # Dependências (tarefas que devem ser executadas antes)
+    dependencias = models.ManyToManyField('self', blank=True, symmetrical=False, related_name='dependentes')
+    
+    # Context e ferramentas
+    context_template = models.TextField(blank=True, help_text="Template para contexto da tarefa")
+    tools_config = models.JSONField(default=dict, blank=True, help_text="Configuração de ferramentas específicas")
+    
+    # Status
+    ativo = models.BooleanField(default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['crew', 'ordem_execucao']
+        verbose_name = 'Tarefa do Crew'
+        verbose_name_plural = 'Tarefas do Crew'
+    
+    def __str__(self):
+        return f"{self.crew.nome} → {self.nome} ({self.agente_responsavel.nome})"
+
+
+class CrewExecucao(models.Model):
+    """
+    Log de execuções de crews
+    """
+    STATUS_CHOICES = [
+        ('running', 'Executando'),
+        ('completed', 'Concluído'),
+        ('failed', 'Falhou'),
+        ('timeout', 'Timeout'),
+    ]
+    
+    crew = models.ForeignKey(Crew, on_delete=models.CASCADE, related_name='execucoes')
+    
+    # Identificação da execução
+    projeto_id = models.PositiveIntegerField(null=True, blank=True)
+    briefing_id = models.PositiveIntegerField(null=True, blank=True)
+    usuario_solicitante = models.ForeignKey('Usuario', on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Status e controle
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='running')
+    iniciado_em = models.DateTimeField(auto_now_add=True)
+    finalizado_em = models.DateTimeField(null=True, blank=True)
+    tempo_execucao = models.PositiveIntegerField(null=True, blank=True, help_text="Tempo em segundos")
+    
+    # Input e output
+    input_data = models.JSONField(help_text="Dados de entrada para o crew")
+    output_data = models.JSONField(default=dict, blank=True, help_text="Resultado da execução")
+    
+    # Logs e debugging
+    logs_execucao = models.TextField(blank=True, help_text="Logs detalhados da execução")
+    erro_detalhado = models.TextField(blank=True, help_text="Detalhes do erro se houver")
+    
+    # Métricas
+    tokens_utilizados = models.PositiveIntegerField(default=0)
+    custo_estimado = models.DecimalField(max_digits=10, decimal_places=4, default=0)
+    
+    class Meta:
+        ordering = ['-iniciado_em']
+        verbose_name = 'Execução de Crew'
+        verbose_name_plural = 'Execuções de Crew'
+    
+    def __str__(self):
+        return f"{self.crew.nome} - {self.get_status_display()} ({self.iniciado_em.strftime('%d/%m/%Y %H:%M')})"
 
 def manual_upload_path(instance, filename):
     """
@@ -361,45 +556,6 @@ class ParametroIndexacao(models.Model):
         db_table = 'parametros_indexacao'
         verbose_name = 'Parâmetro do Banco Vetorial'
         verbose_name_plural = 'Parâmetros do Banco Vetorial'
-class Agente(models.Model):
-    nome = models.CharField(max_length=100, unique=True, verbose_name="Nome do Agente")
-    descricao = models.TextField(blank=True, null=True, verbose_name="Descrição")
-    llm_provider = models.CharField(
-        max_length=50,
-        verbose_name="Provedor LLM",
-        help_text="Provedor do modelo de linguagem (ex: OpenAI, Anthropic)"
-    )
-    llm_model = models.CharField(
-        max_length=100,
-        verbose_name="Modelo LLM",
-        help_text="Nome do modelo específico a ser usado"
-    )
-    llm_temperature = models.FloatField(
-        default=0.7,
-        verbose_name="Temperatura",
-        help_text="Temperatura para geração de texto (0.0 - 1.0)"
-    )
-    llm_system_prompt = models.TextField(
-        verbose_name="Prompt do Sistema",
-        help_text="Prompt base que define o comportamento do agente"
-    )
-    task_instructions = models.TextField(
-        blank=True, 
-        null=True,
-        verbose_name="Instruções de Tarefa",
-        help_text="Instruções específicas para execução de tarefas pelo agente"
-    )
-    ativo = models.BooleanField(default=True, verbose_name="Ativo")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
-    
-    def __str__(self):
-        return self.nome
-    
-    class Meta:
-        db_table = 'agentes'
-        verbose_name = 'Agente'
-        verbose_name_plural = 'Agentes'
 class CampoPergunta(models.Model):
     """
     Define perguntas padrão para extrair informações de campos específicos.

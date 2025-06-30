@@ -1,0 +1,19 @@
+=== INICIANDO CONFIGURAÇÃO DE LOGGING ===
+Diretório de execução atual: /Users/joseantoniopaiva/pythonprojects/afinal_cenografia
+BASE_DIR: /Users/joseantoniopaiva/pythonprojects/afinal_cenografia
+Tentando criar diretório de logs em: /Users/joseantoniopaiva/pythonprojects/afinal_cenografia/logs
+✓ Diretório de logs criado/verificado com sucesso: /Users/joseantoniopaiva/pythonprojects/afinal_cenografia/logs
+  Permissões do diretório: 755
+Tentando escrever arquivo de teste em: /Users/joseantoniopaiva/pythonprojects/afinal_cenografia/logs/test_write.log
+✓ Teste de escrita no diretório de logs bem-sucedido
+Configurando sistema de logging...
+Arquivos de log que serão usados:
+ - Debug: /Users/joseantoniopaiva/pythonprojects/afinal_cenografia/logs/debug.log
+ - Diagnostic: /Users/joseantoniopaiva/pythonprojects/afinal_cenografia/logs/diagnostic.log
+✓ Teste de escrita em debug.log bem-sucedido
+✓ Teste de escrita em diagnostic.log bem-sucedido
+=== CONFIGURAÇÃO DE LOGGING CONCLUÍDA ===
+[INFO] 2025-06-30 05:33:22,185 Mantendo logs de desenvolvimento (modo DEBUG ativo)
+[INFO] 2025-06-30 05:33:22,185 Aplicativo Core inicializado com sucesso
+[INFO] 2025-06-30 05:33:22,185 Signals registrados com sucesso
+[

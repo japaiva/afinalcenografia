@@ -1,0 +1,147 @@
+{% extends 'gestor/base_gestor.html' %}
+
+{% block title %}Excluir Crew | Portal do Gestor | Afinal Cenografia{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-danger text-white">
+    <h5 class="card-title mb-0">
+      <i class="fas fa-exclamation-triangle me-2"></i> Confirmar Exclusão do Crew
+    </h5>
+  </div>
+  
+  <div class="card-body">
+    <div class="alert alert-warning">
+      <p class="mb-0">
+        <strong>Atenção:</strong> Você está prestes a excluir o crew de IA abaixo.
+        Esta ação não pode ser desfeita.
+      </p>
+    </div>
+    
+    <div class="card mb-4">
+      <div class="card-body">
+        <h6 class="card-title">Informações do Crew</h6>
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item d-flex justify-content-between">
+            <span class="fw-bold">Nome:</span>
+            <span>{{ crew.nome }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span class="fw-bold">Processo:</span>
+            <span>
+              {% if crew.processo == 'sequential' %}
+                <span class="badge bg-primary">Sequencial</span>
+              {% else %}
+                <span class="badge bg-warning">Hierárquico</span>
+              {% endif %}
+            </span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span class="fw-bold">Agentes:</span>
+            <span>{{ crew.membros.count }} agentes</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span class="fw-bold">Tarefas:</span>
+            <span>{{ crew.tasks.count }} tarefas</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span class="fw-bold">Status:</span>
+            <span>
+              {% if crew.ativo %}
+                <span class="badge bg-success">Ativo</span>
+              {% else %}
+                <span class="badge bg-secondary">Inativo</span>
+              {% endif %}
+            </span>
+          </li>
+          {% if crew.descricao %}
+          <li class="list-group-item">
+            <span class="fw-bold">Descrição:</span><br>
+            {{ crew.descricao }}
+          </li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+
+    <!-- Agentes que serão afetados -->
+    {% if crew.membros.all %}
+    <div class="card mb-4">
+      <div class="card-header bg-light">
+        <h6 class="card-title mb-0">
+          <i class="fas fa-robot me-2"></i>Agentes no Crew
+        </h6>
+      </div>
+      <div class="card-body">
+        <p class="small text-muted mb-2">Os seguintes agentes serão removidos do crew (mas não excluídos):</p>
+        <div class="row">
+          {% for membro in crew.membros.all %}
+            <div class="col-md-6 mb-2">
+              <span class="badge bg-info">{{ membro.ordem_execucao }}</span>
+              {{ membro.agente.nome }}
+              {% if membro.agente.crew_role %}
+                <small class="text-muted">({{ membro.agente.crew_role }})</small>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Execuções vinculadas -->
+    {% if execucoes_vinculadas > 0 %}
+    <div class="alert alert-danger">
+      <h6><i class="fas fa-exclamation-circle me-2"></i>Atenção: Execuções Vinculadas</h6>
+      <p class="mb-0">
+        Este crew possui <strong>{{ execucoes_vinculadas }} execuções</strong> registradas no sistema.
+        Ao excluir o crew, todo o histórico de execuções será perdido.
+      </p>
+    </div>
+    {% endif %}
+
+    <!-- Verificar se pode excluir -->
+    {% if not pode_excluir %}
+    <div class="alert alert-warning">
+      <h6><i class="fas fa-lock me-2"></i>Exclusão Bloqueada</h6>
+      <p class="mb-0">
+        Este crew não pode ser excluído pois possui execuções vinculadas.
+        Para excluir este crew, primeiro você deve:
+      </p>
+      <ul class="mt-2 mb-0">
+        <li>Aguardar o término de execuções em andamento</li>
+        <li>Ou contatar o administrador do sistema</li>
+      </ul>
+    </div>
+    {% endif %}
+    
+    <form method="post">
+      {% csrf_token %}
+      <div class="d-flex justify-content-between">
+        <a href="{% url 'gestor:crew_detail' crew.id %}" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-1"></i> Cancelar
+        </a>
+        
+        {% if pode_excluir %}
+          <div class="dropdown">
+            <button class="btn btn-danger dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              <i class="fas fa-trash me-1"></i> Confirmar Exclusão
+            </button>
+            <ul class="dropdown-menu">
+              <li>
+                <button type="submit" name="confirm_delete" value="sim" class="dropdown-item text-danger">
+                  <i class="fas fa-trash me-2"></i>Sim, excluir permanentemente
+                </button>
+              </li>
+            </ul>
+          </div>
+        {% else %}
+          <button type="button" class="btn btn-danger" disabled>
+            <i class="fas fa-lock me-1"></i> Não é Possível Excluir
+          </button>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

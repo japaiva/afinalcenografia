@@ -1,0 +1,204 @@
+{% extends 'gestor/base_gestor.html' %}
+
+{% block title %}Adicionar Agente ao Crew | Portal do Gestor | Afinal Cenografia{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">
+      <i class="fas fa-user-plus me-2"></i>Adicionar Agente ao Crew
+    </h5>
+    <a href="{% url 'gestor:crew_detail' crew.id %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i> Voltar
+    </a>
+  </div>
+
+  <div class="card-body">
+    <!-- Info do Crew -->
+    <div class="alert alert-info">
+      <h6><i class="fas fa-users me-2"></i>{{ crew.nome }}</h6>
+      <p class="mb-0">{{ crew.descricao }}</p>
+      <small class="text-muted">
+        Processo: 
+        {% if crew.processo == 'sequential' %}
+          <span class="badge bg-primary">Sequencial</span>
+        {% else %}
+          <span class="badge bg-warning">Hierárquico</span>
+        {% endif %}
+      </small>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+          {% for error in form.non_field_errors %}
+            <p class="mb-0">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <div class="row g-3">
+        <!-- Seleção do Agente -->
+        <div class="col-12">
+          <label for="{{ form.agente.id_for_label }}" class="form-label">Agente*</label>
+          {{ form.agente }}
+          <div class="form-text">Apenas agentes do tipo "Membro de Crew" que não estão neste crew aparecem aqui</div>
+          {% if form.agente.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.agente.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Configurações de Execução -->
+        <div class="col-12">
+          <hr>
+          <h6 class="text-primary">
+            <i class="fas fa-cogs me-2"></i>Configurações de Execução
+          </h6>
+        </div>
+
+        <div class="col-md-6">
+          <label for="{{ form.ordem_execucao.id_for_label }}" class="form-label">Ordem de Execução*</label>
+          {{ form.ordem_execucao }}
+          <div class="form-text">Posição na sequência de execução (1 = primeiro)</div>
+          {% if form.ordem_execucao.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.ordem_execucao.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-6 d-flex align-items-center">
+          <div class="form-check form-switch">
+            {{ form.pode_delegar }}
+            <label class="form-check-label" for="{{ form.pode_delegar.id_for_label }}">
+              Pode Delegar Tarefas
+            </label>
+          </div>
+          {% if form.pode_delegar.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.pode_delegar.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Limites de Execução -->
+        <div class="col-12">
+          <h6 class="text-warning">
+            <i class="fas fa-stopwatch me-2"></i>Limites de Execução
+          </h6>
+        </div>
+
+        <div class="col-md-6">
+          <label for="{{ form.max_iter.id_for_label }}" class="form-label">Máximo de Iterações*</label>
+          {{ form.max_iter }}
+          <div class="form-text">Número máximo de tentativas para completar tarefas (1-50)</div>
+          {% if form.max_iter.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.max_iter.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-6">
+          <label for="{{ form.max_execution_time.id_for_label }}" class="form-label">Tempo Máximo (segundos)*</label>
+          {{ form.max_execution_time }}
+          <div class="form-text">Tempo limite para execução (30-3600 segundos)</div>
+          {% if form.max_execution_time.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.max_execution_time.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Status -->
+        <div class="col-12">
+          <hr>
+          <div class="form-check form-switch">
+            {{ form.ativo }}
+            <label class="form-check-label" for="{{ form.ativo.id_for_label }}">
+              Membro Ativo no Crew
+            </label>
+          </div>
+          <div class="form-text">Membros inativos não participam da execução</div>
+          {% if form.ativo.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.ativo.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Membros Atuais (referência) -->
+      {% if crew.membros.all %}
+      <div class="mt-4">
+        <h6 class="text-muted">
+          <i class="fas fa-list me-2"></i>Membros Atuais ({{ crew.membros.count }})
+        </h6>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered">
+            <thead class="table-light">
+              <tr>
+                <th>Ordem</th>
+                <th>Agente</th>
+                <th>Papel</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for membro in crew.membros.all %}
+                <tr>
+                  <td>
+                    <span class="badge bg-secondary">{{ membro.ordem_execucao }}</span>
+                  </td>
+                  <td>{{ membro.agente.nome }}</td>
+                  <td>
+                    <small class="text-muted">
+                      {{ membro.agente.crew_role|default:"—" }}
+                    </small>
+                  </td>
+                  <td>
+                    {% if membro.ativo %}
+                      <span class="badge bg-success">Ativo</span>
+                    {% else %}
+                      <span class="badge bg-secondary">Inativo</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="d-flex justify-content-end mt-4">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-user-plus me-1"></i> Adicionar ao Crew
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Auto-sugerir próxima ordem baseada nos membros existentes
+  const ordemInput = document.getElementById('{{ form.ordem_execucao.id_for_label }}');
+  if (ordemInput && !ordemInput.value) {
+    const tabelaMembros = document.querySelector('tbody');
+    if (tabelaMembros) {
+      const linhas = tabelaMembros.querySelectorAll('tr');
+      const proximaOrdem = linhas.length + 1;
+      ordemInput.value = proximaOrdem;
+    } else {
+      ordemInput.value = 1;
+    }
+  }
+});
+</script>
+
+{% endblock %}

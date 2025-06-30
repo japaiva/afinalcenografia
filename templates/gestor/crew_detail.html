@@ -1,0 +1,370 @@
+{% extends 'gestor/base_gestor.html' %}
+
+{% block title %}{{ crew.nome }} | Portal do Gestor | Afinal Cenografia{% endblock %}
+
+{% block content %}
+<div class="row">
+  <!-- INFORMAÇÕES PRINCIPAIS -->
+  <div class="col-lg-8">
+    <div class="card shadow mb-4">
+      <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-users me-2"></i> {{ crew.nome }}
+          {% if not crew.ativo %}
+            <span class="badge bg-secondary ms-2">Inativo</span>
+          {% endif %}
+        </h5>
+        <div>
+          <a href="{% url 'gestor:crew_update' crew.id %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-edit me-1"></i> Editar
+          </a>
+          <a href="{% url 'gestor:crew_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i> Voltar
+          </a>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <!-- Descrição -->
+        <div class="mb-4">
+          <h6 class="text-muted">Descrição</h6>
+          <p class="mb-0">{{ crew.descricao }}</p>
+        </div>
+
+        <!-- Configurações -->
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <h6 class="text-muted">Processo de Execução</h6>
+            {% if crew.processo == 'sequential' %}
+              <span class="badge bg-primary fs-6">
+                <i class="fas fa-arrow-right me-1"></i>Sequencial
+              </span>
+              <p class="small text-muted mt-1">Agentes executam tarefas em ordem fixa</p>
+            {% else %}
+              <span class="badge bg-warning fs-6">
+                <i class="fas fa-sitemap me-1"></i>Hierárquico
+              </span>
+              <p class="small text-muted mt-1">Manager coordena a execução</p>
+            {% endif %}
+          </div>
+          <div class="col-md-6">
+            <h6 class="text-muted">Configurações</h6>
+            <div class="d-flex gap-3">
+              {% if crew.verbose %}
+                <span class="badge bg-info">
+                  <i class="fas fa-terminal me-1"></i>Logs Detalhados
+                </span>
+              {% endif %}
+              {% if crew.memory %}
+                <span class="badge bg-success">
+                  <i class="fas fa-brain me-1"></i>Com Memória
+                </span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Manager (se hierárquico) -->
+        {% if crew.processo == 'hierarchical' and crew.manager_llm_model %}
+        <div class="mb-4">
+          <h6 class="text-warning">
+            <i class="fas fa-crown me-1"></i>Configurações do Manager
+          </h6>
+          <div class="row">
+            <div class="col-md-4">
+              <small class="text-muted">Provedor:</small>
+              <p class="mb-0">{{ crew.manager_llm_provider|default:"Não configurado" }}</p>
+            </div>
+            <div class="col-md-4">
+              <small class="text-muted">Modelo:</small>
+              <p class="mb-0">{{ crew.manager_llm_model|default:"Não configurado" }}</p>
+            </div>
+            <div class="col-md-4">
+              <small class="text-muted">Temperatura:</small>
+              <p class="mb-0">{{ crew.manager_llm_temperature|default:"0.2" }}</p>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- MEMBROS DO CREW -->
+    <div class="card shadow mb-4">
+      <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0">
+          <i class="fas fa-robot me-2"></i>Agentes do Crew ({{ total_membros }})
+        </h6>
+        <a href="{% url 'gestor:crew_add_member' crew.id %}" class="btn btn-primary btn-sm">
+          <i class="fas fa-plus me-1"></i> Adicionar Agente
+        </a>
+      </div>
+
+      <div class="card-body">
+        {% if membros %}
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Agente</th>
+                  <th>Papel</th>
+                  <th>Modelo</th>
+                  <th>Config</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for membro in membros %}
+                  <tr>
+                    <td>
+                      <span class="badge bg-secondary">{{ membro.ordem_execucao }}</span>
+                    </td>
+                    <td>
+                      <strong>{{ membro.agente.nome }}</strong>
+                      {% if not membro.ativo %}
+                        <span class="badge bg-warning text-dark">Inativo</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if membro.agente.crew_role %}
+                        <small class="text-muted">{{ membro.agente.crew_role }}</small>
+                      {% else %}
+                        <small class="text-muted">—</small>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <small>
+                        {{ membro.agente.llm_provider }}<br>
+                        {{ membro.agente.llm_model }}
+                      </small>
+                    </td>
+                    <td>
+                      <small>
+                        {% if membro.pode_delegar %}
+                          <span class="badge bg-info">Delega</span>
+                        {% endif %}
+                        <br>Max: {{ membro.max_iter }}it / {{ membro.max_execution_time }}s
+                      </small>
+                    </td>
+                    <td>
+                      <div class="btn-group btn-group-sm">
+                        <a href="{% url 'gestor:agente_update' membro.agente.id %}" class="btn btn-outline-primary" title="Editar Agente">
+                          <i class="fas fa-edit"></i>
+                        </a>
+                        <button type="button" class="btn btn-outline-danger" 
+                                onclick="removerMembro({{ crew.id }}, {{ membro.id }}, '{{ membro.agente.nome }}')" 
+                                title="Remover do Crew">
+                          <i class="fas fa-times"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="text-center py-4">
+            <i class="fas fa-robot fa-3x text-muted mb-3"></i>
+            <p class="text-muted">Nenhum agente adicionado ainda.</p>
+            <a href="{% url 'gestor:crew_add_member' crew.id %}" class="btn btn-primary">
+              <i class="fas fa-plus me-1"></i> Adicionar Primeiro Agente
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- TAREFAS -->
+    <div class="card shadow">
+      <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0">
+          <i class="fas fa-tasks me-2"></i>Tarefas ({{ total_tarefas }})
+        </h6>
+        <button class="btn btn-primary btn-sm" disabled title="Em desenvolvimento">
+          <i class="fas fa-plus me-1"></i> Adicionar Tarefa
+        </button>
+      </div>
+
+      <div class="card-body">
+        {% if tarefas %}
+          <div class="list-group">
+            {% for tarefa in tarefas %}
+              <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <h6 class="mb-1">{{ tarefa.nome }}</h6>
+                    <p class="mb-1 small">{{ tarefa.descricao|truncatechars:100 }}</p>
+                    <small class="text-muted">
+                      Responsável: {{ tarefa.agente_responsavel.nome }}
+                      • Ordem: {{ tarefa.ordem_execucao }}
+                    </small>
+                  </div>
+                  <span class="badge bg-secondary">{{ tarefa.ordem_execucao }}</span>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-4">
+            <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
+            <p class="text-muted">Nenhuma tarefa configurada ainda.</p>
+            <p class="small text-muted">As tarefas definem o que cada agente deve fazer no crew.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="col-lg-4">
+    <!-- ESTATÍSTICAS -->
+    <div class="card shadow mb-4">
+      <div class="card-header bg-light">
+        <h6 class="card-title mb-0">
+          <i class="fas fa-chart-bar me-2"></i>Estatísticas
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="row text-center">
+          <div class="col-6">
+            <h4 class="text-info">{{ total_membros }}</h4>
+            <small class="text-muted">Agentes</small>
+          </div>
+          <div class="col-6">
+            <h4 class="text-secondary">{{ total_tarefas }}</h4>
+            <small class="text-muted">Tarefas</small>
+          </div>
+        </div>
+        <hr>
+        <div class="row text-center">
+          <div class="col-12">
+            <h4 class="text-warning">{{ execucoes_recentes|length }}</h4>
+            <small class="text-muted">Execuções Recentes</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AÇÕES RÁPIDAS -->
+    <div class="card shadow mb-4">
+      <div class="card-header bg-light">
+        <h6 class="card-title mb-0">
+          <i class="fas fa-bolt me-2"></i>Ações Rápidas
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="d-grid gap-2">
+          <a href="{% url 'gestor:crew_update' crew.id %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-edit me-1"></i> Editar Configurações
+          </a>
+          <a href="{% url 'gestor:crew_add_member' crew.id %}" class="btn btn-info btn-sm">
+            <i class="fas fa-user-plus me-1"></i> Adicionar Agente
+          </a>
+          <button class="btn btn-success btn-sm" disabled title="Em desenvolvimento">
+            <i class="fas fa-play me-1"></i> Executar Crew
+          </button>
+          <hr>
+          <a href="{% url 'gestor:crew_delete' crew.id %}" class="btn btn-danger btn-sm">
+            <i class="fas fa-trash me-1"></i> Excluir Crew
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXECUÇÕES RECENTES -->
+    {% if execucoes_recentes %}
+    <div class="card shadow">
+      <div class="card-header bg-light">
+        <h6 class="card-title mb-0">
+          <i class="fas fa-history me-2"></i>Execuções Recentes
+        </h6>
+      </div>
+      <div class="card-body">
+        {% for execucao in execucoes_recentes %}
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <small class="fw-bold">{{ execucao.get_status_display }}</small>
+              <br>
+              <small class="text-muted">{{ execucao.iniciado_em|date:"d/m H:i" }}</small>
+            </div>
+            <span class="badge bg-{% if execucao.status == 'completed' %}success{% elif execucao.status == 'failed' %}danger{% else %}warning{% endif %}">
+              {{ execucao.status }}
+            </span>
+          </div>
+          {% if not forloop.last %}<hr>{% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Modal de Confirmação -->
+<div class="modal fade" id="confirmarRemocao" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmar Remoção</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Tem certeza que deseja remover o agente <strong id="nomeAgenteRemover"></strong> deste crew?</p>
+        <p class="small text-muted">Esta ação não pode ser desfeita.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="confirmarRemocaoBtn">Remover</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let crewIdGlobal, membroIdGlobal;
+
+function removerMembro(crewId, membroId, nomeAgente) {
+  crewIdGlobal = crewId;
+  membroIdGlobal = membroId;
+  
+  document.getElementById('nomeAgenteRemover').textContent = nomeAgente;
+  
+  const modal = new bootstrap.Modal(document.getElementById('confirmarRemocao'));
+  modal.show();
+}
+
+document.getElementById('confirmarRemocaoBtn').addEventListener('click', function() {
+  if (crewIdGlobal && membroIdGlobal) {
+    // Criar form oculto para enviar POST
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/gestor/crews/${crewIdGlobal}/remover-membro/${membroIdGlobal}/`;
+    
+    // CSRF Token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrfToken) {
+      const csrfInput = document.createElement('input');
+      csrfInput.type = 'hidden';
+      csrfInput.name = 'csrfmiddlewaretoken';
+      csrfInput.value = csrfToken.value;
+      form.appendChild(csrfInput);
+    } else {
+      // Tentar obter do cookie
+      const csrfCookie = document.cookie.split('; ').find(row => row.startsWith('csrftoken='));
+      if (csrfCookie) {
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = csrfCookie.split('=')[1];
+        form.appendChild(csrfInput);
+      }
+    }
+    
+    document.body.appendChild(form);
+    form.submit();
+  }
+});
+</script>
+
+{% endblock %}

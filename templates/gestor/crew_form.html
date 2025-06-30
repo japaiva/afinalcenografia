@@ -1,0 +1,273 @@
+{% extends 'gestor/base_gestor.html' %}
+
+{% block title %}
+  {% if form.instance.pk %}Editar{% else %}Novo{% endif %} Crew | Portal do Gestor | Afinal Cenografia
+{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">
+      <i class="fas {% if form.instance.pk %}fa-edit{% else %}fa-plus-circle{% endif %} me-2"></i>
+      {% if form.instance.pk %}Editar{% else %}Novo{% endif %} Crew de IA
+    </h5>
+    <a href="{% url 'gestor:crew_list' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i> Voltar
+    </a>
+  </div>
+
+  <div class="card-body">
+    <form method="post" id="crewForm">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+          {% for error in form.non_field_errors %}
+            <p class="mb-0">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- Informações Básicas -->
+      <h6 class="text-primary mb-3"><i class="fas fa-info-circle me-2"></i>Informações Básicas</h6>
+      <div class="row g-3 mb-4">
+        <div class="col-12">
+          <label for="{{ form.nome.id_for_label }}" class="form-label">Nome do Crew*</label>
+          {{ form.nome }}
+          <div class="form-text">Ex: "Arquiteto de Plantas", "Validador de Briefings"</div>
+          {% if form.nome.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.nome.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        
+        <div class="col-12">
+          <label for="{{ form.descricao.id_for_label }}" class="form-label">Descrição*</label>
+          {{ form.descricao }}
+          <div class="form-text">Descreva o que este crew faz e qual problema resolve</div>
+          {% if form.descricao.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.descricao.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Configurações do CrewAI -->
+      <h6 class="text-success mb-3"><i class="fas fa-cogs me-2"></i>Configurações de Execução</h6>
+      <div class="row g-3 mb-4">
+        <div class="col-md-6">
+          <label for="{{ form.processo.id_for_label }}" class="form-label">Processo de Execução*</label>
+          {{ form.processo }}
+          <div class="form-text">Sequential = ordem fixa, Hierarchical = manager decide ordem</div>
+          {% if form.processo.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.processo.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-6">
+          <div class="row">
+            <div class="col-6">
+              <div class="form-check form-switch">
+                {{ form.verbose }}
+                <label class="form-check-label" for="{{ form.verbose.id_for_label }}">Logs Detalhados</label>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="form-check form-switch">
+                {{ form.memory }}
+                <label class="form-check-label" for="{{ form.memory.id_for_label }}">Usar Memória</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manager Config (só para hierárquico) -->
+      <div id="managerConfig" style="display: none;">
+        <h6 class="text-warning mb-3"><i class="fas fa-crown me-2"></i>Configurações do Manager</h6>
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <label for="{{ form.manager_llm_provider.id_for_label }}" class="form-label">Provedor Manager</label>
+            {{ form.manager_llm_provider }}
+            {% if form.manager_llm_provider.errors %}
+              <div class="text-danger small mt-1">
+                {% for error in form.manager_llm_provider.errors %}{{ error }}{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+          <div class="col-md-4">
+            <label for="{{ form.manager_llm_model.id_for_label }}" class="form-label">Modelo Manager</label>
+            {{ form.manager_llm_model }}
+            {% if form.manager_llm_model.errors %}
+              <div class="text-danger small mt-1">
+                {% for error in form.manager_llm_model.errors %}{{ error }}{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+          <div class="col-md-4">
+            <label for="{{ form.manager_llm_temperature.id_for_label }}" class="form-label">Temperatura Manager</label>
+            {{ form.manager_llm_temperature }}
+            {% if form.manager_llm_temperature.errors %}
+              <div class="text-danger small mt-1">
+                {% for error in form.manager_llm_temperature.errors %}{{ error }}{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Seleção de Agentes -->
+      {% if not form.instance.pk %}
+        <!-- MODO CRIAÇÃO: Usar checkboxes manuais -->
+        <h6 class="text-info mb-3"><i class="fas fa-robot me-2"></i>Agentes do Crew</h6>
+        <div class="alert alert-warning">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          <strong>Importante:</strong> Selecione os agentes que farão parte deste crew. Apenas agentes do tipo "Membro de Crew" aparecem aqui.
+          {% if agentes_disponiveis.count == 0 %}
+          <br><br>
+          <strong>Nenhum agente disponível!</strong> 
+          <a href="{% url 'gestor:agente_create' %}" class="alert-link">Crie alguns agentes do tipo "Membro de Crew" primeiro</a>.
+          {% endif %}
+        </div>
+        
+        {% if agentes_disponiveis.count > 0 %}
+          <div class="row g-2 mb-4">
+            {% for agente in agentes_disponiveis %}
+              <div class="col-md-6">
+                <div class="card">
+                  <div class="card-body p-3">
+                    <div class="form-check">
+                      <input class="form-check-input" 
+                             type="checkbox" 
+                             id="agente_{{ agente.id }}" 
+                             name="agentes_selecionados" 
+                             value="{{ agente.id }}">
+                      <label class="form-check-label" for="agente_{{ agente.id }}">
+                        <strong>{{ agente.nome }}</strong>
+                        {% if agente.crew_role %}
+                          <br><small class="text-muted">{{ agente.crew_role }}</small>
+                        {% endif %}
+                      </label>
+                    </div>
+                    <small class="text-muted d-block mt-1">{{ agente.llm_provider }} • {{ agente.llm_model }}</small>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% else %}
+        <!-- MODO EDIÇÃO: Usar o campo do form -->
+        <h6 class="text-info mb-3"><i class="fas fa-robot me-2"></i>Agentes do Crew</h6>
+        <div class="row g-2 mb-4">
+          {% for checkbox in form.agentes_selecionados %}
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-body p-3">
+                  <div class="form-check">
+                    {{ checkbox.tag }}
+                    <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                      {{ checkbox.choice_label }}
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+        {% if form.agentes_selecionados.errors %}
+          <div class="text-danger small mt-1">
+            {% for error in form.agentes_selecionados.errors %}{{ error }}{% endfor %}
+          </div>
+        {% endif %}
+      {% endif %}
+
+      <!-- Status -->
+      <div class="row g-3 mb-4">
+        <div class="col-12">
+          <div class="form-check form-switch">
+            {{ form.ativo }}
+            <label class="form-check-label" for="{{ form.ativo.id_for_label }}">Crew Ativo</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-end">
+        {% if not form.instance.pk and agentes_disponiveis.count == 0 %}
+          <a href="{% url 'gestor:agente_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Criar Agentes Primeiro
+          </a>
+        {% else %}
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save me-1"></i> 
+            {% if form.instance.pk %}Salvar Alterações{% else %}Criar Crew{% endif %}
+          </button>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const processoSelect = document.getElementById('{{ form.processo.id_for_label }}');
+  const managerConfig = document.getElementById('managerConfig');
+  const form = document.getElementById('crewForm');
+
+  // Função para mostrar/ocultar configurações do manager
+  function toggleManagerConfig() {
+    if (processoSelect && processoSelect.value === 'hierarchical') {
+      if (managerConfig) managerConfig.style.display = 'block';
+    } else {
+      if (managerConfig) managerConfig.style.display = 'none';
+    }
+  }
+
+  // Event listener para mudança no processo
+  if (processoSelect) {
+    processoSelect.addEventListener('change', toggleManagerConfig);
+    toggleManagerConfig(); // Executar ao carregar
+  }
+
+  // Validação antes de submeter (apenas para criação)
+  {% if not form.instance.pk %}
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      const nome = document.getElementById('{{ form.nome.id_for_label }}').value.trim();
+      const descricao = document.getElementById('{{ form.descricao.id_for_label }}').value.trim();
+      const agentes = document.querySelectorAll('input[name="agentes_selecionados"]:checked');
+
+      if (!nome) {
+        alert('Nome é obrigatório');
+        e.preventDefault();
+        return false;
+      }
+
+      if (!descricao) {
+        alert('Descrição é obrigatória');
+        e.preventDefault();
+        return false;
+      }
+
+      if (agentes.length === 0) {
+        alert('Selecione pelo menos um agente para o crew');
+        e.preventDefault();
+        return false;
+      }
+
+      console.log('Enviando crew com:', {
+        nome: nome,
+        descricao: descricao,
+        agentes: Array.from(agentes).map(a => a.value)
+      });
+    });
+  }
+  {% endif %}
+});
+</script>
+
+{% endblock %}

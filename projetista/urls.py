@@ -1,4 +1,4 @@
-# projetista/urls.py
+# projetista/urls.py - VERSÃO ATUALIZADA COM ARQUIVOS SEPARADOS
 
 from django.urls import path
 from .views import (
@@ -8,12 +8,21 @@ from .views import (
     # Projeto views
     projeto_list, projeto_detail, ver_briefing,
     
-    # NOVO SISTEMA - Views do novo_conceito.py
-    novo_conceito_dashboard, 
-    gerar_planta_baixa, visualizar_planta_baixa, download_planta_svg,
-    gerar_conceito_visual, visualizar_conceito_visual, refinar_conceito_visual,
-    gerar_modelo_3d, visualizar_modelo_3d, download_modelo_3d,
-    status_projeto_conceito, restaurar_versao, excluir_versao,
+    # Planta Baixa views (do arquivo planta_baixa.py)
+    gerar_planta_baixa, refinar_planta_baixa, visualizar_planta_baixa, 
+    download_planta_svg, comparar_plantas, validar_agente_status, 
+    exportar_dados_planta,
+    
+    # Conceito Visual views (do arquivo conceito_visual.py)
+    gerar_conceito_visual, refinar_conceito_visual, visualizar_conceito_visual,
+    galeria_conceitos, download_conceito_imagem, exportar_dados_conceito,
+    status_conceito_visual, duplicar_conceito, excluir_conceito,
+    
+    # Modelo 3D views (do arquivo modelo_3d.py)
+    gerar_modelo_3d, refinar_modelo_3d, visualizar_modelo_3d, viewer_interativo,
+    download_modelo_3d, download_todos_formatos, exportar_dados_modelo,
+    status_modelo_3d, atualizar_camera_modelo, adicionar_ponto_interesse,
+    excluir_modelo, preview_modelo,
     
     # Mensagens views
     mensagens, nova_mensagem, mensagens_projeto
@@ -37,31 +46,95 @@ urlpatterns = [
     path('projetos/<int:projeto_id>/briefing/', ver_briefing, name='ver_briefing'),
     
     # =========================================================================
-    # NOVO SISTEMA - 3 BOTÕES (Planta, Conceito, Modelo 3D)
+    # PLANTA BAIXA
     # =========================================================================
     
-    # Dashboard principal do novo sistema
-    path('projetos/<int:projeto_id>/novo-conceito/', novo_conceito_dashboard, name='novo_conceito_dashboard'),
+    # Geração e refinamento
+    path('projetos/<int:projeto_id>/planta-baixa/gerar/', 
+         gerar_planta_baixa, name='gerar_planta_baixa'),
+    path('projetos/<int:projeto_id>/planta-baixa/refinar/', 
+         refinar_planta_baixa, name='refinar_planta_baixa'),
     
-    # PLANTA BAIXA
-    path('projetos/<int:projeto_id>/planta-baixa/gerar/', gerar_planta_baixa, name='gerar_planta_baixa'),
-    path('projetos/<int:projeto_id>/planta-baixa/', visualizar_planta_baixa, name='visualizar_planta_baixa'),
-    path('planta-baixa/<int:planta_id>/download-svg/', download_planta_svg, name='download_planta_svg'),
+    # Visualização e downloads
+    path('projetos/<int:projeto_id>/planta-baixa/', 
+         visualizar_planta_baixa, name='visualizar_planta_baixa'),
+    path('planta-baixa/<int:planta_id>/download-svg/', 
+         download_planta_svg, name='download_planta_svg'),
+    path('planta-baixa/<int:planta_id>/exportar/', 
+         exportar_dados_planta, name='exportar_dados_planta'),
     
-    # CONCEITO VISUAL NOVO
-    path('projetos/<int:projeto_id>/conceito-visual/gerar/', gerar_conceito_visual, name='gerar_conceito_visual'),
-    path('projetos/<int:projeto_id>/conceito-visual/', visualizar_conceito_visual, name='visualizar_conceito_visual'),
-    path('conceito-visual/<int:conceito_id>/refinar/', refinar_conceito_visual, name='refinar_conceito_visual'),
+    # Comparação e análise
+    path('projetos/<int:projeto_id>/planta-baixa/comparar/', 
+         comparar_plantas, name='comparar_plantas'),
     
+    # Utilitários
+    path('agente/validar/', validar_agente_status, name='validar_agente_status'),
+    
+    # =========================================================================
+    # CONCEITO VISUAL
+    # =========================================================================
+    
+    # Geração e refinamento
+    path('projetos/<int:projeto_id>/conceito-visual/gerar/', 
+         gerar_conceito_visual, name='gerar_conceito_visual'),
+    path('conceito-visual/<int:conceito_id>/refinar/', 
+         refinar_conceito_visual, name='refinar_conceito_visual'),
+    path('conceito-visual/<int:conceito_id>/duplicar/', 
+         duplicar_conceito, name='duplicar_conceito'),
+    
+    # Visualização
+    path('projetos/<int:projeto_id>/conceito-visual/', 
+         visualizar_conceito_visual, name='visualizar_conceito_visual'),
+    path('projetos/<int:projeto_id>/conceito-visual/galeria/', 
+         galeria_conceitos, name='galeria_conceitos'),
+    
+    # Downloads e exportação
+    path('conceito-visual/<int:conceito_id>/download/', 
+         download_conceito_imagem, name='download_conceito_imagem'),
+    path('conceito-visual/<int:conceito_id>/exportar/', 
+         exportar_dados_conceito, name='exportar_dados_conceito'),
+    
+    # Status e utilitários
+    path('projetos/<int:projeto_id>/conceito-visual/status/', 
+         status_conceito_visual, name='status_conceito_visual'),
+    path('conceito-visual/<int:conceito_id>/excluir/', 
+         excluir_conceito, name='excluir_conceito'),
+    
+    # =========================================================================
     # MODELO 3D
-    path('projetos/<int:projeto_id>/modelo-3d/gerar/', gerar_modelo_3d, name='gerar_modelo_3d'),
-    path('projetos/<int:projeto_id>/modelo-3d/', visualizar_modelo_3d, name='visualizar_modelo_3d'),
-    path('modelo-3d/<int:modelo_id>/download/<str:formato>/', download_modelo_3d, name='download_modelo_3d'),
+    # =========================================================================
     
-    # UTILITÁRIOS E AJAX
-    path('projetos/<int:projeto_id>/status/', status_projeto_conceito, name='status_projeto_conceito'),
-    path('restaurar-versao/<str:tipo>/<int:objeto_id>/', restaurar_versao, name='restaurar_versao'),
-    path('excluir-versao/<str:tipo>/<int:objeto_id>/', excluir_versao, name='excluir_versao'),
+    # Geração e refinamento
+    path('projetos/<int:projeto_id>/modelo-3d/gerar/', 
+         gerar_modelo_3d, name='gerar_modelo_3d'),
+    path('modelo-3d/<int:modelo_id>/refinar/', 
+         refinar_modelo_3d, name='refinar_modelo_3d'),
+    
+    # Visualização
+    path('projetos/<int:projeto_id>/modelo-3d/', 
+         visualizar_modelo_3d, name='visualizar_modelo_3d'),
+    path('modelo-3d/<int:modelo_id>/viewer/', 
+         viewer_interativo, name='viewer_interativo'),
+    
+    # Downloads
+    path('modelo-3d/<int:modelo_id>/download/<str:formato>/', 
+         download_modelo_3d, name='download_modelo_3d'),
+    path('modelo-3d/<int:modelo_id>/download-todos/', 
+         download_todos_formatos, name='download_todos_formatos'),
+    path('modelo-3d/<int:modelo_id>/exportar/', 
+         exportar_dados_modelo, name='exportar_dados_modelo'),
+    
+    # Status e utilitários
+    path('projetos/<int:projeto_id>/modelo-3d/status/', 
+         status_modelo_3d, name='status_modelo_3d'),
+    path('modelo-3d/<int:modelo_id>/camera/atualizar/', 
+         atualizar_camera_modelo, name='atualizar_camera_modelo'),
+    path('modelo-3d/<int:modelo_id>/ponto-interesse/adicionar/', 
+         adicionar_ponto_interesse, name='adicionar_ponto_interesse'),
+    path('modelo-3d/<int:modelo_id>/preview/', 
+         preview_modelo, name='preview_modelo'),
+    path('modelo-3d/<int:modelo_id>/excluir/', 
+         excluir_modelo, name='excluir_modelo'),
     
     # =========================================================================
     # SISTEMA DE MENSAGENS

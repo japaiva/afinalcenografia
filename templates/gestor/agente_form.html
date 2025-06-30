@@ -17,7 +17,7 @@
     </div>
 
     <div class="card-body">
-      <form method="post">
+      <form method="post" id="agenteForm">
         {% csrf_token %}
 
         {% if form.non_field_errors %}
@@ -28,12 +28,42 @@
           </div>
         {% endif %}
 
+        <!-- TIPO DE AGENTE - PRIMEIRA DECISÃO -->
         <div class="row g-3">
-          <!-- Nome do agente -->
-          <div class="col-md-12">
+          <div class="col-12">
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i>
+              <strong>Escolha o tipo:</strong> Agentes individuais trabalham sozinhos. Membros de crew trabalham em equipe sequencial.
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <label for="{{ form.tipo.id_for_label }}" class="form-label">Tipo de Agente*</label>
+            {{ form.tipo }}
+            {% if form.tipo.errors %}
+              <div class="text-danger small mt-1">
+                {% for error in form.tipo.errors %}{{ error }}{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="col-md-6 d-flex align-items-center">
+            <div class="form-check form-switch">
+              {{ form.ativo }}
+              <label class="form-check-label" for="{{ form.ativo.id_for_label }}">Agente Ativo</label>
+            </div>
+          </div>
+        </div>
+
+        <hr class="my-4">
+
+        <!-- INFORMAÇÕES BÁSICAS -->
+        <h6 class="text-primary mb-3"><i class="fas fa-robot me-2"></i>Informações Básicas</h6>
+        <div class="row g-3">
+          <div class="col-md-8">
             <label for="{{ form.nome.id_for_label }}" class="form-label">Nome do Agente*</label>
             {{ form.nome }}
-            <div class="form-text">Nome descritivo do agente (ex: "Validador de Briefing", "Gerador de Q&A")</div>
+            <div class="form-text">Nome descritivo (ex: "Analista de Briefing", "Gerador de SVG")</div>
             {% if form.nome.errors %}
               <div class="text-danger small mt-1">
                 {% for error in form.nome.errors %}{{ error }}{% endfor %}
@@ -41,56 +71,6 @@
             {% endif %}
           </div>
 
-          <!-- Provedor LLM -->
-          <div class="col-md-6">
-            <label for="{{ form.llm_provider.id_for_label }}" class="form-label">Provedor LLM*</label>
-            {{ form.llm_provider }}
-            <div class="form-text">Ex: "openai", "anthropic", etc.</div>
-            {% if form.llm_provider.errors %}
-              <div class="text-danger small mt-1">
-                {% for error in form.llm_provider.errors %}{{ error }}{% endfor %}
-              </div>
-            {% endif %}
-          </div>
-
-          <!-- Modelo LLM -->
-          <div class="col-md-6">
-            <label for="{{ form.llm_model.id_for_label }}" class="form-label">Modelo LLM*</label>
-            {{ form.llm_model }}
-            <div class="form-text">Ex: "gpt-4", "claude-3-opus-20240229", etc.</div>
-            {% if form.llm_model.errors %}
-              <div class="text-danger small mt-1">
-                {% for error in form.llm_model.errors %}{{ error }}{% endfor %}
-              </div>
-            {% endif %}
-          </div>
-
-          <!-- Temperatura -->
-          <div class="col-md-6">
-            <label for="{{ form.llm_temperature.id_for_label }}" class="form-label">Temperatura*</label>
-            {{ form.llm_temperature }}
-            <div class="form-text">Valor entre 0 e 1. Menor = mais consistente, maior = mais criativo</div>
-            {% if form.llm_temperature.errors %}
-              <div class="text-danger small mt-1">
-                {% for error in form.llm_temperature.errors %}{{ error }}{% endfor %}
-              </div>
-            {% endif %}
-          </div>
-
-          <!-- Status -->
-          <div class="col-md-6 d-flex align-items-center">
-            <div class="form-check form-switch">
-              {{ form.ativo }}
-              <label class="form-check-label" for="{{ form.ativo.id_for_label }}">Agente Ativo</label>
-            </div>
-            {% if form.ativo.errors %}
-              <div class="text-danger small mt-1">
-                {% for error in form.ativo.errors %}{{ error }}{% endfor %}
-              </div>
-            {% endif %}
-          </div>
-
-          <!-- Descrição -->
           <div class="col-12">
             <label for="{{ form.descricao.id_for_label }}" class="form-label">Descrição</label>
             {{ form.descricao }}
@@ -101,33 +81,128 @@
               </div>
             {% endif %}
           </div>
+        </div>
 
-          <!-- Prompt do Sistema -->
+        <hr class="my-4">
+
+        <!-- CONFIGURAÇÕES LLM -->
+        <h6 class="text-success mb-3"><i class="fas fa-cog me-2"></i>Configurações do Modelo</h6>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label for="{{ form.llm_provider.id_for_label }}" class="form-label">Provedor LLM*</label>
+            {{ form.llm_provider }}
+            <div class="form-text">Ex: "openai", "anthropic"</div>
+            {% if form.llm_provider.errors %}
+              <div class="text-danger small mt-1">
+                {% for error in form.llm_provider.errors %}{{ error }}{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="col-md-4">
+            <label for="{{ form.llm_model.id_for_label }}" class="form-label">Modelo LLM*</label>
+            {{ form.llm_model }}
+            <div class="form-text">Ex: "gpt-4", "claude-3-opus"</div>
+            {% if form.llm_model.errors %}
+              <div class="text-danger small mt-1">
+                {% for error in form.llm_model.errors %}{{ error }}{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="col-md-4">
+            <label for="{{ form.llm_temperature.id_for_label }}" class="form-label">Temperatura*</label>
+            {{ form.llm_temperature }}
+            <div class="form-text">0.0 = consistente, 1.0 = criativo</div>
+            {% if form.llm_temperature.errors %}
+              <div class="text-danger small mt-1">
+                {% for error in form.llm_temperature.errors %}{{ error }}{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <hr class="my-4">
+
+        <!-- PROMPTS E INSTRUÇÕES -->
+        <h6 class="text-warning mb-3"><i class="fas fa-file-alt me-2"></i>Prompts e Instruções</h6>
+        <div class="row g-3">
           <div class="col-12">
             <label for="{{ form.llm_system_prompt.id_for_label }}" class="form-label">Prompt do Sistema*</label>
             {{ form.llm_system_prompt }}
-            <div class="form-text">Prompt base que define o comportamento e as instruções para o modelo</div>
+            <div class="form-text">Prompt base que define o comportamento e personalidade do agente</div>
             {% if form.llm_system_prompt.errors %}
               <div class="text-danger small mt-1">
                 {% for error in form.llm_system_prompt.errors %}{{ error }}{% endfor %}
               </div>
             {% endif %}
           </div>
-        </div>
 
-        <!-- Instruções de Tarefa -->
-        <div class="col-12 mt-3">
+          <div class="col-12">
             <label for="{{ form.task_instructions.id_for_label }}" class="form-label">Instruções de Tarefa</label>
             {{ form.task_instructions }}
-            <div class="form-text">Instruções específicas para execução de tarefas pelo agente</div>
+            <div class="form-text">Instruções específicas para execução de tarefas</div>
             {% if form.task_instructions.errors %}
-            <div class="text-danger small mt-1">
+              <div class="text-danger small mt-1">
                 {% for error in form.task_instructions.errors %}{{ error }}{% endfor %}
-            </div>
+              </div>
             {% endif %}
+          </div>
         </div>
 
-        <div class="d-flex justify-content-end mt-4">
+        <!-- SEÇÃO ESPECÍFICA PARA CREW MEMBERS -->
+        <div id="crewMemberSection" style="display: none;">
+          <hr class="my-4">
+          <h6 class="text-info mb-3"><i class="fas fa-users me-2"></i>Configurações para Crew</h6>
+          <div class="alert alert-light">
+            <i class="fas fa-lightbulb me-2"></i>
+            Essas informações são específicas para agentes que trabalham em equipe (crews).
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-12">
+              <label for="{{ form.crew_role.id_for_label }}" class="form-label">Papel no Crew</label>
+              {{ form.crew_role }}
+              <div class="form-text">Ex: "Analista de Dados", "Arquiteto Espacial", "Gerador de SVG"</div>
+              {% if form.crew_role.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.crew_role.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="col-12">
+              <label for="{{ form.crew_goal.id_for_label }}" class="form-label">Objetivo no Crew</label>
+              {{ form.crew_goal }}
+              <div class="form-text">Objetivo específico deste agente dentro do fluxo de trabalho</div>
+              {% if form.crew_goal.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.crew_goal.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="col-12">
+              <label for="{{ form.crew_backstory.id_for_label }}" class="form-label">Background/História</label>
+              {{ form.crew_backstory }}
+              <div class="form-text">Contexto e experiência do agente para melhor performance no crew</div>
+              {% if form.crew_backstory.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.crew_backstory.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between mt-4">
+          <div>
+            {% if form.instance.pk and form.instance.tipo == 'crew_member' %}
+              <a href="{% url 'gestor:crew_list' %}" class="btn btn-info btn-sm">
+                <i class="fas fa-users me-1"></i> Ver Crews
+              </a>
+            {% endif %}
+          </div>
           <button type="submit" class="btn btn-primary">
             <i class="fas fa-save me-1"></i> Salvar
           </button>
@@ -135,4 +210,25 @@
       </form>
     </div>
   </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const tipoSelect = document.getElementById('{{ form.tipo.id_for_label }}');
+      const crewSection = document.getElementById('crewMemberSection');
+      
+      function toggleCrewSection() {
+        if (tipoSelect.value === 'crew_member') {
+          crewSection.style.display = 'block';
+        } else {
+          crewSection.style.display = 'none';
+        }
+      }
+      
+      // Executar ao carregar a página
+      toggleCrewSection();
+      
+      // Executar quando mudar a seleção
+      tipoSelect.addEventListener('change', toggleCrewSection);
+    });
+  </script>
 {% endblock %}

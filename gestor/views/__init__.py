@@ -1,12 +1,22 @@
-# Imports da base
+# gestor/views/__init__.py - ATUALIZADO PARA CREWAI
+
+# Imports da base (atualizados com novas views de crew)
 from .base import (
-    GestorLoginView, home, 
+    GestorLoginView, home, dashboard,
     empresa_list, empresa_create, empresa_update, empresa_delete, empresa_toggle_status, 
     usuario_list, usuario_create, usuario_update, usuario_delete, usuario_toggle_status, 
-    parametro_list, parametro_create, parametro_update, parametro_delete, 
-    dashboard, 
-    parametro_indexacao_list, parametro_indexacao_create, parametro_indexacao_update, parametro_indexacao_delete, 
-    agente_list, agente_create, agente_update, agente_delete
+    parametro_list, parametro_create, parametro_update, parametro_delete,
+    parametro_indexacao_list, parametro_indexacao_create, parametro_indexacao_update, parametro_indexacao_delete,
+    
+    # Views de Agente atualizadas
+    agente_list, agente_create, agente_update, agente_delete,
+    
+    # Views de Crew (NOVAS)
+    crew_list, crew_create, crew_detail, crew_update, crew_delete,
+    crew_add_member, crew_remove_member,
+    
+    # APIs para AJAX (NOVAS)
+    api_agentes_crew_members, api_crew_stats
 )
 
 # Imports dos arquivos de feira
@@ -37,19 +47,29 @@ from .projeto import (
     ver_briefing
 )
 
-# Importe as views de mensagens
+# Imports das mensagens
 from .mensagens import mensagens, nova_mensagem, mensagens_projeto, limpar_mensagens
 
+# Imports da extração de feiras
 from .feira_extracao import feira_extrair_dados, feira_aplicar_dados
 
 __all__ = [
     # Base
-    'GestorLoginView', 'home', 'empresa_list', 'empresa_create', 'empresa_update',
-    'empresa_delete', 'empresa_toggle_status', 'usuario_list', 'usuario_create',
-    'usuario_update', 'usuario_delete', 'usuario_toggle_status', 'parametro_list',
-    'parametro_create', 'parametro_update', 'parametro_delete', 'dashboard',
-    'parametro_indexacao_list', 'parametro_indexacao_create', 'parametro_indexacao_update',
-    'parametro_indexacao_delete', 'agente_list', 'agente_create', 'agente_update', 'agente_delete',
+    'GestorLoginView', 'home', 'dashboard',
+    'empresa_list', 'empresa_create', 'empresa_update', 'empresa_delete', 'empresa_toggle_status',
+    'usuario_list', 'usuario_create', 'usuario_update', 'usuario_delete', 'usuario_toggle_status',
+    'parametro_list', 'parametro_create', 'parametro_update', 'parametro_delete',
+    'parametro_indexacao_list', 'parametro_indexacao_create', 'parametro_indexacao_update', 'parametro_indexacao_delete',
+    
+    # Agentes (atualizados)
+    'agente_list', 'agente_create', 'agente_update', 'agente_delete',
+    
+    # Crews (NOVOS)
+    'crew_list', 'crew_create', 'crew_detail', 'crew_update', 'crew_delete',
+    'crew_add_member', 'crew_remove_member',
+    
+    # APIs AJAX (NOVAS)
+    'api_agentes_crew_members', 'api_crew_stats',
 
     # Feira principal
     'feira_list', 'feira_create', 'feira_update', 'feira_toggle_status',

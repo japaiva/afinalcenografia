@@ -9,35 +9,94 @@
       <i class="fas fa-robot me-2"></i> Agentes de IA
     </h5>
     <div>
+      <a href="{% url 'gestor:crew_list' %}" class="btn btn-info btn-sm me-2">
+        <i class="fas fa-users me-1"></i> Gerenciar Crews
+      </a>
       <a href="{% url 'gestor:agente_create' %}" class="btn btn-primary btn-sm">
         <i class="fas fa-plus me-1"></i> Novo Agente
       </a>
-      <a href="{% url 'gestor:dashboard' %}" class="btn btn-outline-secondary btn-sm me-2">
+      <a href="{% url 'gestor:dashboard' %}" class="btn btn-outline-secondary btn-sm">
         <i class="fas fa-arrow-left me-1"></i> Voltar
       </a>
     </div>
   </div>
   
   <div class="card-body">
+    <!-- FILTROS -->
+    <div class="row mb-3">
+      <div class="col-md-4">
+        <select class="form-select form-select-sm" id="filtroTipo">
+          <option value="">Todos os tipos</option>
+          <option value="individual">Agentes Individuais</option>
+          <option value="crew_member">Membros de Crew</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <select class="form-select form-select-sm" id="filtroStatus">
+          <option value="">Todos os status</option>
+          <option value="ativo">Ativos</option>
+          <option value="inativo">Inativos</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <input type="text" class="form-control form-control-sm" id="buscaNome" placeholder="Buscar por nome...">
+      </div>
+    </div>
+
     <div class="table-responsive">
       <table class="table table-hover align-middle">
         <thead class="table-light">
           <tr>
             <th>Nome</th>
-            <th>Provedor</th>
-            <th>Modelo</th>
+            <th>Tipo</th>
+            <th>Provedor/Modelo</th>
             <th>Temperatura</th>
+            <th>Crews Vinculados</th>
             <th>Status</th>
-            <th style="width: 120px;" class="text-center">Ações</th>
+            <th style="width: 140px;" class="text-center">Ações</th>
           </tr>
         </thead>
         <tbody>
           {% for agente in agentes %}
-            <tr>
-              <td>{{ agente.nome }}</td>
-              <td>{{ agente.llm_provider }}</td>
-              <td>{{ agente.llm_model }}</td>
+            <tr data-tipo="{{ agente.tipo }}" data-status="{% if agente.ativo %}ativo{% else %}inativo{% endif %}" data-nome="{{ agente.nome|lower }}">
+              <td>
+                <div>
+                  <strong>{{ agente.nome }}</strong>
+                  {% if agente.crew_role %}
+                    <br><small class="text-muted">{{ agente.crew_role }}</small>
+                  {% endif %}
+                </div>
+              </td>
+              <td>
+                {% if agente.tipo == 'individual' %}
+                  <span class="badge bg-success">
+                    <i class="fas fa-user me-1"></i>Individual
+                  </span>
+                {% else %}
+                  <span class="badge bg-info">
+                    <i class="fas fa-users me-1"></i>Crew Member
+                  </span>
+                {% endif %}
+              </td>
+              <td>
+                <small>
+                  <strong>{{ agente.llm_provider }}</strong><br>
+                  {{ agente.llm_model }}
+                </small>
+              </td>
               <td>{{ agente.llm_temperature }}</td>
+              <td>
+                {% if agente.crews.all %}
+                  {% for crew_membro in agente.crews.all %}
+                    <a href="{% url 'gestor:crew_detail' crew_membro.crew.id %}" class="badge bg-secondary text-decoration-none" title="Ver crew">
+                      {{ crew_membro.crew.nome }}
+                    </a>
+                    {% if not forloop.last %}<br>{% endif %}
+                  {% endfor %}
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
               <td>
                 {% if agente.ativo %}
                   <span class="badge bg-success">Ativo</span>
@@ -50,6 +109,11 @@
                   <a href="{% url 'gestor:agente_update' agente.id %}" class="btn btn-sm btn-outline-primary" title="Editar">
                     <i class="fas fa-edit"></i>
                   </a>
+                  {% if agente.tipo == 'crew_member' %}
+                    <a href="{% url 'gestor:crew_list' %}" class="btn btn-sm btn-outline-info" title="Ver Crews">
+                      <i class="fas fa-users"></i>
+                    </a>
+                  {% endif %}
                   <a href="{% url 'gestor:agente_delete' agente.id %}" class="btn btn-sm btn-outline-danger" title="Excluir">
                     <i class="fas fa-trash"></i>
                   </a>
@@ -58,7 +122,7 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="6" class="text-center py-3 text-muted">
+              <td colspan="7" class="text-center py-3 text-muted">
                 Nenhum agente de IA cadastrado.
               </td>
             </tr>
@@ -66,7 +130,6 @@
         </tbody>
       </table>
     </div>
-  </div>
   
   {% if agentes.paginator.num_pages > 1 %}
   <div class="card-footer bg-white">
@@ -124,5 +187,40 @@
   </div>
   {% endif %}
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const filtroTipo = document.getElementById('filtroTipo');
+    const filtroStatus = document.getElementById('filtroStatus');
+    const buscaNome = document.getElementById('buscaNome');
+    const rows = document.querySelectorAll('tbody tr[data-tipo]');
+
+    function aplicarFiltros() {
+      const tipoSelecionado = filtroTipo.value;
+      const statusSelecionado = filtroStatus.value;
+      const termoBusca = buscaNome.value.toLowerCase();
+
+      rows.forEach(row => {
+        const tipo = row.getAttribute('data-tipo');
+        const status = row.getAttribute('data-status');
+        const nome = row.getAttribute('data-nome');
+
+        const mostrarTipo = !tipoSelecionado || tipo === tipoSelecionado;
+        const mostrarStatus = !statusSelecionado || status === statusSelecionado;
+        const mostrarNome = !termoBusca || nome.includes(termoBusca);
+
+        if (mostrarTipo && mostrarStatus && mostrarNome) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+
+    filtroTipo.addEventListener('change', aplicarFiltros);
+    filtroStatus.addEventListener('change', aplicarFiltros);
+    buscaNome.addEventListener('input', aplicarFiltros);
+  });
+</script>
 
 {% endblock %}
