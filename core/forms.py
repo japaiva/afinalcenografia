@@ -228,7 +228,7 @@ class CrewForm(forms.ModelForm):
                 )
         
         return crew
-
+    
 class CrewMembroForm(forms.ModelForm):
     """
     Formulário para adicionar UM agente específico a um crew existente
@@ -236,31 +236,67 @@ class CrewMembroForm(forms.ModelForm):
     """
     class Meta:
         model = CrewMembro
-        fields = ['agente', 'ordem_execucao', 'pode_delegar', 'max_iter', 'max_execution_time']
+        fields = ['agente', 'ordem_execucao', 'pode_delegar', 'max_iter', 'max_execution_time', 'ativo']
         widgets = {
             'agente': forms.Select(attrs={'class': 'form-select'}),
             'ordem_execucao': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
             'pode_delegar': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'max_iter': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'max': '50'}),
             'max_execution_time': forms.NumberInput(attrs={'class': 'form-control', 'min': '30', 'max': '3600'}),
+            'ativo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
     
     def __init__(self, *args, **kwargs):
         crew = kwargs.pop('crew', None)
+        is_edit = kwargs.get('instance') is not None
         super().__init__(*args, **kwargs)
         
         if crew:
-            # Apenas agentes crew_member que não estão neste crew
-            agentes_ja_no_crew = CrewMembro.objects.filter(crew=crew).values_list('agente_id', flat=True)
-            self.fields['agente'].queryset = Agente.objects.filter(
-                tipo='crew_member', 
-                ativo=True
-            ).exclude(id__in=agentes_ja_no_crew)
-            
-            # Ordem padrão: próximo número
-            proxima_ordem = CrewMembro.objects.filter(crew=crew).count() + 1
-            self.fields['ordem_execucao'].initial = proxima_ordem
-
+            if is_edit:
+                # Na edição, não filtrar o agente atual
+                agentes_ja_no_crew = CrewMembro.objects.filter(crew=crew).exclude(
+                    id=self.instance.id if self.instance.id else None
+                ).values_list('agente_id', flat=True)
+                
+                # Mostrar todos os agentes crew_member ativos, exceto os já no crew (menos o atual)
+                self.fields['agente'].queryset = Agente.objects.filter(
+                    tipo='crew_member', 
+                    ativo=True
+                ).exclude(id__in=agentes_ja_no_crew)
+                
+                # Para edição, tornar o campo agente readonly se necessário
+                # self.fields['agente'].disabled = True
+                
+            else:
+                # Na criação, excluir todos que já estão no crew
+                agentes_ja_no_crew = CrewMembro.objects.filter(crew=crew).values_list('agente_id', flat=True)
+                self.fields['agente'].queryset = Agente.objects.filter(
+                    tipo='crew_member', 
+                    ativo=True
+                ).exclude(id__in=agentes_ja_no_crew)
+                
+                # Ordem padrão: próximo número
+                proxima_ordem = CrewMembro.objects.filter(crew=crew).count() + 1
+                self.fields['ordem_execucao'].initial = proxima_ordem
+                self.fields['ativo'].initial = True
+    
+    def clean_ordem_execucao(self):
+        ordem = self.cleaned_data.get('ordem_execucao')
+        if ordem and ordem < 1:
+            raise forms.ValidationError("A ordem de execução deve ser maior que 0")
+        return ordem
+    
+    def clean_max_iter(self):
+        max_iter = self.cleaned_data.get('max_iter')
+        if max_iter and (max_iter < 1 or max_iter > 50):
+            raise forms.ValidationError("Máximo de iterações deve estar entre 1 e 50")
+        return max_iter
+    
+    def clean_max_execution_time(self):
+        max_time = self.cleaned_data.get('max_execution_time')
+        if max_time and (max_time < 30 or max_time > 3600):
+            raise forms.ValidationError("Tempo máximo deve estar entre 30 e 3600 segundos")
+        return max_time
 
 class CrewTaskForm(forms.ModelForm):
     class Meta:

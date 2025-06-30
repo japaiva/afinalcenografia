@@ -46,12 +46,39 @@
         </div>
       {% endif %}
 
+    <form method="post" id="crewMemberForm">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+          {% for error in form.non_field_errors %}
+            <p class="mb-0">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+
       <div class="row g-3">
+        <!-- Agente (para edição, mostrar info mas campo oculto) -->
+        <div class="col-12">
+          <h6 class="text-primary">
+            <i class="fas fa-robot me-2"></i>Agente Selecionado
+          </h6>
+          <div class="alert alert-info">
+            <strong>{{ membro.agente.nome }}</strong>
+            {% if membro.agente.crew_role %}
+              <br><small>Papel: {{ membro.agente.crew_role }}</small>
+            {% endif %}
+            <br><small>{{ membro.agente.llm_provider }} • {{ membro.agente.llm_model }}</small>
+          </div>
+          <!-- Campo oculto para manter o agente -->
+          <input type="hidden" name="agente" value="{{ membro.agente.id }}">
+        </div>
+
         <!-- Ordem de Execução -->
         <div class="col-md-6">
-          <label for="{{ form.ordem_execucao.id_for_label }}" class="form-label">{{ form.ordem_execucao.label }}</label>
+          <label for="{{ form.ordem_execucao.id_for_label }}" class="form-label">Ordem de Execução*</label>
           {{ form.ordem_execucao }}
-          <div class="form-text">{{ form.ordem_execucao.help_text }}</div>
+          <div class="form-text">Posição na sequência de execução (1 = primeiro)</div>
           {% if form.ordem_execucao.errors %}
             <div class="text-danger small mt-1">
               {% for error in form.ordem_execucao.errors %}{{ error }}{% endfor %}
@@ -64,10 +91,9 @@
           <div class="form-check form-switch">
             {{ form.pode_delegar }}
             <label class="form-check-label" for="{{ form.pode_delegar.id_for_label }}">
-              {{ form.pode_delegar.label }}
+              Pode Delegar Tarefas
             </label>
           </div>
-          <div class="form-text ms-3">{{ form.pode_delegar.help_text }}</div>
           {% if form.pode_delegar.errors %}
             <div class="text-danger small mt-1">
               {% for error in form.pode_delegar.errors %}{{ error }}{% endfor %}
@@ -77,9 +103,9 @@
 
         <!-- Máximo de Iterações -->
         <div class="col-md-6">
-          <label for="{{ form.max_iter.id_for_label }}" class="form-label">{{ form.max_iter.label }}</label>
+          <label for="{{ form.max_iter.id_for_label }}" class="form-label">Máximo de Iterações*</label>
           {{ form.max_iter }}
-          <div class="form-text">{{ form.max_iter.help_text }}</div>
+          <div class="form-text">Número máximo de tentativas (1-50)</div>
           {% if form.max_iter.errors %}
             <div class="text-danger small mt-1">
               {% for error in form.max_iter.errors %}{{ error }}{% endfor %}
@@ -89,9 +115,9 @@
 
         <!-- Tempo Máximo -->
         <div class="col-md-6">
-          <label for="{{ form.max_execution_time.id_for_label }}" class="form-label">{{ form.max_execution_time.label }}</label>
+          <label for="{{ form.max_execution_time.id_for_label }}" class="form-label">Tempo Máximo (segundos)*</label>
           {{ form.max_execution_time }}
-          <div class="form-text">{{ form.max_execution_time.help_text }}</div>
+          <div class="form-text">Tempo limite para execução (30-3600 segundos)</div>
           {% if form.max_execution_time.errors %}
             <div class="text-danger small mt-1">
               {% for error in form.max_execution_time.errors %}{{ error }}{% endfor %}
@@ -105,10 +131,10 @@
           <div class="form-check form-switch">
             {{ form.ativo }}
             <label class="form-check-label" for="{{ form.ativo.id_for_label }}">
-              {{ form.ativo.label }}
+              Membro Ativo no Crew
             </label>
           </div>
-          <div class="form-text">{{ form.ativo.help_text }}</div>
+          <div class="form-text">Membros inativos não participam da execução</div>
           {% if form.ativo.errors %}
             <div class="text-danger small mt-1">
               {% for error in form.ativo.errors %}{{ error }}{% endfor %}
@@ -167,4 +193,48 @@
     </form>
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('crewMemberForm');
+    
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            console.log('Form sendo submetido...');
+            
+            // Validações básicas
+            const ordemExecucao = document.getElementById('{{ form.ordem_execucao.id_for_label }}');
+            const maxIter = document.getElementById('{{ form.max_iter.id_for_label }}');
+            const maxTime = document.getElementById('{{ form.max_execution_time.id_for_label }}');
+            
+            if (ordemExecucao && (!ordemExecucao.value || ordemExecucao.value < 1)) {
+                alert('Ordem de execução deve ser maior que 0');
+                e.preventDefault();
+                return false;
+            }
+            
+            if (maxIter && (!maxIter.value || maxIter.value < 1 || maxIter.value > 50)) {
+                alert('Máximo de iterações deve estar entre 1 e 50');
+                e.preventDefault();
+                return false;
+            }
+            
+            if (maxTime && (!maxTime.value || maxTime.value < 30 || maxTime.value > 3600)) {
+                alert('Tempo máximo deve estar entre 30 e 3600 segundos');
+                e.preventDefault();
+                return false;
+            }
+            
+            console.log('Validações OK, submetendo form...');
+            
+            // Log dos dados do form
+            const formData = new FormData(form);
+            for (let [key, value] of formData.entries()) {
+                console.log(key + ': ' + value);
+            }
+        });
+    }
+});
+</script>
+
 {% endblock %}

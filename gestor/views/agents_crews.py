@@ -339,11 +339,22 @@ def crew_member_update(request, crew_id, membro_id):
     membro = get_object_or_404(CrewMembro, pk=membro_id, crew=crew)
     
     if request.method == 'POST':
+        print(f"POST data: {request.POST}")  # Debug
         form = CrewMembroForm(request.POST, instance=membro, crew=crew)
+        
         if form.is_valid():
-            form.save()
-            messages.success(request, f'Configurações do agente {membro.agente.nome} atualizadas com sucesso!')
-            return redirect('gestor:crew_detail', pk=crew_id)
+            print("Form is valid, saving...")  # Debug
+            try:
+                membro_salvo = form.save()
+                return redirect('gestor:crew_detail', pk=crew_id)
+            except Exception as e:
+                print(f"Erro ao salvar: {e}")  # Debug
+                messages.error(request, f'Erro ao salvar: {str(e)}')
+        else:
+            print(f"Form errors: {form.errors}")  # Debug
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
     else:
         form = CrewMembroForm(instance=membro, crew=crew)
     
@@ -354,7 +365,7 @@ def crew_member_update(request, crew_id, membro_id):
         'title': f'Editar Membro: {membro.agente.nome}'
     }
     
-    return render(request, 'gestor/crew_member_edit.html', context)
+    return render(request, 'gestor/crew_member_update.html', context)
 
 @login_required
 @gestor_required
@@ -369,6 +380,7 @@ def crew_member_delete(request, crew_id, membro_id):
     
     messages.success(request, f'Agente {agente_nome} removido do crew com sucesso!')
     return redirect('gestor:crew_detail', pk=crew_id)
+
 
 @login_required
 @gestor_required
@@ -429,7 +441,6 @@ def crew_task_create(request, crew_id):
             task = form.save(commit=False)
             task.crew = crew
             task.save()
-            messages.success(request, f'Tarefa "{task.nome}" criada com sucesso!')
             return redirect('gestor:crew_detail', pk=crew_id)
     else:
         form = CrewTaskForm(crew=crew)
@@ -458,7 +469,6 @@ def crew_task_update(request, crew_id, task_id):
         form = CrewTaskForm(request.POST, instance=task, crew=crew)
         if form.is_valid():
             form.save()
-            messages.success(request, f'Tarefa "{task.nome}" atualizada com sucesso!')
             return redirect('gestor:crew_detail', pk=crew_id)
     else:
         form = CrewTaskForm(instance=task, crew=crew)
@@ -484,7 +494,6 @@ def crew_task_delete(request, crew_id, task_id):
     task_nome = task.nome
     task.delete()
     
-    messages.success(request, f'Tarefa "{task_nome}" excluída com sucesso!')
     return redirect('gestor:crew_detail', pk=crew_id)
 
 @login_required
@@ -511,7 +520,6 @@ def crew_task_duplicate(request, crew_id, task_id):
             ativo=False  # Criar inativa por padrão
         )
         
-        messages.success(request, f'Tarefa "{nova_task.nome}" duplicada com sucesso!')
         return redirect('gestor:crew_task_update', crew_id=crew_id, task_id=nova_task.id)
         
     except Exception as e:
@@ -778,7 +786,6 @@ def crew_member_update(request, crew_id, membro_id):
         form = CrewMembroForm(request.POST, instance=membro, crew=crew)
         if form.is_valid():
             form.save()
-            messages.success(request, f'Configurações do agente {membro.agente.nome} atualizadas com sucesso!')
             return redirect('gestor:crew_detail', pk=crew_id)
     else:
         form = CrewMembroForm(instance=membro, crew=crew)
