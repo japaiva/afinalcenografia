@@ -30,16 +30,11 @@
 
         <!-- TIPO DE AGENTE - PRIMEIRA DECISÃO -->
         <div class="row g-3">
-          <div class="col-12">
-            <div class="alert alert-info">
-              <i class="fas fa-info-circle me-2"></i>
-              <strong>Escolha o tipo:</strong> Agentes individuais trabalham sozinhos. Membros de crew trabalham em equipe sequencial.
-            </div>
-          </div>
 
           <div class="col-md-6">
             <label for="{{ form.tipo.id_for_label }}" class="form-label">Tipo de Agente*</label>
             {{ form.tipo }}
+            <div class="form-text">Individual ou Membro de Crew (equipe)</div>
             {% if form.tipo.errors %}
               <div class="text-danger small mt-1">
                 {% for error in form.tipo.errors %}{{ error }}{% endfor %}
@@ -154,10 +149,6 @@
         <div id="crewMemberSection" style="display: none;">
           <hr class="my-4">
           <h6 class="text-info mb-3"><i class="fas fa-users me-2"></i>Configurações para Crew</h6>
-          <div class="alert alert-light">
-            <i class="fas fa-lightbulb me-2"></i>
-            Essas informações são específicas para agentes que trabalham em equipe (crews).
-          </div>
 
           <div class="row g-3">
             <div class="col-md-12">

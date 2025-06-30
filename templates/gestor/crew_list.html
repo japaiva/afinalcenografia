@@ -66,12 +66,6 @@
               <td>
                 <div>
                   <strong>{{ crew.nome }}</strong>
-                  {% if crew.memory %}
-                    <br><small class="text-success"><i class="fas fa-brain me-1"></i>Com memória</small>
-                  {% endif %}
-                  {% if crew.verbose %}
-                    <br><small class="text-info"><i class="fas fa-terminal me-1"></i>Logs detalhados</small>
-                  {% endif %}
                 </div>
               </td>
               <td>
@@ -80,18 +74,16 @@
               <td>
                 {% if crew.processo == 'sequential' %}
                   <span class="badge bg-primary">
-                    <i class="fas fa-arrow-right me-1"></i>Sequencial
+                    Sequencial
                   </span>
                 {% else %}
                   <span class="badge bg-warning">
-                    <i class="fas fa-sitemap me-1"></i>Hierárquico
+                    Hierárquico
                   </span>
                 {% endif %}
               </td>
               <td>
-                <span class="badge bg-info">{{ crew.num_agentes }} agentes</span>
                 {% if crew.num_agentes > 0 %}
-                  <br>
                   {% for membro in crew.membros.all|slice:":3" %}
                     <small class="text-muted">{{ membro.agente.nome }}</small>
                     {% if not forloop.last %} • {% endif %}
@@ -99,6 +91,8 @@
                   {% if crew.num_agentes > 3 %}
                     <small class="text-muted">...</small>
                   {% endif %}
+                {% else %}  
+                <span class="badge bg-info">{{ crew.num_agentes }} agentes</span>             
                 {% endif %}
               </td>
               <td>
@@ -128,12 +122,7 @@
           {% empty %}
             <tr>
               <td colspan="7" class="text-center py-4">
-                <i class="fas fa-users fa-3x text-muted mb-3"></i>
                 <p class="text-muted mb-3">Nenhum crew cadastrado ainda.</p>
-                <p class="text-muted small mb-3">
-                  Crews são grupos de agentes que trabalham juntos em tarefas complexas.
-                  <br>Comece criando alguns agentes do tipo "Membro de Crew" primeiro.
-                </p>
                 <a href="{% url 'gestor:crew_create' %}" class="btn btn-primary">
                   <i class="fas fa-plus me-1"></i> Criar Primeiro Crew
                 </a>
@@ -143,50 +132,6 @@
         </tbody>
       </table>
     </div>
-
-    <!-- ESTATÍSTICAS RÁPIDAS -->
-    {% if crews %}
-    <div class="row mt-4">
-      <div class="col-md-3">
-        <div class="card bg-light">
-          <div class="card-body text-center">
-            <h6 class="card-title">Total de Crews</h6>
-            <h4 class="text-primary">{{ total_crews }}</h4>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="card bg-light">
-          <div class="card-body text-center">
-            <h6 class="card-title">Crews Ativos</h6>
-            <h4 class="text-success">{{ crews_ativos }}</h4>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="card bg-light">
-          <div class="card-body text-center">
-            <h6 class="card-title">Sequenciais</h6>
-            <h4 class="text-primary">
-              {{ crews|length|add:"-0" }}
-              {% comment %}Aqui você pode calcular no backend{% endcomment %}
-            </h4>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="card bg-light">
-          <div class="card-body text-center">
-            <h6 class="card-title">Hierárquicos</h6>
-            <h4 class="text-warning">
-              0
-              {% comment %}Aqui você pode calcular no backend{% endcomment %}
-            </h4>
-          </div>
-        </div>
-      </div>
-    </div>
-    {% endif %}
   </div>
   
   {% if crews.paginator.num_pages > 1 %}

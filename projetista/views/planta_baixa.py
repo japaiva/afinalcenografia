@@ -1,4 +1,4 @@
-# projetista/views/planta_baixa.py - VIEWS ESPECÍFICAS PARA PLANTA BAIXA
+# projetista/views/planta_baixa.py - CORRIGIDO SEM FUNÇÕES DE CREW
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required

@@ -18,15 +18,11 @@ class AgenteForm(forms.ModelForm):
             'nome': forms.TextInput(attrs={'class': 'form-control'}),
             'tipo': forms.Select(attrs={'class': 'form-select'}),
             'descricao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'llm_provider': forms.Select(attrs={'class': 'form-select'}, choices=[
-                ('openai', 'OpenAI'),
-                ('anthropic', 'Anthropic'),
-                ('google', 'Google'),
-                ('local', 'Local/Ollama'),
-            ]),
+            'llm_provider': forms.TextInput(attrs={
+                'class': 'form-control'
+            }),
             'llm_model': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Ex: gpt-4, claude-3-opus-20240229'
+                'class': 'form-control'
             }),
             'llm_temperature': forms.NumberInput(attrs={
                 'class': 'form-control', 

@@ -9,8 +9,6 @@ from django.contrib import messages
 from core.models import Usuario
 from core.decorators import projetista_required
 
-# PAGINAS PRINCIPAIS
-
 @login_required
 @projetista_required
 def dashboard(request):

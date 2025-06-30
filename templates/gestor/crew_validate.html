@@ -1,0 +1,140 @@
+
+<!-- ============================================== -->
+<!-- gestor/templates/gestor/crew_validate.html -->
+<!-- ============================================== -->
+
+{% extends 'gestor/base_gestor.html' %}
+
+{% block title %}Validar Crew | {{ crew.nome }} | Portal do Gestor{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">
+      <i class="fas fa-check-circle me-2"></i>Validação do Crew
+    </h5>
+    <a href="{% url 'gestor:crew_detail' crew.id %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i> Voltar
+    </a>
+  </div>
+
+  <div class="card-body">
+    <!-- Info do Crew -->
+    <div class="alert alert-info mb-4">
+      <h6><i class="fas fa-users me-2"></i>{{ crew.nome }}</h6>
+      <p class="mb-0">{{ crew.descricao }}</p>
+    </div>
+
+    <!-- Status Geral -->
+    <div class="row mb-4">
+      <div class="col-12">
+        {% if valido %}
+          <div class="alert alert-success">
+            <h5><i class="fas fa-check-circle me-2"></i>Crew Válido!</h5>
+            <p class="mb-0">O crew está configurado corretamente e pronto para execução.</p>
+          </div>
+        {% else %}
+          <div class="alert alert-danger">
+            <h5><i class="fas fa-exclamation-triangle me-2"></i>Crew Inválido</h5>
+            <p class="mb-0">Corrija os problemas abaixo antes de executar o crew.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Problemas -->
+    {% if problemas %}
+    <div class="card mb-4">
+      <div class="card-header bg-danger text-white">
+        <h6 class="card-title mb-0">
+          <i class="fas fa-times-circle me-2"></i>Problemas Encontrados ({{ problemas|length }})
+        </h6>
+      </div>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+          {% for problema in problemas %}
+            <li class="list-group-item d-flex align-items-center">
+              <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+              {{ problema }}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Avisos -->
+    {% if avisos %}
+    <div class="card mb-4">
+      <div class="card-header bg-warning">
+        <h6 class="card-title mb-0">
+          <i class="fas fa-exclamation-triangle me-2"></i>Avisos ({{ avisos|length }})
+        </h6>
+      </div>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+          {% for aviso in avisos %}
+            <li class="list-group-item d-flex align-items-center">
+              <i class="fas fa-exclamation-circle text-warning me-2"></i>
+              {{ aviso }}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Estatísticas do Crew -->
+    <div class="row">
+      <div class="col-md-3">
+        <div class="card text-center">
+          <div class="card-body">
+            <h4 class="text-primary">{{ crew.membros.filter.ativo=True.count }}</h4>
+            <small class="text-muted">Membros Ativos</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card text-center">
+          <div class="card-body">
+            <h4 class="text-secondary">{{ crew.tasks.filter.ativo=True.count }}</h4>
+            <small class="text-muted">Tasks Ativas</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card text-center">
+          <div class="card-body">
+            <h4 class="text-info">{{ crew.processo|title }}</h4>
+            <small class="text-muted">Processo</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card text-center">
+          <div class="card-body">
+            {% if valido %}
+              <h4 class="text-success">Pronto</h4>
+            {% else %}
+              <h4 class="text-danger">Pendente</h4>
+            {% endif %}
+            <small class="text-muted">Status</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ações -->
+    <div class="d-flex justify-content-end mt-4">
+      {% if valido %}
+        <button class="btn btn-success me-2" disabled title="Em desenvolvimento">
+          <i class="fas fa-play me-1"></i> Executar Crew
+        </button>
+      {% endif %}
+      <button class="btn btn-primary" onclick="window.location.reload()">
+        <i class="fas fa-sync me-1"></i> Revalidar
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}

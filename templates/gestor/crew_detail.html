@@ -37,14 +37,12 @@
             <h6 class="text-muted">Processo de Execução</h6>
             {% if crew.processo == 'sequential' %}
               <span class="badge bg-primary fs-6">
-                <i class="fas fa-arrow-right me-1"></i>Sequencial
+                Sequencial
               </span>
-              <p class="small text-muted mt-1">Agentes executam tarefas em ordem fixa</p>
             {% else %}
               <span class="badge bg-warning fs-6">
-                <i class="fas fa-sitemap me-1"></i>Hierárquico
+                Hierárquico
               </span>
-              <p class="small text-muted mt-1">Manager coordena a execução</p>
             {% endif %}
           </div>
           <div class="col-md-6">
@@ -52,12 +50,12 @@
             <div class="d-flex gap-3">
               {% if crew.verbose %}
                 <span class="badge bg-info">
-                  <i class="fas fa-terminal me-1"></i>Logs Detalhados
+                  Logs Detalhados
                 </span>
               {% endif %}
               {% if crew.memory %}
                 <span class="badge bg-success">
-                  <i class="fas fa-brain me-1"></i>Com Memória
+                  Com Memória
                 </span>
               {% endif %}
             </div>
@@ -149,8 +147,11 @@
                     </td>
                     <td>
                       <div class="btn-group btn-group-sm">
-                        <a href="{% url 'gestor:agente_update' membro.agente.id %}" class="btn btn-outline-primary" title="Editar Agente">
-                          <i class="fas fa-edit"></i>
+                        <a href="{% url 'gestor:crew_member_update' crew.id membro.id %}" class="btn btn-outline-primary" title="Editar Configurações do Membro">
+                          <i class="fas fa-cog"></i>
+                        </a>
+                        <a href="{% url 'gestor:agente_update' membro.agente.id %}" class="btn btn-outline-info" title="Editar Agente">
+                          <i class="fas fa-robot"></i>
                         </a>
                         <button type="button" class="btn btn-outline-danger" 
                                 onclick="removerMembro({{ crew.id }}, {{ membro.id }}, '{{ membro.agente.nome }}')" 
@@ -182,9 +183,14 @@
         <h6 class="card-title mb-0">
           <i class="fas fa-tasks me-2"></i>Tarefas ({{ total_tarefas }})
         </h6>
-        <button class="btn btn-primary btn-sm" disabled title="Em desenvolvimento">
-          <i class="fas fa-plus me-1"></i> Adicionar Tarefa
-        </button>
+        <div>
+          <a href="{% url 'gestor:crew_task_create' crew.id %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus me-1"></i> Nova Tarefa
+          </a>
+          <a href="{% url 'gestor:crew_task_list' crew.id %}" class="btn btn-outline-info btn-sm">
+            <i class="fas fa-list me-1"></i> Ver Todas
+          </a>
+        </div>
       </div>
 
       <div class="card-body">
@@ -193,15 +199,42 @@
             {% for tarefa in tarefas %}
               <div class="list-group-item">
                 <div class="d-flex justify-content-between align-items-start">
-                  <div>
+                  <div class="flex-grow-1">
                     <h6 class="mb-1">{{ tarefa.nome }}</h6>
                     <p class="mb-1 small">{{ tarefa.descricao|truncatechars:100 }}</p>
                     <small class="text-muted">
-                      Responsável: {{ tarefa.agente_responsavel.nome }}
+                      Responsável: 
+                      {% if tarefa.agente_responsavel %}
+                        {{ tarefa.agente_responsavel.nome }}
+                      {% else %}
+                        <em>Não atribuído</em>
+                      {% endif %}
                       • Ordem: {{ tarefa.ordem_execucao }}
+                      {% if not tarefa.ativo %}
+                        • <span class="badge bg-secondary">Inativa</span>
+                      {% endif %}
                     </small>
                   </div>
-                  <span class="badge bg-secondary">{{ tarefa.ordem_execucao }}</span>
+                  <div class="d-flex align-items-center">
+                    <span class="badge bg-secondary me-2">{{ tarefa.ordem_execucao }}</span>
+                    <div class="btn-group btn-group-sm">
+                      <a href="{% url 'gestor:crew_task_update' crew.id tarefa.id %}" class="btn btn-outline-primary" title="Editar Tarefa">
+                        <i class="fas fa-edit"></i>
+                      </a>
+                      <form method="post" action="{% url 'gestor:crew_task_duplicate' crew.id tarefa.id %}" style="display: inline;" title="Duplicar Tarefa">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-info">
+                          <i class="fas fa-copy"></i>
+                        </button>
+                      </form>
+                      <form method="post" action="{% url 'gestor:crew_task_delete' crew.id tarefa.id %}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir esta tarefa?')">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger" title="Excluir Tarefa">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </form>
+                    </div>
+                  </div>
                 </div>
               </div>
             {% endfor %}
@@ -211,6 +244,9 @@
             <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
             <p class="text-muted">Nenhuma tarefa configurada ainda.</p>
             <p class="small text-muted">As tarefas definem o que cada agente deve fazer no crew.</p>
+            <a href="{% url 'gestor:crew_task_create' crew.id %}" class="btn btn-primary">
+              <i class="fas fa-plus me-1"></i> Criar Primeira Tarefa
+            </a>
           </div>
         {% endif %}
       </div>
@@ -261,6 +297,9 @@
           </a>
           <a href="{% url 'gestor:crew_add_member' crew.id %}" class="btn btn-info btn-sm">
             <i class="fas fa-user-plus me-1"></i> Adicionar Agente
+          </a>
+          <a href="{% url 'gestor:crew_validate' crew.id %}" class="btn btn-warning btn-sm">
+            <i class="fas fa-check-circle me-1"></i> Validar Crew
           </a>
           <button class="btn btn-success btn-sm" disabled title="Em desenvolvimento">
             <i class="fas fa-play me-1"></i> Executar Crew
@@ -339,7 +378,7 @@ document.getElementById('confirmarRemocaoBtn').addEventListener('click', functio
     // Criar form oculto para enviar POST
     const form = document.createElement('form');
     form.method = 'POST';
-    form.action = `/gestor/crews/${crewIdGlobal}/remover-membro/${membroIdGlobal}/`;
+    form.action = `/gestor/crews/${crewIdGlobal}/membros/${membroIdGlobal}/remover/`;
     
     // CSRF Token
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');

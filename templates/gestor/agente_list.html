@@ -51,7 +51,7 @@
             <th>Tipo</th>
             <th>Provedor/Modelo</th>
             <th>Temperatura</th>
-            <th>Crews Vinculados</th>
+            <th>Crews</th>
             <th>Status</th>
             <th style="width: 140px;" class="text-center">Ações</th>
           </tr>
@@ -62,19 +62,16 @@
               <td>
                 <div>
                   <strong>{{ agente.nome }}</strong>
-                  {% if agente.crew_role %}
-                    <br><small class="text-muted">{{ agente.crew_role }}</small>
-                  {% endif %}
                 </div>
               </td>
               <td>
                 {% if agente.tipo == 'individual' %}
                   <span class="badge bg-success">
-                    <i class="fas fa-user me-1"></i>Individual
+                    Individual
                   </span>
                 {% else %}
                   <span class="badge bg-info">
-                    <i class="fas fa-users me-1"></i>Crew Member
+                    Crew Member
                   </span>
                 {% endif %}
               </td>
@@ -109,11 +106,6 @@
                   <a href="{% url 'gestor:agente_update' agente.id %}" class="btn btn-sm btn-outline-primary" title="Editar">
                     <i class="fas fa-edit"></i>
                   </a>
-                  {% if agente.tipo == 'crew_member' %}
-                    <a href="{% url 'gestor:crew_list' %}" class="btn btn-sm btn-outline-info" title="Ver Crews">
-                      <i class="fas fa-users"></i>
-                    </a>
-                  {% endif %}
                   <a href="{% url 'gestor:agente_delete' agente.id %}" class="btn btn-sm btn-outline-danger" title="Excluir">
                     <i class="fas fa-trash"></i>
                   </a>

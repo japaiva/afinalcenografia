@@ -1,0 +1,170 @@
+{% extends 'gestor/base_gestor.html' %}
+
+{% block title %}Editar Membro | {{ crew.nome }} | Portal do Gestor{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">
+      <i class="fas fa-user-edit me-2"></i>Editar Configurações do Membro
+    </h5>
+    <a href="{% url 'gestor:crew_detail' crew.id %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i> Voltar ao Crew
+    </a>
+  </div>
+
+  <div class="card-body">
+    <!-- Info do Crew e Agente -->
+    <div class="row mb-4">
+      <div class="col-md-6">
+        <div class="alert alert-info">
+          <h6><i class="fas fa-users me-2"></i>{{ crew.nome }}</h6>
+          <small class="text-muted">{{ crew.descricao }}</small>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="alert alert-secondary">
+          <h6><i class="fas fa-robot me-2"></i>{{ membro.agente.nome }}</h6>
+          <small class="text-muted">
+            {{ membro.agente.llm_provider }} • {{ membro.agente.llm_model }}
+            {% if membro.agente.crew_role %}
+              <br>Papel: {{ membro.agente.crew_role }}
+            {% endif %}
+          </small>
+        </div>
+      </div>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+          {% for error in form.non_field_errors %}
+            <p class="mb-0">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <div class="row g-3">
+        <!-- Ordem de Execução -->
+        <div class="col-md-6">
+          <label for="{{ form.ordem_execucao.id_for_label }}" class="form-label">{{ form.ordem_execucao.label }}</label>
+          {{ form.ordem_execucao }}
+          <div class="form-text">{{ form.ordem_execucao.help_text }}</div>
+          {% if form.ordem_execucao.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.ordem_execucao.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Pode Delegar -->
+        <div class="col-md-6 d-flex align-items-center">
+          <div class="form-check form-switch">
+            {{ form.pode_delegar }}
+            <label class="form-check-label" for="{{ form.pode_delegar.id_for_label }}">
+              {{ form.pode_delegar.label }}
+            </label>
+          </div>
+          <div class="form-text ms-3">{{ form.pode_delegar.help_text }}</div>
+          {% if form.pode_delegar.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.pode_delegar.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Máximo de Iterações -->
+        <div class="col-md-6">
+          <label for="{{ form.max_iter.id_for_label }}" class="form-label">{{ form.max_iter.label }}</label>
+          {{ form.max_iter }}
+          <div class="form-text">{{ form.max_iter.help_text }}</div>
+          {% if form.max_iter.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.max_iter.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Tempo Máximo -->
+        <div class="col-md-6">
+          <label for="{{ form.max_execution_time.id_for_label }}" class="form-label">{{ form.max_execution_time.label }}</label>
+          {{ form.max_execution_time }}
+          <div class="form-text">{{ form.max_execution_time.help_text }}</div>
+          {% if form.max_execution_time.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.max_execution_time.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Status Ativo -->
+        <div class="col-12">
+          <hr>
+          <div class="form-check form-switch">
+            {{ form.ativo }}
+            <label class="form-check-label" for="{{ form.ativo.id_for_label }}">
+              {{ form.ativo.label }}
+            </label>
+          </div>
+          <div class="form-text">{{ form.ativo.help_text }}</div>
+          {% if form.ativo.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.ativo.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Outros Membros (referência) -->
+      {% if crew.membros.count > 1 %}
+      <div class="mt-4">
+        <h6 class="text-muted">
+          <i class="fas fa-list me-2"></i>Outros Membros ({{ crew.membros.count|add:"-1" }})
+        </h6>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered">
+            <thead class="table-light">
+              <tr>
+                <th>Ordem</th>
+                <th>Agente</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for outro_membro in crew.membros.all %}
+                {% if outro_membro.id != membro.id %}
+                <tr>
+                  <td>
+                    <span class="badge bg-secondary">{{ outro_membro.ordem_execucao }}</span>
+                  </td>
+                  <td>{{ outro_membro.agente.nome }}</td>
+                  <td>
+                    {% if outro_membro.ativo %}
+                      <span class="badge bg-success">Ativo</span>
+                    {% else %}
+                      <span class="badge bg-secondary">Inativo</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endif %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="d-flex justify-content-between mt-4">
+        <a href="{% url 'gestor:crew_detail' crew.id %}" class="btn btn-outline-secondary">
+          <i class="fas fa-times me-1"></i> Cancelar
+        </a>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save me-1"></i> Salvar Alterações
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

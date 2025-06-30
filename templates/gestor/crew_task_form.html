@@ -1,0 +1,206 @@
+
+<!-- ============================================== -->
+<!-- gestor/templates/gestor/crew_task_form.html -->
+<!-- ============================================== -->
+
+{% extends 'gestor/base_gestor.html' %}
+
+{% block title %}
+  {% if is_create %}Nova{% else %}Editar{% endif %} Tarefa | {{ crew.nome }} | Portal do Gestor
+{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">
+      <i class="fas {% if is_create %}fa-plus-circle{% else %}fa-edit{% endif %} me-2"></i>
+      {% if is_create %}Nova{% else %}Editar{% endif %} Tarefa
+    </h5>
+    <a href="{% url 'gestor:crew_detail' crew.id %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i> Voltar ao Crew
+    </a>
+  </div>
+
+  <div class="card-body">
+    <!-- Info do Crew -->
+    <div class="alert alert-info mb-4">
+      <h6><i class="fas fa-users me-2"></i>{{ crew.nome }}</h6>
+      <p class="mb-0">{{ crew.descricao }}</p>
+      <small class="text-muted">
+        Processo: 
+        {% if crew.processo == 'sequential' %}
+          <span class="badge bg-primary">Sequencial</span>
+        {% else %}
+          <span class="badge bg-warning">Hierárquico</span>
+        {% endif %}
+      </small>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+          {% for error in form.non_field_errors %}
+            <p class="mb-0">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <div class="row g-3">
+        <!-- Nome da Tarefa -->
+        <div class="col-12">
+          <label for="{{ form.nome.id_for_label }}" class="form-label">{{ form.nome.label }}*</label>
+          {{ form.nome }}
+          {% if form.nome.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.nome.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Descrição -->
+        <div class="col-12">
+          <label for="{{ form.descricao.id_for_label }}" class="form-label">{{ form.descricao.label }}*</label>
+          {{ form.descricao }}
+          <div class="form-text">{{ form.descricao.help_text }}</div>
+          {% if form.descricao.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.descricao.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Resultado Esperado -->
+        <div class="col-12">
+          <label for="{{ form.expected_output.id_for_label }}" class="form-label">{{ form.expected_output.label }}*</label>
+          {{ form.expected_output }}
+          <div class="form-text">{{ form.expected_output.help_text }}</div>
+          {% if form.expected_output.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.expected_output.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Agente Responsável -->
+        <div class="col-md-6">
+          <label for="{{ form.agente_responsavel.id_for_label }}" class="form-label">{{ form.agente_responsavel.label }}*</label>
+          {{ form.agente_responsavel }}
+          <div class="form-text">Apenas agentes que são membros deste crew</div>
+          {% if form.agente_responsavel.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.agente_responsavel.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Ordem de Execução -->
+        <div class="col-md-6">
+          <label for="{{ form.ordem_execucao.id_for_label }}" class="form-label">{{ form.ordem_execucao.label }}*</label>
+          {{ form.ordem_execucao }}
+          <div class="form-text">{{ form.ordem_execucao.help_text }}</div>
+          {% if form.ordem_execucao.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.ordem_execucao.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Configurações Avançadas -->
+        <div class="col-12">
+          <hr>
+          <h6 class="text-primary">
+            <i class="fas fa-cogs me-2"></i>Configurações de Execução
+          </h6>
+        </div>
+
+        <div class="col-md-6">
+          <div class="form-check form-switch">
+            {{ form.async_execution }}
+            <label class="form-check-label" for="{{ form.async_execution.id_for_label }}">
+              {{ form.async_execution.label }}
+            </label>
+          </div>
+          <div class="form-text">{{ form.async_execution.help_text }}</div>
+          {% if form.async_execution.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.async_execution.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-6">
+          <div class="form-check form-switch">
+            {{ form.ativo }}
+            <label class="form-check-label" for="{{ form.ativo.id_for_label }}">
+              {{ form.ativo.label }}
+            </label>
+          </div>
+          <div class="form-text">Tarefas inativas não são executadas</div>
+          {% if form.ativo.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.ativo.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Tasks Existentes (referência) -->
+      {% if crew.tasks.count > 0 and is_create %}
+      <div class="mt-4">
+        <h6 class="text-muted">
+          <i class="fas fa-list me-2"></i>Tasks Existentes ({{ crew.tasks.count }})
+        </h6>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered">
+            <thead class="table-light">
+              <tr>
+                <th>Ordem</th>
+                <th>Nome</th>
+                <th>Responsável</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for existing_task in crew.tasks.all %}
+                <tr>
+                  <td>
+                    <span class="badge bg-secondary">{{ existing_task.ordem_execucao }}</span>
+                  </td>
+                  <td>{{ existing_task.nome }}</td>
+                  <td>
+                    {% if existing_task.agente_responsavel %}
+                      {{ existing_task.agente_responsavel.nome }}
+                    {% else %}
+                      <em class="text-muted">Não atribuído</em>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if existing_task.ativo %}
+                      <span class="badge bg-success">Ativa</span>
+                    {% else %}
+                      <span class="badge bg-secondary">Inativa</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="d-flex justify-content-between mt-4">
+        <a href="{% url 'gestor:crew_detail' crew.id %}" class="btn btn-outline-secondary">
+          <i class="fas fa-times me-1"></i> Cancelar
+        </a>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save me-1"></i> 
+          {% if is_create %}Criar Tarefa{% else %}Salvar Alterações{% endif %}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
