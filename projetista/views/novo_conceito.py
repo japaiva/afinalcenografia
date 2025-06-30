@@ -74,17 +74,26 @@ def novo_conceito_dashboard(request, projeto_id):
 # PLANTA BAIXA
 # =============================================================================
 
+
 @login_required
 @require_POST
 def gerar_planta_baixa(request, projeto_id):
     """
-    Gera ou regenera a planta baixa algorítmica
+    Gera ou regenera a planta baixa algorítmica - VERSÃO CORRIGIDA
     """
     projeto = get_object_or_404(Projeto, pk=projeto_id, projetista=request.user)
     
     try:
         # Obter briefing
-        briefing = projeto.briefings.latest('versao')
+        try:
+            briefing = projeto.briefings.latest('versao')
+        except Briefing.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Briefing não encontrado',
+                'message': 'Este projeto não possui um briefing válido.',
+                'action_required': 'complete_briefing'
+            })
         
         # Verificar se já existe planta baixa
         planta_anterior = PlantaBaixa.objects.filter(projeto=projeto).order_by('-versao').first()
@@ -93,51 +102,120 @@ def gerar_planta_baixa(request, projeto_id):
         # Inicializar serviço
         planta_service = PlantaBaixaService()
         
-        # Gerar planta baixa
+        # CRÍTICO: Gerar planta baixa e verificar resultado IMEDIATAMENTE
         resultado = planta_service.gerar_planta_baixa(
             briefing=briefing,
             versao=nova_versao,
             planta_anterior=planta_anterior
         )
         
-        if resultado['success']:
-            messages.success(request, f'Planta baixa v{nova_versao} gerada com sucesso!')
-            return JsonResponse({
-                'success': True,
-                'message': 'Planta baixa gerada com sucesso!',
-                'planta_id': resultado['planta'].id,
-                'versao': nova_versao,
-                'redirect_url': request.build_absolute_uri(f'/projetista/projetos/{projeto_id}/novo-conceito/')
-            })
-        else:
+        # ✅ VERIFICAÇÃO CRÍTICA: Parar imediatamente se houver erro
+        if not resultado.get('success', False):
+            logger.warning(f"Falha na geração de planta baixa: {resultado.get('error', 'Erro desconhecido')}")
+            
+            # Determinar tipo de erro para ação específica
+            error_type = 'validation_error'
+            if 'DADOS INSUFICIENTES' in resultado.get('critica', ''):
+                error_type = 'incomplete_data'
+            elif 'ESPAÇO INSUFICIENTE' in resultado.get('critica', ''):
+                error_type = 'insufficient_space'
+            elif 'DIMENSÕES INCOMPATÍVEIS' in resultado.get('critica', ''):
+                error_type = 'incompatible_dimensions'
+            
             return JsonResponse({
                 'success': False,
-                'message': f"Erro ao gerar planta baixa: {resultado['error']}"
+                'error': resultado.get('error', 'Erro na geração da planta baixa'),
+                'message': resultado.get('error', 'Não foi possível gerar a planta baixa'),
+                'detailed_error': resultado.get('critica', ''),
+                'suggestions': resultado.get('sugestoes', []),
+                'error_type': error_type,
+                'can_proceed': resultado.get('pode_prosseguir', False),
+                'validation_details': resultado.get('detalhes_validacao', {}),
+                'briefing_data': resultado.get('dados_estande', {}),
+                'requested_environments': resultado.get('ambientes_solicitados', [])
             })
+        
+        # ✅ Se chegou aqui, foi sucesso
+        planta_gerada = resultado['planta']
+        
+        # Log de sucesso
+        logger.info(f"Planta baixa v{nova_versao} gerada com sucesso para projeto {projeto.nome}")
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Planta baixa v{nova_versao} gerada com sucesso!',
+            'planta_id': planta_gerada.id,
+            'versao': nova_versao,
+            'area_utilizada': resultado.get('layout', {}).get('area_total_usada', 0),
+            'ambientes_posicionados': len(resultado.get('layout', {}).get('ambientes_posicionados', [])),
+            'validation_success': resultado.get('critica', ''),
+            'redirect_url': request.build_absolute_uri(f'/projetista/projetos/{projeto_id}/planta-baixa/')
+        })
             
     except Exception as e:
-        logger.error(f"Erro ao gerar planta baixa: {str(e)}", exc_info=True)
+        # Log do erro completo para debug
+        logger.error(f"Erro técnico ao gerar planta baixa: {str(e)}", exc_info=True)
+        
         return JsonResponse({
             'success': False,
-            'message': f"Erro ao processar solicitação: {str(e)}"
+            'error': 'Erro técnico do sistema',
+            'message': f'Ocorreu um erro técnico: {str(e)}',
+            'error_type': 'system_error',
+            'can_proceed': False
         }, status=500)
+
 
 @login_required
 def visualizar_planta_baixa(request, projeto_id):
     """
-    Visualiza a planta baixa atual
+    Visualiza a planta baixa atual (versão mais recente) - VERSÃO SUPER ROBUSTA
     """
     projeto = get_object_or_404(Projeto, pk=projeto_id, projetista=request.user)
-    planta_baixa = get_object_or_404(PlantaBaixa, projeto=projeto)
     
-    # Listar versões disponíveis
+    # CORREÇÃO: Buscar a versão mais recente, não uma única
+    planta_baixa = PlantaBaixa.objects.filter(projeto=projeto).order_by('-versao').first()
+    
+    if not planta_baixa:
+        # Se não tem nenhuma planta baixa, mostrar mensagem e redirecionar
+        messages.info(request, 'Nenhuma planta baixa encontrada para este projeto.')
+        return redirect('projetista:projeto_detail', pk=projeto_id)
+    
+    # Permitir seleção de versão específica via GET parameter
+    versao_solicitada = request.GET.get('versao')
+    if versao_solicitada:
+        try:
+            versao_num = int(versao_solicitada)
+            planta_especifica = PlantaBaixa.objects.filter(
+                projeto=projeto, 
+                versao=versao_num
+            ).first()
+            if planta_especifica:
+                planta_baixa = planta_especifica
+        except (ValueError, TypeError):
+            pass  # Se versão inválida, continuar com a mais recente
+    
+    # Listar todas as versões disponíveis
     versoes = PlantaBaixa.objects.filter(projeto=projeto).order_by('-versao')
+    
+    # Tratar dados JSON de forma segura
+    dados_json = {}
+    try:
+        if planta_baixa.dados_json:
+            if isinstance(planta_baixa.dados_json, dict):
+                dados_json = planta_baixa.dados_json
+            else:
+                # Se for string, tentar fazer parse
+                import json
+                dados_json = json.loads(planta_baixa.dados_json)
+    except (json.JSONDecodeError, TypeError, AttributeError) as e:
+        logger.warning(f"Erro ao processar dados_json da planta {planta_baixa.id}: {str(e)}")
+        dados_json = {}
     
     context = {
         'projeto': projeto,
         'planta_baixa': planta_baixa,
         'versoes': versoes,
-        'dados_json': planta_baixa.dados_json
+        'dados_json': dados_json
     }
     
     return render(request, 'projetista/novo_conceito/planta_baixa.html', context)

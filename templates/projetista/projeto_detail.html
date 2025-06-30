@@ -1,85 +1,49 @@
 {% extends 'projetista/base_projetista.html' %}
 {% load formatadores %}
-{% load static %} {# Necessário para carregar arquivos CSS/JS estáticos #}
 
 {% block title %}Projeto #{{ projeto.numero }} - {{ projeto.empresa.nome }} | Portal do Projetista{% endblock %}
 
-{# ESTE BLOCO DEVE ESTAR NO <head> DO SEU base_projetista.html #}
-{% block extra_css %}
-    <link rel="stylesheet" href="{% static 'projetista/css/projeto_detail.css' %}">
-{% endblock extra_css %}
-
 {% block content %}
 <div class="container-fluid py-3">
+  <!-- Header do Projeto -->
   <div class="card shadow mb-4">
     <div class="card-header bg-light d-flex justify-content-between align-items-center">
       <div class="d-flex align-items-center">
         <i class="fas fa-project-diagram me-2"></i>
         <h4 class="mb-0">Projeto #{{ projeto.numero }} - {{ projeto.nome }}</h4>
       </div>
-      <div>
-        <a href="{% url 'projetista:projeto_list' %}" class="btn btn-outline-secondary">
-          <i class="fas fa-arrow-left me-1"></i> Voltar
-        </a>
-      </div>
+      <a href="{% url 'projetista:projeto_list' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i> Voltar
+      </a>
     </div>
   </div>
 
   <div class="row">
+    <!-- Coluna Principal -->
     <div class="col-md-8">
+      <!-- Informações do Projeto -->
       <div class="card shadow mb-4">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <div class="card-header bg-light">
           <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i> Informações do Projeto</h5>
         </div>
         <div class="card-body">
-          <div class="row mb-2">
+          <div class="row g-3">
             <div class="col-md-6">
               <strong>Empresa:</strong> {{ projeto.empresa.nome }}
             </div>
             <div class="col-md-6">
-              <strong>Tipo de Projeto:</strong> {{ projeto.get_tipo_projeto_display }}
+              <strong>Tipo:</strong> {{ projeto.get_tipo_projeto_display }}
             </div>
-          </div>
-          
-          <div class="row mb-2">
             <div class="col-md-6">
               <strong>Orçamento:</strong> {{ projeto.orcamento|moeda_brasileira }}
             </div>
             <div class="col-md-6">
-              <strong>Status Projeto:</strong>
-              <span class="badge 
-                {% if projeto.status == 'aguardando_manual' %}bg-warning text-dark
-                {% elif projeto.status == 'briefing_pendente' %}bg-info
-                {% elif projeto.status == 'briefing_em_andamento' %}bg-warning text-dark
-                {% elif projeto.status == 'briefing_validado' %}bg-success
-                {% elif projeto.status == 'briefing_enviado' %}bg-info
-                {% elif projeto.status == 'projeto_em_desenvolvimento' %}bg-primary
-                {% elif projeto.status == 'projeto_enviado' %}bg-info
-                {% elif projeto.status == 'projeto_em_analise' %}bg-warning text-dark
-                {% elif projeto.status == 'projeto_aprovado' %}bg-success
-                {% elif projeto.status == 'em_producao' %}bg-danger
-                {% elif projeto.status == 'concluido' %}bg-secondary
-                {% elif projeto.status == 'cancelado' %}bg-danger
-                {% else %}bg-secondary{% endif %}">
-                {{ projeto.get_status_display }}
-              </span>
+              <strong>Status:</strong>
+              <span class="badge bg-primary">{{ projeto.get_status_display }}</span>
             </div>
-          </div>
-          
-          <div class="row mb-2">
             <div class="col-md-6">
-              <strong>Status Desenvolvimento:</strong>
-              <span class="badge 
-                {% if projeto.status_desenvolvimento == 'nao_iniciado' %}bg-secondary
-                {% elif projeto.status_desenvolvimento == 'conceito_visual' %}bg-info
-                {% elif projeto.status_desenvolvimento == 'renderizacao_3d' %}bg-primary
-                {% elif projeto.status_desenvolvimento == 'projeto_executivo' %}bg-warning text-dark
-                {% elif projeto.status_desenvolvimento == 'calculo_custos' %}bg-danger
-                {% elif projeto.status_desenvolvimento == 'detalhamento' %}bg-info
-                {% elif projeto.status_desenvolvimento == 'concluido' %}bg-success
-                {% else %}bg-secondary{% endif %}">
-                {{ projeto.get_status_desenvolvimento_display|default:"Não iniciado" }}
-              </span>
+              <strong>Desenvolvimento:</strong>
+              <span class="badge bg-info">{{ projeto.get_status_desenvolvimento_display|default:"Não iniciado" }}</span>
             </div>
             <div class="col-md-6">
               <strong>Projetista:</strong>
@@ -89,449 +53,130 @@
                 <span class="text-muted">Não atribuído</span>
               {% endif %}
             </div>
-          </div>
-          
-          <div class="row mb-2">
-            <div class="col-md-6">
-              <strong>Data de Criação:</strong> {{ projeto.created_at|date:"d/m/Y" }}
-            </div>
-            <div class="col-md-6">
-              </div>
-          </div>
-
-          {% if projeto.empresa.descricao %}
-          <div class="row mb-2">
-            <div class="col-md-12">
-              <strong>Sobre a Empresa:</strong> {{ projeto.empresa.descricao }}
-            </div>
-          </div>
-          {% endif %}
-          
-          <div class="row">
-            <div class="col-md-12">
-              <strong>Objetivo do Projeto:</strong> {{ projeto.descricao|default:"Não informado" }}
+            <div class="col-12">
+              <strong>Objetivo:</strong> {{ projeto.descricao|default:"Não informado" }}
             </div>
           </div>
         </div>
       </div>
-      
-      {% if projeto.tipo_projeto == 'feira_negocios' %}
-      <div class="card shadow mb-4">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-          <h5 class="card-title mb-0"><i class="fas fa-calendar-alt me-2"></i> Informações da Feira</h5>
-        </div>
-        <div class="card-body">
-          {% if projeto.feira %}
-            <div class="row mb-2">
-              <div class="col-12">
-                <strong>Nome:</strong> {{ projeto.feira.nome }}
-              </div>
-            </div>
-            
-            <div class="row mb-2">
-              <div class="col-md-12">
-                <strong>Local:</strong> {{ projeto.feira.local|default:"Não informado" }}
-              </div>
-            </div>
-            
-            <div class="row mb-2">
-              <div class="col-md-6">
-                <strong>Cidade:</strong> {{ projeto.feira.cidade|default:"Não informada" }}
-              </div>
-              <div class="col-md-6">
-                <strong>UF:</strong> {{ projeto.feira.estado|default:"--" }}
-              </div>
-            </div>
-            
-            <div class="row mb-2">
-              <div class="col-md-6">
-                <strong>Início:</strong>
-                {% if projeto.feira.data_inicio %}
-                  {{ projeto.feira.data_inicio|date:"d/m/Y" }}
-                {% else %}
-                  Não informada
-                {% endif %}
-              </div>
-              <div class="col-md-6">
-                <strong>Fim:</strong>
-                {% if projeto.feira.data_fim %}
-                  {{ projeto.feira.data_fim|date:"d/m/Y" }}
-                {% else %}
-                  Não informada
-                {% endif %}
-              </div>
-            </div>
 
-            {% if projeto.feira.manual %}
-              <div class="row">
-                <div class="col-12">
-                  <a href="{{ projeto.feira.manual.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
-                    <i class="fas fa-file-pdf me-1"></i> Baixar Manual da Feira
-                  </a>
-                </div>
-              </div>
-            {% endif %}
-          {% else %}
-            <div class="alert alert-warning mb-0">
-              <i class="fas fa-exclamation-triangle me-2"></i> Este projeto não possui feira associada.
-            </div>
-          {% endif %}
-        </div>
-      </div>
-      {% endif %}
-
-      {% if projeto.tipo_projeto == 'outros' and projeto.has_briefing %}
-        {% with briefing=projeto.briefings.first %}
-          <div class="card shadow mb-4">
-            <div class="card-header bg-light d-flex justify-content-between align-items-center">
-              <h5 class="card-title mb-0"><i class="fas fa-calendar-alt me-2"></i> Informações do Evento</h5>
-            </div>
-            <div class="card-body">
-              <div class="row mb-2">
-                <div class="col-12">
-                  <strong>Nome:</strong> {{ briefing.nome_evento|default:"Não informado" }}
-                </div>
-              </div>
-              <div class="row mb-2">
-                <div class="col-12">
-                  <strong>Local:</strong> {{ briefing.local_evento|default:"Não informado" }}
-                </div>
-              </div>
-              <div class="row mb-2">
-                <div class="col-12">
-                  <strong>Organizador:</strong> {{ briefing.organizador_evento|default:"Não informado" }}
-                </div>
-              </div>
-              <div class="row mb-2">
-                <div class="col-12">
-                  <strong>Data e Horário:</strong> {{ briefing.data_horario_evento|default:"Não informado" }}
-                </div>
-              </div>
-            </div>
-          </div>
-        {% endwith %}
-      {% endif %}
-      
+      <!-- Tabs de Consulta -->
       <div class="card shadow mb-4">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <div class="card-header bg-light">
           <h5 class="card-title mb-0"><i class="fas fa-search me-2"></i> Consulta</h5>
         </div>
         <div class="card-body">
           <ul class="nav nav-tabs" id="consultaTabs" role="tablist">
             <li class="nav-item" role="presentation">
-              <button class="nav-link active" id="briefing-tab" data-bs-toggle="tab" data-bs-target="#briefing-content" type="button" role="tab" aria-controls="briefing-content" aria-selected="true">Briefing</button>
+              <button class="nav-link active" id="briefing-tab" data-bs-toggle="tab" data-bs-target="#briefing-content" type="button">Briefing</button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link" id="conceito-tab" data-bs-toggle="tab" data-bs-target="#conceito-content" type="button" role="tab" aria-controls="conceito-content" aria-selected="false">Conceito</button>
+              <button class="nav-link" id="conceito-tab" data-bs-toggle="tab" data-bs-target="#conceito-content" type="button">Conceito</button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link" id="3d-tab" data-bs-toggle="tab" data-bs-target="#3d-content" type="button" role="tab" aria-controls="3d-content" aria-selected="false">3D</button>
+              <button class="nav-link" id="3d-tab" data-bs-toggle="tab" data-bs-target="#3d-content" type="button">3D</button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link" id="projeto-tab" data-bs-toggle="tab" data-bs-target="#projeto-content" type="button" role="tab" aria-controls="projeto-content" aria-selected="false">Projeto</button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" id="custos-tab" data-bs-toggle="tab" data-bs-target="#custos-content" type="button" role="tab" aria-controls="custos-content" aria-selected="false">Custos</button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" id="detalhe-tab" data-bs-toggle="tab" data-bs-target="#detalhe-content" type="button" role="tab" aria-controls="detalhe-content" aria-selected="false">Detalhe</button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" id="fotos-tab" data-bs-toggle="tab" data-bs-target="#fotos-content" type="button" role="tab" aria-controls="fotos-content" aria-selected="false">Fotos</button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" id="marcos-tab" data-bs-toggle="tab" data-bs-target="#marcos-content" type="button" role="tab" aria-controls="marcos-content" aria-selected="false">Marcos</button>
+              <button class="nav-link" id="marcos-tab" data-bs-toggle="tab" data-bs-target="#marcos-content" type="button">Marcos</button>
             </li>
           </ul>
           
-          <div class="tab-content pt-3" id="consultaTabsContent">
-            <div class="tab-pane fade show active" id="briefing-content" role="tabpanel" aria-labelledby="briefing-tab">
+          <div class="tab-content pt-3">
+            <!-- Tab Briefing -->
+            <div class="tab-pane fade show active" id="briefing-content">
               {% if projeto.has_briefing %}
                 {% with briefing=projeto.briefings.first %}
                 <div class="d-flex justify-content-between align-items-center mb-3">
                   <h6 class="mb-0">Briefing v{{ briefing.versao }}</h6>
-                  <span class="badge 
-                    {% if briefing.status == 'rascunho' %}bg-secondary
-                    {% elif briefing.status == 'validado' %}bg-success
-                    {% elif briefing.status == 'em_validacao' %}bg-warning text-dark
-                    {% elif briefing.status == 'enviado' %}bg-primary
-                    {% elif briefing.status == 'revisao' %}bg-info
-                    {% elif briefing.status == 'aprovado' %}bg-success
-                    {% endif %}">
-                    {{ briefing.get_status_display }}
-                  </span>
+                  <span class="badge bg-success">{{ briefing.get_status_display }}</span>
                 </div>
                 
                 <div class="progress mb-3" style="height: 20px;">
-                  <div class="progress-bar bg-success" role="progressbar" style="width: {{ briefing.progresso }}%;" aria-valuenow="{{ briefing.progresso }}" aria-valuemin="0" aria-valuemax="100">{{ briefing.progresso }}%</div>
+                  <div class="progress-bar bg-success" style="width: {{ briefing.progresso }}%;">{{ briefing.progresso }}%</div>
                 </div>
                 
-                {% if briefing.pdf_file %}
-                <a href="{{ briefing.pdf_file.url }}" class="btn btn-primary btn-sm me-2" target="_blank">
-                  <i class="fas fa-file-pdf me-1"></i> Ver PDF do Briefing
-                </a>
-                {% else %}
-                <a href="{% url 'cliente:relatorio_briefing' projeto_id=projeto.id %}" class="btn btn-primary btn-sm me-2">
-                  <i class="fas fa-sync-alt me-1"></i> Gerar PDF do Briefing
-                </a>
-                {% endif %}
-
-                <a href="{% url 'projetista:ver_briefing' projeto_id=projeto.id %}" class="btn btn-outline-primary btn-sm">
-                  <i class="fas fa-eye me-1"></i> Ver Briefing Completo
-                </a>
-
+                <div class="d-flex gap-2">
+                  {% if briefing.pdf_file %}
+                    <a href="{{ briefing.pdf_file.url }}" class="btn btn-primary btn-sm" target="_blank">
+                      <i class="fas fa-file-pdf me-1"></i> Ver PDF
+                    </a>
+                  {% endif %}
+                  <a href="{% url 'projetista:ver_briefing' projeto_id=projeto.id %}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-eye me-1"></i> Ver Completo
+                  </a>
+                </div>
                 {% endwith %}
               {% else %}
-                <div class="alert alert-info mb-3">
+                <div class="alert alert-info">
                   <i class="fas fa-info-circle me-2"></i> Este projeto ainda não possui briefing.
                 </div>
               {% endif %}
             </div>
 
-            <div class="tab-pane fade" id="conceito-content" role="tabpanel" aria-labelledby="conceito-tab">
-              {% if projeto.status_desenvolvimento == 'conceito_visual' or projeto.status_desenvolvimento == 'renderizacao_3d' or projeto.status_desenvolvimento == 'projeto_executivo' or projeto.status_desenvolvimento == 'calculo_custos' or projeto.status_desenvolvimento == 'detalhamento' or projeto.status_desenvolvimento == 'concluido' %}
-                <div class="mb-3">
-                  <h6>Conceito Visual</h6>
-                  <div class="row">
-                    {% for conceito in projeto.conceitos.all %}
-                    <div class="col-md-6 mb-3">
-                      <div class="card">
-                        <img src="{{ conceito.imagem.url }}" class="card-img-top" alt="{{ conceito.descricao }}">
-                        <div class="card-body p-2">
-                          <p class="card-text small">{{ conceito.descricao }}</p>
-                          <div class="d-flex justify-content-end">
-                            <a href="{{ conceito.imagem.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
-                              <i class="fas fa-download"></i>
-                            </a>
-                          </div>
-                        </div>
-                      </div>
+            <!-- Tab Conceito -->
+            <div class="tab-pane fade" id="conceito-content">
+              <div class="row">
+                {% for conceito in projeto.conceitos.all %}
+                <div class="col-md-6 mb-3">
+                  <div class="card">
+                    <img src="{{ conceito.imagem.url }}" class="card-img-top" alt="{{ conceito.descricao }}">
+                    <div class="card-body p-2">
+                      <p class="card-text small">{{ conceito.descricao }}</p>
                     </div>
-                    {% empty %}
-                    <div class="col-12 text-center text-muted py-3">
-                      Nenhum conceito visual disponível
-                    </div>
-                    {% endfor %}
-                  </div>
-                  <div class="mt-3">
-                    <a href="{% url 'projetista:novo_conceito_dashboard' projeto_id=projeto.id %}" class="btn btn-outline-primary">
-                      <i class="fas fa-edit me-1"></i> Editar Conceito Visual
-                    </a>
-                  </div>
-                </div>
-              {% else %}
-                <div class="alert alert-info mb-3">
-                  <i class="fas fa-info-circle me-2"></i> O conceito visual ainda não foi desenvolvido.
-                </div>
-                <a href="{% url 'projetista:novo_conceito_dashboard' projeto_id=projeto.id %}" class="btn btn-primary">
-                  <i class="fas fa-plus me-1"></i> Criar Conceito Visual
-                </a>
-              {% endif %}
-            </div>
-
-            <div class="tab-pane fade" id="3d-content" role="tabpanel" aria-labelledby="3d-tab">
-              {% if projeto.status_desenvolvimento == 'renderizacao_3d' or projeto.status_desenvolvimento == 'projeto_executivo' or projeto.status_desenvolvimento == 'calculo_custos' or projeto.status_desenvolvimento == 'detalhamento' or projeto.status_desenvolvimento == 'concluido' %}
-                <div class="mb-3">
-                  <h6>Renderizações 3D</h6>
-                  <div class="row">
-                    {% for render in projeto.renders.all %}
-                    <div class="col-md-6 mb-3">
-                      <div class="card">
-                        <img src="{{ render.imagem.url }}" class="card-img-top" alt="{{ render.descricao }}">
-                        <div class="card-body p-2">
-                          <p class="card-text small">{{ render.descricao }}</p>
-                          <div class="d-flex justify-content-end">
-                            <a href="{{ render.imagem.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
-                              <i class="fas fa-download"></i>
-                            </a>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    {% empty %}
-                    <div class="col-12 text-center text-muted py-3">
-                      Nenhuma renderização 3D disponível
-                    </div>
-                    {% endfor %}
-                  </div>
-                </div>
-              {% else %}
-                <div class="alert alert-info mb-0">
-                  <i class="fas fa-info-circle me-2"></i> As renderizações 3D ainda não foram desenvolvidas.
-                </div>
-              {% endif %}
-            </div>
-            
-            <div class="tab-pane fade" id="projeto-content" role="tabpanel" aria-labelledby="projeto-tab">
-              {% if projeto.status_desenvolvimento == 'projeto_executivo' or projeto.status_desenvolvimento == 'calculo_custos' or projeto.status_desenvolvimento == 'detalhamento' or projeto.status_desenvolvimento == 'concluido' %}
-                <div class="mb-3">
-                  <h6>Arquivos do Projeto</h6>
-                  <ul class="list-group">
-                    {% for arquivo in projeto.arquivos.all %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                      <div>
-                        <i class="fas fa-file me-2"></i>
-                        {{ arquivo.nome_original }}
-                      </div>
-                      <div>
-                        <a href="{{ arquivo.arquivo.url }}" class="btn btn-sm btn-outline-secondary" target="_blank">
-                          <i class="fas fa-download"></i>
-                        </a>
-                      </div>
-                    </li>
-                    {% empty %}
-                    <li class="list-group-item text-center text-muted">
-                      Nenhum arquivo disponível
-                    </li>
-                    {% endfor %}
-                  </ul>
-                </div>
-              {% else %}
-                <div class="alert alert-info mb-0">
-                  <i class="fas fa-info-circle me-2"></i> O projeto executivo ainda não foi desenvolvido.
-                </div>
-              {% endif %}
-            </div>
-
-            <div class="tab-pane fade" id="custos-content" role="tabpanel" aria-labelledby="custos-tab">
-              {% if projeto.status_desenvolvimento == 'calculo_custos' or projeto.status_desenvolvimento == 'detalhamento' or projeto.status_desenvolvimento == 'concluido' %}
-                <div class="mb-3">
-                  <h6>Planilha de Custos</h6>
-                  <div class="table-responsive">
-                    <table class="table table-sm table-bordered">
-                      <thead class="table-light">
-                        <tr>
-                          <th>Item</th>
-                          <th>Descrição</th>
-                          <th>Quantidade</th>
-                          <th>Valor Unitário</th>
-                          <th>Valor Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {% for item in projeto.itens_custo.all %}
-                        <tr>
-                          <td>{{ item.item }}</td>
-                          <td>{{ item.descricao }}</td>
-                          <td>{{ item.quantidade }}</td>
-                          <td>R$ {{ item.valor_unitario|floatformat:2 }}</td>
-                          <td>R$ {{ item.valor_total|floatformat:2 }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                          <td colspan="5" class="text-center text-muted py-3">
-                            Nenhum item de custo disponível
-                          </td>
-                        </tr>
-                        {% endfor %}
-                      </tbody>
-                      <tfoot>
-                        <tr class="table-secondary">
-                          <th colspan="4" class="text-end">Total:</th>
-                          <th>R$ {{ projeto.total_custos|default:"0.00"|floatformat:2 }}</th>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                </div>
-              {% else %}
-                <div class="alert alert-info mb-0">
-                  <i class="fas fa-info-circle me-2"></i> A planilha de custos ainda não foi desenvolvida.
-                </div>
-              {% endif %}
-            </div>
-
-            <div class="tab-pane fade" id="detalhe-content" role="tabpanel" aria-labelledby="detalhe-tab">
-              {% if projeto.status_desenvolvimento == 'detalhamento' or projeto.status_desenvolvimento == 'concluido' %}
-                <div class="mb-3">
-                  <h6>Detalhamento Técnico</h6>
-                  <ul class="list-group">
-                    {% for detalhe in projeto.detalhamentos.all %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                      <div>
-                        <i class="fas fa-file-alt me-2"></i>
-                        {{ detalhe.titulo }}
-                      </div>
-                      <div>
-                        <a href="{{ detalhe.arquivo.url }}" class="btn btn-sm btn-outline-secondary" target="_blank">
-                          <i class="fas fa-download"></i>
-                        </a>
-                      </div>
-                    </li>
-                    {% empty %}
-                    <li class="list-group-item text-center text-muted">
-                      Nenhum detalhamento disponível
-                    </li>
-                    {% endfor %}
-                  </ul>
-                </div>
-              {% else %}
-                <div class="alert alert-info mb-0">
-                  <i class="fas fa-info-circle me-2"></i> O detalhamento técnico ainda não foi desenvolvido.
-                </div>
-              {% endif %}
-            </div>
-            
-            <div class="tab-pane fade" id="fotos-content" role="tabpanel" aria-labelledby="fotos-tab">
-              {% if projeto.status == 'em_producao' or projeto.status == 'concluido' %}
-                <div class="row">
-                  {% for foto in projeto.fotos.all %}
-                  <div class="col-md-4 mb-3">
-                    <div class="card">
-                      <img src="{{ foto.arquivo.url }}" class="card-img-top" alt="{{ foto.descricao }}">
-                      <div class="card-body p-2">
-                        <p class="card-text small">{{ foto.descricao }}</p>
-                        <div class="d-flex justify-content-end">
-                          <a href="{{ foto.arquivo.url }}" class="btn btn-sm btn-outline-primary me-1" target="_blank">
-                            <i class="fas fa-download"></i>
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  {% empty %}
-                  <div class="col-12 text-center text-muted py-3">
-                    Nenhuma foto disponível
-                  </div>
-                  {% endfor %}
-                </div>
-              {% else %}
-                <div class="alert alert-info mb-0">
-                  <i class="fas fa-info-circle me-2"></i> Fotos estarão disponíveis quando a produção iniciar.
-                </div>
-              {% endif %}
-            </div>
-            
-            <div class="tab-pane fade" id="marcos-content" role="tabpanel" aria-labelledby="marcos-tab">
-              <div class="timeline-container">
-                {% for marco in marcos %}
-                <div class="timeline-item">
-                  <div class="timeline-marker 
-                    {% if marco.tipo == 'criacao_projeto' %}bg-secondary
-                    {% elif marco.tipo == 'envio_briefing' %}bg-info
-                    {% elif marco.tipo == 'validacao_briefing' %}bg-success
-                    {% elif marco.tipo == 'inicio_desenvolvimento' %}bg-primary
-                    {% elif marco.tipo == 'envio_projeto' %}bg-info
-                    {% elif marco.tipo == 'analise_projeto' %}bg-warning
-                    {% elif marco.tipo == 'aprovacao_projeto' %}bg-success
-                    {% elif marco.tipo == 'inicio_producao' %}bg-danger
-                    {% elif marco.tipo == 'entrega_estande' %}bg-success
-                    {% elif marco.tipo == 'cancelamento' %}bg-danger
-                    {% else %}bg-secondary{% endif %}">
-                  </div>
-                  <div class="timeline-content">
-                    <div class="d-flex justify-content-between">
-                      <h6 class="fw-bold mb-1">{{ marco.get_tipo_display }}</h6>
-                      <small class="text-muted">{{ marco.data|date:"d/m/Y H:i" }}</small>
-                    </div>
-                    <p class="mb-0">{{ marco.observacao|default:"" }}</p>
-                    {% if marco.registrado_por %}
-                    <small class="text-muted">Registrado por: {{ marco.registrado_por.get_full_name|default:marco.registrado_por.username }}</small>
-                    {% endif %}
                   </div>
                 </div>
                 {% empty %}
-                <div class="text-center py-3 text-muted">Nenhum marco registrado para este projeto.</div>
+                <div class="col-12">
+                  <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> O conceito visual ainda não foi desenvolvido.
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- Tab 3D -->
+            <div class="tab-pane fade" id="3d-content">
+              <div class="row">
+                {% for render in projeto.renders.all %}
+                <div class="col-md-6 mb-3">
+                  <div class="card">
+                    <img src="{{ render.imagem.url }}" class="card-img-top" alt="{{ render.descricao }}">
+                    <div class="card-body p-2">
+                      <p class="card-text small">{{ render.descricao }}</p>
+                    </div>
+                  </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                  <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> As renderizações 3D ainda não foram desenvolvidas.
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            
+            <!-- Tab Marcos -->
+            <div class="tab-pane fade" id="marcos-content">
+              <div class="list-group">
+                {% for marco in marcos %}
+                <div class="list-group-item">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-1">{{ marco.get_tipo_display }}</h6>
+                    <small class="text-muted">{{ marco.data|date:"d/m/Y H:i" }}</small>
+                  </div>
+                  {% if marco.observacao %}
+                    <p class="mb-1">{{ marco.observacao }}</p>
+                  {% endif %}
+                  {% if marco.registrado_por %}
+                    <small class="text-muted">Por: {{ marco.registrado_por.get_full_name|default:marco.registrado_por.username }}</small>
+                  {% endif %}
+                </div>
+                {% empty %}
+                <div class="list-group-item text-center text-muted">
+                  Nenhum marco registrado para este projeto.
+                </div>
                 {% endfor %}
               </div>
             </div>
@@ -540,306 +185,312 @@
       </div>
     </div>
     
+    <!-- Sidebar de Ações -->
     <div class="col-md-4">
 
+      <!-- Ações de Desenvolvimento -->
       <div class="card shadow mb-4">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-          <h5 class="card-title mb-0"><i class="fas fa-cogs me-2"></i> Ações</h5>
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0"><i class="fas fa-cogs me-2"></i> Desenvolvimento</h5>
         </div>
         <div class="card-body">
-          {% if projeto.has_briefing %}
-            {% with briefing=projeto.briefings.first %}
-              {% if briefing.pdf_file %}
-                <div class="d-grid mb-3">
-                  <a href="{{ briefing.pdf_file.url }}" class="btn btn-outline-primary" target="_blank">
-                    <i class="fas fa-file-pdf me-2"></i> Ver PDF do Briefing
+
+          <!-- PLANTA BAIXA -->
+          <div class="mb-3">
+            <h6><i class="fas fa-drafting-compass me-2"></i> Planta Baixa</h6>
+            
+            {% with planta_atual=projeto.plantas_baixas.first %}
+              {% if planta_atual %}
+                <!-- Se existe planta baixa -->
+                <div class="d-flex gap-2 mb-2">
+                  <a href="{% url 'projetista:visualizar_planta_baixa' projeto_id=projeto.id %}" 
+                    class="btn btn-success btn-sm">
+                    <i class="fas fa-eye me-1"></i> Ver Planta
                   </a>
+                  
+                  {% if planta_atual.arquivo_svg %}
+                    <a href="{% url 'projetista:download_planta_svg' planta_id=planta_atual.id %}" 
+                      class="btn btn-outline-primary btn-sm">
+                      <i class="fas fa-download me-1"></i> Download
+                    </a>
+                  {% endif %}
                 </div>
+                
+                <small class="text-muted">
+                  Atualizada: {{ planta_atual.atualizado_em|date:"d/m/Y H:i" }}
+                </small>
               {% else %}
-                <div class="d-grid mb-3">
-                  <a href="{% url 'cliente:relatorio_briefing' projeto_id=projeto.id %}" class="btn btn-outline-primary">
-                    <i class="fas fa-sync-alt me-2"></i> Gerar PDF do Briefing
-                  </a>
-                </div>
+                <!-- Se não existe planta baixa -->
+                <p class="text-muted small mb-2">Nenhuma planta baixa gerada ainda.</p>
               {% endif %}
             {% endwith %}
-          {% endif %}
-
-          <div class="border rounded p-3 mb-3 bg-light">
-            <h6 class="mb-3 text-center"><i class="fas fa-magic me-2"></i>Sistema de Conceito</h6>
             
-            <div class="d-flex justify-content-between mb-3">
-              <div class="text-center flex-fill">
-                <div class="rounded-circle mx-auto mb-1 d-flex align-items-center justify-content-center" 
-                    style="width: 30px; height: 30px; background: {% if status.planta_baixa.concluido %}#10b981{% elif status.planta_baixa.disponivel %}#3b82f6{% else %}#e5e7eb{% endif %}; color: {% if status.planta_baixa.concluido or status.planta_baixa.disponivel %}white{% else %}#6b7280{% endif %};">
-                  {% if status.planta_baixa.concluido %}<i class="fas fa-check"></i>{% else %}1{% endif %}
-                </div>
-                <small class="fw-bold">Planta</small>
-              </div>
-              <div class="text-center flex-fill">
-                <div class="rounded-circle mx-auto mb-1 d-flex align-items-center justify-content-center" 
-                    style="width: 30px; height: 30px; background: {% if status.conceito_visual.concluido %}#10b981{% elif status.conceito_visual.disponivel %}#3b82f6{% else %}#e5e7eb{% endif %}; color: {% if status.conceito_visual.concluido or status.conceito_visual.disponivel %}white{% else %}#6b7280{% endif %};">
-                  {% if status.conceito_visual.concluido %}<i class="fas fa-check"></i>{% else %}2{% endif %}
-                </div>
-                <small class="fw-bold">Conceito</small>
-              </div>
-              <div class="text-center flex-fill">
-                <div class="rounded-circle mx-auto mb-1 d-flex align-items-center justify-content-center" 
-                    style="width: 30px; height: 30px; background: {% if status.modelo_3d.concluido %}#10b981{% elif status.modelo_3d.disponivel %}#3b82f6{% else %}#e5e7eb{% endif %}; color: {% if status.modelo_3d.concluido or status.modelo_3d.disponivel %}white{% else %}#6b7280{% endif %};">
-                  {% if status.modelo_3d.concluido %}<i class="fas fa-check"></i>{% else %}3{% endif %}
-                </div>
-                <small class="fw-bold">Modelo 3D</small>
-              </div>
-            </div>
-
-            <div class="row g-2 mb-3">
-              <div class="col-4">
-                {% if status.planta_baixa.disponivel %}
-                  <button type="button" class="btn btn-sm btn-primary w-100" onclick="gerarPlantaBaixa()" title="Gerar planta baixa algorítmica">
-                    <i class="fas fa-drafting-compass d-block"></i>
-                    <small>{% if status.planta_baixa.concluido %}Regenerar{% else %}Gerar{% endif %}</small>
-                  </button>
-                {% else %}
-                  <button type="button" class="btn btn-sm btn-secondary w-100" disabled title="Planta baixa não disponível">
-                    <i class="fas fa-lock d-block"></i>
-                    <small>Bloqueado</small>
-                  </button>
-                {% endif %}
-                {% if status.planta_baixa.concluido %}
-                  <button type="button" class="btn btn-outline-primary btn-sm w-100 mt-1" onclick="visualizarPlantaBaixa()" title="Ver planta baixa">
-                    <i class="fas fa-eye"></i>
-                  </button>
-                {% endif %}
-              </div>
-              
-              <div class="col-4">
-                {% if status.conceito_visual.disponivel %}
-                  <button type="button" class="btn btn-sm btn-success w-100" onclick="gerarConceitoVisual()" title="Gerar conceito visual com IA">
-                    <i class="fas fa-palette d-block"></i>
-                    <small>{% if status.conceito_visual.concluido %}Regenerar{% else %}Gerar{% endif %}</small>
-                  </button>
-                {% else %}
-                  <button type="button" class="btn btn-sm btn-secondary w-100" disabled title="Requer planta baixa pronta">
-                    <i class="fas fa-lock d-block"></i>
-                    <small>Bloqueado</small>
-                  </button>
-                {% endif %}
-                {% if status.conceito_visual.concluido %}
-                  <button type="button" class="btn btn-outline-success btn-sm w-100 mt-1" onclick="visualizarConceitoVisual()" title="Ver conceito visual">
-                    <i class="fas fa-eye"></i>
-                  </button>
-                {% endif %}
-              </div>
-              
-              <div class="col-4">
-                {% if status.modelo_3d.disponivel %}
-                  <button type="button" class="btn btn-sm btn-warning w-100" onclick="gerarModelo3D()" title="Gerar modelo 3D navegável">
-                    <i class="fas fa-cube d-block"></i>
-                    <small>{% if status.modelo_3d.concluido %}Regenerar{% else %}Gerar{% endif %}</small>
-                  </button>
-                {% else %}
-                  <button type="button" class="btn btn-sm btn-secondary w-100" disabled title="Requer conceito visual pronto">
-                    <i class="fas fa-lock d-block"></i>
-                    <small>Bloqueado</small>
-                  </button>
-                {% endif %}
-                {% if status.modelo_3d.concluido %}
-                  <button type="button" class="btn btn-outline-warning btn-sm w-100 mt-1" onclick="visualizarModelo3D()" title="Navegar modelo 3D">
-                    <i class="fas fa-eye"></i>
-                  </button>
-                {% endif %}
-              </div>
-            </div>
-
-            <div class="text-center">
-              <a href="{% url 'projetista:novo_conceito_dashboard' projeto_id=projeto.id %}" class="btn btn-outline-primary btn-sm">
-                <i class="fas fa-expand me-1"></i> Dashboard Completo
-              </a>
+            <div class="mt-2">
+              <button class="btn btn-outline-primary btn-sm" onclick="gerarPlantaBaixa()">
+                <i class="fas fa-sync-alt me-1"></i> 
+                {% if projeto.plantas_baixas.exists %}Regenerar{% else %}Gerar{% endif %} Planta
+              </button>
             </div>
           </div>
 
-          <div class="d-grid">
+          <hr>
+
+          <!-- CONCEITO VISUAL -->
+          <div class="mb-3">
+            <h6><i class="fas fa-palette me-2"></i> Conceito Visual</h6>
+            
+            {% with conceito_atual=projeto.conceitos_visuais_novos.first %}
+              {% if conceito_atual %}
+                <!-- Se existe conceito visual -->
+                <div class="d-flex gap-2 mb-2">
+                  <a href="{% url 'projetista:visualizar_conceito_visual' projeto_id=projeto.id %}" 
+                    class="btn btn-success btn-sm">
+                    <i class="fas fa-eye me-1"></i> Ver Conceito v{{ conceito_atual.versao }}
+                  </a>
+                  
+                  {% if conceito_atual.imagem %}
+                    <a href="{{ conceito_atual.imagem.url }}" target="_blank" 
+                      class="btn btn-outline-primary btn-sm">
+                      <i class="fas fa-external-link-alt me-1"></i> Imagem
+                    </a>
+                  {% endif %}
+                </div>
+                
+                <small class="text-muted">
+                  Status: <span class="badge bg-success">{{ conceito_atual.get_status_display }}</span> |
+                  Atualizado: {{ conceito_atual.atualizado_em|date:"d/m/Y H:i" }}
+                </small>
+              {% else %}
+                <!-- Se não existe conceito visual -->
+                <p class="text-muted small mb-2">Nenhum conceito visual gerado ainda.</p>
+              {% endif %}
+            {% endwith %}
+            
+            <div class="mt-2">
+              <button class="btn btn-outline-success btn-sm" onclick="gerarConceitoVisual()"
+                      {% if not projeto.plantas_baixas.exists %}disabled title="Necessário ter planta baixa primeiro"{% endif %}>
+                <i class="fas fa-palette me-1"></i> 
+                {% if projeto.conceitos_visuais_novos.exists %}Regenerar{% else %}Gerar{% endif %} Conceito
+              </button>
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- MODELO 3D -->
+          <div class="mb-3">
+            <h6><i class="fas fa-cube me-2"></i> Modelo 3D</h6>
+            
+            {% with modelo_atual=projeto.modelos_3d.first %}
+              {% if modelo_atual %}
+                <!-- Se existe modelo 3D -->
+                <div class="d-flex gap-2 mb-2">
+                  <a href="{% url 'projetista:visualizar_modelo_3d' projeto_id=projeto.id %}" 
+                    class="btn btn-success btn-sm">
+                    <i class="fas fa-eye me-1"></i> Ver Modelo v{{ modelo_atual.versao }}
+                  </a>
+                  
+                  {% if modelo_atual.arquivo_gltf %}
+                    <a href="{% url 'projetista:download_modelo_3d' modelo_id=modelo_atual.id formato='gltf' %}" 
+                      class="btn btn-outline-primary btn-sm">
+                      <i class="fas fa-download me-1"></i> Download
+                    </a>
+                  {% endif %}
+                </div>
+                
+                <small class="text-muted">
+                  Status: <span class="badge bg-success">{{ modelo_atual.get_status_display }}</span> |
+                  Atualizado: {{ modelo_atual.atualizado_em|date:"d/m/Y H:i" }}
+                </small>
+              {% else %}
+                <!-- Se não existe modelo 3D -->
+                <p class="text-muted small mb-2">Nenhum modelo 3D gerado ainda.</p>
+              {% endif %}
+            {% endwith %}
+            
+            <div class="mt-2">
+              <button class="btn btn-outline-warning btn-sm" onclick="gerarModelo3D()"
+                      {% if not projeto.plantas_baixas.exists or not projeto.conceitos_visuais_novos.exists %}
+                      disabled title="Necessário ter planta baixa e conceito visual primeiro"
+                      {% endif %}>
+                <i class="fas fa-cube me-1"></i> 
+                {% if projeto.modelos_3d.exists %}Regenerar{% else %}Gerar{% endif %} Modelo 3D
+              </button>
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- OUTRAS AÇÕES -->
+          <div class="d-grid gap-2">
             <a href="{% url 'projetista:mensagens_projeto' projeto_id=projeto.id %}" class="btn btn-outline-primary">
               <i class="fas fa-comment me-2"></i> Enviar Mensagem
             </a>
           </div>
+
+          <!-- Área de Feedback -->
+          <div id="feedback-area" class="mt-3">
+            <div id="status-message" class="alert alert-info d-none">
+              <span id="status-text"></span>
+            </div>
+          </div>
         </div>
       </div>
       
+      <!-- Cronograma -->
       <div class="card shadow mb-4">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <div class="card-header bg-light">
           <h5 class="card-title mb-0"><i class="fas fa-calendar me-2"></i> Cronograma</h5>
         </div>
         <div class="card-body">
-          <ul class="list-group">
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              <div>
-                Inclusão Projeto
-              </div>
-              <span>
-                {% if projeto.created_at %}
-                  {{ projeto.created_at|date:"d/m/Y" }}
-                {% else %}
-                  -
-                {% endif %}
-              </span>
-            </li>
-            
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              <div>
-                Envio Briefing
-              </div>
-              <span>
-                {% if projeto.data_envio_briefing %}
-                  {{ projeto.data_envio_briefing|date:"d/m/Y" }}
-                {% else %}
-                  -
-                {% endif %}
-              </span>
-            </li>
-            
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              <div>
-                Retorno Projeto
-              </div>
-              <span>
-                {% with retorno_projeto=projeto.marcos.filter.first %}
-                {% if retorno_projeto %}
-                  {{ retorno_projeto.data|date:"d/m/Y" }}
-                {% else %}
-                  -
-                {% endif %}
-                {% endwith %}
-              </span>
-            </li>
-            
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              <div>
-                Aprov. Projeto
-              </div>
-              <span>
-                {% if projeto.data_aprovacao_projeto %}
-                  {{ projeto.data_aprovacao_projeto|date:"d/m/Y" }}
-                {% else %}
-                  -
-                {% endif %}
-              </span>
-            </li>
-            
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              <div>
-                Início Produção
-              </div>
-              <span>
-                {% if projeto.data_inicio_producao %}
-                  {{ projeto.data_inicio_producao|date:"d/m/Y" }}
-                {% else %}
-                  -
-                {% endif %}
-              </span>
-            </li>
-            
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              <div>
-                Entrega Estande
-              </div>
-              <span>
-                {% if projeto.data_entrega_estande %}
-                  {{ projeto.data_entrega_estande|date:"d/m/Y" }}
-                {% else %}
-                  -
-                {% endif %}
-              </span>
-            </li>
-          </ul>
+          <div class="list-group list-group-flush">
+            <div class="list-group-item d-flex justify-content-between">
+              <span>Criação</span>
+              <span>{{ projeto.created_at|date:"d/m/Y" }}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between">
+              <span>Briefing</span>
+              <span>{{ projeto.data_envio_briefing|date:"d/m/Y"|default:"-" }}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between">
+              <span>Aprovação</span>
+              <span>{{ projeto.data_aprovacao_projeto|date:"d/m/Y"|default:"-" }}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between">
+              <span>Produção</span>
+              <span>{{ projeto.data_inicio_producao|date:"d/m/Y"|default:"-" }}</span>
+            </div>
+          </div>
         </div>
       </div>
-      
-      <div class="card shadow mb-4">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-          <h5 class="card-title mb-0"><i class="fas fa-chart-line me-2"></i> Métricas</h5>
-        </div>
-        <div class="card-body">
-          <ul class="list-group">
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              <div>
-                Tempo Projeto
-              </div>
-              <span>
-                {% if projeto.tempo_projeto %}
-                  {{ projeto.tempo_projeto|duration_format }}
-                {% else %}
-                  -
-                {% endif %}
-              </span>
-            </li>
-            
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              <div>
-                Tempo Produção
-              </div>
-              <span>
-                {% if projeto.tempo_producao %}
-                  {{ projeto.tempo_producao|duration_format }}
-                {% else %}
-                  -
-                {% endif %}
-              </span>
-            </li>
-          </ul>
-        </div>
-      </div>
-              
     </div>
   </div>
 </div>
-
-{# Este bloco CSS foi movido para um arquivo estático para melhor organização #}
-{# Você deve criar um arquivo `projetista/static/projetista/css/projeto_detail.css` #}
-{# e colar o conteúdo CSS abaixo nele, sem as tags <style> #}
-{# Este bloco deve ser incluído no <head> do seu base_projetista.html, dentro de um {% block extra_css %} #}
-
-{# Este bloco JavaScript foi movido para um arquivo estático para melhor organização #}
-{# Você deve criar um arquivo `projetista/static/projetista/js/projeto_detail.js` #}
-{# e colar o conteúdo JavaScript abaixo nele, sem as tags <script> #}
-{# Este bloco deve ser incluído no final do <body> do seu base_projetista.html, dentro de um {% block extra_js %} #}
+{% endblock %}
 
 {% block extra_js %}
 <script>
 const PROJETO_ID = {{ projeto.id }};
 const CSRF_TOKEN = '{{ csrf_token }}';
 
-function setLoadingState(button, isLoading) {
-    if (isLoading) {
-        button.disabled = true;
-        const originalText = button.innerHTML;
-        button.setAttribute('data-original-text', originalText);
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <small>Processando...</small>';
-    } else {
-        button.disabled = false;
-        const originalText = button.getAttribute('data-original-text');
-        if (originalText) {
-            button.innerHTML = originalText;
+function showFeedback(type, message) {
+    const statusDiv = document.getElementById('status-message');
+    const statusText = document.getElementById('status-text');
+    
+    if (statusDiv && statusText) {
+        statusDiv.className = `alert alert-${type}`;
+        statusText.textContent = message;
+        statusDiv.classList.remove('d-none');
+        
+        // Auto-hide success messages, keep errors visible
+        if (type === 'success') {
+            setTimeout(() => {
+                statusDiv.classList.add('d-none');
+            }, 3000);
         }
     }
 }
 
-function showToast(type, message) {
-    if (type === 'success') {
-        alert('✅ ' + message);
+function setButtonLoading(button, isLoading) {
+    if (isLoading) {
+        button.disabled = true;
+        button.dataset.originalHtml = button.innerHTML;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processando...';
     } else {
-        alert('❌ ' + message);
+        button.disabled = false;
+        if (button.dataset.originalHtml) {
+            button.innerHTML = button.dataset.originalHtml;
+        }
     }
 }
 
-// ============================================================================
-// PLANTA BAIXA
-// ============================================================================
-function gerarPlantaBaixa() {
-    const button = event.target.closest('button');
-    setLoadingState(button, true);
+function showErrorDetails(details) {
+    const detailsHtml = `
+        <div class="alert alert-warning mt-3" id="error-details">
+            <h6><i class="fas fa-info-circle me-2"></i>Detalhes do Erro:</h6>
+            <div style="white-space: pre-line; font-family: monospace; font-size: 0.9em; background: rgba(0,0,0,0.1); padding: 10px; border-radius: 4px; max-height: 300px; overflow-y: auto;">
+                ${details}
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-warning mt-2" onclick="document.getElementById('error-details').remove()">
+                Fechar Detalhes
+            </button>
+        </div>
+    `;
     
+    const feedbackArea = document.getElementById('feedback-area');
+    if (feedbackArea) {
+        // Remover detalhes anteriores
+        const existing = document.getElementById('error-details');
+        if (existing) existing.remove();
+        
+        feedbackArea.insertAdjacentHTML('beforeend', detailsHtml);
+    }
+}
+
+// === PLANTA BAIXA ===
+function gerarPlantaBaixa() {
+    const button = event.target;
+    
+    setButtonLoading(button, true);
+    showFeedback('info', 'Gerando planta baixa...');
+    
+    // URL CORRETA - sem /novo-conceito/
     fetch(`/projetista/projetos/${PROJETO_ID}/planta-baixa/gerar/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': CSRF_TOKEN,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        setButtonLoading(button, false);
+        
+        if (!data.success) {
+            console.error('Erro na geração:', data);
+            showFeedback('danger', data.message || 'Erro ao gerar planta baixa');
+            
+            // 🎯 AQUI que vai aparecer a mensagem de erro melhorada!
+            if (data.detailed_error || data.critica) {
+                showErrorDetails(data.detailed_error || data.critica);
+            }
+            return;
+        }
+        
+        // Sucesso
+        showFeedback('success', data.message || 'Planta baixa gerada com sucesso!');
+        
+        // Redirecionar após delay
+        setTimeout(() => {
+            if (data.redirect_url) {
+                window.location.href = data.redirect_url;
+            } else {
+                // Fallback para o dashboard
+                window.location.href = `/projetista/projetos/${PROJETO_ID}/novo-conceito/`;
+            }
+        }, 1500);
+    })
+    .catch(error => {
+        console.error('Erro de rede:', error);
+        setButtonLoading(button, false);
+        showFeedback('danger', 'Erro de comunicação. Tente novamente.');
+    });
+}
+
+// === CONCEITO VISUAL ===
+function gerarConceitoVisual() {
+    const button = event.target;
+    
+    setButtonLoading(button, true);
+    showFeedback('info', 'Gerando conceito visual...');
+    
+    // URL CORRETA - sem /novo-conceito/
+    fetch(`/projetista/projetos/${PROJETO_ID}/conceito-visual/gerar/`, {
         method: 'POST',
         headers: {
             'X-CSRFToken': CSRF_TOKEN,
@@ -848,42 +499,35 @@ function gerarPlantaBaixa() {
     })
     .then(response => response.json())
     .then(data => {
+        setButtonLoading(button, false);
+        
         if (data.success) {
-            showToast('success', data.message);
-            setTimeout(() => window.location.reload(), 1500);
+            showFeedback('success', data.message || 'Conceito visual gerado!');
+            setTimeout(() => {
+                window.location.href = `/projetista/projetos/${PROJETO_ID}/novo-conceito/`;
+            }, 1500);
         } else {
-            showToast('error', data.message);
+            showFeedback('danger', data.message || 'Erro ao gerar conceito');
+            if (data.detailed_error || data.critica) {
+                showErrorDetails(data.detailed_error || data.critica);
+            }
         }
     })
     .catch(error => {
         console.error('Erro:', error);
-        showToast('error', 'Erro ao processar solicitação');
-    })
-    .finally(() => setLoadingState(button, false));
+        setButtonLoading(button, false);
+        showFeedback('danger', 'Erro de comunicação. Tente novamente.');
+    });
 }
 
-function visualizarPlantaBaixa() {
-    window.location.href = `/projetista/projetos/${PROJETO_ID}/planta-baixa/`;
-}
-
-// ============================================================================
-// CONCEITO VISUAL
-// ============================================================================
-function gerarConceitoVisual() {
-    window.location.href = `/projetista/projetos/${PROJETO_ID}/conceito-visual/gerar/`;
-}
-
-function visualizarConceitoVisual() {
-    window.location.href = `/projetista/projetos/${PROJETO_ID}/conceito-visual/`;
-}
-
-// ============================================================================
-// MODELO 3D
-// ============================================================================
+// === MODELO 3D ===
 function gerarModelo3D() {
-    const button = event.target.closest('button');
-    setLoadingState(button, true);
+    const button = event.target;
     
+    setButtonLoading(button, true);
+    showFeedback('info', 'Gerando modelo 3D...');
+    
+    // URL CORRETA - sem /novo-conceito/
     fetch(`/projetista/projetos/${PROJETO_ID}/modelo-3d/gerar/`, {
         method: 'POST',
         headers: {
@@ -893,24 +537,26 @@ function gerarModelo3D() {
     })
     .then(response => response.json())
     .then(data => {
+        setButtonLoading(button, false);
+        
         if (data.success) {
-            showToast('success', data.message);
-            setTimeout(() => window.location.reload(), 1500);
+            showFeedback('success', data.message || 'Modelo 3D gerado!');
+            setTimeout(() => {
+                window.location.href = `/projetista/projetos/${PROJETO_ID}/novo-conceito/`;
+            }, 1500);
         } else {
-            showToast('error', data.message);
+            showFeedback('danger', data.message || 'Erro ao gerar modelo 3D');
+            if (data.detailed_error || data.critica) {
+                showErrorDetails(data.detailed_error || data.critica);
+            }
         }
     })
     .catch(error => {
         console.error('Erro:', error);
-        showToast('error', 'Erro ao processar solicitação');
-    })
-    .finally(() => setLoadingState(button, false));
+        setButtonLoading(button, false);
+        showFeedback('danger', 'Erro de comunicação. Tente novamente.');
+    });
 }
 
-function visualizarModelo3D() {
-    window.location.href = `/projetista/projetos/${PROJETO_ID}/modelo-3d/`;
-}
 </script>
-{% endblock extra_js %}
-
 {% endblock %}

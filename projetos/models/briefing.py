@@ -282,61 +282,61 @@ class Briefing(models.Model):
         verbose_name = 'Briefing'
         verbose_name_plural = 'Briefings'
 
-def save(self, *args, **kwargs):
-    # Versão incremental
-    if not self.pk:
-        ultima = Briefing.objects.filter(projeto=self.projeto).aggregate(Max('versao'))['versao__max'] or 0
-        self.versao = ultima + 1
-        
-        # Copiar dados do projeto
-        self.feira = self.projeto.feira
-        self.orcamento = self.projeto.orcamento
-        self.objetivo_evento = self.projeto.descricao
+    def save(self, *args, **kwargs):
+        # Versão incremental
+        if not self.pk:
+            ultima = Briefing.objects.filter(projeto=self.projeto).aggregate(Max('versao'))['versao__max'] or 0
+            self.versao = ultima + 1
+            
+            # Copiar dados do projeto
+            self.feira = self.projeto.feira
+            self.orcamento = self.projeto.orcamento
+            self.objetivo_evento = self.projeto.descricao
 
-    # Se for um projeto do tipo "outros" e não tiver feira associada
-    if self.projeto.tipo_projeto == 'outros' and not self.feira:
-        # Certifique-se de que o estamos usando os campos manuais
-        pass
+        # Se for um projeto do tipo "outros" e não tiver feira associada
+        if self.projeto.tipo_projeto == 'outros' and not self.feira:
+            # Certifique-se de que o estamos usando os campos manuais
+            pass
 
-        
-    # Calcula área total se tiver dimensões
-    if self.medida_frente and self.medida_fundo:
-        self.area_estande = self.medida_frente * self.medida_fundo
-        
-    # Calcula progresso automático
-    etapas_completas = 0
-    total_etapas = 4
-    if self.endereco_estande:
-        etapas_completas += 1
-    if self.area_estande and self.estilo_estande:
-        etapas_completas += 1
-        
-    # Não verificamos as áreas do estande para um objeto não salvo
-    if self.pk:
-        if self.tem_qualquer_area_estande():
+            
+        # Calcula área total se tiver dimensões
+        if self.medida_frente and self.medida_fundo:
+            self.area_estande = self.medida_frente * self.medida_fundo
+            
+        # Calcula progresso automático
+        etapas_completas = 0
+        total_etapas = 4
+        if self.endereco_estande:
             etapas_completas += 1
-    
-    if (self.referencias_dados or self.logotipo or self.campanha_dados):
-        etapas_completas += 1
-    
-    self.progresso = min(100, int((etapas_completas / total_etapas) * 100))
-    
-    super().save(*args, **kwargs)
-
-def tem_qualquer_area_estande(self):
-    """Verifica se pelo menos uma área do estande foi configurada"""
-    # Se o objeto não está salvo ainda, não podemos verificar relações
-    if not self.pk:
-        return False
+        if self.area_estande and self.estilo_estande:
+            etapas_completas += 1
+            
+        # Não verificamos as áreas do estande para um objeto não salvo
+        if self.pk:
+            if self.tem_qualquer_area_estande():
+                etapas_completas += 1
         
-    # Verifica se existe alguma área de exposição, sala, copa ou depósito
-    return AreaExposicao.objects.filter(briefing=self).exists() or \
-           SalaReuniao.objects.filter(briefing=self).exists() or \
-           Copa.objects.filter(briefing=self).exists() or \
-           Deposito.objects.filter(briefing=self).exists()
+        if (self.referencias_dados or self.logotipo or self.campanha_dados):
+            etapas_completas += 1
+        
+        self.progresso = min(100, int((etapas_completas / total_etapas) * 100))
+        
+        super().save(*args, **kwargs)
 
-    def __str__(self):
-        return f"Briefing v{self.versao} - {self.projeto.nome}"
+    def tem_qualquer_area_estande(self):
+        """Verifica se pelo menos uma área do estande foi configurada"""
+        # Se o objeto não está salvo ainda, não podemos verificar relações
+        if not self.pk:
+            return False
+            
+        # Verifica se existe alguma área de exposição, sala, copa ou depósito
+        return AreaExposicao.objects.filter(briefing=self).exists() or \
+            SalaReuniao.objects.filter(briefing=self).exists() or \
+            Copa.objects.filter(briefing=self).exists() or \
+            Deposito.objects.filter(briefing=self).exists()
+
+        def __str__(self):
+            return f"Briefing v{self.versao} - {self.projeto.nome}"
 
 
 class AreaExposicao(models.Model):

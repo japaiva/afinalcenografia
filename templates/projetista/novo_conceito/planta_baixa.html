@@ -1,0 +1,624 @@
+{% extends 'projetista/base_projetista.html' %}
+{% load static %}
+
+{% block title %}Planta Baixa - {{ projeto.nome }} | Portal do Projetista{% endblock %}
+
+{% block extra_css %}
+<style>
+.planta-container {
+    background: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    min-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: auto;
+}
+
+.planta-svg {
+    max-width: 100%;
+    max-height: 600px;
+    background: white;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.versao-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+}
+
+.dados-planta {
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.ambiente-item {
+    border-left: 4px solid #007bff;
+    background: #f8f9fa;
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 0 4px 4px 0;
+}
+
+.ambiente-item.exposicao { border-left-color: #28a745; }
+.ambiente-item.reuniao { border-left-color: #ffc107; }
+.ambiente-item.copa { border-left-color: #17a2b8; }
+.ambiente-item.deposito { border-left-color: #6c757d; }
+.ambiente-item.circulacao { border-left-color: #dc3545; }
+
+.timeline-container {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 20px;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -22px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #007bff;
+    border: 2px solid white;
+    box-shadow: 0 0 0 2px #007bff;
+}
+
+.timeline-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: -17px;
+    top: 17px;
+    width: 2px;
+    height: calc(100% - 12px);
+    background: #dee2e6;
+}
+
+.area-total {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #28a745;
+}
+
+.toolbar {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    margin-bottom: 20px;
+}
+
+.json-viewer {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 15px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255,255,255,0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    border-radius: 8px;
+}
+
+.zoom-controls {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+}
+
+.zoom-controls .btn {
+    width: 35px;
+    height: 35px;
+    padding: 0;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+  <!-- Cabeçalho -->
+  <div class="card shadow mb-4">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center">
+        <i class="fas fa-drafting-compass me-2 text-primary"></i>
+        <h4 class="mb-0">Planta Baixa - {{ projeto.nome }}</h4>
+        {% if planta_baixa %}
+          <span class="badge bg-primary ms-3">v{{ planta_baixa.versao }}</span>
+        {% endif %}
+      </div>
+      <div>
+        <a href="{% url 'projetista:projeto_detail' pk=projeto.id %}" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-1"></i> Voltar ao Projeto
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Coluna Principal - Visualização da Planta -->
+    <div class="col-lg-8">
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="row align-items-center">
+          <div class="col-md-6">
+            <h6 class="mb-0">
+              <i class="fas fa-eye me-2"></i> Visualização da Planta Baixa
+            </h6>
+          </div>
+          <div class="col-md-6 text-end">
+            {% if planta_baixa.arquivo_svg %}
+              <a href="{% url 'projetista:download_planta_svg' planta_id=planta_baixa.id %}" class="btn btn-sm btn-outline-primary me-2">
+                <i class="fas fa-download me-1"></i> Download SVG
+              </a>
+            {% endif %}
+            <button type="button" class="btn btn-sm btn-primary" onclick="regenerarPlanta()">
+              <i class="fas fa-sync-alt me-1"></i> Regenerar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Container da Planta -->
+      <div class="card shadow">
+        <div class="card-body p-0">
+          <div class="planta-container" id="plantaContainer">
+            {% if planta_baixa.status == 'gerando' %}
+              <div class="loading-overlay">
+                <div class="text-center">
+                  <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Gerando...</span>
+                  </div>
+                  <p class="text-muted">Gerando planta baixa...</p>
+                </div>
+              </div>
+            {% elif planta_baixa.arquivo_svg %}
+              <!-- Controles de Zoom -->
+              <div class="zoom-controls">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="zoomIn()" title="Zoom In">
+                  <i class="fas fa-plus"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="zoomOut()" title="Zoom Out">
+                  <i class="fas fa-minus"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetZoom()" title="Zoom Original">
+                  <i class="fas fa-search"></i>
+                </button>
+              </div>
+
+              <!-- Badge da Versão -->
+              <div class="versao-badge">
+                <span class="badge bg-primary">Versão {{ planta_baixa.versao }}</span>
+              </div>
+
+              <!-- SVG da Planta -->
+              <div id="svgViewer" style="transform-origin: center; transition: transform 0.3s ease;">
+                <object data="{{ planta_baixa.arquivo_svg.url }}" type="image/svg+xml" class="planta-svg" id="plantaSvg">
+
+                  {% if planta_baixa.arquivo_png %}
+                    <img src="{{ planta_baixa.arquivo_png.url }}" alt="Planta Baixa" class="planta-svg">
+                  {% else %}
+                    <div class="text-center py-4">
+                      <p class="text-muted">Visualização SVG não suportada neste navegador</p>
+                    </div>
+                  {% endif %}
+
+                </object>
+              </div>
+            {% else %}
+              <div class="text-center py-5">
+                <i class="fas fa-exclamation-triangle fa-3x text-muted mb-3"></i>
+                <h5>Planta não disponível</h5>
+                <p class="text-muted">A planta baixa ainda não foi gerada ou ocorreu um erro.</p>
+                <button type="button" class="btn btn-primary" onclick="regenerarPlanta()">
+                  <i class="fas fa-magic me-2"></i> Gerar Planta Baixa
+                </button>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Histórico de Versões -->
+      {% if versoes.count > 1 %}
+      <div class="card shadow mt-4">
+        <div class="card-header bg-light">
+          <h6 class="mb-0">
+            <i class="fas fa-history me-2"></i> Histórico de Versões
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="timeline-container">
+            {% for versao in versoes %}
+            <div class="timeline-item">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="mb-1">
+                    Versão {{ versao.versao }}
+                    {% if versao.id == planta_baixa.id %}
+                      <span class="badge bg-primary ms-2">Atual</span>
+                    {% endif %}
+                  </h6>
+                  <p class="mb-1 text-muted">
+                    {{ versao.criado_em|date:"d/m/Y H:i" }}
+                  </p>
+                  <p class="mb-0 small">
+                    Status: <span class="badge bg-secondary">{{ versao.get_status_display }}</span>
+                    {% if versao.algoritmo_usado %}
+                      | Algoritmo: {{ versao.algoritmo_usado }}
+                    {% endif %}
+                  </p>
+                </div>
+                <div>
+                  {% if versao.id != planta_baixa.id %}
+                    <a href="?versao={{ versao.versao }}" class="btn btn-sm btn-outline-primary me-1">
+                      <i class="fas fa-eye"></i> Ver
+                    </a>
+                  {% endif %}
+                  {% if versao.arquivo_svg %}
+                    <a href="{% url 'projetista:download_planta_svg' planta_id=versao.id %}" class="btn btn-sm btn-outline-secondary">
+                      <i class="fas fa-download"></i>
+                    </a>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Coluna Lateral - Informações e Dados -->
+    <div class="col-lg-4">
+      <!-- Informações Gerais -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-light">
+          <h6 class="mb-0">
+            <i class="fas fa-info-circle me-2"></i> Informações da Planta
+          </h6>
+        </div>
+        <div class="card-body">
+          {% if planta_baixa.get_area_total %}
+            <div class="mb-3 text-center">
+              <div class="area-total">{{ planta_baixa.get_area_total|floatformat:1 }} m²</div>
+              <small class="text-muted">Área Total</small>
+            </div>
+          {% endif %}
+
+          <div class="row g-3">
+            <div class="col-6">
+              <div class="text-center">
+                <div class="h5 mb-1 text-primary">{{ planta_baixa.versao }}</div>
+                <small class="text-muted">Versão</small>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="text-center">
+                <div class="h5 mb-1 text-success">{{ planta_baixa.get_ambientes|length }}</div>
+                <small class="text-muted">Ambientes</small>
+              </div>
+            </div>
+          </div>
+
+          <hr>
+
+          <div class="mb-2">
+            <strong>Algoritmo:</strong> {{ planta_baixa.algoritmo_usado|default:"Não informado" }}
+          </div>
+          <div class="mb-2">
+            <strong>Criado em:</strong> {{ planta_baixa.criado_em|date:"d/m/Y H:i" }}
+          </div>
+          <div class="mb-2">
+            <strong>Atualizado em:</strong> {{ planta_baixa.atualizado_em|date:"d/m/Y H:i" }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Ambientes -->
+      {% if planta_baixa.get_ambientes %}
+      <div class="card shadow mb-4">
+        <div class="card-header bg-light">
+          <h6 class="mb-0">
+            <i class="fas fa-map me-2"></i> Ambientes da Planta
+          </h6>
+        </div>
+        <div class="card-body">
+          {% for ambiente in planta_baixa.get_ambientes %}
+          <div class="ambiente-item {{ ambiente.tipo|default:'padrao' }}">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h6 class="mb-1">{{ ambiente.nome|default:"Ambiente" }}</h6>
+                <small class="text-muted">{{ ambiente.tipo|title|default:"Tipo não definido" }}</small>
+              </div>
+              {% if ambiente.area %}
+              <div class="text-end">
+                <div class="fw-bold">{{ ambiente.area|floatformat:1 }} m²</div>
+              </div>
+              {% endif %}
+            </div>
+            {% if ambiente.descricao %}
+            <p class="mb-0 mt-2 small">{{ ambiente.descricao }}</p>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Ações -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-light">
+          <h6 class="mb-0">
+            <i class="fas fa-cogs me-2"></i> Ações
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <button type="button" class="btn btn-primary" onclick="regenerarPlanta()">
+              <i class="fas fa-sync-alt me-2"></i> Regenerar Planta
+            </button>
+            
+            {% if planta_baixa.arquivo_svg %}
+              <a href="{% url 'projetista:download_planta_svg' planta_id=planta_baixa.id %}" class="btn btn-outline-primary">
+                <i class="fas fa-download me-2"></i> Download SVG
+              </a>
+            {% endif %}
+
+            {% if planta_baixa.status == 'pronta' %}
+              <a href="{% url 'projetista:projeto_detail' pk=projeto.id %}" class="btn btn-success">
+                <i class="fas fa-arrow-right me-2"></i> Voltar ao Projeto
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Dados JSON (Debug) -->
+      {% if dados_json and user.is_superuser %}
+      <div class="card shadow mb-4">
+        <div class="card-header bg-light">
+          <h6 class="mb-0">
+            <i class="fas fa-code me-2"></i> Dados JSON (Debug)
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="json-viewer">
+            <pre>{{ dados_json|pprint }}</pre>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Confirmação para Regenerar -->
+<div class="modal fade" id="regenerarModal" tabindex="-1" aria-labelledby="regenerarModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="regenerarModalLabel">Regenerar Planta Baixa</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Tem certeza que deseja regenerar a planta baixa?</p>
+        <p class="text-muted small">Uma nova versão será criada com base no briefing atual.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="confirmarRegeneracao()">
+          <i class="fas fa-sync-alt me-1"></i> Regenerar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentZoom = 1;
+const zoomStep = 0.2;
+const maxZoom = 3;
+const minZoom = 0.5;
+
+// Controles de Zoom
+function zoomIn() {
+    const svgViewer = document.getElementById('svgViewer');
+    if (currentZoom < maxZoom) {
+        currentZoom += zoomStep;
+        svgViewer.style.transform = `scale(${currentZoom})`;
+    }
+}
+
+function zoomOut() {
+    const svgViewer = document.getElementById('svgViewer');
+    if (currentZoom > minZoom) {
+        currentZoom -= zoomStep;
+        svgViewer.style.transform = `scale(${currentZoom})`;
+    }
+}
+
+function resetZoom() {
+    const svgViewer = document.getElementById('svgViewer');
+    currentZoom = 1;
+    svgViewer.style.transform = 'scale(1)';
+}
+
+// Regenerar Planta
+function regenerarPlanta() {
+    const modal = new bootstrap.Modal(document.getElementById('regenerarModal'));
+    modal.show();
+}
+
+function confirmarRegeneracao() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('regenerarModal'));
+    modal.hide();
+    
+    // Mostrar loading
+    const container = document.getElementById('plantaContainer');
+    const loadingHtml = `
+        <div class="loading-overlay">
+            <div class="text-center">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Gerando...</span>
+                </div>
+                <p class="text-muted">Regenerando planta baixa...</p>
+            </div>
+        </div>
+    `;
+    container.innerHTML = loadingHtml;
+    
+    // Fazer requisição para regenerar
+    fetch(`/projetista/projetos/{{ projeto.id }}/planta-baixa/gerar/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Recarregar a página para mostrar a nova versão
+            window.location.reload();
+        } else {
+            alert('Erro ao regenerar planta: ' + data.message);
+            window.location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao processar solicitação');
+        window.location.reload();
+    });
+}
+
+// Permitir arrastar o SVG quando com zoom
+document.addEventListener('DOMContentLoaded', function() {
+    const svgViewer = document.getElementById('svgViewer');
+    const container = document.getElementById('plantaContainer');
+    
+    if (svgViewer && container) {
+        let isDragging = false;
+        let startX, startY, startTransformX = 0, startTransformY = 0;
+        
+        svgViewer.addEventListener('mousedown', function(e) {
+            if (currentZoom > 1) {
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                svgViewer.style.cursor = 'grabbing';
+                e.preventDefault();
+            }
+        });
+        
+        document.addEventListener('mousemove', function(e) {
+            if (isDragging && currentZoom > 1) {
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                
+                const newTransformX = startTransformX + deltaX;
+                const newTransformY = startTransformY + deltaY;
+                
+                svgViewer.style.transform = `scale(${currentZoom}) translate(${newTransformX}px, ${newTransformY}px)`;
+            }
+        });
+        
+        document.addEventListener('mouseup', function() {
+            if (isDragging) {
+                isDragging = false;
+                svgViewer.style.cursor = currentZoom > 1 ? 'grab' : 'default';
+                
+                // Atualizar posição de referência
+                const transform = svgViewer.style.transform;
+                const translateMatch = transform.match(/translate\(([^,]+),\s*([^)]+)\)/);
+                if (translateMatch) {
+                    startTransformX = parseFloat(translateMatch[1]);
+                    startTransformY = parseFloat(translateMatch[2]);
+                }
+            }
+        });
+        
+        // Atualizar cursor quando zoom muda
+        const updateCursor = () => {
+            svgViewer.style.cursor = currentZoom > 1 ? 'grab' : 'default';
+        };
+        
+        // Observar mudanças no zoom
+        const originalZoomIn = window.zoomIn;
+        const originalZoomOut = window.zoomOut;
+        const originalResetZoom = window.resetZoom;
+        
+        window.zoomIn = function() {
+            originalZoomIn();
+            updateCursor();
+        };
+        
+        window.zoomOut = function() {
+            originalZoomOut();
+            updateCursor();
+        };
+        
+        window.resetZoom = function() {
+            originalResetZoom();
+            startTransformX = 0;
+            startTransformY = 0;
+            svgViewer.style.transform = 'scale(1)';
+            updateCursor();
+        };
+    }
+});
+
+// Atalhos de teclado
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey || e.metaKey) {
+        switch(e.key) {
+            case '+':
+            case '=':
+                e.preventDefault();
+                zoomIn();
+                break;
+            case '-':
+                e.preventDefault();
+                zoomOut();
+                break;
+            case '0':
+                e.preventDefault();
+                resetZoom();
+                break;
+        }
+    }
+});
+</script>
+{% endblock %}
