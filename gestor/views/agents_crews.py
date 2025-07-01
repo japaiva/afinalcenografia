@@ -151,8 +151,8 @@ def agente_delete(request, pk):
 def crew_list(request):
     """Lista de crews com estatísticas"""
     crews_list = Crew.objects.annotate(
-        num_agentes=Count('membros'),
-        num_tarefas=Count('tasks')
+        num_agentes=Count('membros', distinct=True),
+        num_tarefas=Count('tasks', distinct=True)  # ✅ Adicionei distinct=True
     ).order_by('nome')
     
     # Filtros
@@ -429,10 +429,11 @@ def crew_task_list(request, crew_id):
     
     return render(request, 'gestor/crew_task_list.html', context)
 
+
 @login_required
 @gestor_required
 def crew_task_create(request, crew_id):
-    """Cria nova task para o crew"""
+    """Cria nova task para o crew - VERSÃO CORRIGIDA"""
     crew = get_object_or_404(Crew, pk=crew_id)
     
     if request.method == 'POST':
@@ -441,13 +442,24 @@ def crew_task_create(request, crew_id):
             task = form.save(commit=False)
             task.crew = crew
             task.save()
+            
+            # IMPORTANTE: Salvar dependências ManyToMany APÓS save()
+            form.save_m2m()
+            
+            messages.success(request, f'Tarefa "{task.nome}" criada com sucesso!')
             return redirect('gestor:crew_detail', pk=crew_id)
+        else:
+            # Debug para ver erros
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
     else:
         form = CrewTaskForm(crew=crew)
         
         # Auto-sugerir próxima ordem
         max_ordem = crew.tasks.aggregate(Max('ordem_execucao'))['ordem_execucao__max'] or 0
         form.initial['ordem_execucao'] = max_ordem + 1
+        form.initial['ativo'] = True
     
     context = {
         'crew': crew,
@@ -461,15 +473,22 @@ def crew_task_create(request, crew_id):
 @login_required
 @gestor_required
 def crew_task_update(request, crew_id, task_id):
-    """Edita uma task existente"""
+    """Edita uma task existente - VERSÃO CORRIGIDA"""
     crew = get_object_or_404(Crew, pk=crew_id)
     task = get_object_or_404(CrewTask, pk=task_id, crew=crew)
     
     if request.method == 'POST':
         form = CrewTaskForm(request.POST, instance=task, crew=crew)
         if form.is_valid():
-            form.save()
+            task = form.save()
+            # ManyToMany já é salvo automaticamente quando tem instance
+            messages.success(request, f'Tarefa "{task.nome}" atualizada com sucesso!')
             return redirect('gestor:crew_detail', pk=crew_id)
+        else:
+            # Debug para ver erros
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
     else:
         form = CrewTaskForm(instance=task, crew=crew)
     
@@ -557,68 +576,99 @@ def crew_task_reorder(request, crew_id):
 # FUNÇÕES DE VALIDAÇÃO E TESTE DO CREW
 ##############################
 
+
+# agents_crews.py - Função crew_validate CORRIGIDA
+
 @login_required
 @gestor_required
-def crew_validate(request, crew_id):
+def crew_validate(request, pk):
     """Valida configuração do crew"""
-    crew = get_object_or_404(Crew, pk=crew_id)
+    crew = get_object_or_404(Crew, pk=pk)
     
     problemas = []
     avisos = []
     
-    # Validar membros
+    # Validar membros ATIVOS
     membros = crew.membros.filter(ativo=True)
     if not membros.exists():
         problemas.append("Crew não possui membros ativos")
     
-    # Validar tasks
+    # Validar tasks ATIVAS
     tasks = crew.tasks.filter(ativo=True)
     if not tasks.exists():
         problemas.append("Crew não possui tarefas ativas")
     
-    # Validar ordem de execução
+    # Validar ordem de execução dos MEMBROS
     ordens_membros = list(membros.values_list('ordem_execucao', flat=True))
-    ordens_tasks = list(tasks.values_list('ordem_execucao', flat=True))
-    
     if len(set(ordens_membros)) != len(ordens_membros):
         problemas.append("Membros têm ordens de execução duplicadas")
     
+    # Validar ordem de execução das TASKS
+    ordens_tasks = list(tasks.values_list('ordem_execucao', flat=True))
     if len(set(ordens_tasks)) != len(ordens_tasks):
         problemas.append("Tasks têm ordens de execução duplicadas")
     
-    # Validar agentes
+    # Validar agentes dos membros ativos
     for membro in membros:
         if not membro.agente.ativo:
             avisos.append(f"Agente {membro.agente.nome} está inativo")
         
         if not membro.agente.llm_model:
             problemas.append(f"Agente {membro.agente.nome} não tem modelo LLM configurado")
+        
+        if not membro.agente.llm_system_prompt:
+            problemas.append(f"Agente {membro.agente.nome} não tem prompt do sistema configurado")
     
-    # Validar responsáveis das tasks
+    # Validar responsáveis das tasks ativas
     for task in tasks:
-        # Ensure task.agente_responsavel is not None before checking in list
-        if task.agente_responsavel and task.agente_responsavel not in [m.agente for m in membros]:
-            problemas.append(f"Task '{task.nome}' atribuída a agente que não está no crew")
+        if task.agente_responsavel:
+            # Verificar se o agente responsável está nos membros ativos do crew
+            agentes_no_crew = [m.agente for m in membros]
+            if task.agente_responsavel not in agentes_no_crew:
+                problemas.append(f"Task '{task.nome}' atribuída a agente que não está no crew")
+        else:
+            problemas.append(f"Task '{task.nome}' não tem agente responsável")
     
     # Validar configuração hierárquica
     if crew.processo == 'hierarchical':
         if not crew.manager_llm_model:
             problemas.append("Processo hierárquico requer configuração do modelo LLM do manager")
+        if not crew.manager_llm_provider:
+            problemas.append("Processo hierárquico requer configuração do provedor LLM do manager")
     
+    # Validar se há pelo menos uma sequência válida de execução
+    if membros.exists() and tasks.exists():
+        primeira_ordem_membro = min(ordens_membros) if ordens_membros else 1
+        primeira_ordem_task = min(ordens_tasks) if ordens_tasks else 1
+        
+        if primeira_ordem_membro != 1:
+            avisos.append("Ordem de execução dos membros não começa em 1")
+        
+        if primeira_ordem_task != 1:
+            avisos.append("Ordem de execução das tasks não começa em 1")
+    
+    # Resposta JSON para AJAX
     if request.headers.get('Accept') == 'application/json':
         return JsonResponse({
             'valido': len(problemas) == 0,
             'problemas': problemas,
-            'avisos': avisos
+            'avisos': avisos,
+            'total_membros': membros.count(),
+            'total_tasks': tasks.count()
         })
     
+    # Contexto para template
     context = {
         'crew': crew,
         'problemas': problemas,
         'avisos': avisos,
         'valido': len(problemas) == 0,
-        'total_membros': membros.count(),
-        'total_tasks': tasks.count()
+        'total_membros': membros.count(),  # ✅ Passa valor calculado
+        'total_tasks': tasks.count(),      # ✅ Passa valor calculado
+        
+        # Dados extras para debug se necessário
+        'total_membros_todos': crew.membros.count(),  # Incluindo inativos
+        'total_tasks_todas': crew.tasks.count(),      # Incluindo inativas
     }
     
     return render(request, 'gestor/crew_validate.html', context)
@@ -635,81 +685,6 @@ def crew_toggle(request, pk):
     messages.success(request, f'Crew {crew.nome} {status_text} com sucesso.')
     
     return redirect('gestor:crew_list')
-
-@login_required
-@gestor_required
-def crew_test(request, pk):
-    """Página para testar execução do crew"""
-    crew = get_object_or_404(Crew, pk=pk)
-    
-    # Validar se crew está pronto para execução
-    problemas = []
-    
-    membros_ativos = crew.membros.filter(ativo=True)
-    if not membros_ativos.exists():
-        problemas.append("Crew não possui membros ativos")
-    
-    tasks_ativas = crew.tasks.filter(ativo=True)
-    if not tasks_ativas.exists():
-        problemas.append("Crew não possui tarefas ativas")
-    
-    context = {
-        'crew': crew,
-        'problemas': problemas,
-        'pode_executar': len(problemas) == 0,
-        'membros_ativos': membros_ativos,
-        'tasks_ativas': tasks_ativas
-    }
-    
-    return render(request, 'gestor/crew_test.html', context)
-
-##############################
-# FUNÇÕES DE EXECUÇÃO DO CREW
-##############################
-
-@login_required
-@gestor_required
-def crew_execute(request, pk):
-    """Executa o crew (placeholder para implementação futura)"""
-    crew = get_object_or_404(Crew, pk=pk)
-    
-    # TODO: Implementar execução real do CrewAI
-    messages.info(request, f'Execução do crew "{crew.nome}" - Funcionalidade em desenvolvimento')
-    
-    return redirect('gestor:crew_detail', pk=pk)
-
-@login_required
-@gestor_required
-def crew_execution_list(request, pk):
-    """Lista execuções de um crew"""
-    crew = get_object_or_404(Crew, pk=pk)
-    execucoes = crew.execucoes.all().order_by('-iniciado_em')
-    
-    paginator = Paginator(execucoes, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    context = {
-        'crew': crew,
-        'page_obj': page_obj,
-        'execucoes': page_obj.object_list
-    }
-    
-    return render(request, 'gestor/crew_execution_list.html', context)
-
-@login_required
-@gestor_required
-def crew_execution_detail(request, pk, execution_id):
-    """Detalhes de uma execução específica"""
-    crew = get_object_or_404(Crew, pk=pk)
-    execucao = get_object_or_404(CrewExecucao, pk=execution_id, crew=crew)
-    
-    context = {
-        'crew': crew,
-        'execucao': execucao
-    }
-    
-    return render(request, 'gestor/crew_execution_detail.html', context)
 
 ##############################
 # API ENDPOINTS PARA AJAX (CrewAI related)

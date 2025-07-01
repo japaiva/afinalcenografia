@@ -1,4 +1,4 @@
-# projetista/views/__init__.py
+# projetista/views/__init__.py - ATUALIZADO PARA CREWAI
 
 from .base import (
     ProjetistaLoginView,
@@ -12,11 +12,16 @@ from .projeto import (
     ver_briefing
 )
 
-# Imports dos novos arquivos separados
+# Imports dos arquivos separados
 from .planta_baixa import (
-    # Geração e Regeneração
+    # Geração e Regeneração - ORIGINAL
     gerar_planta_baixa,
     refinar_planta_baixa,
+    
+    # Geração CrewAI - NOVOS
+    gerar_planta_baixa_crewai,
+    testar_crewai_config,
+    debug_crew_info,
     
     # Visualização e Downloads
     visualizar_planta_baixa,
@@ -89,9 +94,14 @@ __all__ = [
     'projeto_detail',
     'ver_briefing',
     
-    # Planta Baixa - Geração
+    # Planta Baixa - Geração ORIGINAL
     'gerar_planta_baixa',
     'refinar_planta_baixa',
+    
+    # Planta Baixa - Geração CrewAI NOVO
+    'gerar_planta_baixa_crewai',
+    'testar_crewai_config',
+    'debug_crew_info',
     
     # Planta Baixa - Visualização
     'visualizar_planta_baixa',

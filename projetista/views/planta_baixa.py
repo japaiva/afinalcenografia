@@ -1,4 +1,4 @@
-# projetista/views/planta_baixa.py - CORRIGIDO SEM FUNÇÕES DE CREW
+# projetista/views/planta_baixa.py - ATUALIZADO PARA CREWAI FASE 1
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -11,6 +11,7 @@ import logging
 from projetos.models import Projeto, Briefing
 from projetista.models import PlantaBaixa
 from core.services.planta_baixa_service import PlantaBaixaService
+from core.services.crewai_planta_baixa_service import CrewAIPlantaService  # Novo serviço CrewAI
 
 logger = logging.getLogger(__name__)
 
@@ -461,3 +462,336 @@ def exportar_dados_planta(request, planta_id):
         logger.error(f"Erro ao exportar dados da planta: {str(e)}")
         messages.error(request, f"Erro ao exportar dados: {str(e)}")
         return redirect('projetista:visualizar_planta_baixa', projeto_id=planta.projeto.id)
+    
+
+# =============================================================================
+# GERAÇÃO COM CREWAI - FASE 1
+# =============================================================================
+
+@login_required
+@require_POST
+def gerar_planta_baixa_crewai(request, projeto_id):
+    """
+    NOVA FUNÇÃO: Gera planta baixa usando CrewAI (FASE 1)
+    """
+    projeto = get_object_or_404(Projeto, pk=projeto_id, projetista=request.user)
+    
+    try:
+        logger.info(f"🚀 Iniciando geração CrewAI para projeto {projeto.nome}")
+        
+        # Obter briefing
+        try:
+            briefing = projeto.briefings.latest('versao')
+        except Briefing.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Briefing não encontrado',
+                'message': 'Este projeto não possui um briefing válido.',
+                'action_required': 'complete_briefing'
+            })
+        
+        # Determinar versão
+        planta_anterior = PlantaBaixa.objects.filter(projeto=projeto).order_by('-versao').first()
+        nova_versao = planta_anterior.versao + 1 if planta_anterior else 1
+        
+        # Inicializar serviço CrewAI
+        crew_service = CrewAIPlantaService()
+        
+        # FASE 1: Testar configuração básica
+        if not crew_service.crew_disponivel():
+            return JsonResponse({
+                'success': False,
+                'error': 'CrewAI não disponível',
+                'message': 'O sistema CrewAI não está configurado. Usando método alternativo...',
+                'fallback_available': True,
+                'crew_info': crew_service.debug_crew_info()
+            })
+        
+        # Executar geração FASE 1 (simulação)
+        resultado = crew_service.gerar_planta_crew_basico(briefing, nova_versao)
+        
+        if resultado['success']:
+            logger.info(f"✅ FASE 1 concluída para v{nova_versao}")
+            
+            return JsonResponse({
+                'success': True,
+                'fase': 1,
+                'message': f'FASE 1: CrewAI validado e configurado para v{nova_versao}!',
+                'planta_simulada': True,
+                'versao': nova_versao,
+                'crew_usado': resultado['crew_usado'],
+                'dados_briefing': resultado['dados_briefing'],
+                'resultado_simulado': resultado['resultado_simulado'],
+                'debug_info': crew_service.debug_crew_info(),
+                'proximos_passos': [
+                    'Implementar FASE 2: Execução real do CrewAI',
+                    'Adicionar geração de SVG',
+                    'Integrar salvamento da planta baixa'
+                ]
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': resultado.get('error', 'Erro na FASE 1'),
+                'message': resultado.get('error', 'Erro na configuração inicial do CrewAI'),
+                'detalhes': resultado.get('detalhes_crew', {}),
+                'debug_info': crew_service.debug_crew_info()
+            })
+            
+    except Exception as e:
+        logger.error(f"❌ Erro técnico na geração CrewAI: {str(e)}", exc_info=True)
+        
+        return JsonResponse({
+            'success': False,
+            'error': 'Erro técnico do sistema CrewAI',
+            'message': f'Ocorreu um erro técnico: {str(e)}',
+            'error_type': 'system_error'
+        }, status=500)
+
+@login_required
+@require_POST  
+def gerar_planta_baixa(request, projeto_id):
+    """
+    FUNÇÃO ORIGINAL: Mantida como fallback e para comparação
+    """
+    projeto = get_object_or_404(Projeto, pk=projeto_id, projetista=request.user)
+    
+    # Verificar se deve usar CrewAI ou método original
+    usar_crewai = request.POST.get('use_crewai', 'false').lower() == 'true'
+    
+    if usar_crewai:
+        # Redirecionar para método CrewAI
+        return gerar_planta_baixa_crewai(request, projeto_id)
+    
+    # Método original (seu código existente)
+    try:
+        briefing = projeto.briefings.latest('versao')
+    except Briefing.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Briefing não encontrado',
+            'message': 'Este projeto não possui um briefing válido.',
+            'action_required': 'complete_briefing'
+        })
+    
+    try:
+        planta_anterior = PlantaBaixa.objects.filter(projeto=projeto).order_by('-versao').first()
+        nova_versao = planta_anterior.versao + 1 if planta_anterior else 1
+        
+        # Usar serviço original
+        planta_service = PlantaBaixaService()
+        resultado = planta_service.gerar_planta_baixa(
+            briefing=briefing,
+            versao=nova_versao,
+            planta_anterior=planta_anterior
+        )
+        
+        if resultado['success']:
+            planta_gerada = resultado['planta']
+            return JsonResponse({
+                'success': True,
+                'message': f'Planta baixa v{nova_versao} gerada com agente individual!',
+                'planta_id': planta_gerada.id,
+                'versao': nova_versao,
+                'metodo': 'agente_individual',
+                'redirect_url': request.build_absolute_uri(f'/projetista/projetos/{projeto_id}/planta-baixa/')
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': resultado.get('error', 'Erro na geração'),
+                'message': resultado.get('error', 'Não foi possível gerar a planta baixa')
+            })
+            
+    except Exception as e:
+        logger.error(f"Erro no método original: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': f'Erro técnico: {str(e)}'
+        }, status=500)
+
+# =============================================================================
+# VIEWS DE TESTE E DEBUG PARA CREWAI
+# =============================================================================
+
+@login_required
+def testar_crewai_config(request):
+    """
+    View para testar configuração do CrewAI
+    """
+    try:
+        crew_service = CrewAIPlantaService()
+        
+        # Informações básicas
+        config_info = {
+            'crew_carregado': crew_service.crew is not None,
+            'crew_disponivel': crew_service.crew_disponivel(),
+            'validacao': crew_service.validar_crew(),
+            'debug': crew_service.debug_crew_info(),
+            'crews_disponiveis': crew_service.listar_crews_disponiveis()
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'crewai_status': 'Configurado' if config_info['crew_disponivel'] else 'Pendente configuração',
+            'config': config_info
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Erro ao testar CrewAI: {str(e)}',
+            'crewai_status': 'Erro'
+        })
+
+@login_required
+def debug_crew_info(request):
+    """
+    View para debug detalhado do crew
+    """
+    try:
+        crew_service = CrewAIPlantaService()
+        debug_info = crew_service.debug_crew_info()
+        
+        context = {
+            'debug_info': debug_info,
+            'crews_disponiveis': crew_service.listar_crews_disponiveis(),
+            'crew_atual': crew_service.crew.nome if crew_service.crew else None
+        }
+        
+        return render(request, 'projetista/debug_crewai.html', context)
+        
+    except Exception as e:
+        messages.error(request, f'Erro no debug: {str(e)}')
+        return redirect('projetista:dashboard')
+
+# =============================================================================
+# VIEWS ORIGINAIS MANTIDAS (compatibilidade)
+# =============================================================================
+
+@login_required
+def visualizar_planta_baixa(request, projeto_id):
+    """
+    Visualiza a planta baixa atual (mantida original com melhorias para CrewAI)
+    """
+    projeto = get_object_or_404(Projeto, pk=projeto_id, projetista=request.user)
+    
+    # Buscar a versão mais recente
+    planta_baixa = PlantaBaixa.objects.filter(projeto=projeto).order_by('-versao').first()
+    
+    if not planta_baixa:
+        messages.info(request, 'Nenhuma planta baixa encontrada para este projeto.')
+        return redirect('projetista:projeto_detail', pk=projeto_id)
+    
+    # Permitir seleção de versão específica
+    versao_solicitada = request.GET.get('versao')
+    if versao_solicitada:
+        try:
+            versao_num = int(versao_solicitada)
+            planta_especifica = PlantaBaixa.objects.filter(
+                projeto=projeto, 
+                versao=versao_num
+            ).first()
+            if planta_especifica:
+                planta_baixa = planta_especifica
+        except (ValueError, TypeError):
+            pass
+    
+    # Listar todas as versões
+    versoes = PlantaBaixa.objects.filter(projeto=projeto).order_by('-versao')
+    
+    # Tentar inicializar serviços (com fallback)
+    planta_service = None
+    crew_service = None
+    
+    try:
+        planta_service = PlantaBaixaService()
+    except:
+        pass
+    
+    try:
+        crew_service = CrewAIPlantaService()
+    except:
+        pass
+    
+    # Processar dados da planta
+    context_data = _processar_dados_planta_universal(planta_baixa, planta_service)
+    
+    # Informações sobre capacidades do sistema
+    capacidades_sistema = {
+        'agente_individual_disponivel': planta_service is not None,
+        'crewai_disponivel': crew_service.crew_disponivel() if crew_service else False,
+        'crewai_config': crew_service.validar_crew() if crew_service else {'valido': False}
+    }
+    
+    context = {
+        'projeto': projeto,
+        'planta_baixa': planta_baixa,
+        'versoes': versoes,
+        'capacidades_sistema': capacidades_sistema,
+        **context_data
+    }
+    
+    return render(request, 'projetista/planta_baixa.html', context)
+
+@login_required
+def download_planta_svg(request, planta_id):
+    """Download do arquivo SVG (mantido original)"""
+    planta = get_object_or_404(PlantaBaixa, pk=planta_id, projeto__projetista=request.user)
+    
+    if planta.arquivo_svg:
+        response = HttpResponse(planta.arquivo_svg.read(), content_type='image/svg+xml')
+        filename = f"planta_v{planta.versao}_{planta.projeto.numero}.svg"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+    else:
+        messages.error(request, 'Arquivo SVG não encontrado.')
+        return redirect('projetista:projeto_detail', projeto_id=planta.projeto.id)
+
+# =============================================================================
+# UTILITÁRIOS
+# =============================================================================
+
+def _processar_dados_planta_universal(planta_baixa, planta_service=None):
+    """
+    Processa dados da planta baixa de forma universal (agente individual + CrewAI)
+    """
+    dados_json = planta_baixa.dados_json or {}
+    
+    # Determinar método de geração
+    metodo_geracao = 'desconhecido'
+    if 'layout_agente' in dados_json:
+        metodo_geracao = 'agente_individual'
+    elif 'crew_executado' in dados_json:
+        metodo_geracao = 'crewai'
+    elif planta_service and planta_service.eh_planta_agente(planta_baixa):
+        metodo_geracao = 'agente_individual'
+    
+    # Extrair dados básicos
+    if metodo_geracao == 'crewai':
+        # Dados de CrewAI
+        areas_atendidas = dados_json.get('ambientes_criados', [])
+        tipo_estande = dados_json.get('tipo_estande', '')
+        area_total = dados_json.get('area_total_usada', 0)
+        resumo_decisoes = dados_json.get('resumo_decisoes', '')
+        lados_abertos = dados_json.get('lados_abertos', [])
+    else:
+        # Dados de agente individual ou fallback
+        areas_atendidas = dados_json.get('areas_atendidas', [])
+        tipo_estande = dados_json.get('tipo_estande', '')
+        area_total = dados_json.get('area_total_usada', 0)
+        resumo_decisoes = dados_json.get('resumo_decisoes', '')
+        lados_abertos = dados_json.get('lados_abertos', [])
+    
+    return {
+        'dados_json': dados_json,
+        'metodo_geracao': metodo_geracao,
+        'resumo_decisoes': resumo_decisoes,
+        'areas_atendidas': areas_atendidas,
+        'tipo_estande': tipo_estande,
+        'area_total': area_total,
+        'lados_abertos': lados_abertos,
+        'eh_planta_crewai': metodo_geracao == 'crewai',
+        'eh_planta_agente': metodo_geracao == 'agente_individual'
+    }
+

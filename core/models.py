@@ -124,6 +124,8 @@ class CrewMembro(models.Model):
         return f"{self.crew.nome} → {self.agente.nome} (#{self.ordem_execucao})"
 
 
+# Adicionar no models.py - Campo novo para CrewTask
+
 class CrewTask(models.Model):
     """
     Tarefas específicas dentro de um Crew
@@ -146,6 +148,14 @@ class CrewTask(models.Model):
     context_template = models.TextField(blank=True, help_text="Template para contexto da tarefa")
     tools_config = models.JSONField(default=dict, blank=True, help_text="Configuração de ferramentas específicas")
     
+    # NOVO CAMPO - Output File
+    output_file = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        help_text="Caminho do arquivo para salvar o output da task automaticamente"
+    )
+    
     # Status
     ativo = models.BooleanField(default=True)
     criado_em = models.DateTimeField(auto_now_add=True)
@@ -158,7 +168,6 @@ class CrewTask(models.Model):
     
     def __str__(self):
         return f"{self.crew.nome} → {self.nome} ({self.agente_responsavel.nome})"
-
 
 class CrewExecucao(models.Model):
     """

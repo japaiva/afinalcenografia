@@ -15,7 +15,7 @@ from .agents_crews import (
     crew_list, crew_create, crew_detail, crew_update, crew_delete, # These are in agents_crews.py
     crew_add_member, crew_member_update, crew_member_delete, crew_member_reorder, # These are in agents_crews.py
     crew_task_list, crew_task_create, crew_task_update, crew_task_delete, crew_task_duplicate, crew_task_reorder, # These are in agents_crews.py
-    crew_validate, crew_toggle, crew_test, crew_execute, crew_execution_list, crew_execution_detail, # These are in agents_crews.py
+    crew_validate, crew_toggle, 
     api_agentes_crew_members, api_crew_stats # These are in agents_crews.py
 )
 
@@ -68,7 +68,7 @@ __all__ = [
     'crew_list', 'crew_create', 'crew_detail', 'crew_update', 'crew_delete', # From agents_crews.py
     'crew_add_member', 'crew_member_update', 'crew_member_delete', 'crew_member_reorder', # From agents_crews.py
     'crew_task_list', 'crew_task_create', 'crew_task_update', 'crew_task_delete', 'crew_task_duplicate', 'crew_task_reorder', # From agents_crews.py
-    'crew_validate', 'crew_toggle', 'crew_test', 'crew_execute', 'crew_execution_list', 'crew_execution_detail', # From agents_crews.py
+    'crew_validate', 'crew_toggle', 
     
     # APIs AJAX (NOVAS)
     'api_agentes_crew_members', 'api_crew_stats', # From agents_crews.py

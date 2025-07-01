@@ -57,8 +57,6 @@ urlpatterns = [
     path('crews/<int:pk>/editar/', views.crew_update, name='crew_update'),
     path('crews/<int:pk>/excluir/', views.crew_delete, name='crew_delete'),
     path('crews/<int:pk>/validar/', views.crew_validate, name='crew_validate'),
-    path('crews/<int:pk>/testar/', views.crew_test, name='crew_test'),
-    path('crews/<int:pk>/executar/', views.crew_execute, name='crew_execute'),
     path('crews/<int:pk>/alternar/', views.crew_toggle, name='crew_toggle'),
     
     # Gestão de Membros do Crew - CORRIGIDO
@@ -75,10 +73,7 @@ urlpatterns = [
     path('crews/<int:crew_id>/tasks/<int:task_id>/duplicar/', views.crew_task_duplicate, name='crew_task_duplicate'),
     path('crews/<int:crew_id>/tasks/reordenar/', views.crew_task_reorder, name='crew_task_reorder'),
     
-    # Execuções
-    path('crews/<int:pk>/execucoes/', views.crew_execution_list, name='crew_execution_list'),
-    path('crews/<int:pk>/execucoes/<int:execution_id>/', views.crew_execution_detail, name='crew_execution_detail'),
-    
+ 
     # =================================================================
     # APIs AJAX PARA CREWAI
     # =================================================================

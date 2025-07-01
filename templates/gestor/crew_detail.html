@@ -270,13 +270,6 @@
             <small class="text-muted">Tarefas</small>
           </div>
         </div>
-        <hr>
-        <div class="row text-center">
-          <div class="col-12">
-            <h4 class="text-warning">{{ execucoes_recentes|length }}</h4>
-            <small class="text-muted">Execuções Recentes</small>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -298,9 +291,6 @@
           <a href="{% url 'gestor:crew_validate' crew.id %}" class="btn btn-warning btn-sm">
             <i class="fas fa-check-circle me-1"></i> Validar Crew
           </a>
-          <button class="btn btn-success btn-sm" disabled title="Em desenvolvimento">
-            <i class="fas fa-play me-1"></i> Executar Crew
-          </button>
           <hr>
           <a href="{% url 'gestor:crew_delete' crew.id %}" class="btn btn-danger btn-sm">
             <i class="fas fa-trash me-1"></i> Excluir Crew
@@ -316,21 +306,6 @@
         <h6 class="card-title mb-0">
           <i class="fas fa-history me-2"></i>Execuções Recentes
         </h6>
-      </div>
-      <div class="card-body">
-        {% for execucao in execucoes_recentes %}
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <div>
-              <small class="fw-bold">{{ execucao.get_status_display }}</small>
-              <br>
-              <small class="text-muted">{{ execucao.iniciado_em|date:"d/m H:i" }}</small>
-            </div>
-            <span class="badge bg-{% if execucao.status == 'completed' %}success{% elif execucao.status == 'failed' %}danger{% else %}warning{% endif %}">
-              {{ execucao.status }}
-            </span>
-          </div>
-          {% if not forloop.last %}<hr>{% endif %}
-        {% endfor %}
       </div>
     </div>
     {% endif %}

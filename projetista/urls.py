@@ -11,7 +11,7 @@ from .views import (
     # Planta Baixa views (atualizadas para CrewAI)
     gerar_planta_baixa, refinar_planta_baixa, visualizar_planta_baixa, 
     download_planta_svg, comparar_plantas, validar_agente_status, 
-    exportar_dados_planta,
+    exportar_dados_planta, planta_baixa,
     
     # Conceito Visual views (baseado em planta baixa)
     gerar_conceito_visual, refinar_conceito_visual, visualizar_conceito_visual,
@@ -45,10 +45,7 @@ urlpatterns = [
     path('projetos/<int:pk>/', projeto_detail, name='projeto_detail'),
     path('projetos/<int:projeto_id>/briefing/', ver_briefing, name='ver_briefing'),
     
-    # =========================================================================
-    # PIPELINE NOVO: PLANTA BAIXA → CONCEITO VISUAL → MODELO 3D
-    # =========================================================================
-    
+
     # -------------------------------------------------------------------------
     # BOTÃO 1 - PLANTA BAIXA (via CrewAI "Gerador de Plantas Baixas Pipeline")
     # -------------------------------------------------------------------------
@@ -160,6 +157,19 @@ urlpatterns = [
     path('mensagens/', mensagens, name='mensagens'),
     path('mensagens/nova/', nova_mensagem, name='nova_mensagem'),
     path('mensagens/projeto/<int:projeto_id>/', mensagens_projeto, name='mensagens_projeto'),
+
+    path('projetos/<int:projeto_id>/planta-baixa/gerar-crewai/', 
+         planta_baixa.gerar_planta_baixa_crewai, 
+         name='gerar_planta_baixa_crewai'),
+    
+    path('test/crewai-config/', 
+         planta_baixa.testar_crewai_config, 
+         name='testar_crewai_config'),
+    
+    path('debug/crew-info/', 
+         planta_baixa.debug_crew_info, 
+         name='debug_crew_info'),
+
 ]
 
 # =============================================================================

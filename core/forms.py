@@ -298,13 +298,15 @@ class CrewMembroForm(forms.ModelForm):
             raise forms.ValidationError("Tempo máximo deve estar entre 30 e 3600 segundos")
         return max_time
 
+# core/forms.py - Seção CrewTaskForm corrigida
+
 class CrewTaskForm(forms.ModelForm):
     class Meta:
         model = CrewTask
         fields = [
             'nome', 'descricao', 'expected_output', 'agente_responsavel',
             'ordem_execucao', 'async_execution', 'dependencias',
-            'context_template', 'ativo'
+            'context_template', 'tools_config', 'output_file', 'ativo'
         ]
         widgets = {
             'nome': forms.TextInput(attrs={
@@ -327,14 +329,23 @@ class CrewTaskForm(forms.ModelForm):
                 'min': '1'
             }),
             'async_execution': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'dependencias': forms.SelectMultiple(attrs={
-                'class': 'form-select',
-                'size': '4'
+            # CORRIGIDO: Widget adequado para ManyToMany
+            'dependencias': forms.CheckboxSelectMultiple(attrs={
+                'class': 'form-check-input'
             }),
             'context_template': forms.Textarea(attrs={
                 'class': 'form-control', 
+                'rows': 8,
+                'placeholder': 'Template para contexto da tarefa com variáveis como {empresa_nome}, {projeto_nome}...'
+            }),
+            'tools_config': forms.Textarea(attrs={
+                'class': 'form-control', 
                 'rows': 4,
-                'placeholder': 'Template para contexto da tarefa (opcional)...'
+                'placeholder': '{"search_limit": 10, "file_types": ["pdf", "docx"], "api_timeout": 30}'
+            }),
+            'output_file': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ex: outputs/task_result.json, reports/analysis.md'
             }),
             'ativo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
@@ -355,10 +366,40 @@ class CrewTaskForm(forms.ModelForm):
                 id__in=agentes_do_crew
             )
             
-            # Filtrar dependências apenas as tarefas do mesmo crew
-            self.fields['dependencias'].queryset = CrewTask.objects.filter(
-                crew=crew
-            ).exclude(id=self.instance.id if self.instance.pk else None)
+            # CORRIGIDO: Filtrar dependências apenas as tarefas do mesmo crew
+            # e excluir a própria task se for edição
+            dependencias_queryset = CrewTask.objects.filter(crew=crew)
+            if self.instance.pk:
+                dependencias_queryset = dependencias_queryset.exclude(id=self.instance.id)
+            
+            self.fields['dependencias'].queryset = dependencias_queryset
+            
+        # IMPORTANTE: Labels mais descritivos
+        self.fields['dependencias'].label = "Dependências (Tasks que devem executar antes)"
+        self.fields['dependencias'].help_text = "Selecione as tarefas que devem ser concluídas antes desta"
+    
+    def clean_tools_config(self):
+        tools_config = self.cleaned_data.get('tools_config')
+        if tools_config:
+            try:
+                # Validar se é JSON válido
+                if isinstance(tools_config, str) and tools_config.strip():
+                    import json
+                    json.loads(tools_config)
+            except (json.JSONDecodeError, TypeError):
+                raise forms.ValidationError("Configuração de ferramentas deve ser um JSON válido")
+        return tools_config
+    
+    def clean_output_file(self):
+        output_file = self.cleaned_data.get('output_file')
+        if output_file:
+            # Validar extensões permitidas
+            import os
+            ext = os.path.splitext(output_file)[1].lower()
+            allowed_extensions = ['.json', '.txt', '.md', '.csv', '.yaml', '.yml', '.png', '.svg']
+            if ext and ext not in allowed_extensions:
+                raise forms.ValidationError(f"Extensão {ext} não permitida. Use: {', '.join(allowed_extensions)}")
+        return output_file
 class FeiraForm(forms.ModelForm):
     class Meta:
         model = Feira

@@ -1,6 +1,6 @@
-
 <!-- ============================================== -->
 <!-- gestor/templates/gestor/crew_validate.html -->
+<!-- VERSÃO CORRIGIDA -->
 <!-- ============================================== -->
 
 {% extends 'gestor/base_gestor.html' %}
@@ -89,7 +89,7 @@
       <div class="col-md-3">
         <div class="card text-center">
           <div class="card-body">
-            <h4 class="text-primary">{{ crew.membros.filter.ativo=True.count }}</h4>
+            <h4 class="text-primary">{{ total_membros }}</h4>
             <small class="text-muted">Membros Ativos</small>
           </div>
         </div>
@@ -97,7 +97,7 @@
       <div class="col-md-3">
         <div class="card text-center">
           <div class="card-body">
-            <h4 class="text-secondary">{{ crew.tasks.filter.ativo=True.count }}</h4>
+            <h4 class="text-secondary">{{ total_tasks }}</h4>
             <small class="text-muted">Tasks Ativas</small>
           </div>
         </div>
@@ -124,13 +124,110 @@
       </div>
     </div>
 
+    <!-- Detalhes dos Membros -->
+    <div class="card mt-4">
+      <div class="card-header bg-light">
+        <h6 class="card-title mb-0">
+          <i class="fas fa-robot me-2"></i>Membros do Crew
+        </h6>
+      </div>
+      <div class="card-body">
+        {% if crew.membros.all %}
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Ordem</th>
+                  <th>Agente</th>
+                  <th>Status</th>
+                  <th>Modelo LLM</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for membro in crew.membros.all %}
+                  <tr>
+                    <td>
+                      <span class="badge bg-secondary">{{ membro.ordem_execucao }}</span>
+                    </td>
+                    <td>{{ membro.agente.nome }}</td>
+                    <td>
+                      {% if membro.ativo and membro.agente.ativo %}
+                        <span class="badge bg-success">Ativo</span>
+                      {% else %}
+                        <span class="badge bg-danger">Inativo</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if membro.agente.llm_model %}
+                        <small>{{ membro.agente.llm_provider }} - {{ membro.agente.llm_model }}</small>
+                      {% else %}
+                        <span class="text-danger">Não configurado</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="text-muted">Nenhum membro configurado.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Detalhes das Tasks -->
+    <div class="card mt-4">
+      <div class="card-header bg-light">
+        <h6 class="card-title mb-0">
+          <i class="fas fa-tasks me-2"></i>Tarefas do Crew
+        </h6>
+      </div>
+      <div class="card-body">
+        {% if crew.tasks.all %}
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Ordem</th>
+                  <th>Nome</th>
+                  <th>Responsável</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for task in crew.tasks.all %}
+                  <tr>
+                    <td>
+                      <span class="badge bg-secondary">{{ task.ordem_execucao }}</span>
+                    </td>
+                    <td>{{ task.nome }}</td>
+                    <td>
+                      {% if task.agente_responsavel %}
+                        {{ task.agente_responsavel.nome }}
+                      {% else %}
+                        <span class="text-warning">Não atribuído</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if task.ativo %}
+                        <span class="badge bg-success">Ativa</span>
+                      {% else %}
+                        <span class="badge bg-secondary">Inativa</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="text-muted">Nenhuma tarefa configurada.</p>
+        {% endif %}
+      </div>
+    </div>
+
     <!-- Ações -->
     <div class="d-flex justify-content-end mt-4">
-      {% if valido %}
-        <button class="btn btn-success me-2" disabled title="Em desenvolvimento">
-          <i class="fas fa-play me-1"></i> Executar Crew
-        </button>
-      {% endif %}
       <button class="btn btn-primary" onclick="window.location.reload()">
         <i class="fas fa-sync me-1"></i> Revalidar
       </button>
