@@ -1,10 +1,42 @@
 {% extends 'projetista/base_projetista.html' %}
 {% load formatadores %}
+{% load static %}
 
 {% block title %}Projeto #{{ projeto.numero }} - {{ projeto.empresa.nome }} | Portal do Projetista{% endblock %}
 
+{% block extra_css %}
+<style>
+/* Estilos para o modal de verbose */
+#verboseModal .modal-lg {
+    max-width: 800px;
+}
+
+#logsContainer {
+    background: #1e1e1e;
+    color: #f8f9fa;
+    font-family: 'Courier New', 'Monaco', monospace;
+    font-size: 13px;
+    line-height: 1.4;
+    border-radius: 6px;
+}
+
+#logsContainer .text-muted {
+    color: #6c757d !important;
+}
+
+.feedback-area {
+    min-height: 50px;
+}
+
+.btn-loading {
+    pointer-events: none;
+    opacity: 0.7;
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid py-3">
+<div class="container-fluid py-3" data-projeto-id="{{ projeto.id }}">
   <!-- Header do Projeto -->
   <div class="card shadow mb-4">
     <div class="card-header bg-light d-flex justify-content-between align-items-center">
@@ -205,7 +237,7 @@
                 <div class="d-flex gap-2 mb-2">
                   <a href="{% url 'projetista:visualizar_planta_baixa' projeto_id=projeto.id %}" 
                     class="btn btn-success btn-sm">
-                    <i class="fas fa-eye me-1"></i> Ver Planta
+                    <i class="fas fa-eye me-1"></i> Ver Planta v{{ planta_atual.versao }}
                   </a>
                   
                   {% if planta_atual.arquivo_svg %}
@@ -227,8 +259,8 @@
             
             <div class="mt-2">
               <button class="btn btn-outline-primary btn-sm" onclick="gerarPlantaBaixa()">
-                <i class="fas fa-sync-alt me-1"></i> 
-                {% if projeto.plantas_baixas.exists %}Regenerar{% else %}Gerar{% endif %} Planta
+                <i class="fas fa-robot me-1"></i> 
+                {% if projeto.plantas_baixas.exists %}Regenerar (1º Agente){% else %}Gerar (1º Agente){% endif %}
               </button>
             </div>
           </div>
@@ -270,7 +302,7 @@
               <button class="btn btn-outline-success btn-sm" onclick="gerarConceitoVisual()"
                       {% if not projeto.plantas_baixas.exists %}disabled title="Necessário ter planta baixa primeiro"{% endif %}>
                 <i class="fas fa-palette me-1"></i> 
-                {% if projeto.conceitos_visuais_novos.exists %}Regenerar{% else %}Gerar{% endif %} Conceito
+                {% if projeto.conceitos_visuais_novos.exists %}Regenerar (2º Agente){% else %}Gerar (2º Agente){% endif %}
               </button>
             </div>
           </div>
@@ -314,7 +346,7 @@
                       disabled title="Necessário ter planta baixa e conceito visual primeiro"
                       {% endif %}>
                 <i class="fas fa-cube me-1"></i> 
-                {% if projeto.modelos_3d.exists %}Regenerar{% else %}Gerar{% endif %} Modelo 3D
+                {% if projeto.modelos_3d.exists %}Regenerar (3º Agente){% else %}Gerar (3º Agente){% endif %}
               </button>
             </div>
           </div>
@@ -328,11 +360,54 @@
             </a>
           </div>
 
-          <!-- Área de Feedback -->
-          <div id="feedback-area" class="mt-3">
-            <div id="status-message" class="alert alert-info d-none">
+          <!-- ✅ ÁREA DE FEEDBACK CORRIGIDA -->
+          <div id="feedback-area" class="feedback-area mt-3">
+            <div id="status-message" class="alert d-none" role="alert">
               <span id="status-text"></span>
             </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Status do Sistema CrewAI -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0"><i class="fas fa-robot me-2"></i> Sistema CrewAI</h5>
+        </div>
+        <div class="card-body">
+          <div class="small text-muted mb-2">
+            <i class="fas fa-info-circle me-1"></i> Pipeline de 4 Agentes
+          </div>
+          
+          <div class="progress mb-2" style="height: 15px;">
+            <div class="progress-bar" style="width: 25%;">1/4</div>
+          </div>
+          
+          <div class="small">
+            <div class="d-flex justify-content-between">
+              <span>1º Agente:</span>
+              <span class="text-{% if projeto.plantas_baixas.exists %}success{% else %}muted{% endif %}">
+                {% if projeto.plantas_baixas.exists %}✅ Executado{% else %}⏳ Pendente{% endif %}
+              </span>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span>2º Agente:</span>
+              <span class="text-muted">⏳ Aguardando</span>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span>3º Agente:</span>
+              <span class="text-muted">⏳ Aguardando</span>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span>4º Agente:</span>
+              <span class="text-muted">⏳ Aguardando</span>
+            </div>
+          </div>
+          
+          <hr class="my-2">
+          
+          <div class="small text-muted">
+            <i class="fas fa-eye me-1"></i> Logs em tempo real ativados
           </div>
         </div>
       </div>
@@ -366,13 +441,32 @@
     </div>
   </div>
 </div>
+
+<!-- ✅ CSRF TOKEN GARANTIDO -->
+{% csrf_token %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
-const PROJETO_ID = {{ projeto.id }};
-const CSRF_TOKEN = '{{ csrf_token }}';
+// ✅ GARANTIR QUE VARIÁVEIS ESTEJAM DISPONÍVEIS
+window.PROJETO_ID = {{ projeto.id }};
+window.CSRF_TOKEN = '{{ csrf_token }}';
 
+console.log("🚀 Projeto Detail carregado:");
+console.log("- PROJETO_ID:", window.PROJETO_ID);
+console.log("- CSRF_TOKEN:", window.CSRF_TOKEN ? "✅ Configurado" : "❌ Não configurado");
+</script>
+
+<!-- ✅ JAVASCRIPT INLINE CORRIGIDO (sem static tag) -->
+<script>
+// Inline do JavaScript corrigido (usar apenas se não tiver arquivo separado)
+
+const PROJETO_ID = window.PROJETO_ID || {{ projeto.id }};
+const CSRF_TOKEN = window.CSRF_TOKEN || '{{ csrf_token }}';
+
+// === SISTEMA DE FEEDBACK MELHORADO ===
 function showFeedback(type, message) {
     const statusDiv = document.getElementById('status-message');
     const statusText = document.getElementById('status-text');
@@ -382,12 +476,13 @@ function showFeedback(type, message) {
         statusText.textContent = message;
         statusDiv.classList.remove('d-none');
         
-        // Auto-hide success messages, keep errors visible
         if (type === 'success') {
             setTimeout(() => {
                 statusDiv.classList.add('d-none');
-            }, 3000);
+            }, 5000);
         }
+    } else {
+        console.log(`[${type.toUpperCase()}] ${message}`);
     }
 }
 
@@ -404,37 +499,187 @@ function setButtonLoading(button, isLoading) {
     }
 }
 
-function showErrorDetails(details) {
-    const detailsHtml = `
-        <div class="alert alert-warning mt-3" id="error-details">
-            <h6><i class="fas fa-info-circle me-2"></i>Detalhes do Erro:</h6>
-            <div style="white-space: pre-line; font-family: monospace; font-size: 0.9em; background: rgba(0,0,0,0.1); padding: 10px; border-radius: 4px; max-height: 300px; overflow-y: auto;">
-                ${details}
+// === SISTEMA DE LOGS VERBOSE ===
+let execucaoAtual = null;
+let ultimoLogIndex = 0;
+let intervaloPesquisa = null;
+let intervaloStatus = null;
+
+function mostrarModalVerbose() {
+    console.log("🎬 Criando modal de logs verbose...");
+    
+    const modalHtml = `
+        <div class="modal fade" id="verboseModal" tabindex="-1" data-bs-backdrop="static">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            🤖 CrewAI - Primeiro Agente
+                            <span class="badge bg-primary ms-2" id="statusBadge">Iniciando...</span>
+                        </h5>
+                    </div>
+                    <div class="modal-body">
+                        <div id="logsContainer" class="border rounded p-3" 
+                             style="height: 400px; overflow-y: auto; background: #1e1e1e; color: #f8f9fa; font-family: 'Courier New', monospace; font-size: 13px;">
+                            <div class="text-muted">
+                                <i class="fas fa-spinner fa-spin me-2"></i>
+                                Aguardando início da execução...
+                            </div>
+                        </div>
+                        <div class="mt-2 small text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Logs em tempo real - Sistema de verbose corrigido
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="ocultarModalVerbose()" disabled id="btnFechar">
+                            <i class="fas fa-clock me-1"></i> Aguarde...
+                        </button>
+                    </div>
+                </div>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-warning mt-2" onclick="document.getElementById('error-details').remove()">
-                Fechar Detalhes
-            </button>
         </div>
     `;
     
-    const feedbackArea = document.getElementById('feedback-area');
-    if (feedbackArea) {
-        // Remover detalhes anteriores
-        const existing = document.getElementById('error-details');
-        if (existing) existing.remove();
-        
-        feedbackArea.insertAdjacentHTML('beforeend', detailsHtml);
+    const existingModal = document.getElementById('verboseModal');
+    if (existingModal) existingModal.remove();
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = new bootstrap.Modal(document.getElementById('verboseModal'));
+    modal.show();
+    
+    console.log("✅ Modal de logs criado e exibido");
+}
+
+function ocultarModalVerbose() {
+    if (intervaloPesquisa) clearInterval(intervaloPesquisa);
+    if (intervaloStatus) clearInterval(intervaloStatus);
+    
+    const modal = bootstrap.Modal.getInstance(document.getElementById('verboseModal'));
+    if (modal) {
+        modal.hide();
+        setTimeout(() => {
+            const modalElement = document.getElementById('verboseModal');
+            if (modalElement) modalElement.remove();
+        }, 300);
     }
 }
 
-// === PLANTA BAIXA ===
+function iniciarMonitoramentoLogs(execucaoId) {
+    console.log(`📋 Iniciando monitoramento para execução ${execucaoId}`);
+    
+    execucaoAtual = execucaoId;
+    ultimoLogIndex = 0;
+    
+    const statusBadge = document.getElementById('statusBadge');
+    if (statusBadge) {
+        statusBadge.textContent = 'Monitorando...';
+        statusBadge.className = 'badge bg-info ms-2';
+    }
+    
+    intervaloPesquisa = setInterval(() => buscarLogsNovos(execucaoId), 2000);
+    intervaloStatus = setInterval(() => verificarStatusExecucao(execucaoId), 5000);
+    
+    setTimeout(() => buscarLogsNovos(execucaoId), 500);
+}
+
+function buscarLogsNovos(execucaoId) {
+    const url = `/projetista/execucao/${execucaoId}/logs/?desde=${ultimoLogIndex}`;
+    
+    fetch(url)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.logs && data.logs.length > 0) {
+            adicionarLogsAoContainer(data.logs);
+            ultimoLogIndex = data.total_logs;
+        }
+    })
+    .catch(error => {
+        console.error('❌ Erro ao buscar logs:', error);
+    });
+}
+
+function verificarStatusExecucao(execucaoId) {
+    fetch(`/projetista/execucao/${execucaoId}/status/`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const statusBadge = document.getElementById('statusBadge');
+            const btnFechar = document.getElementById('btnFechar');
+            
+            if (data.status === 'completed') {
+                statusBadge.textContent = '✅ Concluído';
+                statusBadge.className = 'badge bg-success ms-2';
+                btnFechar.disabled = false;
+                btnFechar.innerHTML = '<i class="fas fa-check me-1"></i> Fechar';
+                
+                clearInterval(intervaloPesquisa);
+                clearInterval(intervaloStatus);
+                
+            } else if (data.status === 'failed') {
+                statusBadge.textContent = '❌ Erro';
+                statusBadge.className = 'badge bg-danger ms-2';
+                btnFechar.disabled = false;
+                btnFechar.innerHTML = '<i class="fas fa-times me-1"></i> Fechar';
+                
+                clearInterval(intervaloPesquisa);
+                clearInterval(intervaloStatus);
+            }
+        }
+    })
+    .catch(error => console.error('❌ Erro ao verificar status:', error));
+}
+
+function adicionarLogsAoContainer(logs) {
+    const container = document.getElementById('logsContainer');
+    if (!container) return;
+    
+    const aguardandoMsg = container.querySelector('.text-muted');
+    if (aguardandoMsg && aguardandoMsg.textContent.includes('Aguardando')) {
+        aguardandoMsg.remove();
+    }
+    
+    logs.forEach(log => {
+        const logDiv = document.createElement('div');
+        logDiv.className = 'mb-1';
+        
+        let cor = '#f8f9fa';
+        let icone = '📝';
+        
+        switch(log.tipo) {
+            case 'inicio': cor = '#007bff'; icone = '🚀'; break;
+            case 'agente': cor = '#007bff'; icone = '🤖'; break;
+            case 'task': cor = '#28a745'; icone = '📋'; break;
+            case 'pensamento': cor = '#6f42c1'; icone = '💭'; break;
+            case 'acao': cor = '#fd7e14'; icone = '⚡'; break;
+            case 'resposta': cor = '#20c997'; icone = '📊'; break;
+            case 'sucesso': cor = '#28a745'; icone = '✅'; break;
+            case 'erro': cor = '#dc3545'; icone = '❌'; break;
+            case 'fim': cor = '#28a745'; icone = '🎯'; break;
+        }
+        
+        logDiv.innerHTML = `
+            <span style="color: #6c757d;">[${log.timestamp}]</span>
+            <span style="color: ${cor};">${icone} ${log.message}</span>
+        `;
+        
+        container.appendChild(logDiv);
+    });
+    
+    container.scrollTop = container.scrollHeight;
+}
+
+// === GERAÇÃO DE PLANTA BAIXA ===
 function gerarPlantaBaixa() {
     const button = event.target;
     
-    setButtonLoading(button, true);
-    showFeedback('info', 'Gerando planta baixa...');
+    console.log("🚀 Iniciando geração de planta baixa...");
     
-    // URL CORRETA - sem /novo-conceito/
+    setButtonLoading(button, true);
+    showFeedback('info', 'Iniciando CrewAI - Primeiro Agente...');
+    
+    mostrarModalVerbose();
+    
     fetch(`/projetista/projetos/${PROJETO_ID}/planta-baixa/gerar/`, {
         method: 'POST',
         headers: {
@@ -442,121 +687,57 @@ function gerarPlantaBaixa() {
             'Content-Type': 'application/json'
         }
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`Erro HTTP: ${response.status}`);
-        }
-        return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
         setButtonLoading(button, false);
         
-        if (!data.success) {
-            console.error('Erro na geração:', data);
-            showFeedback('danger', data.message || 'Erro ao gerar planta baixa');
+        console.log("📊 Resposta recebida:", data);
+        
+        if (data.success) {
+            const execucaoId = data.execucao_id;
             
-            // 🎯 AQUI que vai aparecer a mensagem de erro melhorada!
-            if (data.detailed_error || data.critica) {
-                showErrorDetails(data.detailed_error || data.critica);
-            }
-            return;
-        }
-        
-        // Sucesso
-        showFeedback('success', data.message || 'Planta baixa gerada com sucesso!');
-        
-        // Redirecionar após delay
-        setTimeout(() => {
-            if (data.redirect_url) {
-                window.location.href = data.redirect_url;
+            if (execucaoId) {
+                console.log(`✅ execucao_id: ${execucaoId}`);
+                iniciarMonitoramentoLogs(execucaoId);
             } else {
-                // Fallback para o dashboard
-                window.location.href = `/projetista/projetos/${PROJETO_ID}/novo-conceito/`;
+                console.warn("⚠️ execucao_id não recebido");
             }
-        }, 1500);
+            
+            showFeedback('success', data.message || 'Primeiro agente executado!');
+            
+            setTimeout(() => {
+                if (!intervaloPesquisa && !intervaloStatus) {
+                    location.reload();
+                }
+            }, data.simulacao ? 3000 : 8000);
+            
+        } else {
+            ocultarModalVerbose();
+            showFeedback('danger', data.message || 'Erro ao executar primeiro agente');
+        }
     })
     .catch(error => {
-        console.error('Erro de rede:', error);
+        console.error('❌ Erro:', error);
         setButtonLoading(button, false);
-        showFeedback('danger', 'Erro de comunicação. Tente novamente.');
+        ocultarModalVerbose();
+        showFeedback('danger', 'Erro de comunicação');
     });
 }
 
-// === CONCEITO VISUAL ===
+// Placeholder para outras funções
 function gerarConceitoVisual() {
-    const button = event.target;
-    
-    setButtonLoading(button, true);
-    showFeedback('info', 'Gerando conceito visual...');
-    
-    // URL CORRETA - sem /novo-conceito/
-    fetch(`/projetista/projetos/${PROJETO_ID}/conceito-visual/gerar/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': CSRF_TOKEN,
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        setButtonLoading(button, false);
-        
-        if (data.success) {
-            showFeedback('success', data.message || 'Conceito visual gerado!');
-            setTimeout(() => {
-                window.location.href = `/projetista/projetos/${PROJETO_ID}/novo-conceito/`;
-            }, 1500);
-        } else {
-            showFeedback('danger', data.message || 'Erro ao gerar conceito');
-            if (data.detailed_error || data.critica) {
-                showErrorDetails(data.detailed_error || data.critica);
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Erro:', error);
-        setButtonLoading(button, false);
-        showFeedback('danger', 'Erro de comunicação. Tente novamente.');
-    });
+    showFeedback('info', 'Função em desenvolvimento - Segundo Agente');
 }
 
-// === MODELO 3D ===
 function gerarModelo3D() {
-    const button = event.target;
-    
-    setButtonLoading(button, true);
-    showFeedback('info', 'Gerando modelo 3D...');
-    
-    // URL CORRETA - sem /novo-conceito/
-    fetch(`/projetista/projetos/${PROJETO_ID}/modelo-3d/gerar/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': CSRF_TOKEN,
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        setButtonLoading(button, false);
-        
-        if (data.success) {
-            showFeedback('success', data.message || 'Modelo 3D gerado!');
-            setTimeout(() => {
-                window.location.href = `/projetista/projetos/${PROJETO_ID}/novo-conceito/`;
-            }, 1500);
-        } else {
-            showFeedback('danger', data.message || 'Erro ao gerar modelo 3D');
-            if (data.detailed_error || data.critica) {
-                showErrorDetails(data.detailed_error || data.critica);
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Erro:', error);
-        setButtonLoading(button, false);
-        showFeedback('danger', 'Erro de comunicação. Tente novamente.');
-    });
+    showFeedback('info', 'Função em desenvolvimento - Terceiro Agente');
 }
 
+// Inicialização
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("📋 Sistema de verbose inicializado");
+    console.log(`📋 PROJETO_ID: ${PROJETO_ID}`);
+    console.log(`📋 CSRF_TOKEN: ${CSRF_TOKEN ? 'Configurado' : 'NÃO CONFIGURADO'}`);
+});
 </script>
 {% endblock %}

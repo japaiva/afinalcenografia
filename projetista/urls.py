@@ -1,4 +1,4 @@
-# projetista/urls.py - VERSÃO CORRIGIDA
+# projetista/urls.py - VERSÃO COMPLETA COM CREWAI
 
 from django.urls import path
 from .views import (
@@ -10,8 +10,8 @@ from .views import (
     
     # Planta Baixa views (atualizadas para CrewAI)
     gerar_planta_baixa, refinar_planta_baixa, visualizar_planta_baixa, 
-    download_planta_svg, comparar_plantas, validar_agente_status, 
-    exportar_dados_planta, planta_baixa,
+    download_planta_svg, comparar_plantas, validar_crew_status, 
+    exportar_dados_planta,
     
     # Conceito Visual views (baseado em planta baixa)
     gerar_conceito_visual, refinar_conceito_visual, visualizar_conceito_visual,
@@ -25,7 +25,12 @@ from .views import (
     excluir_modelo, preview_modelo,
     
     # Mensagens views
-    mensagens, nova_mensagem, mensagens_projeto
+    mensagens, nova_mensagem, mensagens_projeto,
+
+    obter_logs_execucao, status_execucao,  # ← ADICIONADO
+    
+    # Debug CrewAI (opcionais)
+    testar_crewai_config, debug_crew_info
 )
 
 app_name = 'projetista'
@@ -146,10 +151,14 @@ urlpatterns = [
     # UTILITÁRIOS E STATUS
     # =========================================================================
     
-    # Status dos crews e agentes
-    path('agente/validar/', validar_agente_status, name='validar_agente_status'),
+    # Status do CrewAI (MUDANÇA PRINCIPAL)
+    path('crew/validar/', validar_crew_status, name='validar_crew_status'),
     path('projetos/<int:projeto_id>/modelo-3d/status/', 
          status_modelo_3d, name='status_modelo_3d'),
+    
+    # Debug CrewAI (opcionais para desenvolvimento)
+    path('test/crewai-config/', testar_crewai_config, name='testar_crewai_config'),
+    path('debug/crew-info/', debug_crew_info, name='debug_crew_info'),
     
     # =========================================================================
     # SISTEMA DE MENSAGENS
@@ -158,69 +167,7 @@ urlpatterns = [
     path('mensagens/nova/', nova_mensagem, name='nova_mensagem'),
     path('mensagens/projeto/<int:projeto_id>/', mensagens_projeto, name='mensagens_projeto'),
 
-    path('projetos/<int:projeto_id>/planta-baixa/gerar-crewai/', 
-         planta_baixa.gerar_planta_baixa_crewai, 
-         name='gerar_planta_baixa_crewai'),
-    
-    path('test/crewai-config/', 
-         planta_baixa.testar_crewai_config, 
-         name='testar_crewai_config'),
-    
-    path('debug/crew-info/', 
-         planta_baixa.debug_crew_info, 
-         name='debug_crew_info'),
+    path('execucao/<int:execucao_id>/logs/', obter_logs_execucao, name='obter_logs_execucao'),
+    path('execucao/<int:execucao_id>/status/', status_execucao, name='status_execucao')
 
 ]
-
-# =============================================================================
-# COMENTÁRIO EXPLICATIVO: VIEWS QUE PRECISAM SER IMPLEMENTADAS
-# =============================================================================
-
-"""
-VIEWS QUE PRECISAM EXISTIR NO projetista/views/:
-
-📋 BÁSICAS (já devem existir):
-- ProjetistaLoginView, home, dashboard
-- projeto_list, projeto_detail, ver_briefing
-- mensagens, nova_mensagem, mensagens_projeto
-
-🏗️ PLANTA BAIXA (devem existir ou ser adaptadas):
-- gerar_planta_baixa ✅ (já existe)
-- refinar_planta_baixa ✅ (já existe)  
-- visualizar_planta_baixa ✅ (já existe)
-- download_planta_svg ✅ (já existe)
-- comparar_plantas ✅ (já existe)
-- validar_agente_status ✅ (já existe)
-- exportar_dados_planta ✅ (já existe)
-
-🎨 CONCEITO VISUAL (precisam ser criadas):
-- gerar_conceito_visual ❌ (criar)
-- refinar_conceito_visual ❌ (criar)
-- visualizar_conceito_visual ❌ (criar)
-- galeria_conceitos ❌ (criar)
-- download_conceito_imagem ❌ (criar)
-- exportar_dados_conceito ❌ (criar)
-- status_conceito_visual ❌ (criar)
-- duplicar_conceito ❌ (criar)
-- excluir_conceito ❌ (criar)
-
-🏢 MODELO 3D (precisam ser criadas):
-- gerar_modelo_3d ❌ (criar)
-- refinar_modelo_3d ❌ (criar)
-- visualizar_modelo_3d ❌ (criar)
-- viewer_interativo ❌ (criar)
-- download_modelo_3d ❌ (criar)
-- download_todos_formatos ❌ (criar)
-- exportar_dados_modelo ❌ (criar)
-- status_modelo_3d ❌ (criar)
-- atualizar_camera_modelo ❌ (criar)
-- adicionar_ponto_interesse ❌ (criar)
-- excluir_modelo ❌ (criar)
-- preview_modelo ❌ (criar)
-
-PRÓXIMOS PASSOS:
-1. Verificar quais views já existem
-2. Criar as views que faltam
-3. Implementar os templates correspondentes
-4. Configurar os crews no admin
-"""

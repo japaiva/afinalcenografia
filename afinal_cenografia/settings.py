@@ -1,4 +1,4 @@
-# settings.py
+# settings.py - INTEGRADO COM CREWAI PIPELINE
 
 from pathlib import Path
 import os
@@ -51,8 +51,8 @@ AWS_DEFAULT_ACL = 'public-read'
 AWS_QUERYSTRING_AUTH = False
 AWS_S3_FILE_OVERWRITE = False
 AWS_S3_SIGNATURE_VERSION = 's3v4'
-AWS_S3_REGION_NAME = 'us-east-1'  # Região padrão para compatibilidade
-AWS_S3_ADDRESSING_STYLE = 'path'  # Importante: usar 'path' em vez de 'virtual'
+AWS_S3_REGION_NAME = 'us-east-1'
+AWS_S3_ADDRESSING_STYLE = 'path'
 
 # Usa MinIO como armazenamento padrão
 DEFAULT_FILE_STORAGE = 'core.storage.MinioStorage'
@@ -64,12 +64,46 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# API KEYS
+# ============================================================================
+# API KEYS - MANTIDAS + CREWAI
+# ============================================================================
 PINECONE_API_KEY = os.environ.get('PINECONE_API_KEY', '')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
 GROQ_API_KEY = os.getenv('GROQ_API_KEY', '')
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', '')
 
+# ============================================================================
+# CONFIGURAÇÕES CREWAI PIPELINE
+# ============================================================================
+
+# CONTROLE DE FASES
+# False = FASE 1 (simulação, não gasta tokens)
+# True = FASE 2/3 (execução real com LLM)
+CREWAI_USAR_EXECUCAO_REAL = os.getenv('CREWAI_USAR_EXECUCAO_REAL', 'True').lower() == 'true'
+
+# PIPELINE COMPLETO
+# False = Apenas 1 agente (para testes)
+# True = Pipeline com 4 agentes (para produção)
+CREWAI_USAR_PIPELINE_COMPLETO = os.getenv('CREWAI_USAR_PIPELINE_COMPLETO', 'True').lower() == 'true'
+
+# CONFIGURAÇÕES DE PERFORMANCE
+CREWAI_CACHE_TIMEOUT = int(os.getenv('CREWAI_CACHE_TIMEOUT', '7200'))  # 2 horas
+CREWAI_AGENT_TIMEOUT = int(os.getenv('CREWAI_AGENT_TIMEOUT', '180'))  # 3 minutos
+CREWAI_PIPELINE_TIMEOUT = int(os.getenv('CREWAI_PIPELINE_TIMEOUT', '600'))  # 10 minutos
+CREWAI_MAX_ITERATIONS = int(os.getenv('CREWAI_MAX_ITERATIONS', '3'))
+CREWAI_MAX_TOKENS = int(os.getenv('CREWAI_MAX_TOKENS', '2000'))
+CREWAI_DEFAULT_TEMPERATURE = float(os.getenv('CREWAI_DEFAULT_TEMPERATURE', '0.1'))
+
+# LOGS E DEBUG
+CREWAI_VERBOSE_LOGS = os.getenv('CREWAI_VERBOSE_LOGS', 'True').lower() == 'true'
+CREWAI_SAVE_EXECUTION_LOGS = os.getenv('CREWAI_SAVE_EXECUTION_LOGS', 'True').lower() == 'true'
+CREWAI_LOG_POLLING_INTERVAL = int(os.getenv('CREWAI_LOG_POLLING_INTERVAL', '2000'))  # 2 segundos
+
+print(f"🤖 CREWAI CONFIG:")
+print(f"  - Execução Real: {CREWAI_USAR_EXECUCAO_REAL}")
+print(f"  - Pipeline Completo: {CREWAI_USAR_PIPELINE_COMPLETO}")
+print(f"  - OpenAI Key: {'✅ Configurada' if OPENAI_API_KEY else '❌ Não configurada'}")
+print(f"  - Anthropic Key: {'✅ Configurada' if ANTHROPIC_API_KEY else '❌ Não configurada'}")
 
 # Aplicações instaladas
 INSTALLED_APPS = [
@@ -171,31 +205,56 @@ CSRF_TRUSTED_ORIGINS = [
 # Default primary key
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Configurações de logging - Versão mais direta para encontrar problemas
-print("Configurando sistema de logging...")
+# ============================================================================
+# CACHE PARA CREWAI LOGS (INTEGRADO)
+# ============================================================================
+
+# Cache para logs em tempo real (usando memória local se não tiver Redis)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'crewai-logs-cache',
+        'TIMEOUT': CREWAI_CACHE_TIMEOUT,
+        'OPTIONS': {
+            'MAX_ENTRIES': 2000,  # Aumentado para pipeline
+        }
+    }
+}
+
+# Se tiver Redis disponível, pode usar:
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+#         'LOCATION': os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/1'),
+#         'OPTIONS': {
+#             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+#         },
+#         'KEY_PREFIX': 'afinal_crewai',
+#         'TIMEOUT': CREWAI_CACHE_TIMEOUT,
+#     }
+# }
+
+# ============================================================================
+# LOGGING INTEGRADO COM CREWAI
+# ============================================================================
 
 # Verifica permissões no diretório de logs
 LOG_DEBUG_PATH = os.path.join(logs_dir, 'debug.log')
 LOG_DIAGNOSTIC_PATH = os.path.join(logs_dir, 'diagnostic.log')
+LOG_CREWAI_PATH = os.path.join(logs_dir, 'crewai.log')  # ← NOVO
 
 print(f"Arquivos de log que serão usados:")
 print(f" - Debug: {LOG_DEBUG_PATH}")
 print(f" - Diagnostic: {LOG_DIAGNOSTIC_PATH}")
+print(f" - CrewAI: {LOG_CREWAI_PATH}")
 
-# Tenta escrever nos arquivos de log diretamente para testar permissões
+# Testa escrita no arquivo de log do CrewAI
 try:
-    with open(LOG_DEBUG_PATH, 'a') as f:
-        f.write('Teste de inicialização de log - debug.log\n')
-    print(f"✓ Teste de escrita em debug.log bem-sucedido")
+    with open(LOG_CREWAI_PATH, 'a') as f:
+        f.write('Teste de inicialização - crewai.log\n')
+    print(f"✓ Teste de escrita em crewai.log bem-sucedido")
 except Exception as e:
-    print(f"✗ ERRO ao escrever em debug.log: {str(e)}")
-
-try:
-    with open(LOG_DIAGNOSTIC_PATH, 'a') as f:
-        f.write('Teste de inicialização de log - diagnostic.log\n')
-    print(f"✓ Teste de escrita em diagnostic.log bem-sucedido")
-except Exception as e:
-    print(f"✗ ERRO ao escrever em diagnostic.log: {str(e)}")
+    print(f"✗ ERRO ao escrever em crewai.log: {str(e)}")
 
 LOGGING = {
     'version': 1,
@@ -211,6 +270,10 @@ LOGGING = {
         },
         'simple': {
             'format': '[{levelname}] {message}',
+            'style': '{',
+        },
+        'crewai': {  # ← NOVO FORMATTER
+            'format': '[CREWAI-{levelname}] {asctime} {name} {message}',
             'style': '{',
         },
     },
@@ -238,15 +301,21 @@ LOGGING = {
             'filename': LOG_DIAGNOSTIC_PATH,
             'formatter': 'diagnostic',
         },
+        'crewai_file': {  # ← NOVO HANDLER
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': LOG_CREWAI_PATH,
+            'formatter': 'crewai',
+        },
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'file'],  # Adicionado 'file' para capturar logs do Django
+            'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': True,
         },
         'django.db.backends': {
-            'handlers': ['console', 'file'],  # Adicionado 'file' para capturar logs do DB
+            'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': False,
         },
@@ -280,10 +349,44 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': False,
         },
-        # Logger de diagnóstico para configuração
         'django.setup': {
             'handlers': ['console', 'file'],
             'level': 'DEBUG',
+            'propagate': False,
+        },
+        
+        # ============================================================================
+        # LOGGERS CREWAI (NOVOS)
+        # ============================================================================
+        'core.services.crewai_planta_service': {
+            'handlers': ['console', 'crewai_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'core.services.crewai_planta_baixa_service': {  # Nome alternativo
+            'handlers': ['console', 'crewai_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'projetista.views.planta_baixa': {
+            'handlers': ['console', 'crewai_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'projetista.views': {
+            'handlers': ['console', 'diagnostic_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        # Logger para capturar saída do CrewAI framework
+        'crewai': {
+            'handlers': ['console', 'crewai_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'langchain': {
+            'handlers': ['console', 'crewai_file'],
+            'level': 'INFO',
             'propagate': False,
         },
     },
@@ -291,7 +394,97 @@ LOGGING = {
 
 print("=== CONFIGURAÇÃO DE LOGGING CONCLUÍDA ===")
 
-# Teste final do sistema de logging - Isso escreve no console e deve escrever no arquivo
+# Teste final do sistema de logging
 import logging
 logger = logging.getLogger('django.setup')
 logger.info("Teste de log durante inicialização do Django")
+
+# Teste específico do CrewAI
+crewai_logger = logging.getLogger('core.services.crewai_planta_service')
+crewai_logger.info("🤖 Sistema de logging do CrewAI configurado")
+
+
+# ADICIONAR NO FINAL DO SEU settings.py EXISTENTE
+
+# ============================================================================
+# CONFIGURAÇÕES CREWAI PIPELINE - ADICIONAR ESTAS LINHAS
+# ============================================================================
+
+# CONTROLE DE FASES
+CREWAI_USAR_EXECUCAO_REAL = os.getenv('CREWAI_USAR_EXECUCAO_REAL', 'True').lower() == 'true'
+CREWAI_USAR_PIPELINE_COMPLETO = os.getenv('CREWAI_USAR_PIPELINE_COMPLETO', 'True').lower() == 'true'
+
+# CONFIGURAÇÕES DE PERFORMANCE
+CREWAI_CACHE_TIMEOUT = int(os.getenv('CREWAI_CACHE_TIMEOUT', '7200'))
+CREWAI_AGENT_TIMEOUT = int(os.getenv('CREWAI_AGENT_TIMEOUT', '180'))
+CREWAI_PIPELINE_TIMEOUT = int(os.getenv('CREWAI_PIPELINE_TIMEOUT', '600'))
+CREWAI_MAX_ITERATIONS = int(os.getenv('CREWAI_MAX_ITERATIONS', '3'))
+CREWAI_MAX_TOKENS = int(os.getenv('CREWAI_MAX_TOKENS', '2000'))
+CREWAI_DEFAULT_TEMPERATURE = float(os.getenv('CREWAI_DEFAULT_TEMPERATURE', '0.1'))
+
+# LOGS E DEBUG
+CREWAI_VERBOSE_LOGS = os.getenv('CREWAI_VERBOSE_LOGS', 'True').lower() == 'true'
+CREWAI_SAVE_EXECUTION_LOGS = os.getenv('CREWAI_SAVE_EXECUTION_LOGS', 'True').lower() == 'true'
+CREWAI_LOG_POLLING_INTERVAL = int(os.getenv('CREWAI_LOG_POLLING_INTERVAL', '2000'))
+
+# ATUALIZAR O CACHE EXISTENTE PARA SUPORTAR CREWAI
+CACHES['default']['TIMEOUT'] = CREWAI_CACHE_TIMEOUT
+CACHES['default']['OPTIONS']['MAX_ENTRIES'] = 2000
+
+# ADICIONAR LOGGERS CREWAI AO LOGGING EXISTENTE
+LOGGING['loggers']['core.services.crewai_planta_service'] = {
+    'handlers': ['console', 'diagnostic_file'],
+    'level': 'DEBUG',
+    'propagate': False,
+}
+
+# Criar arquivo de log específico para CrewAI
+LOG_CREWAI_PATH = os.path.join(logs_dir, 'crewai.log')
+
+# Adicionar handler específico para CrewAI
+LOGGING['handlers']['crewai_file'] = {
+    'level': 'DEBUG',
+    'class': 'logging.FileHandler',
+    'filename': LOG_CREWAI_PATH,
+    'formatter': 'diagnostic',
+}
+
+# Atualizar logger do CrewAI para usar o arquivo específico
+LOGGING['loggers']['core.services.crewai_planta_service']['handlers'] = ['console', 'crewai_file']
+
+# Adicionar outros loggers relacionados ao CrewAI
+LOGGING['loggers']['projetista.views.planta_baixa'] = {
+    'handlers': ['console', 'crewai_file'],
+    'level': 'DEBUG',
+    'propagate': False,
+}
+
+# Logger para capturar outputs do CrewAI framework
+LOGGING['loggers']['crewai'] = {
+    'handlers': ['console', 'crewai_file'],
+    'level': 'DEBUG',
+    'propagate': False,
+}
+
+LOGGING['loggers']['langchain'] = {
+    'handlers': ['console', 'crewai_file'],
+    'level': 'INFO',
+    'propagate': False,
+}
+
+# Mensagens de inicialização
+print("🤖 CREWAI PIPELINE CONFIGURADO:")
+print(f"  - Execução Real: {CREWAI_USAR_EXECUCAO_REAL}")
+print(f"  - Pipeline Completo: {CREWAI_USAR_PIPELINE_COMPLETO}")
+print(f"  - Timeout Pipeline: {CREWAI_PIPELINE_TIMEOUT}s")
+print(f"  - Log CrewAI: {LOG_CREWAI_PATH}")
+
+# Testar log do CrewAI
+try:
+    with open(LOG_CREWAI_PATH, 'a') as f:
+        f.write(f'CrewAI configurado - {os.getenv("CREWAI_USAR_PIPELINE_COMPLETO", "False")}\n')
+    print("✅ Log do CrewAI testado com sucesso")
+except Exception as e:
+    print(f"⚠️ Aviso: {str(e)}")
+
+print("🚀 PRONTO PARA USAR PIPELINE COM 4 AGENTES!")
