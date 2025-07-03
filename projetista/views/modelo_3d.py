@@ -262,7 +262,7 @@ def visualizar_modelo_3d(request, projeto_id):
     
     if modelo_3d.planta_baixa:
         try:
-            from core.services.planta_baixa_service import PlantaBaixaService
+            from core.services.crewai.specialized.planta_baixa import PlantaBaixaService
             planta_service = PlantaBaixaService()
             dependencias_info['planta_baixa'] = {
                 'versao': modelo_3d.planta_baixa.versao,

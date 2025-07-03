@@ -208,7 +208,7 @@ def visualizar_conceito_visual(request, projeto_id):
     planta_info = None
     if conceito_visual.planta_baixa:
         try:
-            from core.services.planta_baixa_service import PlantaBaixaService
+            from core.services.crewai.specialized.planta_baixa import PlantaBaixaService
             planta_service = PlantaBaixaService()
             planta_info = {
                 'versao': conceito_visual.planta_baixa.versao,
