@@ -10,8 +10,8 @@ from .views import (
     
     # Planta Baixa views (atualizadas para CrewAI)
     gerar_planta_baixa, refinar_planta_baixa, visualizar_planta_baixa, 
-    download_planta_svg, comparar_plantas, validar_crew_status, 
-    exportar_dados_planta,
+    download_planta_svg, validar_crew_status, 
+
     
     # Conceito Visual views (baseado em planta baixa)
     gerar_conceito_visual, refinar_conceito_visual, visualizar_conceito_visual,
@@ -29,8 +29,6 @@ from .views import (
 
     obter_logs_execucao, status_execucao,  # ← ADICIONADO
     
-    # Debug CrewAI (opcionais)
-    testar_crewai_config, debug_crew_info
 )
 
 app_name = 'projetista'
@@ -66,12 +64,7 @@ urlpatterns = [
          visualizar_planta_baixa, name='visualizar_planta_baixa'),
     path('planta-baixa/<int:planta_id>/download-svg/', 
          download_planta_svg, name='download_planta_svg'),
-    path('planta-baixa/<int:planta_id>/exportar/', 
-         exportar_dados_planta, name='exportar_dados_planta'),
-    
-    # Comparação e análise
-    path('projetos/<int:projeto_id>/planta-baixa/comparar/', 
-         comparar_plantas, name='comparar_plantas'),
+
     
     # -------------------------------------------------------------------------
     # BOTÃO 2 - CONCEITO VISUAL (via CrewAI baseado na planta baixa)
@@ -156,9 +149,6 @@ urlpatterns = [
     path('projetos/<int:projeto_id>/modelo-3d/status/', 
          status_modelo_3d, name='status_modelo_3d'),
     
-    # Debug CrewAI (opcionais para desenvolvimento)
-    path('test/crewai-config/', testar_crewai_config, name='testar_crewai_config'),
-    path('debug/crew-info/', debug_crew_info, name='debug_crew_info'),
     
     # =========================================================================
     # SISTEMA DE MENSAGENS

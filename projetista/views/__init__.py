@@ -12,11 +12,7 @@ from .planta_baixa import (
     refinar_planta_baixa,
     visualizar_planta_baixa,
     download_planta_svg,
-    comparar_plantas,
     validar_crew_status,  # ← MUDANÇA: era validar_agente_status
-    exportar_dados_planta,
-    testar_crewai_config,  # ← NOVO
-    debug_crew_info,       # ← NOVO
     obter_logs_execucao,  # ← ADICIONADO
     status_execucao, 
 )
@@ -148,8 +144,8 @@ __all__ = [
     
     # Planta Baixa (CrewAI) - PRINCIPAIS MUDANÇAS
     'gerar_planta_baixa', 'refinar_planta_baixa', 'visualizar_planta_baixa',
-    'download_planta_svg', 'comparar_plantas', 'validar_crew_status',  # ← MUDANÇA
-    'exportar_dados_planta', 'testar_crewai_config', 'debug_crew_info',  # ← NOVOS
+    'download_planta_svg', 'validar_crew_status',  # ← MUDANÇA
+    'debug_crew_info',  # ← NOVOS
     'obter_logs_execucao','status_execucao', 
     
     # Conceito Visual

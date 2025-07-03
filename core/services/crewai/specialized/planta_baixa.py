@@ -1,7 +1,7 @@
 
 # core/services/planta_baixa_service.py - ESPECIALIZADO PARA PLANTAS
 
-from core.services import CrewAIServiceV2
+from core.services.crewai.base_service import CrewAIServiceV2
 from projetos.models import Briefing
 from projetista.models import PlantaBaixa
 from django.core.files.base import ContentFile

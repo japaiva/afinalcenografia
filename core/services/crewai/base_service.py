@@ -1,4 +1,4 @@
-# core/services/crewai_service.py
+# core/services/crewai/base_service.py
 
 import logging
 import time
@@ -13,18 +13,20 @@ try:
     from langchain_openai import ChatOpenAI
     from langchain_anthropic import ChatAnthropic
     CREWAI_AVAILABLE = True
+    print("✅ CrewAI Framework importado com sucesso")
 except ImportError as e:
     logging.warning(f"CrewAI não disponível: {e}")
     CREWAI_AVAILABLE = False
 
 # Imports locais
 from core.models import Crew as DjangoCrew, CrewExecucao, Agente
-from core.services.crewai.tools import create_tools_from_config
-from core.services.crewai.verbose import VerboseManager, VerboseCallbackHandler, CrewAICallbackManager
 
 logger = logging.getLogger(__name__)
 
 class CrewAIServiceV2:
+    """
+    Serviço CrewAI melhorado com arquitetura escalável
+    """
     
     def __init__(self, crew_nome: str):
         self.crew_nome = crew_nome
@@ -70,9 +72,7 @@ class CrewAIServiceV2:
             execucao = self._criar_execucao(inputs, contexto)
             
             # 2. Inicializar sistema de verbose
-            self.verbose_manager = VerboseManager(str(execucao.id), self.crew_nome)
-            self.callback_manager = CrewAICallbackManager(self.verbose_manager)
-            self.verbose_manager.start()
+            self._inicializar_verbose(execucao.id)
             
             # 3. Criar crew framework
             self.verbose_manager.log_step("🏗️ Criando estrutura do crew...", "sistema")
@@ -113,6 +113,22 @@ class CrewAIServiceV2:
                 
             return {'success': False, 'error': str(e)}
     
+    def _inicializar_verbose(self, execucao_id):
+        """Inicializa sistema de verbose"""
+        try:
+            # Import aqui para evitar circular import
+            from .verbose.manager import VerboseManager
+            from .verbose.callbacks import CrewAICallbackManager
+            
+            self.verbose_manager = VerboseManager(str(execucao_id), self.crew_nome)
+            self.callback_manager = CrewAICallbackManager(self.verbose_manager)
+            self.verbose_manager.start()
+            
+        except ImportError as e:
+            self.logger.warning(f"Verbose não disponível: {e}")
+            self.verbose_manager = None
+            self.callback_manager = None
+    
     def _criar_crewai_framework(self) -> Optional[CrewAI_Framework]:
         """
         Cria CrewAI Framework com verbose integrado
@@ -125,8 +141,9 @@ class CrewAIServiceV2:
             if not membros.exists() or not tasks.exists():
                 raise Exception(f"Crew sem membros ou tasks ativas")
             
-            self.verbose_manager.log_step(f"👥 {membros.count()} agentes encontrados", "sistema")
-            self.verbose_manager.log_step(f"📋 {tasks.count()} tasks configuradas", "sistema")
+            if self.verbose_manager:
+                self.verbose_manager.log_step(f"👥 {membros.count()} agentes encontrados", "sistema")
+                self.verbose_manager.log_step(f"📋 {tasks.count()} tasks configuradas", "sistema")
             
             crewai_agents = []
             crewai_tasks = []
@@ -134,10 +151,11 @@ class CrewAIServiceV2:
             # Criar agentes e tasks
             for i, (membro, task) in enumerate(zip(membros, tasks), 1):
                 # Log do agente sendo criado
-                self.verbose_manager.log_step(
-                    f"🤖 Configurando Agente {i}: {membro.agente.crew_role}", 
-                    "agente"
-                )
+                if self.verbose_manager:
+                    self.verbose_manager.log_step(
+                        f"🤖 Configurando Agente {i}: {membro.agente.crew_role}", 
+                        "agente"
+                    )
                 
                 # Criar LLM
                 llm = self._criar_llm(membro.agente)
@@ -155,9 +173,7 @@ class CrewAIServiceV2:
                     verbose=True,
                     allow_delegation=membro.pode_delegar,
                     max_iter=membro.max_iter,
-                    max_execution_time=membro.max_execution_time,
-                    # Adicionar callbacks se suportado
-                    callbacks=[self.callback_handler] if hasattr(CrewAI_Agent, 'callbacks') else []
+                    max_execution_time=membro.max_execution_time
                 )
                 
                 # Criar task CrewAI
@@ -165,18 +181,21 @@ class CrewAIServiceV2:
                     description=task.descricao,
                     expected_output=task.expected_output,
                     agent=agent,
-                    async_execution=task.async_execution,
-                    # Output file se especificado
-                    output_file=task.output_file if task.output_file else None
+                    async_execution=task.async_execution
                 )
+                
+                # Output file se especificado
+                if task.output_file:
+                    crew_task.output_file = task.output_file
                 
                 crewai_agents.append(agent)
                 crewai_tasks.append(crew_task)
                 
-                self.verbose_manager.log_step(
-                    f"✅ Agente {i} configurado: {len(tools)} tools", 
-                    "agente"
-                )
+                if self.verbose_manager:
+                    self.verbose_manager.log_step(
+                        f"✅ Agente {i} configurado: {len(tools)} tools", 
+                        "agente"
+                    )
             
             # Criar crew
             crewai_framework = CrewAI_Framework(
@@ -189,7 +208,9 @@ class CrewAIServiceV2:
                 manager_llm=self._criar_manager_llm() if self.django_crew.processo == 'hierarchical' else None
             )
             
-            self.verbose_manager.log_step("🏗️ Crew framework criado com sucesso", "sistema")
+            if self.verbose_manager:
+                self.verbose_manager.log_step("🏗️ Crew framework criado com sucesso", "sistema")
+            
             return crewai_framework
             
         except Exception as e:
@@ -205,25 +226,29 @@ class CrewAIServiceV2:
         if not tools_config:
             return []
         
-        # Modificar config para incluir verbose_manager
-        tools_names = tools_config.get('tools', [])
-        
-        # Log das tools sendo criadas
-        if tools_names:
-            self.verbose_manager.log_step(f"🛠️ Configurando {len(tools_names)} tools", "tool")
-        
-        # Criar tools usando o sistema existente
-        tools = create_tools_from_config(tools_config)
-        
-        # Injetar verbose manager nas tools que suportam
-        tools_com_verbose = []
-        for tool in tools:
-            if hasattr(tool, 'verbose_manager'):
-                tool.verbose_manager = self.verbose_manager
-                self.verbose_manager.log_step(f"🔧 Tool '{tool.name}' configurada com verbose", "tool")
-            tools_com_verbose.append(tool)
-        
-        return tools_com_verbose
+        try:
+            # Import aqui para evitar circular import
+            from .tools.manager import create_tools_from_config
+            
+            # Log das tools sendo criadas
+            tools_names = tools_config.get('tools', [])
+            if tools_names and self.verbose_manager:
+                self.verbose_manager.log_step(f"🛠️ Configurando {len(tools_names)} tools", "tool")
+            
+            # Criar tools usando o sistema existente
+            tools = create_tools_from_config(tools_config, self.verbose_manager)
+            
+            # Log das tools criadas
+            if self.verbose_manager:
+                for tool in tools:
+                    if hasattr(tool, 'name'):
+                        self.verbose_manager.log_step(f"🔧 Tool '{tool.name}' configurada", "tool")
+            
+            return tools
+            
+        except ImportError as e:
+            self.logger.warning(f"Tools não disponíveis: {e}")
+            return []
     
     def _criar_llm(self, agente_db):
         """Cria LLM para agente"""
@@ -233,7 +258,7 @@ class CrewAIServiceV2:
             return ChatOpenAI(
                 model=agente_db.llm_model,
                 temperature=agente_db.llm_temperature,
-                api_key=settings.OPENAI_API_KEY,
+                api_key=getattr(settings, 'OPENAI_API_KEY', None),
                 max_tokens=2000,
                 timeout=120
             )
@@ -241,7 +266,7 @@ class CrewAIServiceV2:
             return ChatAnthropic(
                 model=agente_db.llm_model,
                 temperature=agente_db.llm_temperature,
-                api_key=settings.ANTHROPIC_API_KEY,
+                api_key=getattr(settings, 'ANTHROPIC_API_KEY', None),
                 max_tokens=2000,
                 timeout=120
             )
@@ -259,13 +284,13 @@ class CrewAIServiceV2:
             return ChatOpenAI(
                 model=self.django_crew.manager_llm_model,
                 temperature=self.django_crew.manager_llm_temperature or 0.2,
-                api_key=settings.OPENAI_API_KEY
+                api_key=getattr(settings, 'OPENAI_API_KEY', None)
             )
         elif provider == 'anthropic':
             return ChatAnthropic(
                 model=self.django_crew.manager_llm_model,
                 temperature=self.django_crew.manager_llm_temperature or 0.2,
-                api_key=settings.ANTHROPIC_API_KEY
+                api_key=getattr(settings, 'ANTHROPIC_API_KEY', None)
             )
         
         return None
@@ -323,4 +348,3 @@ class CrewAIServiceV2:
     def crew_disponivel(self) -> bool:
         """Verifica se crew está disponível"""
         return self.validar_crew()['valido'] and CREWAI_AVAILABLE
-
