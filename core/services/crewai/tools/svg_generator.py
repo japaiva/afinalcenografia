@@ -37,6 +37,9 @@ class SVGGeneratorTool(AfinalBaseTool):
             verbose_manager=verbose_manager
         )
         
+        # 🔧 CORREÇÃO: Garantir que logger seja atributo público
+        self.logger = logging.getLogger(f"svg_generator_tool")
+        
         # Configurações padrão
         self.config = {
             'width': 800,

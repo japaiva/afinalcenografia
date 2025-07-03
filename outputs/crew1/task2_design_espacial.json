@@ -1,0 +1,132 @@
+```json
+{
+  "nome_projeto": "Hair Summit 2025",
+  "empresa": "Beauty Fair",
+  "tipo_stand": "ponta_ilha",
+  "area_total": 220.0,
+  "distribuicao_espacial": {
+    "nucleo_central": {
+      "posicao": "centro",
+      "dimensoes": {
+        "largura": 10.0,
+        "comprimento": 10.0
+      },
+      "descricao": "Espaço central para interação e circulação dos visitantes."
+    },
+    "areas_exposicao": [
+      {
+        "tipo": "exposicao",
+        "posicao": {
+          "x": 5.0,
+          "y": 5.0
+        },
+        "dimensoes": {
+          "largura": 8.0,
+          "comprimento": 5.0
+        },
+        "equipamentos": ["tv", "ledss"],
+        "observacoes": "Área de exposição principal com lounge e mesas de atendimento.",
+        "elementos": {
+          "lounge": true,
+          "mesas_atendimento": true,
+          "balcao_cafe": true
+        }
+      },
+      {
+        "tipo": "sala_reuniao",
+        "posicao": {
+          "x": 15.0,
+          "y": 5.0
+        },
+        "dimensoes": {
+          "largura": 5.0,
+          "comprimento": 6.0
+        },
+        "capacidade": 8,
+        "equipamentos": ["mesa", "cadeira", "moveisss"]
+      },
+      {
+        "tipo": "copa",
+        "posicao": {
+          "x": 15.0,
+          "y": 12.0
+        },
+        "dimensoes": {
+          "largura": 4.0,
+          "comprimento": 5.0
+        },
+        "equipamentos": ["umas pias"]
+      },
+      {
+        "tipo": "deposito",
+        "posicao": {
+          "x": 5.0,
+          "y": 12.0
+        },
+        "dimensoes": {
+          "largura": 4.0,
+          "comprimento": 5.5
+        },
+        "equipamentos": ["umas prateleiras"]
+      }
+    ],
+    "fluxos": {
+      "entrada": {
+        "posicao": "norte",
+        "descricao": "Acesso principal para visitantes."
+      },
+      "circulacao": {
+        "descricao": "Fluxo de visitantes direcionado ao redor do núcleo central, facilitando o acesso às áreas de exposição e serviços."
+      }
+    }
+  },
+  "especificacoes_tecnicas": {
+    "eletricidade": {
+      "disponivel": true,
+      "requisitos": "220V, 10A"
+    },
+    "abastecimento_agua": {
+      "disponivel": false,
+      "requisitos": "Não disponível no local"
+    },
+    "acessibilidade": {
+      "conforme": true,
+      "notas": "Acesso para cadeirantes garantido"
+    },
+    "restricoes_construtivas": {
+      "limite_altura": "3m",
+      "restricoes_material": "Proibido uso de materiais inflamáveis"
+    }
+  },
+  "diretrizes_arquitetonicas": {
+    "estilo": "Moderno",
+    "paleta_cores": ["#FFFFFF", "#000000", "#FF5733"],
+    "iluminacao": "Iluminação LED com dimmer"
+  },
+  "dados_equipe_2": {
+    "conceito_visual": {
+      "estilo": "Contemporâneo",
+      "materiais": ["MDF", "Vidro", "Metal"],
+      "humor": "Aconchegante e sofisticado"
+    }
+  },
+  "dados_equipe_3": {
+    "especificacoes_tecnicas": {
+      "piso": "Piso laminado",
+      "paredes": "Divisórias de MDF",
+      "moveis": "Móveis sob medida"
+    },
+    "restricoes_construtivas": {
+      "limite_peso": "500kg/m²",
+      "tempo_montagem": "Máximo de 2 dias"
+    }
+  },
+  "modelo_3D": {
+    "link": "link_para_modelo_3D",
+    "descricao": "Modelo 3D do estande para visualização"
+  },
+  "resumo": {
+    "descricao": "Este projeto de estande foi desenvolvido para maximizar a funcionalidade e o impacto visual, com uma distribuição espacial otimizada que facilita o fluxo de visitantes e destaca as áreas de exposição. A paleta de cores e o estilo moderno garantem uma apresentação atraente e contemporânea."
+  }
+}
+```

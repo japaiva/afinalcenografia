@@ -3,32 +3,7 @@
 {% block title %}Portal do Cliente | {{ block.super }}{% endblock %}
 
 {% block content %}
-<div class="card shadow mb-4">
-  <div class="card-body bg-light">
-    <div class="row align-items-center">
-      <div class="col-md-2 text-center">
-        {% if empresa.logo %}
-          <img src="{{ empresa.logo.url }}" alt="{{ empresa.nome }}" class="img-fluid mb-3 mb-md-0" style="max-height: 100px;">
-        {% else %}
-          <div class="display-1 fw-bold text-primary">{{ empresa.nome|slice:":1" }}</div>
-        {% endif %}
-      </div>
-      <div class="col-md-10">
-        <h2 class="mb-2">
-          {% if user.sexo == 'M' %}
-            Bem-vindo,
-          {% elif user.sexo == 'F' %}
-            Bem-vinda,
-          {% else %}
-            Bem-vindo(a),
-          {% endif %}
-          {{ user.first_name }}!
-        </h2>
-        <p class="text-muted mb-0">{{ empresa.nome }} • Último acesso: {{ user.last_login|date:"d/m/Y H:i" }}</p>
-      </div>
-    </div>
-  </div>
-</div>
+
 
 <div class="card shadow">
   <div class="card-header bg-white">

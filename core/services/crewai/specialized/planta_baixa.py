@@ -46,57 +46,189 @@ class PlantaBaixaServiceV2(CrewAIServiceV2):
         except Exception as e:
             self.logger.error(f"❌ Erro ao gerar planta: {str(e)}")
             return {'success': False, 'error': str(e)}
-    
+        
     def _preparar_inputs_planta(self, briefing: Briefing, versao: int) -> Dict:
-        """Prepara inputs específicos para o crew de plantas baixas"""
+        """Prepara inputs específicos para o crew de plantas baixas usando dados REAIS"""
+        
+        # ========================================
+        # 🔍 DEBUG - DADOS REAIS DO BRIEFING
+        # ========================================
+        print(f"\n🔍 === DEBUG BRIEFING REAL ===")
+        print(f"📋 Briefing ID: {briefing.id}")
+        print(f"📋 Versão: {briefing.versao}")
+        print(f"📋 Status: {briefing.status}")
+        print(f"🏢 Empresa: {briefing.projeto.empresa.nome}")
+        print(f"🎪 Projeto: {briefing.projeto.nome}")
+        print(f"💰 Orçamento: R$ {briefing.projeto.orcamento or 0}")
+        
+        # Dados do evento
+        print(f"🎯 Nome evento: {briefing.nome_evento or 'Não informado'}")
+        print(f"📍 Local evento: {briefing.local_evento or 'Não informado'}")
+        print(f"🎪 Objetivo evento: {briefing.objetivo_evento or 'Não informado'}")
+        
+        # Dados do estande
+        print(f"🏗️ Tipo stand: {briefing.tipo_stand or 'Não informado'}")
+        print(f"📐 Medidas: {briefing.medida_frente or 0}m x {briefing.medida_fundo or 0}m")
+        print(f"📏 Área total: {briefing.area_estande or 0} m²")
+        print(f"🎨 Estilo: {briefing.estilo_estande or 'Não informado'}")
+        print(f"🧱 Material: {briefing.material or 'Não informado'}")
+        
+        # Contar divisões
+        areas_exposicao_count = briefing.areas_exposicao.count()
+        salas_reuniao_count = briefing.salas_reuniao.count()
+        copas_count = briefing.copas.count()
+        depositos_count = briefing.depositos.count()
+        
+        print(f"🏢 Divisões:")
+        print(f"   - Áreas exposição: {areas_exposicao_count}")
+        print(f"   - Salas reunião: {salas_reuniao_count}")
+        print(f"   - Copas: {copas_count}")
+        print(f"   - Depósitos: {depositos_count}")
+        print(f"🔍 === FIM DEBUG ===\n")
+        
+        # ========================================
+        # 📊 COLETAR DADOS REAIS
+        # ========================================
         
         # Calcular dados do estande
         area_total = float(briefing.area_estande or 0)
         medida_frente = float(briefing.medida_frente or 0)
         medida_fundo = float(briefing.medida_fundo or 0)
         
+        # Se não tem área calculada, calcular agora
         if not area_total and medida_frente and medida_fundo:
             area_total = medida_frente * medida_fundo
         
-        return {
+        # Coletar áreas funcionais
+        areas_exposicao = []
+        for area in briefing.areas_exposicao.all():
+            area_data = {
+                "tipo": "exposicao",
+                "metragem": float(area.metragem or 0),
+                "equipamentos": area.equipamentos or "",
+                "observacoes": area.observacoes or "",
+                "elementos": {
+                    "lounge": area.tem_lounge,
+                    "vitrine_exposicao": area.tem_vitrine_exposicao,
+                    "balcao_recepcao": area.tem_balcao_recepcao,
+                    "mesas_atendimento": area.tem_mesas_atendimento,
+                    "balcao_cafe": area.tem_balcao_cafe,
+                    "balcao_vitrine": area.tem_balcao_vitrine,
+                    "caixa_vendas": area.tem_caixa_vendas
+                }
+            }
+            areas_exposicao.append(area_data)
+        
+        salas_reuniao = []
+        for sala in briefing.salas_reuniao.all():
+            sala_data = {
+                "tipo": "sala_reuniao",
+                "capacidade": sala.capacidade,
+                "metragem": float(sala.metragem or 0),
+                "equipamentos": sala.equipamentos or ""
+            }
+            salas_reuniao.append(sala_data)
+        
+        copas = []
+        for copa in briefing.copas.all():
+            copa_data = {
+                "tipo": "copa",
+                "metragem": float(copa.metragem or 0),
+                "equipamentos": copa.equipamentos or ""
+            }
+            copas.append(copa_data)
+        
+        depositos = []
+        for deposito in briefing.depositos.all():
+            deposito_data = {
+                "tipo": "deposito",
+                "metragem": float(deposito.metragem or 0),
+                "equipamentos": deposito.equipamentos or ""
+            }
+            depositos.append(deposito_data)
+        
+        # ========================================
+        # 🎯 ESTRUTURA FINAL DOS INPUTS
+        # ========================================
+        
+        inputs_estruturados = {
             # Dados estruturados para os agentes
             "briefing_completo": {
                 "projeto": {
                     "numero": briefing.projeto.numero,
                     "nome": briefing.projeto.nome,
                     "empresa": briefing.projeto.empresa.nome,
-                    "tipo": briefing.projeto.tipo_projeto or "outros"
+                    "tipo": briefing.projeto.tipo_projeto or "outros",
+                    "orcamento": float(briefing.projeto.orcamento or 0)
+                },
+                "evento": {
+                    "nome": briefing.nome_evento or "Evento não informado",
+                    "local": briefing.local_evento or "Local não informado", 
+                    "objetivo": briefing.objetivo_evento or "Objetivo não informado",
+                    "organizador": briefing.organizador_evento or "",
+                    "data_horario": briefing.data_horario_evento or "",
+                    "periodo_montagem": briefing.periodo_montagem_evento or "",
+                    "periodo_desmontagem": briefing.periodo_desmontagem_evento or ""
                 },
                 "estande": {
+                    "tipo_stand": briefing.tipo_stand or "ilha",
                     "area_total": area_total,
                     "medida_frente": medida_frente,
                     "medida_fundo": medida_fundo,
-                    "tipo_stand": getattr(briefing, 'tipo_stand', 'ilha') or 'ilha'
+                    "medida_lateral_esquerda": float(briefing.medida_lateral_esquerda or 0),
+                    "medida_lateral_direita": float(briefing.medida_lateral_direita or 0),
+                    "estilo": briefing.estilo_estande or "moderno",
+                    "material": briefing.material or "misto",
+                    "piso_elevado": briefing.piso_elevado or "sem_elevacao",
+                    "tipo_testeira": briefing.tipo_testeira or "reta",
+                    "endereco_estande": briefing.endereco_estande or ""
                 },
-                "objetivos": {
-                    "objetivo_evento": briefing.objetivo_evento or "Exposição comercial",
-                    "objetivo_estande": briefing.objetivo_estande or "Apresentar produtos",
-                    "estilo_estande": briefing.estilo_estande or "moderno"
+                "funcionalidades": {
+                    "tipo_venda": briefing.tipo_venda or "nao",
+                    "tipo_ativacao": briefing.tipo_ativacao or "",
+                    "objetivo_estande": briefing.objetivo_estande or ""
                 },
-                "evento": {
-                    "nome": briefing.nome_evento or "Feira",
-                    "versao_planta": versao
+                "divisoes_funcionais": {
+                    "areas_exposicao": areas_exposicao,
+                    "salas_reuniao": salas_reuniao,
+                    "copas": copas,
+                    "depositos": depositos,
+                    "total_divisoes": len(areas_exposicao) + len(salas_reuniao) + len(copas) + len(depositos)
+                },
+                "referencias": {
+                    "dados": briefing.referencias_dados or "",
+                    "logotipo": briefing.logotipo or "",
+                    "campanha": briefing.campanha_dados or ""
                 }
             },
             
-            # Pipeline metadata
+            # Pipeline metadata  
             "pipeline_info": {
                 "versao": versao,
+                "briefing_id": briefing.id,
+                "briefing_versao": briefing.versao,
                 "agentes_pipeline": [
                     "1. Analista de Briefing",
                     "2. Arquiteto Espacial", 
                     "3. Calculador de Coordenadas",
                     "4. Gerador de SVG"
                 ],
-                "objetivo_final": "Gerar planta baixa completa em SVG"
+                "objetivo_final": "Gerar planta baixa completa em SVG com dados reais do briefing",
+                "dados_reais": True,
+                "total_areas_funcionais": len(areas_exposicao) + len(salas_reuniao) + len(copas) + len(depositos)
             }
         }
-    
+        
+        # Debug final dos inputs
+        print(f"📤 INPUTS PREPARADOS:")
+        print(f"   - Projeto: {inputs_estruturados['briefing_completo']['projeto']['nome']}")
+        print(f"   - Área total: {inputs_estruturados['briefing_completo']['estande']['area_total']} m²")
+        print(f"   - Tipo stand: {inputs_estruturados['briefing_completo']['estande']['tipo_stand']}")
+        print(f"   - Total divisões: {inputs_estruturados['briefing_completo']['divisoes_funcionais']['total_divisoes']}")
+        
+        return inputs_estruturados
+
+        
     def _processar_resultado_planta(self, briefing: Briefing, versao: int, resultado: Dict) -> PlantaBaixa:
         """Processa resultado do crew e salva planta baixa"""
         try:

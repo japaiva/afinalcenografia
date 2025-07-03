@@ -1,11 +1,12 @@
-# core/services/crewai/tools/base_tool.py - VERSÃO GENÉRICA
+# core/services/crewai/tools/base_tool.py
 
 import logging
 import time
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
-from crewai_tools import BaseTool
+from langchain.tools import BaseTool  # ✅ Importa a base correta
+
 
 logger = logging.getLogger(__name__)
 
@@ -26,26 +27,27 @@ class ToolResult:
             'metadata': self.metadata or {},
             'execution_time': self.execution_time
         }
-
-class AfinalBaseTool(BaseTool, ABC):
-    """
-    Classe base genérica para todas as tools da Afinal Cenografia
     
-    Funcionalidades:
-    - Logging padronizado
-    - Tratamento de erros consistente
-    - Validação de entrada
-    - Integração com verbose manager
-    - Métricas de execução
-    """
+
+class AfinalBaseTool(ABC):
+    """Classe base para tools sem herança LangChain"""
+    
+    # ✅ DECLARAR CAMPOS COMO ATRIBUTOS DE CLASSE
+    name: str
+    description: str
+    verbose_manager: Optional[Any] = None
+    logger: Optional[Any] = None
+    execution_count: int = 0
     
     def __init__(self, name: str, description: str, verbose_manager=None, **kwargs):
-        super().__init__(name=name, description=description)
-        self.logger = logging.getLogger(f"crewai_tools.{name}")
+        # Definir atributos diretamente
+        self.name = name
+        self.description = description
         self.verbose_manager = verbose_manager
+        self.logger = logging.getLogger(f"crewai_tools.{name}")
         self.execution_count = 0
         
-        # Configurações adicionais podem ser passadas via kwargs
+        # Configurações adicionais
         for key, value in kwargs.items():
             setattr(self, key, value)
     

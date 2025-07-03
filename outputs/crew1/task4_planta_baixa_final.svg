@@ -1,0 +1,73 @@
+```json
+{
+  "svg": "<svg width=\"220\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\">\n  <!-- Estande Hair Summit 2025 -->\n  <rect x=\"5\" y=\"5\" width=\"80\" height=\"50\" fill=\"#FF5733\" stroke=\"#000000\" stroke-width=\"2\" />\n  <text x=\"10\" y=\"30\" font-family=\"Arial\" font-size=\"12\" fill=\"#FFFFFF\">Exposição</text>\n  <rect x=\"150\" y=\"5\" width=\"50\" height=\"60\" fill=\"#FFFFFF\" stroke=\"#000000\" stroke-width=\"2\" />\n  <text x=\"155\" y=\"30\" font-family=\"Arial\" font-size=\"12\" fill=\"#000000\">Sala Reunião</text>\n  <rect x=\"150\" y=\"70\" width=\"40\" height=\"50\" fill=\"#000000\" stroke=\"#FFFFFF\" stroke-width=\"2\" />\n  <text x=\"155\" y=\"95\" font-family=\"Arial\" font-size=\"12\" fill=\"#FFFFFF\">Copa</text>\n  <rect x=\"5\" y=\"70\" width=\"40\" height=\"55\" fill=\"#FFFFFF\" stroke=\"#000000\" stroke-width=\"2\" />\n  <text x=\"10\" y=\"95\" font-family=\"Arial\" font-size=\"12\" fill=\"#000000\">Depósito</text>\n  <rect x=\"60\" y=\"60\" width=\"100\" height=\"100\" fill=\"none\" stroke=\"#000000\" stroke-width=\"2\" />\n  <text x=\"90\" y=\"120\" font-family=\"Arial\" font-size=\"12\" fill=\"#000000\">Núcleo Central</text>\n  <line x1=\"0\" y1=\"110\" x2=\"220\" y2=\"110\" stroke=\"#000000\" stroke-width=\"2\" />\n  <text x=\"10\" y=\"105\" font-family=\"Arial\" font-size=\"12\" fill=\"#000000\">Entrada</text>\n</svg>",
+  "metadados": {
+    "titulo": "Estande Hair Summit 2025",
+    "descricao": "Representação gráfica do estande para renderização SVG.",
+    "elementos": [
+      {
+        "tipo": "retangulo",
+        "posicao": {
+          "x": 5.0,
+          "y": 5.0
+        },
+        "dimensoes": {
+          "largura": 80.0,
+          "altura": 50.0
+        },
+        "cor": "#FF5733"
+      },
+      {
+        "tipo": "retangulo",
+        "posicao": {
+          "x": 150.0,
+          "y": 5.0
+        },
+        "dimensoes": {
+          "largura": 50.0,
+          "altura": 60.0
+        },
+        "cor": "#FFFFFF"
+      },
+      {
+        "tipo": "retangulo",
+        "posicao": {
+          "x": 150.0,
+          "y": 70.0
+        },
+        "dimensoes": {
+          "largura": 40.0,
+          "altura": 50.0
+        },
+        "cor": "#000000"
+      },
+      {
+        "tipo": "retangulo",
+        "posicao": {
+          "x": 5.0,
+          "y": 70.0
+        },
+        "dimensoes": {
+          "largura": 40.0,
+          "altura": 55.0
+        },
+        "cor": "#FFFFFF"
+      },
+      {
+        "tipo": "nucleo_central",
+        "posicao": {
+          "x": 60.0,
+          "y": 60.0
+        },
+        "dimensoes": {
+          "largura": 100.0,
+          "altura": 100.0
+        },
+        "cor": "none"
+      }
+    ]
+  },
+  "confirmacao_sucesso": true,
+  "observacoes_tecnicas": "A planta baixa foi renderizada com precisão técnica e clareza visual, seguindo as diretrizes arquitetônicas modernas. As dimensões e cores foram escolhidas para garantir uma apresentação atraente e fácil interpretação."
+}
+```
