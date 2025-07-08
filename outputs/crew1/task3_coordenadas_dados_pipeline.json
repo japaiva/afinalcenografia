@@ -6,173 +6,184 @@
   "area_total": 220.0,
   "distribuicao_espacial": {
     "nucleo_central": {
-      "posicao": "centro",
+      "posicao": {
+        "x": 10.0,
+        "y": 5.5
+      },
       "dimensoes": {
-        "largura": 10.0,
-        "comprimento": 10.0
-      }
+        "largura": 6.0,
+        "comprimento": 6.0
+      },
+      "elementos": [
+        {
+          "tipo": "tv",
+          "posicao": {
+            "x": 10.0,
+            "y": 5.5
+          }
+        },
+        {
+          "tipo": "leds",
+          "posicao": {
+            "x": 10.0,
+            "y": 5.5
+          }
+        }
+      ]
     },
     "areas_exposicao": [
       {
         "tipo": "exposicao",
-        "metragem": 40.0,
         "posicao": {
-          "x": 5.0,
-          "y": 5.0
+          "x": 0.0,
+          "y": 0.0
         },
-        "equipamentos": ["tv", "ledss"],
-        "observacoes": "observacoes area 1",
+        "dimensoes": {
+          "largura": 8.0,
+          "comprimento": 5.0
+        },
+        "equipamentos": [
+          "tv",
+          "leds"
+        ],
         "elementos": {
           "lounge": true,
-          "vitrine_exposicao": false,
-          "balcao_recepcao": false,
           "mesas_atendimento": true,
-          "balcao_cafe": true,
-          "balcao_vitrine": false,
-          "caixa_vendas": false
+          "balcao_cafe": true
         }
       },
       {
         "tipo": "sala_reuniao",
-        "capacidade": 8,
-        "metragem": 30.0,
         "posicao": {
-          "x": 15.0,
-          "y": 5.0
+          "x": 8.0,
+          "y": 0.0
         },
-        "equipamentos": ["mesa", "cadeira", "móveis"]
+        "dimensoes": {
+          "largura": 5.0,
+          "comprimento": 6.0
+        },
+        "equipamentos": [
+          "mesa",
+          "cadeira"
+        ]
       },
       {
         "tipo": "copa",
-        "metragem": 21.0,
         "posicao": {
-          "x": 5.0,
-          "y": 15.0
+          "x": 13.0,
+          "y": 0.0
         },
-        "equipamentos": ["umas pias"]
+        "dimensoes": {
+          "largura": 3.0,
+          "comprimento": 7.0
+        },
+        "equipamentos": [
+          "pias"
+        ]
       },
       {
         "tipo": "deposito",
-        "metragem": 22.0,
         "posicao": {
-          "x": 15.0,
-          "y": 15.0
+          "x": 16.0,
+          "y": 0.0
         },
-        "equipamentos": ["umas prateleiras"]
+        "dimensoes": {
+          "largura": 3.0,
+          "comprimento": 7.0
+        },
+        "equipamentos": [
+          "prateleiras"
+        ]
       }
     ],
     "fluxos": {
       "entrada": {
-        "posicao": "norte",
-        "largura": 2.0
+        "posicao": {
+          "x": 0.0,
+          "y": 5.5
+        },
+        "direcao": "norte"
       },
-      "saida": {
-        "posicao": "sul",
-        "largura": 2.0
-      },
-      "caminhos_internos": [
+      "saidas": [
         {
-          "inicio": {
-            "x": 5.0,
-            "y": 5.0
+          "posicao": {
+            "x": 20.0,
+            "y": 5.5
           },
-          "fim": {
-            "x": 15.0,
-            "y": 5.0
-          },
-          "largura": 1.0
+          "direcao": "sul"
         },
         {
-          "inicio": {
-            "x": 5.0,
-            "y": 15.0
+          "posicao": {
+            "x": 10.0,
+            "y": 11.0
           },
-          "fim": {
-            "x": 15.0,
-            "y": 15.0
-          },
-          "largura": 1.0
+          "direcao": "leste"
         }
       ]
     }
   },
-  "viabilidade_tecnica": {
-    "eletricidade": {
-      "disponivel": true,
-      "requisitos": "220V, 10A"
+  "especificacoes_calculador": {
+    "dimensoes_stand": {
+      "frente": 20.0,
+      "fundo": 11.0,
+      "lateral_esquerda": 12.0,
+      "lateral_direita": 13.0
     },
-    "abastecimento_agua": {
-      "disponivel": false,
-      "requisitos": "Não disponível no local"
-    },
-    "acessibilidade": {
-      "conforme": true,
-      "notas": "Acesso para cadeirantes garantido"
-    },
-    "restricoes_construtivas": {
-      "limite_altura": "3m",
-      "restricoes_material": "Proibido uso de materiais inflamáveis"
-    }
+    "material": "construido",
+    "piso_elevado": "sem_elevacao"
   },
-  "diretrizes_arquitetonicas": {
+  "diretrizes_arquitetura_espacial": {
     "estilo": "Moderno",
-    "paleta_cores": ["#FFFFFF", "#000000", "#FF5733"],
-    "iluminacao": "Iluminação LED com dimmer"
+    "material": "construido",
+    "mood": "inspirado em imagens do filme olympia de 1936 e campanha vem junto nike"
   },
-  "dados_equipe_2": {
-    "conceito_visual": {
-      "estilo": "Contemporâneo",
-      "materiais": ["MDF", "Vidro", "Metal"],
-      "humor": "Aconchegante e sofisticado"
-    }
+  "dados_crew_2": {
+    "estilo": "Moderno",
+    "materiais": "construido",
+    "mood": "inspirado em imagens do filme olympia de 1936 e campanha vem junto nike"
   },
-  "dados_equipe_3": {
+  "dados_crew_3": {
     "especificacoes_tecnicas": {
-      "piso": "Piso laminado",
-      "paredes": "Divisórias de MDF",
-      "moveis": "Móveis sob medida"
+      "tipo_venda": "loja",
+      "tipo_ativacao": "Area Instagramavel, Glorify",
+      "objetivo_estande": "Lancamento da colecao"
     },
     "restricoes_construtivas": {
-      "limite_peso": "500kg/m²",
-      "tempo_montagem": "Máximo de 2 dias"
+      "altura_maxima": "não informada",
+      "limites_de_espaco": "deve respeitar a area total de 220m²"
     }
   },
-  "modelo_3D": {
-    "link": "link_para_modelo_3D",
-    "descricao": "Modelo 3D do estande para visualização"
-  },
-  "svg_metadata": {
+  "metadados_svg": {
     "viewBox": "0 0 220 220",
-    "xmlns": "http://www.w3.org/2000/svg",
-    "elementos": [
+    "elementos_svg": [
       {
         "tipo": "retangulo",
         "posicao": {
-          "x": 5,
-          "y": 5
+          "x": 0,
+          "y": 0
         },
         "dimensoes": {
-          "largura": 40,
-          "altura": 40
-        },
-        "cor": "#FF5733"
-      },
-      {
-        "tipo": "retangulo",
-        "posicao": {
-          "x": 15,
-          "y": 5
-        },
-        "dimensoes": {
-          "largura": 30,
-          "altura": 30
+          "largura": 20,
+          "altura": 11
         },
         "cor": "#FFFFFF"
+      },
+      {
+        "tipo": "linha",
+        "posicao_inicial": {
+          "x": 0,
+          "y": 5.5
+        },
+        "posicao_final": {
+          "x": 20,
+          "y": 5.5
+        },
+        "cor": "#000000"
       }
     ]
   },
-  "resumo": {
-    "descricao": "Este projeto de estande foi desenvolvido para maximizar a funcionalidade e o impacto visual, com uma distribuição espacial otimizada que facilita o fluxo de visitantes e destaca as áreas de exposição. A paleta de cores e o estilo moderno garantem uma apresentação atraente e contemporânea."
+  "modelo_3D": {
+    "url": "https://example.com/modelo_3D_hair_summit_2025"
   }
 }
 ```

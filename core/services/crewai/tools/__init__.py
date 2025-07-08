@@ -1,8 +1,25 @@
-# core/services/crewai/tools/__init__.py
-from .registry import tools_registry
-from .manager import create_tools_from_config
-from .base_tool import AfinalBaseTool, ToolResult
-from .svg_generator import SVGGeneratorTool
+# =============================================================================
+# 3. core/services/crewai/tools/__init__.py - SIMPLIFICADO
+# =============================================================================
 
-__all__ = ['tools_registry', 'create_tools_from_config', 'AfinalBaseTool', 'ToolResult',
-           'SVGGeneratorTool']
+from .tools_map import get_tool, list_available_tools, get_tool_info
+from .manager import create_tools_from_config, get_available_tools, validate_tools_config
+
+# Importar tools específicas
+try:
+    from .svg_function import svg_generator_tool
+except ImportError:
+    svg_generator_tool = None
+
+__all__ = [
+    # Funções principais
+    'get_tool', 
+    'list_available_tools',
+    'get_tool_info',
+    'create_tools_from_config',
+    'get_available_tools',
+    'validate_tools_config',
+    
+    # Tools específicas
+    'svg_generator_tool'
+]

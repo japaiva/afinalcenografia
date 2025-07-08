@@ -1,4 +1,6 @@
-# core/services/crewai/tools/manager.py - CORRIGIDO PARA LANGCHAIN
+# =============================================================================
+# 2. core/services/crewai/tools/manager.py - SIMPLIFICADO
+# =============================================================================
 
 from typing import List, Dict, Any
 import logging
@@ -7,168 +9,93 @@ logger = logging.getLogger(__name__)
 
 def create_tools_from_config(tools_config: dict, verbose_manager=None) -> List:
     """
-    Cria tools baseado na configuração com verbose integrado
+    Cria lista de tools baseada na configuração do banco
     
     Args:
-        tools_config: Configuração das tools do banco de dados
-        verbose_manager: Manager de verbose para logs em tempo real
+        tools_config: Configuração vinda do banco {"tools": ["svg_generator"]}
+        verbose_manager: Sistema de logs verbose (opcional)
         
     Returns:
-        Lista de tools LangChain prontas para uso
+        Lista de instâncias de tools prontas para usar
     """
-    tools_instances = []
-    
     if not tools_config:
-        logger.warning("⚠️ Nenhuma configuração de tools fornecida")
-        return tools_instances
+        logger.debug("Nenhuma configuração de tools fornecida")
+        return []
     
+    from .tools_map import get_tool
+    
+    tools_instances = []
     tools_names = tools_config.get('tools', [])
     
     if not tools_names:
-        logger.warning("⚠️ Lista de tools vazia na configuração")
-        return tools_instances
+        logger.debug("Lista de tools vazia na configuração")
+        return []
     
-    logger.info(f"🛠️ Criando {len(tools_names)} tools: {tools_names}")
+    logger.info(f"🛠️ Carregando {len(tools_names)} tools: {tools_names}")
     
     for tool_name in tools_names:
         try:
-            # Log do verbose
             if verbose_manager:
-                verbose_manager.log_step(f"🔧 Criando tool '{tool_name}'", "tool")
+                verbose_manager.log_step(f"🔧 Carregando tool '{tool_name}'", "tool")
             
-            # Configurações específicas da tool
-            tool_specific_config = tools_config.get(tool_name, {})
-            
-            # Injetar verbose manager
-            if verbose_manager:
-                tool_specific_config['verbose_manager'] = verbose_manager
-            
-            # Criar instância da tool
-            tool_instance = _create_tool_instance(tool_name, **tool_specific_config)
+            tool_instance = get_tool(tool_name)
             
             if tool_instance:
                 tools_instances.append(tool_instance)
-                logger.info(f"✅ Tool '{tool_name}' criada com sucesso")
+                logger.info(f"✅ Tool '{tool_name}' carregada com sucesso")
                 
                 if verbose_manager:
                     verbose_manager.log_step(f"✅ Tool '{tool_name}' ativa", "tool")
             else:
-                logger.error(f"❌ Falha ao criar tool '{tool_name}'")
+                logger.warning(f"❌ Tool '{tool_name}' não encontrada")
                 
                 if verbose_manager:
-                    verbose_manager.log_error(f"Tool '{tool_name}' falhou ao ser criada")
-                    
+                    verbose_manager.log_step(f"❌ Tool '{tool_name}' não encontrada", "tool")
+                
         except Exception as e:
-            logger.error(f"❌ Erro ao criar tool '{tool_name}': {str(e)}")
+            logger.error(f"❌ Erro ao carregar tool '{tool_name}': {str(e)}")
             
             if verbose_manager:
-                verbose_manager.log_error(f"Erro na tool '{tool_name}': {str(e)}")
+                verbose_manager.log_step(f"❌ Erro na tool '{tool_name}': {str(e)}", "tool")
     
-    logger.info(f"🎯 Total de tools criadas: {len(tools_instances)}")
+    logger.info(f"🎯 Total de tools carregadas: {len(tools_instances)}")
     return tools_instances
 
-def _create_tool_instance(tool_name: str, **kwargs):
+
+def get_available_tools() -> Dict[str, Any]:
     """
-    Cria instância específica de uma tool
+    Lista tools disponíveis com informações detalhadas
     
-    Args:
-        tool_name: Nome da tool a ser criada
-        **kwargs: Argumentos de configuração
-        
     Returns:
-        Instância da tool ou None se falhar
+        Dict com informações das tools
     """
-    try:
-        if tool_name == 'svg_generator':
-            return _create_svg_generator_tool(**kwargs)
-        elif tool_name == 'file_processor':
-            return _create_file_processor_tool(**kwargs)
-        elif tool_name == 'data_analyzer':
-            return _create_data_analyzer_tool(**kwargs)
+    from .tools_map import list_available_tools, get_tool_info
+    
+    available_tools = {}
+    
+    for tool_name in list_available_tools():
+        tool_info = get_tool_info(tool_name)
+        if tool_info:
+            available_tools[tool_name] = tool_info
         else:
-            logger.warning(f"⚠️ Tool '{tool_name}' não reconhecida")
-            return None
-            
-    except Exception as e:
-        logger.error(f"❌ Erro ao instanciar tool '{tool_name}': {str(e)}")
-        return None
-
-def _create_svg_generator_tool(**kwargs):
-    """Cria instância da SVGGeneratorTool"""
-    try:
-        from .svg_generator import SVGGeneratorTool
-        
-        # Extrair verbose manager se fornecido
-        verbose_manager = kwargs.pop('verbose_manager', None)
-        
-        # Criar instância
-        tool = SVGGeneratorTool(verbose_manager=verbose_manager, **kwargs)
-        
-        logger.info("✅ SVGGeneratorTool criada")
-        return tool
-        
-    except ImportError as e:
-        logger.error(f"❌ Erro ao importar SVGGeneratorTool: {e}")
-        return None
-    except Exception as e:
-        logger.error(f"❌ Erro ao criar SVGGeneratorTool: {e}")
-        return None
-
-def _create_file_processor_tool(**kwargs):
-    """Cria instância da FileProcessorTool (placeholder)"""
-    logger.warning("⚠️ FileProcessorTool ainda não implementada")
-    return None
-
-def _create_data_analyzer_tool(**kwargs):
-    """Cria instância da DataAnalyzerTool (placeholder)"""
-    logger.warning("⚠️ DataAnalyzerTool ainda não implementada")
-    return None
-
-# Função de utilitário para listar tools disponíveis
-def get_available_tools() -> Dict[str, Dict[str, Any]]:
-    """
-    Retorna dicionário com todas as tools disponíveis e suas descrições
+            available_tools[tool_name] = {
+                'name': tool_name,
+                'description': 'Tool não implementada',
+                'available': False
+            }
     
-    Returns:
-        Dict com informações das tools disponíveis
-    """
-    return {
-        'svg_generator': {
-            'name': 'SVGGeneratorTool',
-            'description': 'Gera arquivos SVG de plantas baixas baseado em dados estruturados',
-            'status': 'available',
-            'input_schema': {
-                'dados': 'Dict - Dados estruturados do briefing',
-                'tipo': 'str - Tipo de SVG (planta_baixa, diagrama, etc)',
-                'config': 'Dict - Configurações opcionais'
-            },
-            'output': 'str - Código SVG completo'
-        },
-        'file_processor': {
-            'name': 'FileProcessorTool',
-            'description': 'Processa e manipula arquivos (em desenvolvimento)',
-            'status': 'planned',
-            'input_schema': {},
-            'output': 'str'
-        },
-        'data_analyzer': {
-            'name': 'DataAnalyzerTool', 
-            'description': 'Analisa e processa dados estruturados (em desenvolvimento)',
-            'status': 'planned',
-            'input_schema': {},
-            'output': 'str'
-        }
-    }
+    return available_tools
 
-def validate_tool_config(tools_config: Dict) -> Dict[str, Any]:
+
+def validate_tools_config(tools_config: Dict) -> Dict[str, Any]:
     """
     Valida configuração de tools
     
     Args:
-        tools_config: Configuração a ser validada
+        tools_config: Configuração para validar
         
     Returns:
-        Dict com resultado da validação
+        Resultado da validação
     """
     validation_result = {
         'valid': True,
@@ -191,21 +118,15 @@ def validate_tool_config(tools_config: Dict) -> Dict[str, Any]:
             validation_result['errors'].append("'tools' deve ser uma lista")
             return validation_result
         
-        available_tools = get_available_tools()
+        from .tools_map import get_tool
         
         for tool_name in tools_names:
-            if tool_name in available_tools:
-                if available_tools[tool_name]['status'] == 'available':
-                    validation_result['tools_found'].append(tool_name)
-                else:
-                    validation_result['warnings'].append(f"Tool '{tool_name}' está em desenvolvimento")
+            tool = get_tool(tool_name)
+            if tool:
+                validation_result['tools_found'].append(tool_name)
             else:
                 validation_result['tools_missing'].append(tool_name)
-                validation_result['warnings'].append(f"Tool '{tool_name}' não reconhecida")
-        
-        if validation_result['tools_missing']:
-            validation_result['valid'] = False
-            validation_result['errors'].append(f"Tools não encontradas: {validation_result['tools_missing']}")
+                validation_result['warnings'].append(f"Tool '{tool_name}' não encontrada")
         
     except Exception as e:
         validation_result['valid'] = False

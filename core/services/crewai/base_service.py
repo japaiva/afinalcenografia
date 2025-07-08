@@ -1,4 +1,4 @@
-# core/services/crewai/base_service.py - LOGS MANUAIS DETALHADOS
+# core/services/crewai/base_service.py - VERSÃO COM DEBUG MELHORADO
 
 import logging
 import time
@@ -257,7 +257,7 @@ class CrewAIServiceV2:
             self.verbose_manager = None
     
     def _criar_crewai_framework_verbose(self) -> Optional[CrewAI_Framework]:
-        """Cria CrewAI Framework com logs detalhados"""
+        """Cria CrewAI Framework com logs detalhados e DEBUG MELHORADO"""
         try:
             membros = self.django_crew.membros.filter(ativo=True).order_by('ordem_execucao')
             tasks = self.django_crew.tasks.filter(ativo=True).order_by('ordem_execucao')
@@ -265,63 +265,134 @@ class CrewAIServiceV2:
             if not membros.exists() or not tasks.exists():
                 raise Exception(f"Crew sem membros ou tasks ativas")
             
+            # 🔍 DEBUG - VERIFICAR DADOS ANTES DA CRIAÇÃO
+            self.logger.info(f"🔍 DEBUG: Iniciando criação de {membros.count()} agentes")
+            
             crewai_agents = []
             crewai_tasks = []
             
-            # Criar agentes com logs
+            # Criar agentes com logs e VALIDAÇÃO
             for i, (membro, task) in enumerate(zip(membros, tasks), 1):
-                self.verbose_manager.log_step(f"🔧 Configurando Agente {i}: {membro.agente.crew_role}", "config")
-                time.sleep(0.2)
-                
-                # Criar LLM
-                llm = self._criar_llm_sem_telemetria(membro.agente)
-                
-                # Criar ferramentas
-                tools = self._criar_tools_com_verbose(task.tools_config or {})
-                
-                # Criar agente CrewAI
-                agent = CrewAI_Agent(
-                    role=membro.agente.crew_role,
-                    goal=membro.agente.crew_goal,
-                    backstory=membro.agente.crew_backstory,
-                    llm=llm,
-                    tools=tools,
-                    verbose=False,  # Desabilitar verbose nativo
-                    allow_delegation=membro.pode_delegar,
-                    max_iter=membro.max_iter,
-                    max_execution_time=membro.max_execution_time
-                )
-                
-                # Criar task CrewAI
-                crew_task = CrewAI_Task(
-                    description=task.descricao,
-                    expected_output=task.expected_output,
-                    agent=agent,
-                    async_execution=task.async_execution
-                )
-                
-                if task.output_file:
-                    crew_task.output_file = task.output_file
-                
-                crewai_agents.append(agent)
-                crewai_tasks.append(crew_task)
-                
-                self.verbose_manager.log_step(f"✅ Agente {i} configurado com {len(tools)} tools", "config")
-                time.sleep(0.2)
+                try:
+                    # 🔍 DEBUG DETALHADO DOS DADOS
+                    self.logger.info(f"🔍 DEBUG Agente {i}:")
+                    self.logger.info(f"   ID: {membro.agente.id}")
+                    self.logger.info(f"   Nome: {membro.agente.nome}")
+                    self.logger.info(f"   Role: '{membro.agente.crew_role}'")
+                    self.logger.info(f"   Goal: '{membro.agente.crew_goal[:100] if membro.agente.crew_goal else 'VAZIO'}'")
+                    self.logger.info(f"   Backstory: '{membro.agente.crew_backstory[:100] if membro.agente.crew_backstory else 'VAZIO'}'")
+                    self.logger.info(f"   LLM Provider: '{membro.agente.llm_provider}'")
+                    self.logger.info(f"   LLM Model: '{membro.agente.llm_model}'")
+                    self.logger.info(f"   LLM Temperature: {membro.agente.llm_temperature}")
+                    
+                    # 🔍 VALIDAÇÃO DE CAMPOS OBRIGATÓRIOS
+                    campos_obrigatorios = {
+                        'crew_role': membro.agente.crew_role,
+                        'crew_goal': membro.agente.crew_goal,
+                        'crew_backstory': membro.agente.crew_backstory,
+                        'llm_provider': membro.agente.llm_provider,
+                        'llm_model': membro.agente.llm_model
+                    }
+                    
+                    for campo, valor in campos_obrigatorios.items():
+                        if not valor or str(valor).strip() == '':
+                            raise Exception(f"Agente {membro.agente.nome}: campo '{campo}' está vazio")
+                    
+                    self.verbose_manager.log_step(f"🔧 Configurando Agente {i}: {membro.agente.crew_role}", "config")
+                    time.sleep(0.2)
+                    
+                    # Criar LLM
+                    self.logger.info(f"🔍 Criando LLM para agente {i}...")
+                    llm = self._criar_llm_sem_telemetria(membro.agente)
+                    self.logger.info(f"✅ LLM criado: {type(llm).__name__}")
+                    
+                    # Criar ferramentas
+                    self.logger.info(f"🔍 Criando tools para agente {i}...")
+                    tools = self._criar_tools_com_verbose(task.tools_config or {})
+                    self.logger.info(f"✅ {len(tools)} tools criadas")
+                    
+                    # 🔍 DEBUG - DADOS FINAIS ANTES DA CRIAÇÃO
+                    self.logger.info(f"🔍 Criando CrewAI_Agent com:")
+                    self.logger.info(f"   role='{membro.agente.crew_role}'")
+                    self.logger.info(f"   goal='{membro.agente.crew_goal[:50]}...'")
+                    self.logger.info(f"   tools={len(tools)} tools")
+                    self.logger.info(f"   llm={type(llm).__name__}")
+                    
+                    # Criar agente CrewAI
+                    agent = CrewAI_Agent(
+                        role=str(membro.agente.crew_role),  # Garantir string
+                        goal=str(membro.agente.crew_goal),  # Garantir string
+                        backstory=str(membro.agente.crew_backstory),  # Garantir string
+                        llm=llm,
+                        tools=tools,
+                        verbose=True,  # Usar nosso verbose
+                        allow_delegation=bool(membro.pode_delegar),
+                        max_iter=int(membro.max_iter),
+                        max_execution_time=int(membro.max_execution_time)
+                    )
+                    
+                    self.logger.info(f"✅ CrewAI_Agent {i} criado com sucesso")
+                    
+                    # 🔍 DEBUG - DADOS DA TASK
+                    self.logger.info(f"🔍 DEBUG Task {i}:")
+                    self.logger.info(f"   Nome: '{task.nome}'")
+                    self.logger.info(f"   Descrição: '{task.descricao[:100] if task.descricao else 'VAZIO'}'")
+                    self.logger.info(f"   Expected Output: '{task.expected_output[:100] if task.expected_output else 'VAZIO'}'")
+                    self.logger.info(f"   Tools Config: {task.tools_config}")
+                    self.logger.info(f"   Output File: '{task.output_file}'")
+                    
+                    # Validar campos da task
+                    if not task.descricao or str(task.descricao).strip() == '':
+                        raise Exception(f"Task {task.nome}: campo 'descricao' está vazio")
+                    
+                    if not task.expected_output or str(task.expected_output).strip() == '':
+                        raise Exception(f"Task {task.nome}: campo 'expected_output' está vazio")
+                    
+                    # Criar task CrewAI
+                    crew_task = CrewAI_Task(
+                        description=str(task.descricao),
+                        expected_output=str(task.expected_output),
+                        agent=agent,
+                        async_execution=bool(task.async_execution)
+                    )
+                    
+                    if task.output_file:
+                        crew_task.output_file = str(task.output_file)
+                    
+                    self.logger.info(f"✅ CrewAI_Task {i} criada com sucesso")
+                    
+                    crewai_agents.append(agent)
+                    crewai_tasks.append(crew_task)
+                    
+                    self.verbose_manager.log_step(f"✅ Agente {i} configurado com {len(tools)} tools", "config")
+                    time.sleep(0.2)
+                    
+                except Exception as agent_error:
+                    self.logger.error(f"❌ Erro ao criar agente {i}: {str(agent_error)}")
+                    self.logger.error(f"   Agente: {membro.agente.nome}")
+                    self.logger.error(f"   Task: {task.nome}")
+                    raise Exception(f"Erro no agente {i} ({membro.agente.nome}): {str(agent_error)}")
             
             # Criar crew
             self.verbose_manager.log_step("🏗️ Montando CrewAI Framework...", "sistema")
+            self.logger.info(f"🔍 Criando CrewAI_Framework com:")
+            self.logger.info(f"   agents={len(crewai_agents)} agentes")
+            self.logger.info(f"   tasks={len(crewai_tasks)} tasks")
+            self.logger.info(f"   process='{self.django_crew.processo}'")
+            self.logger.info(f"   memory={self.django_crew.memory}")
+            
             time.sleep(0.3)
             
             crewai_framework = CrewAI_Framework(
                 agents=crewai_agents,
                 tasks=crewai_tasks,
-                process=self.django_crew.processo,
-                verbose=False,  # Sempre False
-                memory=self.django_crew.memory,
+                process=str(self.django_crew.processo),
+                verbose=True,  # Usar nosso verbose
+                memory=bool(self.django_crew.memory),
                 manager_llm=self._criar_manager_llm() if self.django_crew.processo == 'hierarchical' else None
             )
             
+            self.logger.info("✅ CrewAI_Framework criado com sucesso")
             self.verbose_manager.log_step("✅ CrewAI Framework pronto", "sistema")
             time.sleep(0.2)
             
@@ -329,6 +400,10 @@ class CrewAIServiceV2:
             
         except Exception as e:
             self.logger.error(f"❌ Erro ao criar framework: {str(e)}")
+            self.logger.error(f"   Tipo do erro: {type(e).__name__}")
+            import traceback
+            self.logger.error(f"   Traceback: {traceback.format_exc()}")
+            
             if self.verbose_manager:
                 self.verbose_manager.log_error(f"Erro na criação: {str(e)}")
             return None
@@ -338,20 +413,20 @@ class CrewAIServiceV2:
         provider = agente_db.llm_provider.lower()
         
         base_config = {
-            'temperature': agente_db.llm_temperature,
+            'temperature': float(agente_db.llm_temperature),
             'max_tokens': 2000,
             'timeout': 120
         }
         
         if provider == 'openai':
             return ChatOpenAI(
-                model=agente_db.llm_model,
+                model=str(agente_db.llm_model),
                 api_key=getattr(settings, 'OPENAI_API_KEY', None),
                 **base_config
             )
         elif provider == 'anthropic':
             return ChatAnthropic(
-                model=agente_db.llm_model,
+                model=str(agente_db.llm_model),
                 api_key=getattr(settings, 'ANTHROPIC_API_KEY', None),
                 **base_config
             )

@@ -1,8 +1,7 @@
-# core/management/commands/test_svg_tools.py
+# core/management/commands/test_svg_tools.py - VERSÃO CORRIGIDA
 
 from django.core.management.base import BaseCommand
-from core.services.crewai.tools.svg_generator import SVGGeneratorTool
-from core.services.crewai.verbose.manager import VerboseManager
+from core.services.crewai.tools.svg_function import svg_generator_tool
 import json
 import os
 
@@ -16,24 +15,11 @@ class Command(BaseCommand):
             default='test_output.svg',
             help='Arquivo de saída para o SVG'
         )
-        parser.add_argument(
-            '--verbose',
-            action='store_true',
-            help='Ativar logs verbose'
-        )
 
     def handle(self, *args, **options):
         output_file = options['output']
-        use_verbose = options['verbose']
         
         self.stdout.write(self.style.SUCCESS('🧪 TESTANDO SVGGeneratorTool'))
-        
-        # Inicializar verbose se solicitado
-        verbose_manager = None
-        if use_verbose:
-            verbose_manager = VerboseManager("test_svg_tool", "Teste SVG")
-            verbose_manager.start()
-            self.stdout.write('📡 Verbose ativado')
         
         # Dados de teste simulando um briefing real
         dados_teste = {
@@ -97,57 +83,70 @@ class Command(BaseCommand):
         }
         
         try:
-            # Criar instância da tool
-            self.stdout.write('🛠️ Criando SVGGeneratorTool...')
-            svg_tool = SVGGeneratorTool(verbose_manager=verbose_manager)
+            self.stdout.write('🛠️ Usando SVGGeneratorTool...')
             
-            # Testar a tool
+            # ✅ CORREÇÃO: Converter para JSON string
+            dados_json = json.dumps(dados_teste)
+            self.stdout.write(f'📋 JSON preparado: {len(dados_json)} caracteres')
+            
+            # ✅ CORREÇÃO: Chamar com parâmetro correto
             self.stdout.write('🎨 Gerando SVG...')
-            resultado = svg_tool._run(
-                dados=dados_teste,
-                tipo="planta_baixa",
-                config={
-                    'width': 800,
-                    'height': 600,
-                    'background_color': '#f8f9fa'
-                }
-            )
+            resultado = svg_generator_tool._run(dados_json)
             
             # Verificar resultado
             if resultado and len(resultado) > 100:
                 self.stdout.write(self.style.SUCCESS('✅ SVG gerado com sucesso!'))
                 self.stdout.write(f'📊 Tamanho: {len(resultado)} caracteres')
                 
-                # Salvar arquivo
-                with open(output_file, 'w', encoding='utf-8') as f:
-                    f.write(resultado)
+                # Verificar se é SVG válido
+                if '<?xml' in resultado and '<svg' in resultado:
+                    self.stdout.write('✅ SVG válido detectado')
+                else:
+                    self.stdout.write('⚠️ Resultado não parece ser SVG válido')
                 
-                self.stdout.write(f'💾 SVG salvo em: {output_file}')
+                # Salvar arquivo
+                try:
+                    with open(output_file, 'w', encoding='utf-8') as f:
+                        f.write(resultado)
+                    
+                    self.stdout.write(f'💾 SVG salvo em: {output_file}')
+                    
+                    # Verificar se arquivo foi criado
+                    if os.path.exists(output_file):
+                        tamanho_arquivo = os.path.getsize(output_file)
+                        self.stdout.write(f'📁 Arquivo criado: {tamanho_arquivo} bytes')
+                    
+                except Exception as e:
+                    self.stdout.write(self.style.ERROR(f'❌ Erro ao salvar arquivo: {e}'))
                 
                 # Mostrar preview do início
-                preview = resultado[:200] + "..." if len(resultado) > 200 else resultado
+                preview = resultado[:300] + "..." if len(resultado) > 300 else resultado
                 self.stdout.write(f'👀 Preview:\n{preview}')
+                
+                # Mostrar algumas linhas do meio
+                if len(resultado) > 600:
+                    meio = len(resultado) // 2
+                    preview_meio = resultado[meio:meio+200] + "..."
+                    self.stdout.write(f'🔍 Meio do SVG:\n{preview_meio}')
                 
             else:
                 self.stdout.write(self.style.ERROR('❌ SVG não gerado ou muito pequeno'))
                 if resultado:
-                    self.stdout.write(f'Resultado: {resultado}')
+                    self.stdout.write(f'Resultado recebido: {resultado[:500]}')
+                else:
+                    self.stdout.write('Nenhum resultado retornado')
             
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'❌ Erro: {str(e)}'))
+            self.stdout.write(self.style.ERROR(f'❌ Erro durante execução: {str(e)}'))
             import traceback
+            self.stdout.write('🔍 Traceback completo:')
             self.stdout.write(traceback.format_exc())
-            
-        finally:
-            if verbose_manager:
-                verbose_manager.stop()
-                
-                # Mostrar logs
-                logs = verbose_manager.get_logs()
-                self.stdout.write(f'\n📋 Logs verbose ({len(logs)} entradas):')
-                for log in logs:
-                    timestamp = log.get('timestamp', 'N/A')
-                    message = log.get('message', 'N/A')
-                    self.stdout.write(f'   [{timestamp}] {message}')
         
         self.stdout.write('\n🎯 Teste da SVGGeneratorTool concluído!')
+        
+        # Instruções finais
+        if os.path.exists(output_file):
+            self.stdout.write('\n📋 Para visualizar o SVG:')
+            self.stdout.write(f'   1. Abrir arquivo: {os.path.abspath(output_file)}')
+            self.stdout.write('   2. Usar navegador ou editor que suporte SVG')
+            self.stdout.write('   3. Ou copiar conteúdo para ferramenta online de SVG')

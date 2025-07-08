@@ -1,4 +1,3 @@
-```json
 {
   "nome_projeto": "Hair Summit 2025",
   "empresa": "Beauty Fair",
@@ -37,53 +36,37 @@
       "equipamentos": "umas prateleiras"
     }
   ],
-  "viabilidade_tecnica": {
-    "eletricidade": {
-      "disponivel": true,
-      "requisitos": "220V, 10A"
+  "validacao_viabilidade_tecnica": {
+    "tipo_stand": "ponta_ilha",
+    "area_total": 220.0,
+    "dimensoes": {
+      "frente": 20.0,
+      "fundo": 11.0,
+      "lateral_esquerda": 12.0,
+      "lateral_direita": 13.0
     },
-    "abastecimento_agua": {
-      "disponivel": false,
-      "requisitos": "Não disponível no local"
-    },
-    "acessibilidade": {
-      "conforme": true,
-      "notas": "Acesso para cadeirantes garantido"
-    },
-    "restricoes_construtivas": {
-      "limite_altura": "3m",
-      "restricoes_material": "Proibido uso de materiais inflamáveis"
-    }
+    "material": "construido",
+    "piso_elevado": "sem_elevacao"
   },
-  "diretrizes_arquitetonicas": {
+  "diretrizes_arquitetura_espacial": {
     "estilo": "Moderno",
-    "paleta_cores": ["#FFFFFF", "#000000", "#FF5733"],
-    "iluminacao": "Iluminação LED com dimmer"
+    "material": "construido",
+    "mood": "inspirado em imagens do filme olympia de 1936 e campanha vem junto nike"
   },
-  "dados_equipe_2": {
-    "conceito_visual": {
-      "estilo": "Contemporâneo",
-      "materiais": ["MDF", "Vidro", "Metal"],
-      "humor": "Aconchegante e sofisticado"
-    }
+  "dados_crew_2": {
+    "estilo": "Moderno",
+    "materiais": "construido",
+    "mood": "inspirado em imagens do filme olympia de 1936 e campanha vem junto nike"
   },
-  "dados_equipe_3": {
+  "dados_crew_3": {
     "especificacoes_tecnicas": {
-      "piso": "Piso laminado",
-      "paredes": "Divisórias de MDF",
-      "moveis": "Móveis sob medida"
+      "tipo_venda": "loja",
+      "tipo_ativacao": "Area Instagramavel, Glorify",
+      "objetivo_estande": "Lancamento da colecao"
     },
     "restricoes_construtivas": {
-      "limite_peso": "500kg/m²",
-      "tempo_montagem": "Máximo de 2 dias"
+      "altura_maxima": "não informada",
+      "limites_de_espaco": "deve respeitar a area total de 220m²"
     }
-  },
-  "modelo_3D": {
-    "link": "link_para_modelo_3D",
-    "descricao": "Modelo 3D do estande para visualização"
-  },
-  "resumo": {
-    "descricao": "Este projeto de estande foi desenvolvido para maximizar a funcionalidade e o impacto visual, com uma distribuição espacial otimizada que facilita o fluxo de visitantes e destaca as áreas de exposição. A paleta de cores e o estilo moderno garantem uma apresentação atraente e contemporânea."
   }
 }
-```
