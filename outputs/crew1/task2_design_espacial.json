@@ -10,62 +10,53 @@
       "dimensoes": {
         "largura": 10.0,
         "comprimento": 10.0
-      },
-      "descricao": "Espaço central para interação e circulação dos visitantes."
+      }
     },
     "areas_exposicao": [
       {
         "tipo": "exposicao",
+        "metragem": 40.0,
         "posicao": {
           "x": 5.0,
           "y": 5.0
         },
-        "dimensoes": {
-          "largura": 8.0,
-          "comprimento": 5.0
-        },
         "equipamentos": ["tv", "ledss"],
-        "observacoes": "Área de exposição principal com lounge e mesas de atendimento.",
+        "observacoes": "observacoes area 1",
         "elementos": {
           "lounge": true,
+          "vitrine_exposicao": false,
+          "balcao_recepcao": false,
           "mesas_atendimento": true,
-          "balcao_cafe": true
+          "balcao_cafe": true,
+          "balcao_vitrine": false,
+          "caixa_vendas": false
         }
       },
       {
         "tipo": "sala_reuniao",
+        "capacidade": 8,
+        "metragem": 30.0,
         "posicao": {
           "x": 15.0,
           "y": 5.0
         },
-        "dimensoes": {
-          "largura": 5.0,
-          "comprimento": 6.0
-        },
-        "capacidade": 8,
-        "equipamentos": ["mesa", "cadeira", "moveisss"]
+        "equipamentos": ["mesa", "cadeira", "móveis"]
       },
       {
         "tipo": "copa",
+        "metragem": 21.0,
         "posicao": {
-          "x": 15.0,
-          "y": 12.0
-        },
-        "dimensoes": {
-          "largura": 4.0,
-          "comprimento": 5.0
+          "x": 5.0,
+          "y": 15.0
         },
         "equipamentos": ["umas pias"]
       },
       {
         "tipo": "deposito",
+        "metragem": 22.0,
         "posicao": {
-          "x": 5.0,
-          "y": 12.0
-        },
-        "dimensoes": {
-          "largura": 4.0,
-          "comprimento": 5.5
+          "x": 15.0,
+          "y": 15.0
         },
         "equipamentos": ["umas prateleiras"]
       }
@@ -73,14 +64,39 @@
     "fluxos": {
       "entrada": {
         "posicao": "norte",
-        "descricao": "Acesso principal para visitantes."
+        "largura": 2.0
       },
-      "circulacao": {
-        "descricao": "Fluxo de visitantes direcionado ao redor do núcleo central, facilitando o acesso às áreas de exposição e serviços."
-      }
+      "saida": {
+        "posicao": "sul",
+        "largura": 2.0
+      },
+      "caminhos_internos": [
+        {
+          "inicio": {
+            "x": 5.0,
+            "y": 5.0
+          },
+          "fim": {
+            "x": 15.0,
+            "y": 5.0
+          },
+          "largura": 1.0
+        },
+        {
+          "inicio": {
+            "x": 5.0,
+            "y": 15.0
+          },
+          "fim": {
+            "x": 15.0,
+            "y": 15.0
+          },
+          "largura": 1.0
+        }
+      ]
     }
   },
-  "especificacoes_tecnicas": {
+  "viabilidade_tecnica": {
     "eletricidade": {
       "disponivel": true,
       "requisitos": "220V, 10A"

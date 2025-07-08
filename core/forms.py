@@ -300,6 +300,134 @@ class CrewMembroForm(forms.ModelForm):
 
 # core/forms.py - Seção CrewTaskForm corrigida
 
+
+class CrewTaskForm(forms.ModelForm):
+    class Meta:
+        model = CrewTask
+        fields = [
+            # CAMPOS PRINCIPAIS (sempre visíveis)
+            'nome', 'descricao', 'expected_output', 'agente_responsavel',
+            'ordem_execucao', 
+            
+            # CAMPOS ÚTEIS (visíveis)
+            'tools_config', 'output_file',
+            
+            # CAMPOS OPCIONAIS AVANÇADOS (visíveis mas menos destaque)
+            'async_execution', 'dependencias',
+            
+            # STATUS
+            'ativo'
+            
+            # OCULTOS NO FORM (mas mantidos no model):
+            # - context_template (usar descricao com interpolação)
+        ]
+        widgets = {
+            'nome': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ex: Analisar Briefing, Gerar Layout, Criar SVG'
+            }),
+            'descricao': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 6,  # ← MAIOR porque aqui vai a interpolação
+                'placeholder': '''DADOS RECEBIDOS:
+{briefing_completo}
+
+Descreva o que esta task deve fazer com os dados...'''
+            }),
+            'expected_output': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 3,
+                'placeholder': 'JSON estruturado com análise completa, SVG com coordenadas, etc.'
+            }),
+            'agente_responsavel': forms.Select(attrs={'class': 'form-select'}),
+            'ordem_execucao': forms.NumberInput(attrs={
+                'class': 'form-control', 
+                'min': '1'
+            }),
+            
+            # TOOLS CONFIG - DESTACADO
+            'tools_config': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 4,
+                'placeholder': '''{"svg_generator": {"width": 800, "height": 600}, "file_upload": {"allowed_types": ["png", "svg"]}}'''
+            }),
+            
+            # OUTPUT FILE - ÚTIL
+            'output_file': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'outputs/planta_baixa.svg, outputs/analise.json'
+            }),
+            
+            # CAMPOS AVANÇADOS (menos destaque visual)
+            'async_execution': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'dependencias': forms.CheckboxSelectMultiple(attrs={
+                'class': 'form-check-input'
+            }),
+            'ativo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        crew = kwargs.pop('crew', None)
+        super().__init__(*args, **kwargs)
+        
+        if crew:
+            # Filtrar agentes do crew
+            agentes_do_crew = CrewMembro.objects.filter(
+                crew=crew, ativo=True
+            ).values_list('agente_id', flat=True)
+            
+            self.fields['agente_responsavel'].queryset = Agente.objects.filter(
+                id__in=agentes_do_crew
+            )
+            
+            # Filtrar dependências (tasks do mesmo crew, exceto self)
+            dependencias_queryset = CrewTask.objects.filter(crew=crew)
+            if self.instance.pk:
+                dependencias_queryset = dependencias_queryset.exclude(id=self.instance.id)
+            self.fields['dependencias'].queryset = dependencias_queryset
+        
+        # LABELS e HELP_TEXT otimizados
+        self.fields['descricao'].label = "Descrição da Task (com interpolação)"
+        self.fields['descricao'].help_text = "Use {briefing_completo} para receber dados reais do projeto"
+        
+        self.fields['tools_config'].label = "Configuração de Ferramentas (JSON)"
+        self.fields['tools_config'].help_text = "Configure ferramentas específicas para esta task"
+        
+        self.fields['output_file'].label = "Arquivo de Saída (opcional)"
+        self.fields['output_file'].help_text = "Caminho para salvar resultado automaticamente"
+        
+        self.fields['dependencias'].label = "Dependências (opcional)"
+        self.fields['dependencias'].help_text = "Tasks que devem executar antes desta"
+    
+    def clean_tools_config(self):
+        tools_config = self.cleaned_data.get('tools_config')
+        if tools_config:
+            try:
+                if isinstance(tools_config, str) and tools_config.strip():
+                    import json
+                    parsed = json.loads(tools_config)
+                    # Validar estrutura básica
+                    if not isinstance(parsed, dict):
+                        raise forms.ValidationError("Configuração deve ser um objeto JSON")
+                    return tools_config
+            except (json.JSONDecodeError, TypeError):
+                raise forms.ValidationError("Configuração deve ser um JSON válido")
+        return tools_config
+    
+    def clean_output_file(self):
+        output_file = self.cleaned_data.get('output_file')
+        if output_file:
+            import os
+            ext = os.path.splitext(output_file)[1].lower()
+            allowed_extensions = ['.json', '.txt', '.md', '.csv', '.yaml', '.yml', '.png', '.svg', '.pdf']
+            if ext and ext not in allowed_extensions:
+                raise forms.ValidationError(f"Extensão {ext} não permitida. Use: {', '.join(allowed_extensions)}")
+        return output_file
+
+
+
+
+
 class CrewTaskForm(forms.ModelForm):
     class Meta:
         model = CrewTask

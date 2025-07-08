@@ -1,73 +1,102 @@
 ```json
 {
-  "svg": "<svg width=\"220\" height=\"220\" xmlns=\"http://www.w3.org/2000/svg\">\n  <!-- Estande Hair Summit 2025 -->\n  <rect x=\"5\" y=\"5\" width=\"80\" height=\"50\" fill=\"#FF5733\" stroke=\"#000000\" stroke-width=\"2\" />\n  <text x=\"10\" y=\"30\" font-family=\"Arial\" font-size=\"12\" fill=\"#FFFFFF\">Exposição</text>\n  <rect x=\"150\" y=\"5\" width=\"50\" height=\"60\" fill=\"#FFFFFF\" stroke=\"#000000\" stroke-width=\"2\" />\n  <text x=\"155\" y=\"30\" font-family=\"Arial\" font-size=\"12\" fill=\"#000000\">Sala Reunião</text>\n  <rect x=\"150\" y=\"70\" width=\"40\" height=\"50\" fill=\"#000000\" stroke=\"#FFFFFF\" stroke-width=\"2\" />\n  <text x=\"155\" y=\"95\" font-family=\"Arial\" font-size=\"12\" fill=\"#FFFFFF\">Copa</text>\n  <rect x=\"5\" y=\"70\" width=\"40\" height=\"55\" fill=\"#FFFFFF\" stroke=\"#000000\" stroke-width=\"2\" />\n  <text x=\"10\" y=\"95\" font-family=\"Arial\" font-size=\"12\" fill=\"#000000\">Depósito</text>\n  <rect x=\"60\" y=\"60\" width=\"100\" height=\"100\" fill=\"none\" stroke=\"#000000\" stroke-width=\"2\" />\n  <text x=\"90\" y=\"120\" font-family=\"Arial\" font-size=\"12\" fill=\"#000000\">Núcleo Central</text>\n  <line x1=\"0\" y1=\"110\" x2=\"220\" y2=\"110\" stroke=\"#000000\" stroke-width=\"2\" />\n  <text x=\"10\" y=\"105\" font-family=\"Arial\" font-size=\"12\" fill=\"#000000\">Entrada</text>\n</svg>",
+  "svg_code": "<svg viewBox=\"0 0 220 220\" xmlns=\"http://www.w3.org/2000/svg\">\n  <rect x=\"0\" y=\"0\" width=\"220\" height=\"220\" fill=\"#FFFFFF\" stroke=\"#000000\" stroke-width=\"2\"/>\n  <rect x=\"5\" y=\"5\" width=\"40\" height=\"40\" fill=\"#FF5733\" stroke=\"#000000\" stroke-width=\"1\"/>\n  <text x=\"10\" y=\"30\" font-family=\"Arial\" font-size=\"10\" fill=\"#000000\">Exposição</text>\n  <rect x=\"15\" y=\"5\" width=\"30\" height=\"30\" fill=\"#FFFFFF\" stroke=\"#000000\" stroke-width=\"1\"/>\n  <text x=\"20\" y=\"25\" font-family=\"Arial\" font-size=\"10\" fill=\"#000000\">TV</text>\n  <rect x=\"5\" y=\"15\" width=\"21\" height=\"21\" fill=\"#FF5733\" stroke=\"#000000\" stroke-width=\"1\"/>\n  <text x=\"10\" y=\"35\" font-family=\"Arial\" font-size=\"10\" fill=\"#000000\">Copa</text>\n  <rect x=\"15\" y=\"15\" width=\"22\" height=\"22\" fill=\"#FF5733\" stroke=\"#000000\" stroke-width=\"1\"/>\n  <text x=\"20\" y=\"35\" font-family=\"Arial\" font-size=\"10\" fill=\"#000000\">Depósito</text>\n  <rect x=\"5\" y=\"45\" width=\"30\" height=\"30\" fill=\"#FF5733\" stroke=\"#000000\" stroke-width=\"1\"/>\n  <text x=\"10\" y=\"65\" font-family=\"Arial\" font-size=\"10\" fill=\"#000000\">Sala de Reunião</text>\n  <line x1=\"5\" y1=\"45\" x2=\"35\" y2=\"45\" stroke=\"#000000\" stroke-width=\"1\"/>\n  <text x=\"40\" y=\"50\" font-family=\"Arial\" font-size=\"10\" fill=\"#000000\">Caminho Interno</text>\n</svg>",
   "metadados": {
-    "titulo": "Estande Hair Summit 2025",
-    "descricao": "Representação gráfica do estande para renderização SVG.",
-    "elementos": [
-      {
-        "tipo": "retangulo",
-        "posicao": {
-          "x": 5.0,
-          "y": 5.0
-        },
+    "nome_projeto": "Hair Summit 2025",
+    "empresa": "Beauty Fair",
+    "tipo_stand": "ponta_ilha",
+    "area_total": 220.0,
+    "distribuicao_espacial": {
+      "nucleo_central": {
+        "posicao": "centro",
         "dimensoes": {
-          "largura": 80.0,
-          "altura": 50.0
-        },
-        "cor": "#FF5733"
+          "largura": 10.0,
+          "comprimento": 10.0
+        }
       },
-      {
-        "tipo": "retangulo",
-        "posicao": {
-          "x": 150.0,
-          "y": 5.0
+      "areas_exposicao": [
+        {
+          "tipo": "exposicao",
+          "metragem": 40.0,
+          "posicao": {
+            "x": 5.0,
+            "y": 5.0
+          },
+          "equipamentos": ["tv", "ledss"],
+          "observacoes": "observacoes area 1"
         },
-        "dimensoes": {
-          "largura": 50.0,
-          "altura": 60.0
+        {
+          "tipo": "sala_reuniao",
+          "capacidade": 8,
+          "metragem": 30.0,
+          "posicao": {
+            "x": 15.0,
+            "y": 5.0
+          },
+          "equipamentos": ["mesa", "cadeira", "móveis"]
         },
-        "cor": "#FFFFFF"
+        {
+          "tipo": "copa",
+          "metragem": 21.0,
+          "posicao": {
+            "x": 5.0,
+            "y": 15.0
+          },
+          "equipamentos": ["umas pias"]
+        },
+        {
+          "tipo": "deposito",
+          "metragem": 22.0,
+          "posicao": {
+            "x": 15.0,
+            "y": 15.0
+          },
+          "equipamentos": ["umas prateleiras"]
+        }
+      ]
+    },
+    "fluxos": {
+      "entrada": {
+        "posicao": "norte",
+        "largura": 2.0
       },
-      {
-        "tipo": "retangulo",
-        "posicao": {
-          "x": 150.0,
-          "y": 70.0
-        },
-        "dimensoes": {
-          "largura": 40.0,
-          "altura": 50.0
-        },
-        "cor": "#000000"
-      },
-      {
-        "tipo": "retangulo",
-        "posicao": {
-          "x": 5.0,
-          "y": 70.0
-        },
-        "dimensoes": {
-          "largura": 40.0,
-          "altura": 55.0
-        },
-        "cor": "#FFFFFF"
-      },
-      {
-        "tipo": "nucleo_central",
-        "posicao": {
-          "x": 60.0,
-          "y": 60.0
-        },
-        "dimensoes": {
-          "largura": 100.0,
-          "altura": 100.0
-        },
-        "cor": "none"
+      "saida": {
+        "posicao": "sul",
+        "largura": 2.0
       }
-    ]
+    },
+    "viabilidade_tecnica": {
+      "eletricidade": {
+        "disponivel": true,
+        "requisitos": "220V, 10A"
+      },
+      "abastecimento_agua": {
+        "disponivel": false,
+        "requisitos": "Não disponível no local"
+      },
+      "acessibilidade": {
+        "conforme": true,
+        "notas": "Acesso para cadeirantes garantido"
+      },
+      "restricoes_construtivas": {
+        "limite_altura": "3m",
+        "restricoes_material": "Proibido uso de materiais inflamáveis"
+      }
+    },
+    "diretrizes_arquitetonicas": {
+      "estilo": "Moderno",
+      "paleta_cores": ["#FFFFFF", "#000000", "#FF5733"],
+      "iluminacao": "Iluminação LED com dimmer"
+    },
+    "resumo": {
+      "descricao": "Este projeto de estande foi desenvolvido para maximizar a funcionalidade e o impacto visual, com uma distribuição espacial otimizada que facilita o fluxo de visitantes e destaca as áreas de exposição. A paleta de cores e o estilo moderno garantem uma apresentação atraente e contemporânea."
+    }
   },
   "confirmacao_sucesso": true,
-  "observacoes_tecnicas": "A planta baixa foi renderizada com precisão técnica e clareza visual, seguindo as diretrizes arquitetônicas modernas. As dimensões e cores foram escolhidas para garantir uma apresentação atraente e fácil interpretação."
+  "observacoes_tecnicas": [
+    "O SVG foi validado para compatibilidade com diversos motores de renderização.",
+    "As dimensões e escalas foram cuidadosamente consideradas para garantir precisão.",
+    "Anotações e rótulos foram incluídos para facilitar a interpretação da planta."
+  ]
 }
 ```

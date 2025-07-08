@@ -1,9 +1,8 @@
-# core/services/crewai_verbose/verbose_manager.py
+# core/services/crewai/verbose/manager.py - CORREÇÃO DEFINITIVA TEMPO REAL
 
 import logging
 import time
 import threading
-import queue
 from typing import Dict, Any, Callable, Optional
 from django.core.cache import cache
 from django.utils import timezone
@@ -13,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class VerboseManager:
     """
-    Sistema de verbose melhorado para CrewAI com callbacks em tempo real
+    Sistema de verbose CORRIGIDO para logs em TEMPO REAL
     """
     
     def __init__(self, execucao_id: str, crew_nome: str = "CrewAI"):
@@ -23,12 +22,12 @@ class VerboseManager:
         self.is_active = False
         self.start_time = None
         self.callbacks = []
-        self._logs_buffer = []
         self._lock = threading.Lock()
         
-    def add_callback(self, callback: Callable):
-        """Adiciona callback para logs em tempo real"""
-        self.callbacks.append(callback)
+        # 🔥 CORREÇÃO CRÍTICA: SEM BUFFER - DIRETO PARA CACHE
+        self.use_buffer = False
+        
+        self.logger = logging.getLogger(f"verbose_manager_{execucao_id}")
         
     def start(self):
         """Inicia captura de logs"""
@@ -38,50 +37,49 @@ class VerboseManager:
             
             # Limpar cache anterior
             cache.set(self.cache_key, [], timeout=7200)
+            self.logger.info(f"✅ VerboseManager iniciado para execução {self.execucao_id}")
             
-            # Log inicial
-            self._add_log("🚀 Iniciando execução", "inicio")
+            # 🔥 CRITICAL: Log inicial IMEDIATO
+            self._add_log_direct("🚀 Sistema de verbose iniciado", "inicio")
             
     def stop(self):
         """Para captura de logs"""
         with self._lock:
             if self.is_active:
                 tempo_total = time.time() - self.start_time if self.start_time else 0
-                self._add_log(f"✅ Execução concluída em {tempo_total:.1f}s", "fim")
+                self._add_log_direct(f"✅ Verbose finalizado em {tempo_total:.1f}s", "fim")
                 self.is_active = False
-                
-                # Flush final dos logs
-                self._flush_logs()
+                self.logger.info(f"✅ VerboseManager finalizado: {tempo_total:.1f}s")
                 
     def log_step(self, message: str, step_type: str = "info", agent_name: str = None):
-        """Log de etapa específica"""
+        """🔥 CORRIGIDO: Log direto sem buffer"""
         if agent_name:
             message = f"[{agent_name}] {message}"
-        self._add_log(message, step_type)
+        self._add_log_direct(message, step_type)
         
     def log_agent_start(self, agent_name: str, role: str):
         """Log início de agente"""
-        self._add_log(f"🤖 Agente '{agent_name}' iniciado", "agente", {
+        self._add_log_direct(f"🤖 Agente '{agent_name}' iniciado", "agente", {
             'agent_name': agent_name,
             'role': role
         })
         
     def log_task_start(self, task_name: str, agent_name: str):
         """Log início de task"""
-        self._add_log(f"📋 Task '{task_name}' iniciada", "task", {
+        self._add_log_direct(f"📋 Task '{task_name}' iniciada", "task", {
             'task_name': task_name,
             'agent_name': agent_name
         })
         
     def log_thinking(self, message: str, agent_name: str):
         """Log de pensamento do agente"""
-        self._add_log(f"💭 {message}", "pensamento", {
+        self._add_log_direct(f"💭 {message}", "pensamento", {
             'agent_name': agent_name
         })
         
     def log_action(self, action: str, agent_name: str):
         """Log de ação do agente"""
-        self._add_log(f"⚡ {action}", "acao", {
+        self._add_log_direct(f"⚡ {action}", "acao", {
             'agent_name': agent_name,
             'action': action
         })
@@ -91,14 +89,14 @@ class VerboseManager:
         message = f"🛠️ Tool '{tool_name}' executada"
         if result_summary:
             message += f" - {result_summary}"
-        self._add_log(message, "tool", {
+        self._add_log_direct(message, "tool", {
             'tool_name': tool_name,
             'agent_name': agent_name
         })
         
     def log_response(self, response_summary: str, agent_name: str):
         """Log resposta do agente"""
-        self._add_log(f"📊 {response_summary}", "resposta", {
+        self._add_log_direct(f"📊 {response_summary}", "resposta", {
             'agent_name': agent_name
         })
         
@@ -107,10 +105,10 @@ class VerboseManager:
         message = f"❌ Erro: {error}"
         if agent_name:
             message = f"[{agent_name}] {message}"
-        self._add_log(message, "erro")
+        self._add_log_direct(message, "erro")
         
-    def _add_log(self, message: str, tipo: str = "info", metadata: Dict = None):
-        """Adiciona log interno"""
+    def _add_log_direct(self, message: str, tipo: str = "info", metadata: Dict = None):
+        """🔥 NOVO: Adiciona log DIRETAMENTE no cache - SEM BUFFER"""
         if not self.is_active:
             return
             
@@ -124,8 +122,8 @@ class VerboseManager:
             'metadata': metadata or {}
         }
         
-        # Adicionar ao buffer
-        self._logs_buffer.append(log_entry)
+        # Log no console também
+        self.logger.info(f"[{log_entry['timestamp']}] {message}")
         
         # Chamar callbacks
         for callback in self.callbacks:
@@ -134,97 +132,105 @@ class VerboseManager:
             except Exception as e:
                 logger.error(f"Erro no callback de log: {e}")
         
-        # Flush periódico
-        if len(self._logs_buffer) >= 5:
-            self._flush_logs()
-            
-    def _flush_logs(self):
-        """Flush logs para cache"""
-        if not self._logs_buffer:
-            return
-            
+        # 🔥 CRITICAL: SALVAR DIRETAMENTE NO CACHE
         try:
-            # Buscar logs atuais
+            # Buscar logs atuais do cache
             logs_atuais = cache.get(self.cache_key, [])
-            logs_atuais.extend(self._logs_buffer)
             
-            # Manter últimos 500 logs
-            if len(logs_atuais) > 500:
-                logs_atuais = logs_atuais[-500:]
+            # Adicionar novo log
+            logs_atuais.append(log_entry)
+            
+            # Manter últimos 200 logs para performance
+            if len(logs_atuais) > 200:
+                logs_atuais = logs_atuais[-200:]
                 
-            # Salvar no cache
+            # 🔥 SALVAR IMEDIATAMENTE
             cache.set(self.cache_key, logs_atuais, timeout=7200)
             
-            # Limpar buffer
-            self._logs_buffer.clear()
+            # Debug detalhado
+            self.logger.debug(f"🔄 Log salvo diretamente no cache: {len(logs_atuais)} total")
             
         except Exception as e:
-            logger.error(f"Erro ao fazer flush dos logs: {e}")
+            self.logger.error(f"❌ ERRO CRÍTICO ao salvar log: {e}")
+    
+    # 🔥 MANTER MÉTODOS ANTIGOS PARA COMPATIBILIDADE
+    def _add_log_immediate(self, message: str, tipo: str = "info", metadata: Dict = None):
+        """Alias para _add_log_direct"""
+        return self._add_log_direct(message, tipo, metadata)
+    
+    def _add_log(self, message: str, tipo: str = "info", metadata: Dict = None):
+        """Alias para _add_log_direct"""
+        return self._add_log_direct(message, tipo, metadata)
+            
+    def _flush_logs_immediate(self):
+        """Método mantido para compatibilidade - não faz nada"""
+        pass
+
+    def _flush_logs(self):
+        """Método mantido para compatibilidade - não faz nada"""
+        pass
 
     def get_logs(self, desde: int = 0):
         """Recupera logs do cache"""
-        logs = cache.get(self.cache_key, [])
-        if desde < len(logs):
-            return logs[desde:]
-        return []
-
-# core/services/crewai_verbose/crew_callbacks.py
-
-from crewai.agent import BaseAgent
-from crewai.task import Task
-from typing import Dict, Any
-import logging
-
-logger = logging.getLogger(__name__)
-
-class VerboseCallbackHandler:
-    """
-    Handler de callbacks para interceptar eventos do CrewAI
-    """
+        try:
+            logs = cache.get(self.cache_key, [])
+            if desde < len(logs):
+                return logs[desde:]
+            return []
+        except Exception as e:
+            self.logger.error(f"❌ Erro ao recuperar logs: {e}")
+            return []
     
-    def __init__(self, verbose_manager):
-        self.verbose_manager = verbose_manager
+    def get_stats(self) -> Dict[str, Any]:
+        """Retorna estatísticas do verbose manager"""
+        logs = cache.get(self.cache_key, [])
+        tempo_ativo = time.time() - self.start_time if self.start_time else 0
         
-    def on_agent_start(self, agent: BaseAgent, **kwargs):
-        """Callback quando agente inicia"""
-        self.verbose_manager.log_agent_start(
-            agent_name=getattr(agent, 'role', 'Unknown'),
-            role=getattr(agent, 'role', 'Unknown')
-        )
+        return {
+            'execucao_id': self.execucao_id,
+            'crew_nome': self.crew_nome,
+            'is_active': self.is_active,
+            'total_logs': len(logs),
+            'tempo_ativo': tempo_ativo,
+            'cache_key': self.cache_key,
+            'modo_direto': True  # Novo flag
+        }
+    
+    def force_flush(self):
+        """Não faz nada - logs já são diretos"""
+        pass
+    
+    def clear_logs(self):
+        """Limpa todos os logs"""
+        cache.delete(self.cache_key)
+        self.logger.info(f"🗑️ Logs limpos para execução {self.execucao_id}")
+
+# 🔥 NOVA FUNÇÃO PARA TESTE DIRETO
+def test_verbose_direct(execucao_id: str = "test_direct_123"):
+    """Função para testar verbose DIRETO no cache"""
+    print("🧪 Testando Verbose Manager DIRETO...")
+    
+    manager = VerboseManager(execucao_id, "Teste Direto")
+    manager.start()
+    
+    # Simular logs diretos
+    for i in range(5):
+        manager.log_step(f"Teste direto {i+1}/5", "teste")
         
-    def on_task_start(self, task: Task, agent: BaseAgent, **kwargs):
-        """Callback quando task inicia"""
-        self.verbose_manager.log_task_start(
-            task_name=getattr(task, 'description', 'Unknown Task')[:50],
-            agent_name=getattr(agent, 'role', 'Unknown')
-        )
+        # Verificar se logs estão no cache IMEDIATAMENTE
+        logs = manager.get_logs()
+        print(f"   📋 Logs no cache: {len(logs)} (deve ser {i+2})")  # +1 pelo log inicial + i+1
         
-    def on_agent_thinking(self, agent: BaseAgent, message: str, **kwargs):
-        """Callback quando agente está "pensando" """
-        self.verbose_manager.log_thinking(
-            message=message[:100],
-            agent_name=getattr(agent, 'role', 'Unknown')
-        )
-        
-    def on_tool_use(self, agent: BaseAgent, tool_name: str, tool_input: Dict, **kwargs):
-        """Callback quando tool é usada"""
-        self.verbose_manager.log_tool_usage(
-            tool_name=tool_name,
-            agent_name=getattr(agent, 'role', 'Unknown')
-        )
-        
-    def on_agent_response(self, agent: BaseAgent, response: str, **kwargs):
-        """Callback quando agente responde"""
-        response_summary = response[:100] + "..." if len(response) > 100 else response
-        self.verbose_manager.log_response(
-            response_summary=response_summary,
-            agent_name=getattr(agent, 'role', 'Unknown')
-        )
-        
-    def on_error(self, error: Exception, agent: BaseAgent = None, **kwargs):
-        """Callback para erros"""
-        agent_name = getattr(agent, 'role', 'Unknown') if agent else None
-        self.verbose_manager.log_error(
-            error=str(error),
-            agent_name=agent_name
-        )
+        time.sleep(0.5)  # Pequeno delay
+    
+    manager.stop()
+    
+    # Resultado final
+    logs_finais = manager.get_logs()
+    print(f"✅ Teste concluído: {len(logs_finais)} logs gerados")
+    
+    # Mostrar logs
+    for log in logs_finais:
+        print(f"   [{log['timestamp']}] {log['message']}")
+    
+    return logs_finais
