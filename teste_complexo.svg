@@ -9,25 +9,20 @@
   </text>
   <rect x="120" y="177" width="560" height="285"
         fill="white" stroke="#007bff" stroke-width="3" rx="4"/>
-  <rect x="128" y="181" width="544" height="63"
+  <rect x="128" y="181" width="544" height="87"
         fill="rgba(0,123,255,0.1)" stroke="#007bff" stroke-width="1" stroke-dasharray="4,4" rx="2"/>
   <text x="136" y="197" font-family="Arial" font-size="11" fill="#333">
     rea Exposio
   </text>
-  <rect x="128" y="252" width="544" height="63"
+  <rect x="128" y="276" width="544" height="87"
         fill="rgba(0,123,255,0.1)" stroke="#007bff" stroke-width="1" stroke-dasharray="4,4" rx="2"/>
-  <text x="136" y="268" font-family="Arial" font-size="11" fill="#333">
+  <text x="136" y="292" font-family="Arial" font-size="11" fill="#333">
     Sala Reunio
   </text>
-  <rect x="128" y="323" width="544" height="63"
+  <rect x="128" y="371" width="544" height="87"
         fill="rgba(0,123,255,0.1)" stroke="#007bff" stroke-width="1" stroke-dasharray="4,4" rx="2"/>
-  <text x="136" y="339" font-family="Arial" font-size="11" fill="#333">
+  <text x="136" y="387" font-family="Arial" font-size="11" fill="#333">
     Copa
-  </text>
-  <rect x="128" y="394" width="544" height="63"
-        fill="rgba(0,123,255,0.1)" stroke="#007bff" stroke-width="1" stroke-dasharray="4,4" rx="2"/>
-  <text x="136" y="410" font-family="Arial" font-size="11" fill="#333">
-    Depsito
   </text>
   <rect x="370" y="171" width="60" height="6"
         fill="#28a745" stroke="#1e7e34" stroke-width="1"/>
@@ -37,6 +32,6 @@
     Planta baixa gerada automaticamente
   </text>
   <text x="20" y="580" font-family="Arial" font-size="9" fill="#999">
-    CrewAI V2 | SVG Generator | 4 ambientes
+    CrewAI V2 | SVG Generator | 3 ambientes
   </text>
 </svg>

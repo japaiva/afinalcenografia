@@ -60,13 +60,16 @@
   },
   "dados_crew_3": {
     "especificacoes_tecnicas": {
-      "tipo_venda": "loja",
-      "tipo_ativacao": "Area Instagramavel, Glorify",
-      "objetivo_estande": "Lancamento da colecao"
-    },
-    "restricoes_construtivas": {
-      "altura_maxima": "não informada",
-      "limites_de_espaco": "deve respeitar a area total de 220m²"
+      "equipamentos": [
+        "tv",
+        "ledss",
+        "mesa",
+        "cadeira",
+        "moveisss",
+        "umas pias",
+        "umas prateleiras"
+      ],
+      "restricoes_construtivas": "verificar a viabilidade de instalação de equipamentos pesados e a necessidade de reforço estrutural"
     }
   }
 }

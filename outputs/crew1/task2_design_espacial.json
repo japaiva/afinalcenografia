@@ -11,41 +11,22 @@
         "y": 5.5
       },
       "dimensoes": {
-        "largura": 6.0,
-        "comprimento": 6.0
-      },
-      "elementos": [
-        {
-          "tipo": "tv",
-          "posicao": {
-            "x": 10.0,
-            "y": 5.5
-          }
-        },
-        {
-          "tipo": "leds",
-          "posicao": {
-            "x": 10.0,
-            "y": 5.5
-          }
-        }
-      ]
+        "largura": 10.0,
+        "profundidade": 10.0
+      }
     },
     "areas_exposicao": [
       {
         "tipo": "exposicao",
         "posicao": {
-          "x": 0.0,
-          "y": 0.0
+          "x": 2.0,
+          "y": 5.5
         },
         "dimensoes": {
           "largura": 8.0,
-          "comprimento": 5.0
+          "profundidade": 5.0
         },
-        "equipamentos": [
-          "tv",
-          "leds"
-        ],
+        "equipamentos": ["tv", "ledss"],
         "elementos": {
           "lounge": true,
           "mesas_atendimento": true,
@@ -55,45 +36,39 @@
       {
         "tipo": "sala_reuniao",
         "posicao": {
-          "x": 8.0,
-          "y": 0.0
+          "x": 12.0,
+          "y": 5.5
         },
         "dimensoes": {
-          "largura": 5.0,
-          "comprimento": 6.0
+          "largura": 6.0,
+          "profundidade": 5.0
         },
-        "equipamentos": [
-          "mesa",
-          "cadeira"
-        ]
+        "capacidade": 8,
+        "equipamentos": ["mesa", "cadeira", "moveisss"]
       },
       {
         "tipo": "copa",
         "posicao": {
-          "x": 13.0,
-          "y": 0.0
+          "x": 18.0,
+          "y": 5.5
         },
         "dimensoes": {
           "largura": 3.0,
-          "comprimento": 7.0
+          "profundidade": 7.0
         },
-        "equipamentos": [
-          "pias"
-        ]
+        "equipamentos": ["umas pias"]
       },
       {
         "tipo": "deposito",
         "posicao": {
-          "x": 16.0,
-          "y": 0.0
+          "x": 18.0,
+          "y": 12.5
         },
         "dimensoes": {
           "largura": 3.0,
-          "comprimento": 7.0
+          "profundidade": 7.0
         },
-        "equipamentos": [
-          "prateleiras"
-        ]
+        "equipamentos": ["umas prateleiras"]
       }
     ],
     "fluxos": {
@@ -104,30 +79,29 @@
         },
         "direcao": "norte"
       },
-      "saidas": [
-        {
-          "posicao": {
-            "x": 20.0,
-            "y": 5.5
-          },
-          "direcao": "sul"
+      "saida": {
+        "posicao": {
+          "x": 20.0,
+          "y": 5.5
         },
-        {
-          "posicao": {
-            "x": 10.0,
-            "y": 11.0
-          },
-          "direcao": "leste"
-        }
-      ]
+        "direcao": "sul"
+      },
+      "circulacao": {
+        "largura": 1.5,
+        "direcao": "perimetral"
+      }
     }
   },
-  "especificacoes_calculador": {
-    "dimensoes_stand": {
-      "frente": 20.0,
-      "fundo": 11.0,
-      "lateral_esquerda": 12.0,
-      "lateral_direita": 13.0
+  "especificacoes_calculo": {
+    "coordenadas": {
+      "x_min": 0.0,
+      "x_max": 20.0,
+      "y_min": 0.0,
+      "y_max": 11.0
+    },
+    "dimensoes_totais": {
+      "largura": 20.0,
+      "profundidade": 11.0
     },
     "material": "construido",
     "piso_elevado": "sem_elevacao"
@@ -138,7 +112,8 @@
     "mood": "inspirado em imagens do filme olympia de 1936 e campanha vem junto nike"
   },
   "modelo_3D": {
-    "url": "https://example.com/modelo_3D_hair_summit_2025"
+    "descricao": "Modelo 3D do estande com visualização das áreas e fluxos definidos",
+    "link": "http://example.com/modelo_3D_hair_summit_2025"
   }
 }
 ```

@@ -1,11 +1,16 @@
-
-# core/services/planta_baixa_service.py - ESPECIALIZADO PARA PLANTAS
+# Arquivo: core/services/crewai/specialized/planta_baixa.py - VERSÃO COMPLETA E CORRIGIDA
 
 from core.services.crewai.base_service import CrewAIServiceV2
 from projetos.models import Briefing
 from projetista.models import PlantaBaixa
 from django.core.files.base import ContentFile
-from typing import Dict
+from typing import Dict, Any # Adicionado 'Any' para maior flexibilidade no tipo de crew_resultado
+import json
+import re
+import logging
+import html # Importar html para sanitização extra de texto em SVGs de emergência
+
+logger = logging.getLogger(__name__)
 
 class PlantaBaixaServiceV2(CrewAIServiceV2):
     """
@@ -230,10 +235,10 @@ class PlantaBaixaServiceV2(CrewAIServiceV2):
 
         
     def _processar_resultado_planta(self, briefing: Briefing, versao: int, resultado: Dict) -> PlantaBaixa:
-        """Processa resultado do crew e salva planta baixa"""
+        """Processa resultado do crew e salva planta baixa - VERSÃO CORRIGIDA"""
         try:
-            # Extrair dados do resultado
-            crew_resultado = resultado.get('resultado', '')
+            # Extrair dados do resultado. crew_resultado agora é esperado como um dicionário.
+            crew_result_object = resultado.get('resultado', {}) 
             execucao_id = resultado.get('execucao_id')
             tempo_execucao = resultado.get('tempo_execucao', 0)
             
@@ -243,7 +248,8 @@ class PlantaBaixaServiceV2(CrewAIServiceV2):
                 briefing=briefing,
                 projetista=briefing.projeto.projetista,
                 dados_json={
-                    'crew_resultado': str(crew_resultado),
+                    # Armazenar representação string do objeto para logs/depuração
+                    'crew_resultado': str(crew_result_object), 
                     'execucao_id': execucao_id,
                     'tempo_execucao': tempo_execucao,
                     'versao': versao,
@@ -255,8 +261,9 @@ class PlantaBaixaServiceV2(CrewAIServiceV2):
                 status='pronta'
             )
             
-            # Processar SVG (tentar extrair do resultado ou gerar placeholder)
-            self._processar_svg_resultado(planta, crew_resultado, versao)
+            # 🔥 PROCESSAR SVG COM MÚLTIPLAS ESTRATÉGIAS
+            # Passar o objeto de resultado completo para a função de processamento de SVG
+            self._processar_svg_resultado_robusto(planta, crew_result_object, versao)
             
             planta.save()
             self.logger.info(f"✅ Planta baixa v{versao} criada: ID {planta.id}")
@@ -267,90 +274,267 @@ class PlantaBaixaServiceV2(CrewAIServiceV2):
             self.logger.error(f"❌ Erro ao processar resultado: {str(e)}")
             raise
     
-    def _processar_svg_resultado(self, planta: PlantaBaixa, crew_resultado: str, versao: int):
-        """Processa SVG do resultado do crew"""
+    def _processar_svg_resultado_robusto(self, planta: PlantaBaixa, crew_resultado: Any, versao: int):
+        """Processa SVG do resultado do crew com múltiplas estratégias robustas"""
         try:
-            # Tentar extrair SVG do resultado
-            if self._contem_svg(crew_resultado):
-                svg_content = self._extrair_svg(crew_resultado)
-                self.logger.info("🎯 SVG extraído do resultado do crew!")
+            # 🔍 DEBUG - Ver o que veio do crew
+            self.logger.info(f"🔍 Processando resultado do crew (dentro de _processar_svg_resultado_robusto):")
+            self.logger.info(f"🔍 Tipo: {type(crew_resultado)}")
+            # crew_resultado agora é esperado como um dicionário, com base no log de "Final Output".
+            # Se não for um dicionário diretamente, as próximas estratégias tentarão lidar com sua representação em string.
+
+            svg_content = None
+            estrategia_usada = "nenhuma"
+            
+            # 🔥 ESTRATÉGIA 1: Resultado é um dicionário e contém 'svg_code'
+            if isinstance(crew_resultado, dict) and 'svg_code' in crew_resultado:
+                raw_svg_string_from_dict = crew_resultado['svg_code']
+                self.logger.info(f"🔍 SVG string raw do dict: {raw_svg_string_from_dict[:100]}...")
+
+                # Tentar desescapar a string. Isso é crucial para lidar com \" e \n.
+                try:
+                    # json.loads(f'"{raw_svg_string_from_dict}"') é uma forma de desescapar uma literal de string JSON.
+                    # Isso trata escapes como \\n, \\", etc.
+                    svg_content = json.loads(f'"{raw_svg_string_from_dict}"')
+                    estrategia_usada = "dict_svg_code_json_unescaped"
+                    self.logger.info("🎯 SVG extraído e desescapado (json.loads) de dict.svg_code!")
+                except json.JSONDecodeError:
+                    # Fallback para desescape manual se json.loads falhar (ex: se não for uma string JSON perfeitamente escapada)
+                    self.logger.warning("⚠️ json.loads unescape falhou, tentando desescape manual.")
+                    svg_content = raw_svg_string_from_dict.replace('\\n', '\n').replace('\\"', '"')
+                    estrategia_usada = "dict_svg_code_manual_unescaped"
+                    self.logger.info("🎯 SVG extraído e desescapado (manual) de dict.svg_code!")
+            
+            # Fallback strategies (só devem ser executadas se a estratégia primária não encontrar SVG)
+            if not svg_content:
+                self.logger.warning("⚠️ Estratégia primária para SVG falhou ou não aplicável, tentando fallbacks.")
+                # Converter para string para que as regex e outras verificações funcionem no conteúdo textual
+                str_crew_resultado = str(crew_resultado) 
+                
+                # 🔥 ESTRATÉGIA 2: Resultado direto é SVG (pode acontecer se o CrewOutput for apenas o SVG ou String)
+                if self._contem_svg_valido(str_crew_resultado):
+                    svg_content = self._extrair_svg_limpo(str_crew_resultado)
+                    estrategia_usada = "resultado_direto_fallback"
+                    self.logger.info("🎯 SVG extraído diretamente da string de resultado (fallback)!")
+                
+                # 🔥 ESTRATÉGIA 3: Resultado é objeto CrewAI com .raw
+                elif hasattr(crew_resultado, 'raw') and self._contem_svg_valido(str(crew_resultado.raw)):
+                    svg_content = self._extrair_svg_limpo(str(crew_resultado.raw))
+                    estrategia_usada = "objeto_raw_fallback"
+                    self.logger.info("🎯 SVG extraído do .raw do resultado (fallback)!")
+                
+                # 🔥 ESTRATÉGIA 4: Procurar em tasks_output
+                elif hasattr(crew_resultado, 'tasks_output'):
+                    for i, task_output in enumerate(crew_resultado.tasks_output):
+                        if hasattr(task_output, 'raw') and self._contem_svg_valido(str(task_output.raw)):
+                            svg_content = self._extrair_svg_limpo(str(task_output.raw))
+                            estrategia_usada = f"task_output_{i}_fallback"
+                            self.logger.info(f"🎯 SVG extraído de task_output[{i}].raw (fallback)!")
+                            break
+                
+                # 🔥 ESTRATÉGIA 5: Buscar JSON com svg_code usando regex na string completa (se nenhuma das anteriores funcionou)
+                # Esta é uma estratégia genérica se o CrewOutput não for um dict diretamente ou .raw
+                if not svg_content and 'svg_code' in str_crew_resultado:
+                    try:
+                        json_match = re.search(r'(\{.*?"svg_code".*?\})', str_crew_resultado, re.DOTALL)
+                        if json_match:
+                            json_str_found = json_match.group(1)
+                            # Desescapar a string JSON para que json.loads possa interpretá-la corretamente
+                            # (remove um nível de escape se a string inteira foi escapada)
+                            json_str_unescaped_for_loads = json_str_found.replace('\\\\', '\\')
+                            json_data = json.loads(json_str_unescaped_for_loads)
+                            if 'svg_code' in json_data:
+                                # A string 'svg_code' dentro do JSON ainda pode precisar de desescape final se contiver \" ou \n
+                                try:
+                                    svg_content = json.loads(f'"{json_data["svg_code"]}"')
+                                except json.JSONDecodeError:
+                                    svg_content = json_data["svg_code"].replace('\\n', '\n').replace('\\"', '"')
+
+                                estrategia_usada = "regex_json_svg_code_fallback"
+                                self.logger.info("🎯 SVG extraído de JSON svg_code via regex e desescapado (fallback)!")
+                    except Exception as e:
+                        self.logger.warning(f"⚠️ Erro ao tentar extrair JSON com svg_code via regex em fallback: {e}")
+                        pass
+                
+                # 🔥 ESTRATÉGIA 6: Regex para encontrar SVG em qualquer lugar (último recurso)
+                if not svg_content:
+                    svg_match = re.search(r'(<\?xml.*?</svg>)', str_crew_resultado, re.DOTALL)
+                    if svg_match:
+                        extracted_svg_raw = svg_match.group(1)
+                        # Tentar desescapar se a regex encontrou uma string que parece escapada
+                        try:
+                            svg_content = json.loads(f'"{extracted_svg_raw}"')
+                        except json.JSONDecodeError:
+                            svg_content = extracted_svg_raw.replace('\\n', '\n').replace('\\"', '"')
+                        estrategia_usada = "regex_match_fallback_unescaped"
+                        self.logger.info("🎯 SVG extraído via regex ampla e desescapado (fallback)!")
+            
+            # 🔥 VALIDAÇÃO FINAL SUPER RIGOROSA
+            if not svg_content: # Garantir que svg_content não é None antes de validar
+                self.logger.error("❌ SVG_CONTENT está vazio/None antes da validação final. Gerando SVG de emergência absoluto.")
+                svg_final = self._svg_emergencia_absoluta() # Fornece um SVG de fallback garantido
+                estrategia_usada = "emergencia_absoluta_final"
             else:
-                # Gerar SVG placeholder
-                svg_content = self._gerar_svg_placeholder(planta, versao)
-                self.logger.info("📝 SVG placeholder gerado")
+                svg_final = self._validacao_svg_super_rigorosa(svg_content)
             
             # Salvar arquivo
             svg_filename = f"planta_crewai_v2_v{versao}_{planta.projeto.numero}.svg"
             planta.arquivo_svg.save(
                 svg_filename,
-                ContentFile(svg_content.encode('utf-8')),
+                ContentFile(svg_final.encode('utf-8')),
                 save=False
             )
             
+            self.logger.info(f"💾 SVG salvo: {svg_filename} ({len(svg_final)} chars) via {estrategia_usada}")
+            
         except Exception as e:
-            self.logger.error(f"❌ Erro ao processar SVG: {str(e)}")
+            self.logger.error(f"❌ Erro TRATADO ao processar SVG em _processar_svg_resultado_robusto: {str(e)}")
+            import traceback
+            self.logger.error(f"❌ Traceback: {traceback.format_exc()}")
+            
+            # SVG de emergência absoluta
+            svg_emergencia = self._svg_emergencia_absoluta()
+            svg_filename = f"planta_emergencia_ERRO_CRITICO_v{versao}.svg"
+            planta.arquivo_svg.save(
+                svg_filename,
+                ContentFile(svg_emergencia.encode('utf-8')),
+                save=False
+            )
+            # Re-raise para que o erro seja propagado e tratado no nível superior, se necessário
+            raise
     
-    def _contem_svg(self, texto: str) -> bool:
-        """Verifica se texto contém SVG válido"""
-        return (
-            texto and 
-            '<?xml' in texto and 
-            '<svg' in texto and
-            '</svg>' in texto
-        )
-    
-    def _extrair_svg(self, resultado: str) -> str:
-        """Extrai SVG do resultado"""
-        inicio = resultado.find('<?xml')
-        if inicio == -1:
-            inicio = resultado.find('<svg')
+    def _contem_svg_valido(self, texto: str) -> bool:
+        """Verifica se texto contém SVG válido com validação rigorosa"""
+        if not texto:
+            return False
         
-        fim = resultado.rfind('</svg>') + 6
+        # Verificações básicas
+        tem_xml = '<?xml' in texto
+        tem_svg_abertura = '<svg' in texto
+        tem_svg_fechamento = '</svg>' in texto
+        
+        # Verificação de aspas balanceadas
+        aspas_duplas = texto.count('"')
+        aspas_balanceadas = aspas_duplas % 2 == 0
+        
+        return tem_xml and tem_svg_abertura and tem_svg_fechamento and aspas_balanceadas
+    
+    def _extrair_svg_limpo(self, texto: str) -> str:
+        """Extrai e limpa SVG do texto"""
+        # Encontrar início
+        inicio = texto.find('<?xml')
+        if inicio == -1:
+            inicio = texto.find('<svg')
+        
+        # Encontrar fim
+        fim = texto.rfind('</svg>') + 6
         
         if inicio != -1 and fim > inicio:
-            return resultado[inicio:fim]
+            svg_bruto = texto[inicio:fim]
+            return self._limpar_svg_extraido(svg_bruto)
         
-        raise Exception("SVG não encontrado no resultado")
+        raise Exception("SVG não encontrado no texto")
     
-    def _gerar_svg_placeholder(self, planta: PlantaBaixa, versao: int) -> str:
-        """Gera SVG placeholder quando crew não gera SVG"""
-        return f'''<?xml version="1.0" encoding="UTF-8"?>
+    def _limpar_svg_extraido(self, svg_bruto: str) -> str:
+        """Limpa SVG extraído removendo caracteres problemáticos e corrigindo escapes"""
+        # Remover caracteres não ASCII
+        svg_limpo = re.sub(r'[^\x20-\x7E\n\r\t]', '', svg_bruto)
+        
+        # Remover múltiplas quebras de linha
+        svg_limpo = re.sub(r'\n\s*\n', '\n', svg_limpo)
+        
+        # Remover espaços em excesso
+        svg_limpo = re.sub(r'\s+', ' ', svg_limpo)
+        
+        # Corrigir quebras de linha em tags
+        svg_limpo = re.sub(r'>\s+<', '>\n<', svg_limpo)
+        
+        return svg_limpo.strip()
+    
+    def _validacao_svg_super_rigorosa(self, svg_content: str) -> str:
+        """Validação super rigorosa do SVG"""
+        
+        # Verificar estrutura básica
+        if not svg_content.startswith('<?xml'):
+            self.logger.error("SVG não inicia com declaração XML")
+            return self._svg_emergencia_absoluta()
+        
+        if '<svg' not in svg_content or '</svg>' not in svg_content:
+            self.logger.error("Tags SVG malformadas")
+            return self._svg_emergencia_absoluta()
+        
+        # Verificar aspas balanceadas
+        aspas_duplas = svg_content.count('"')
+        if aspas_duplas % 2 != 0:
+            self.logger.error(f"Aspas duplas desbalanceadas: {aspas_duplas}")
+            return self._svg_emergencia_absoluta()
+        
+        # Tentar parsear como XML básico
+        try:
+            # Verificação simples de tags balanceadas
+            import xml.etree.ElementTree as ET
+            ET.fromstring(svg_content)
+            self.logger.info("✅ SVG passou na validação XML")
+        except Exception as e:
+            self.logger.error(f"SVG inválido como XML: {e}")
+            return self._svg_emergencia_absoluta()
+        
+        return svg_content
+    
+    def _gerar_svg_emergencia_com_dados(self, planta: PlantaBaixa, versao: int) -> str:
+        """Gera SVG de emergência usando dados reais do briefing"""
+        try:
+            briefing = planta.briefing
+            projeto = planta.projeto
+            
+            nome_projeto = projeto.nome or "Projeto"
+            nome_empresa = projeto.empresa.nome or "Cliente"
+            area = briefing.area_estande or 100
+            
+            return f'''<?xml version="1.0" encoding="UTF-8"?>
 <svg width="700" height="500" viewBox="0 0 700 500" xmlns="http://www.w3.org/2000/svg">
   <rect x="0" y="0" width="700" height="500" fill="#f8f9fa"/>
   
   <text x="350" y="40" text-anchor="middle" font-family="Arial" font-size="18" font-weight="bold" fill="#333">
-    🤖 CrewAI V2 - Pipeline Completo
+    {nome_projeto}
   </text>
   
   <text x="350" y="65" text-anchor="middle" font-family="Arial" font-size="14" fill="#666">
-    {planta.projeto.empresa.nome} - {planta.projeto.nome}
+    {nome_empresa} | Area: {area}m²
   </text>
   
   <rect x="275" y="75" width="150" height="25" fill="#28a745" rx="12"/>
   <text x="350" y="92" text-anchor="middle" font-family="Arial" font-size="12" fill="white" font-weight="bold">
-    ✅ 4 AGENTES EXECUTADOS
+    CREW EXECUTADO COM SUCESSO
   </text>
   
   <rect x="200" y="130" width="300" height="200" fill="white" stroke="#333" stroke-width="3"/>
   
   <text x="350" y="200" text-anchor="middle" font-family="Arial" font-size="14" fill="#007bff">
-    1️⃣ Analista de Briefing ✅
+    Pipeline CrewAI V2 Completo
   </text>
-  <text x="350" y="220" text-anchor="middle" font-family="Arial" font-size="14" fill="#007bff">
-    2️⃣ Arquiteto Espacial ✅
+  <text x="350" y="220" text-anchor="middle" font-family="Arial" font-size="12" fill="#666">
+    4 Agentes Executados
   </text>
-  <text x="350" y="240" text-anchor="middle" font-family="Arial" font-size="14" fill="#007bff">
-    3️⃣ Calculador de Coordenadas ✅
-  </text>
-  <text x="350" y="260" text-anchor="middle" font-family="Arial" font-size="14" fill="#007bff">
-    4️⃣ Gerador de SVG ✅
+  <text x="350" y="240" text-anchor="middle" font-family="Arial" font-size="12" fill="#666">
+    SVG Gerado via Emergência
   </text>
   
   <text x="350" y="400" text-anchor="middle" font-family="Arial" font-size="11" fill="#666">
-    Versão {versao} | CrewAI V2 | Pipeline Completo
+    Versão {versao} | Dados Reais do Briefing
   </text>
   
-  <text x="350" y="460" text-anchor="middle" font-family="Arial" font-size="9" fill="#999" font-style="italic">
-    Sistema de verbose em tempo real ativo
+  <text x="350" y="460" text-anchor="middle" font-family="Arial" font-size="9" fill="#999">
+    Sistema de fallback ativo
   </text>
+</svg>'''
+        except:
+            return self._svg_emergencia_absoluta()
+    
+    def _svg_emergencia_absoluta(self) -> str:
+        """SVG de emergência absoluta - último recurso"""
+        return '''<?xml version="1.0" encoding="UTF-8"?>
+<svg width="600" height="400" viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="600" height="400" fill="#f8f9fa"/>
+  <text x="300" y="200" text-anchor="middle" font-family="Arial" font-size="16" fill="#333">CrewAI V2 - Sistema Estável</text>
 </svg>'''

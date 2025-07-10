@@ -2,32 +2,22 @@
 <svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
   <rect x="0" y="0" width="800" height="600" fill="#f8f9fa"/>
   <text x="400" y="40" text-anchor="middle" font-family="Arial" font-size="16" font-weight="bold" fill="#333">
-    Hair Summit 2025 - Beauty Fair
+    Estande Feira - Cliente
   </text>
   <text x="400" y="65" text-anchor="middle" font-family="Arial" font-size="13" fill="#666">
-    Estande ponta_de_ilha | 20.8m x 10.6m | Area: 220.0m2
+    Estande ilha | 20.8m x 10.6m | Area: 220.0m2
   </text>
   <rect x="120" y="177" width="560" height="285"
         fill="white" stroke="#007bff" stroke-width="3" rx="4"/>
-  <rect x="128" y="181" width="544" height="63"
+  <rect x="128" y="181" width="544" height="134"
         fill="rgba(0,123,255,0.1)" stroke="#007bff" stroke-width="1" stroke-dasharray="4,4" rx="2"/>
   <text x="136" y="197" font-family="Arial" font-size="11" fill="#333">
-    rea Exposio
+    rea Principal
   </text>
-  <rect x="128" y="252" width="544" height="63"
-        fill="rgba(0,123,255,0.1)" stroke="#007bff" stroke-width="1" stroke-dasharray="4,4" rx="2"/>
-  <text x="136" y="268" font-family="Arial" font-size="11" fill="#333">
-    Sala Reunio
-  </text>
-  <rect x="128" y="323" width="544" height="63"
+  <rect x="128" y="323" width="544" height="134"
         fill="rgba(0,123,255,0.1)" stroke="#007bff" stroke-width="1" stroke-dasharray="4,4" rx="2"/>
   <text x="136" y="339" font-family="Arial" font-size="11" fill="#333">
-    Copa
-  </text>
-  <rect x="128" y="394" width="544" height="63"
-        fill="rgba(0,123,255,0.1)" stroke="#007bff" stroke-width="1" stroke-dasharray="4,4" rx="2"/>
-  <text x="136" y="410" font-family="Arial" font-size="11" fill="#333">
-    Depsito
+    Recepo
   </text>
   <rect x="370" y="171" width="60" height="6"
         fill="#28a745" stroke="#1e7e34" stroke-width="1"/>
@@ -37,6 +27,6 @@
     Planta baixa gerada automaticamente
   </text>
   <text x="20" y="580" font-family="Arial" font-size="9" fill="#999">
-    CrewAI V2 | SVG Generator | 4 ambientes
+    CrewAI V2 | SVG Generator | 2 ambientes
   </text>
 </svg>

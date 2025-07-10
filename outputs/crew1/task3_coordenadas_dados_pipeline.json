@@ -11,41 +11,22 @@
         "y": 5.5
       },
       "dimensoes": {
-        "largura": 6.0,
-        "comprimento": 6.0
-      },
-      "elementos": [
-        {
-          "tipo": "tv",
-          "posicao": {
-            "x": 10.0,
-            "y": 5.5
-          }
-        },
-        {
-          "tipo": "leds",
-          "posicao": {
-            "x": 10.0,
-            "y": 5.5
-          }
-        }
-      ]
+        "largura": 10.0,
+        "profundidade": 10.0
+      }
     },
     "areas_exposicao": [
       {
         "tipo": "exposicao",
         "posicao": {
-          "x": 0.0,
-          "y": 0.0
+          "x": 2.0,
+          "y": 5.5
         },
         "dimensoes": {
           "largura": 8.0,
-          "comprimento": 5.0
+          "profundidade": 5.0
         },
-        "equipamentos": [
-          "tv",
-          "leds"
-        ],
+        "equipamentos": ["tv", "ledss"],
         "elementos": {
           "lounge": true,
           "mesas_atendimento": true,
@@ -55,45 +36,39 @@
       {
         "tipo": "sala_reuniao",
         "posicao": {
-          "x": 8.0,
-          "y": 0.0
+          "x": 12.0,
+          "y": 5.5
         },
         "dimensoes": {
-          "largura": 5.0,
-          "comprimento": 6.0
+          "largura": 6.0,
+          "profundidade": 5.0
         },
-        "equipamentos": [
-          "mesa",
-          "cadeira"
-        ]
+        "capacidade": 8,
+        "equipamentos": ["mesa", "cadeira", "moveisss"]
       },
       {
         "tipo": "copa",
         "posicao": {
-          "x": 13.0,
-          "y": 0.0
+          "x": 18.0,
+          "y": 5.5
         },
         "dimensoes": {
           "largura": 3.0,
-          "comprimento": 7.0
+          "profundidade": 7.0
         },
-        "equipamentos": [
-          "pias"
-        ]
+        "equipamentos": ["umas pias"]
       },
       {
         "tipo": "deposito",
         "posicao": {
-          "x": 16.0,
-          "y": 0.0
+          "x": 18.0,
+          "y": 12.5
         },
         "dimensoes": {
           "largura": 3.0,
-          "comprimento": 7.0
+          "profundidade": 7.0
         },
-        "equipamentos": [
-          "prateleiras"
-        ]
+        "equipamentos": ["umas prateleiras"]
       }
     ],
     "fluxos": {
@@ -104,30 +79,29 @@
         },
         "direcao": "norte"
       },
-      "saidas": [
-        {
-          "posicao": {
-            "x": 20.0,
-            "y": 5.5
-          },
-          "direcao": "sul"
+      "saida": {
+        "posicao": {
+          "x": 20.0,
+          "y": 5.5
         },
-        {
-          "posicao": {
-            "x": 10.0,
-            "y": 11.0
-          },
-          "direcao": "leste"
-        }
-      ]
+        "direcao": "sul"
+      },
+      "circulacao": {
+        "largura": 1.5,
+        "direcao": "perimetral"
+      }
     }
   },
-  "especificacoes_calculador": {
-    "dimensoes_stand": {
-      "frente": 20.0,
-      "fundo": 11.0,
-      "lateral_esquerda": 12.0,
-      "lateral_direita": 13.0
+  "especificacoes_calculo": {
+    "coordenadas": {
+      "x_min": 0.0,
+      "x_max": 20.0,
+      "y_min": 0.0,
+      "y_max": 11.0
+    },
+    "dimensoes_totais": {
+      "largura": 20.0,
+      "profundidade": 11.0
     },
     "material": "construido",
     "piso_elevado": "sem_elevacao"
@@ -144,17 +118,29 @@
   },
   "dados_crew_3": {
     "especificacoes_tecnicas": {
-      "tipo_venda": "loja",
-      "tipo_ativacao": "Area Instagramavel, Glorify",
-      "objetivo_estande": "Lancamento da colecao"
-    },
-    "restricoes_construtivas": {
-      "altura_maxima": "não informada",
-      "limites_de_espaco": "deve respeitar a area total de 220m²"
+      "equipamentos": [
+        "tv",
+        "ledss",
+        "mesa",
+        "cadeira",
+        "moveisss",
+        "umas pias",
+        "umas prateleiras"
+      ],
+      "restricoes_construtivas": "verificar a viabilidade de instalação de equipamentos pesados e a necessidade de reforço estrutural"
     }
   },
+  "modelo_3D": {
+    "descricao": "Modelo 3D do estande com visualização das áreas e fluxos definidos",
+    "link": "http://example.com/modelo_3D_hair_summit_2025"
+  },
   "metadados_svg": {
-    "viewBox": "0 0 220 220",
+    "titulo": "Hair Summit 2025 - Stand Visual",
+    "descricao": "Representação SVG do estande com áreas e fluxos",
+    "dimensoes_svg": {
+      "largura": 200,
+      "altura": 110
+    },
     "elementos_svg": [
       {
         "tipo": "retangulo",
@@ -163,27 +149,60 @@
           "y": 0
         },
         "dimensoes": {
-          "largura": 20,
-          "altura": 11
+          "largura": 200,
+          "altura": 110
         },
         "cor": "#FFFFFF"
       },
       {
-        "tipo": "linha",
-        "posicao_inicial": {
-          "x": 0,
-          "y": 5.5
-        },
-        "posicao_final": {
+        "tipo": "retangulo",
+        "posicao": {
           "x": 20,
-          "y": 5.5
+          "y": 10
         },
-        "cor": "#000000"
+        "dimensoes": {
+          "largura": 80,
+          "altura": 50
+        },
+        "cor": "#FFCC00"
+      },
+      {
+        "tipo": "retangulo",
+        "posicao": {
+          "x": 120,
+          "y": 10
+        },
+        "dimensoes": {
+          "largura": 60,
+          "altura": 50
+        },
+        "cor": "#00CCFF"
+      },
+      {
+        "tipo": "retangulo",
+        "posicao": {
+          "x": 180,
+          "y": 10
+        },
+        "dimensoes": {
+          "largura": 30,
+          "altura": 70
+        },
+        "cor": "#FF6699"
+      },
+      {
+        "tipo": "retangulo",
+        "posicao": {
+          "x": 180,
+          "y": 80
+        },
+        "dimensoes": {
+          "largura": 30,
+          "altura": 30
+        },
+        "cor": "#66FF66"
       }
     ]
-  },
-  "modelo_3D": {
-    "url": "https://example.com/modelo_3D_hair_summit_2025"
   }
 }
 ```

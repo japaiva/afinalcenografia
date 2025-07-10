@@ -1,259 +1,161 @@
-# projetista/views/planta_baixa.py - VERSÃO LIMPA COM CREWAI V2
+# Arquivo: /Users/joseantoniopaiva/pythonprojects/afinal_cenografia/projetista/views/planta_baixa.py
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
-from django.views.decorators.http import require_POST
-import logging
+from django.contrib import messages # Importa o módulo de mensagens do Django
 
+# Importar seus modelos (verifique se os caminhos estão corretos para o seu projeto)
 from projetos.models import Projeto, Briefing
 from projetista.models import PlantaBaixa
-from core.services.crewai import PlantaBaixaServiceV2
 from core.models import CrewExecucao
+
+# ######################################################################################
+# A IMPORTAÇÃO CRÍTICA DO SEU SERVIÇO PlantaBaixaServiceV2
+# Este é o caminho correto que você me informou: core/services/crewai/specialized/planta_baixa.py
+from core.services.crewai.specialized.planta_baixa import PlantaBaixaServiceV2
+# ######################################################################################
+
+import logging
 
 logger = logging.getLogger(__name__)
 
-# =============================================================================
-# GERAÇÃO DE PLANTA BAIXA - VERSÃO SIMPLIFICADA
-# =============================================================================
+# Instanciar o serviço de planta baixa. 
+# Ele será usado por todas as views definidas neste arquivo.
+planta_baixa_service = PlantaBaixaServiceV2()
 
 @login_required
-@require_POST
 def gerar_planta_baixa(request, projeto_id):
     """
-    Gera planta baixa usando CrewAI V2 - Pipeline completo de 4 agentes
+    View para iniciar a geração de uma planta baixa via CrewAI para um projeto.
     """
-    projeto = get_object_or_404(Projeto, pk=projeto_id, projetista=request.user)
-    
-    try:
-        # Obter briefing
-        try:
-            briefing = projeto.briefings.latest('versao')
-        except Briefing.DoesNotExist:
-            return JsonResponse({
-                'success': False,
-                'error': 'Briefing não encontrado',
-                'message': 'Este projeto não possui um briefing válido.'
-            })
-        
-        # Determinar nova versão
-        planta_anterior = PlantaBaixa.objects.filter(projeto=projeto).order_by('-versao').first()
-        nova_versao = planta_anterior.versao + 1 if planta_anterior else 1
-        
-        # Usar CrewAI V2
-        service = PlantaBaixaServiceV2()
-        
-        # Validar crew
-        validacao = service.validar_crew()
-        if not validacao['valido']:
-            return JsonResponse({
-                'success': False,
-                'error': f"Crew inválida: {validacao.get('erro', 'Erro desconhecido')}"
-            })
-        
-        # Executar pipeline de 4 agentes
-        logger.info(f"🚀 Iniciando pipeline CrewAI V2 para projeto {projeto.nome}")
-        resultado = service.gerar_planta(briefing, nova_versao)
-        
-        # Processar resultado
-        if resultado['success']:
-            return JsonResponse({
-                'success': True,
-                'message': f'Pipeline completo! Planta v{nova_versao} gerada em {resultado.get("tempo_execucao", 0):.1f}s',
-                'planta_id': resultado['planta'].id,
-                'versao': nova_versao,
-                'execucao_id': resultado.get('execucao_id'),
-                'tempo_execucao': resultado.get('tempo_execucao', 0),
-                'agentes_executados': 4,
-                'metodo': 'crewai_v2_pipeline',
-                'redirect_url': f'/projetista/projetos/{projeto_id}/planta-baixa/'
-            })
-        else:
-            return JsonResponse({
-                'success': False,
-                'error': resultado.get('error', 'Erro desconhecido na geração')
-            })
-            
-    except Exception as e:
-        logger.error(f"Erro técnico ao gerar planta baixa: {str(e)}", exc_info=True)
-        return JsonResponse({
-            'success': False,
-            'error': f'Erro técnico: {str(e)}'
-        }, status=500)
+    projeto = get_object_or_404(Projeto, id=projeto_id)
+    # Supondo que você queira usar o briefing mais recente ou um briefing específico
+    briefing = get_object_or_404(Briefing, projeto=projeto) 
 
-# =============================================================================
-# VIEWS DE VISUALIZAÇÃO (mantidas)
-# =============================================================================
+    if request.method == 'POST':
+        logger.info(f"Requisição POST recebida para gerar planta baixa para Projeto ID: {projeto_id}")
+        try:
+            # Calcula a próxima versão da planta baixa para o briefing atual
+            nova_versao = PlantaBaixa.objects.filter(briefing=briefing).count() + 1
+            
+            # Chama o método 'gerar_planta' do serviço de CrewAI
+            resultado_crew = planta_baixa_service.gerar_planta(briefing=briefing, versao=nova_versao)
+
+            if resultado_crew['success']:
+                messages.success(request, "Planta baixa gerada com sucesso! Você pode visualizá-la agora.")
+                # Redireciona para a visualização da planta recém-gerada ou para o detalhe do projeto
+                return redirect('projetista:visualizar_planta_baixa', projeto_id=projeto.id)
+            else:
+                error_message = resultado_crew.get('error', 'Erro desconhecido na geração da planta baixa.')
+                messages.error(request, f"Erro ao gerar planta baixa: {error_message}")
+                logger.error(f"Falha na geração da planta baixa para projeto {projeto_id}: {error_message}")
+        except Exception as e:
+            logger.exception(f"Erro inesperado ao chamar serviço de geração de planta baixa para Projeto ID {projeto_id}")
+            messages.error(request, f"Ocorreu um erro interno ao gerar a planta baixa: {e}")
+            
+    # Para requisições GET ou se o POST falhar, renderiza uma página de confirmação/formulário
+    context = {
+        'projeto': projeto,
+        'briefing': briefing
+    }
+    return render(request, 'projetista/planta_baixa/gerar.html', context) # Certifique-se de que este template HTML existe
+
+@login_required
+def refinar_planta_baixa(request, projeto_id):
+    """
+    View placeholder para a funcionalidade de refinar uma planta baixa existente.
+    """
+    messages.info(request, "Funcionalidade de refinamento de planta baixa em desenvolvimento. Será implementada em breve!")
+    # Você pode redirecionar para a página de visualização ou detalhe do projeto
+    return redirect('projetista:visualizar_planta_baixa', projeto_id=projeto_id)
 
 @login_required
 def visualizar_planta_baixa(request, projeto_id):
-    """Visualização da planta baixa"""
-    projeto = get_object_or_404(Projeto, pk=projeto_id, projetista=request.user)
-    planta_baixa = PlantaBaixa.objects.filter(projeto=projeto).order_by('-versao').first()
-    
-    if not planta_baixa:
-        messages.info(request, 'Nenhuma planta baixa encontrada para este projeto.')
-        return redirect('projetista:projeto_detail', pk=projeto_id)
-    
-    # Permitir visualizar versão específica
-    versao_solicitada = request.GET.get('versao')
-    if versao_solicitada:
+    """
+    View para exibir a planta baixa mais recente de um projeto.
+    """
+    projeto = get_object_or_404(Projeto, id=projeto_id)
+    # Busca a planta baixa mais recente associada ao briefing do projeto
+    planta_baixa = PlantaBaixa.objects.filter(briefing__projeto=projeto).order_by('-versao').first()
+
+    svg_content = None
+    if planta_baixa and planta_baixa.arquivo_svg:
         try:
-            versao_num = int(versao_solicitada)
-            planta_especifica = PlantaBaixa.objects.filter(
-                projeto=projeto, 
-                versao=versao_num
-            ).first()
-            if planta_especifica:
-                planta_baixa = planta_especifica
-        except (ValueError, TypeError):
-            pass
-    
-    # Listar todas as versões
-    versoes = PlantaBaixa.objects.filter(projeto=projeto).order_by('-versao')
-    
+            # Lê o conteúdo do arquivo SVG. .read() retorna bytes, então .decode('utf-8') para string.
+            svg_content = planta_baixa.arquivo_svg.read().decode('utf-8')
+        except Exception as e:
+            logger.error(f"Erro ao ler arquivo SVG para planta ID {planta_baixa.id}: {e}")
+            # SVG de fallback simples em caso de erro na leitura do arquivo
+            svg_content = """<svg width="600" height="400" viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="600" height="400" fill="#f0f0f0"/><text x="300" y="200" text-anchor="middle" font-family="Arial" font-size="20" fill="red">Erro ao Carregar SVG</text><text x="300" y="230" text-anchor="middle" font-family="Arial" font-size="12" fill="gray">Verifique os logs do servidor.</text></svg>"""
+
     context = {
         'projeto': projeto,
         'planta_baixa': planta_baixa,
-        'versoes': versoes,
-        'dados_json': planta_baixa.dados_json
+        'svg_content': svg_content,
+        'has_planta': planta_baixa is not None # Indica se existe alguma planta para o projeto
     }
-    
-    return render(request, 'projetista/planta_baixa.html', context)
+    return render(request, 'projetista/planta_baixa/visualizar.html', context) # Certifique-se de que este template HTML existe
 
 @login_required
 def download_planta_svg(request, planta_id):
-    """Download do arquivo SVG"""
-    planta = get_object_or_404(PlantaBaixa, pk=planta_id, projeto__projetista=request.user)
-    
+    """
+    View para permitir o download do arquivo SVG de uma planta baixa específica.
+    """
+    planta = get_object_or_404(PlantaBaixa, id=planta_id)
     if planta.arquivo_svg:
+        # Define o tipo de conteúdo como SVG e o cabeçalho de disposição para download
         response = HttpResponse(planta.arquivo_svg.read(), content_type='image/svg+xml')
-        filename = f"planta_v{planta.versao}_{planta.projeto.numero}.svg"
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Content-Disposition'] = f'attachment; filename="{planta.arquivo_svg.name}"'
         return response
-    else:
-        messages.error(request, 'Arquivo SVG não encontrado.')
-        return redirect('projetista:projeto_detail', projeto_id=planta.projeto.id)
-
-# =============================================================================
-# VIEWS DE VERBOSE E LOGS (simplificadas)
-# =============================================================================
-
-@login_required
-def obter_logs_execucao(request, execucao_id):
-    """
-    Retorna logs da execução em tempo real via AJAX
-    """
-    try:
-        execucao = get_object_or_404(CrewExecucao, id=execucao_id)
-        
-        # Buscar logs no cache (VerboseManager cuida disso)
-        from django.core.cache import cache
-        cache_key = f"crewai_logs_{execucao_id}"
-        logs = cache.get(cache_key, [])
-        
-        # Pegar logs novos se solicitado
-        desde = int(request.GET.get('desde', 0))
-        logs_novos = logs[desde:] if desde < len(logs) else []
-        
-        return JsonResponse({
-            'success': True,
-            'logs': logs_novos,
-            'total_logs': len(logs),
-            'execucao_id': execucao_id
-        })
-        
-    except Exception as e:
-        logger.error(f"Erro ao buscar logs: {str(e)}")
-        return JsonResponse({'success': False, 'error': str(e)})
-
-@login_required 
-def status_execucao(request, execucao_id):
-    """
-    Retorna status atual da execução
-    """
-    try:
-        execucao = get_object_or_404(CrewExecucao, id=execucao_id)
-        
-        return JsonResponse({
-            'success': True,
-            'execucao_id': execucao_id,
-            'status': execucao.status,
-            'iniciado_em': execucao.iniciado_em.isoformat(),
-            'finalizado_em': execucao.finalizado_em.isoformat() if execucao.finalizado_em else None,
-            'tempo_execucao': execucao.tempo_execucao,
-            'crew_nome': execucao.crew.nome if execucao.crew else 'Desconhecido'
-        })
-        
-    except Exception as e:
-        logger.error(f"Erro ao buscar status: {str(e)}")
-        return JsonResponse({'success': False, 'error': str(e)})
-
-# =============================================================================
-# VIEWS DE REFINAMENTO (opcional - futura implementação)
-# =============================================================================
-
-@login_required
-@require_POST
-def refinar_planta_baixa(request, projeto_id):
-    """
-    Refina planta baixa com feedback do usuário (futura implementação)
-    """
-    projeto = get_object_or_404(Projeto, pk=projeto_id, projetista=request.user)
     
-    try:
-        planta_atual = PlantaBaixa.objects.filter(projeto=projeto).order_by('-versao').first()
-        if not planta_atual:
-            return JsonResponse({
-                'success': False,
-                'error': 'Nenhuma planta baixa encontrada para refinar'
-            })
-        
-        feedback_usuario = request.POST.get('feedback', '').strip()
-        if not feedback_usuario:
-            return JsonResponse({
-                'success': False,
-                'error': 'Por favor, forneça feedback para o refinamento'
-            })
-        
-        # TODO: Implementar refinamento com CrewAI V2
-        # service = PlantaBaixaServiceV2()
-        # resultado = service.refinar_planta(planta_atual, feedback_usuario)
-        
-        return JsonResponse({
-            'success': False,
-            'error': 'Refinamento ainda não implementado no CrewAI V2'
-        })
-            
-    except Exception as e:
-        logger.error(f"Erro ao refinar planta baixa: {str(e)}")
-        return JsonResponse({
-            'success': False,
-            'error': f'Erro técnico: {str(e)}'
-        })
-
-# =============================================================================
-# VIEWS DE DEBUG (opcionais)
-# =============================================================================
+    messages.error(request, "Arquivo SVG não encontrado para download.")
+    # Redireciona de volta para a página de detalhe do projeto se o arquivo não for encontrado
+    return redirect('projetista:projeto_detail', pk=planta.briefing.projeto.id) 
 
 @login_required
 def validar_crew_status(request):
     """
-    Valida o status do CrewAI V2
+    View para verificar o status de disponibilidade e configuração do CrewAI.
+    """
+    validation_result = planta_baixa_service.validar_crew() # Usa o método de validação do serviço
+    return JsonResponse(validation_result)
+
+@login_required
+def obter_logs_execucao(request, execucao_id):
+    """
+    View para obter logs detalhados de uma execução específica do CrewAI.
     """
     try:
-        service = PlantaBaixaServiceV2()
-        validacao = service.validar_crew()
-        
+        execucao = get_object_or_404(CrewExecucao, id=execucao_id)
+        # Assumindo que 'logs_execucao' é um campo de texto ou JSON no seu modelo CrewExecucao
+        logs = execucao.logs_execucao 
+        return JsonResponse({'logs': logs})
+    except Exception as e:
+        logger.error(f"Erro ao obter logs da execução {execucao_id}: {e}")
+        return JsonResponse({'error': 'Logs não encontrados ou erro na busca.'}, status=404)
+
+@login_required
+def status_execucao(request, execucao_id):
+    """
+    View para obter o status atual e informações de tempo de uma execução do CrewAI.
+    """
+    try:
+        execucao = get_object_or_404(CrewExecucao, id=execucao_id)
         return JsonResponse({
-            'success': True,
-            'crew_valido': validacao['valido'],
-            'detalhes': validacao
+            'status': execucao.status,
+            'tempo_execucao': execucao.tempo_execucao,
+            'finalizado_em': execucao.finalizado_em.isoformat() if execucao.finalizado_em else None,
+            'erro_detalhado': execucao.erro_detalhado
         })
     except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'crew_valido': False,
-            'error': str(e)
-        })
+        logger.error(f"Erro ao obter status da execução {execucao_id}: {e}")
+        return JsonResponse({'error': 'Status não encontrado ou erro na busca.'}, status=404)
+
+@login_required
+def debug_crew_info(request):
+    """
+    View de depuração para fornecer informações gerais sobre a configuração do CrewAI.
+    """
+    # Você pode expandir isso para retornar mais detalhes sobre agentes/tasks do banco, etc.
+    return JsonResponse({'info': 'Informações de depuração do CrewAI serão exibidas aqui.'})
