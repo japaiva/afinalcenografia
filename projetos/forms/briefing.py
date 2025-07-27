@@ -3,15 +3,8 @@
 from django import forms
 from projetos.models.briefing import (
     Briefing, BriefingArquivoReferencia, 
-    AreaExposicao, SalaReuniao, Copa, Deposito
+    AreaExposicao, SalaReuniao, Copa, Deposito, Palco, Workshop
 )
-
-
-# forms/briefing.py - Atualizar o formulário BriefingEtapa1Form
-
-from django import forms
-from projetos.models.briefing import Briefing
-
 class BriefingEtapa1Form(forms.ModelForm):
     """Formulário para a primeira etapa do briefing: Evento - Datas e Localização"""
     
@@ -218,6 +211,8 @@ class DepositoForm(forms.ModelForm):
         }
 
 
+# projetos/forms/briefing.py - ATUALIZAR BriefingEtapa3Form
+
 class BriefingEtapa3Form(forms.Form):
     """
     Formulário para a terceira etapa do briefing (ÁREAS DO ESTANDE - Divisões Funcionais).
@@ -234,6 +229,17 @@ class BriefingEtapa3Form(forms.Form):
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
     )
     
+    # NOVOS CAMPOS
+    tem_palco = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+    
+    tem_workshop = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+    
     tem_copa = forms.BooleanField(
         required=False,
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
@@ -243,7 +249,6 @@ class BriefingEtapa3Form(forms.Form):
         required=False,
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
     )
-
 
 class BriefingEtapa4Form(forms.ModelForm):
     """
@@ -300,3 +305,74 @@ class BriefingMensagemForm(forms.Form):
         }),
         required=True
     )
+
+# projetos/forms/briefing.py - ADICIONAR após DepositoForm
+
+class PalcoForm(forms.ModelForm):
+    """Formulário para palcos do estande"""
+    class Meta:
+        model = Palco
+        exclude = ['briefing']
+        widgets = {
+            # Checkboxes para itens do palco
+            'tem_elevacao_podium': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'tem_sistema_som': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'tem_microfone': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'tem_telao_tv': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'tem_iluminacao_cenica': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'tem_backdrop_cenario': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'tem_bancada_demonstracao': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'tem_espaco_plateia': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            
+            # Campos tradicionais
+            'equipamentos': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Detalhes adicionais sobre equipamentos específicos'
+            }),
+            'observacoes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Coloque aqui como você imagina o palco'
+            }),
+            'metragem': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '',
+                'step': '0.01'
+            }),
+        }
+
+
+class WorkshopForm(forms.ModelForm):
+    """Formulário para workshops do estande"""
+    class Meta:
+        model = Workshop
+        exclude = ['briefing']
+        widgets = {
+            # Checkboxes para itens do workshop
+            'tem_bancada_trabalho': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'tem_mesas_participantes': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'tem_cadeiras_bancos': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'tem_quadro_flipchart': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'tem_projetor_tv': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'tem_pia_bancada_molhada': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'tem_armario_materiais': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'tem_pontos_eletricos_extras': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            
+            # Campos tradicionais
+            'equipamentos': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Detalhes adicionais sobre equipamentos específicos'
+            }),
+            'observacoes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Coloque aqui como você imagina o workshop'
+            }),
+            'metragem': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '',
+                'step': '0.01'
+            }),
+        }

@@ -704,6 +704,100 @@
                 </div>
             {% endif %}
 
+            !-- Palco -->
+            <h3>Palco</h3>
+            {% if briefing.palcos.all %}
+                {% for palco in briefing.palcos.all %}
+                    <div class="area-section">
+                        <div class="info-row">
+                            <div class="label">Metragem:</div>
+                            <div class="value">{% if palco.metragem %}{{ palco.metragem }} m²{% else %}Não informada{% endif %}</div>
+                        </div>
+                        
+                        <div class="info-row">
+                            <div class="label">Itens:</div>
+                            <div class="value">
+                                {% if palco.tem_elevacao_podium %}Elevação/Pódium<br>{% endif %}
+                                {% if palco.tem_sistema_som %}Sistema de Som<br>{% endif %}
+                                {% if palco.tem_microfone %}Microfone<br>{% endif %}
+                                {% if palco.tem_telao_tv %}Telão/TV<br>{% endif %}
+                                {% if palco.tem_iluminacao_cenica %}Iluminação Cênica<br>{% endif %}
+                                {% if palco.tem_backdrop_cenario %}Backdrop/Cenário<br>{% endif %}
+                                {% if palco.tem_bancada_demonstracao %}Bancada Demonstração<br>{% endif %}
+                                {% if palco.tem_espaco_plateia %}Espaço Plateia<br>{% endif %}
+                                {% if not palco.tem_elevacao_podium and not palco.tem_sistema_som and not palco.tem_microfone and not palco.tem_telao_tv and not palco.tem_iluminacao_cenica and not palco.tem_backdrop_cenario and not palco.tem_bancada_demonstracao and not palco.tem_espaco_plateia %}
+                                Nenhum item selecionado
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="info-row">
+                            <div class="label">Equipamentos:</div>
+                            <div class="value">{% if palco.equipamentos %}{{ palco.equipamentos }}{% else %}Não informados{% endif %}</div>
+                        </div>
+                        
+                        <div class="info-row">
+                            <div class="label">Observações:</div>
+                            <div class="value">{% if palco.observacoes %}{{ palco.observacoes }}{% else %}Não informadas{% endif %}</div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="area-section">
+                    <div class="info-row">
+                        <div class="label">Status:</div>
+                        <div class="value">Não incluído no projeto</div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Workshop -->
+            <h3>Workshop</h3>
+            {% if briefing.workshops.all %}
+                {% for workshop in briefing.workshops.all %}
+                    <div class="area-section">
+                        <div class="info-row">
+                            <div class="label">Metragem:</div>
+                            <div class="value">{% if workshop.metragem %}{{ workshop.metragem }} m²{% else %}Não informada{% endif %}</div>
+                        </div>
+                        
+                        <div class="info-row">
+                            <div class="label">Itens:</div>
+                            <div class="value">
+                                {% if workshop.tem_bancada_trabalho %}Bancada de Trabalho<br>{% endif %}
+                                {% if workshop.tem_mesas_participantes %}Mesas Participantes<br>{% endif %}
+                                {% if workshop.tem_cadeiras_bancos %}Cadeiras/Bancos<br>{% endif %}
+                                {% if workshop.tem_quadro_flipchart %}Quadro/Flipchart<br>{% endif %}
+                                {% if workshop.tem_projetor_tv %}Projetor/TV<br>{% endif %}
+                                {% if workshop.tem_pia_bancada_molhada %}Pia/Bancada Molhada<br>{% endif %}
+                                {% if workshop.tem_armario_materiais %}Armário Materiais<br>{% endif %}
+                                {% if workshop.tem_pontos_eletricos_extras %}Pontos Elétricos Extras<br>{% endif %}
+                                {% if not workshop.tem_bancada_trabalho and not workshop.tem_mesas_participantes and not workshop.tem_cadeiras_bancos and not workshop.tem_quadro_flipchart and not workshop.tem_projetor_tv and not workshop.tem_pia_bancada_molhada and not workshop.tem_armario_materiais and not workshop.tem_pontos_eletricos_extras %}
+                                Nenhum item selecionado
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="info-row">
+                            <div class="label">Equipamentos:</div>
+                            <div class="value">{% if workshop.equipamentos %}{{ workshop.equipamentos }}{% else %}Não informados{% endif %}</div>
+                        </div>
+                        
+                        <div class="info-row">
+                            <div class="label">Observações:</div>
+                            <div class="value">{% if workshop.observacoes %}{{ workshop.observacoes }}{% else %}Não informadas{% endif %}</div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="area-section">
+                    <div class="info-row">
+                        <div class="label">Status:</div>
+                        <div class="value">Não incluído no projeto</div>
+                    </div>
+                </div>
+            {% endif %}
+
             <!-- Copa -->
             <h3>Copa</h3>
             {% if briefing.copas.all %}

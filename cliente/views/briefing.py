@@ -14,7 +14,7 @@ from core.decorators import cliente_required
 
 from projetos.models import Projeto
 from projetos.models.briefing import (
-    Briefing, AreaExposicao, SalaReuniao, Copa, Deposito,
+    Briefing, AreaExposicao, SalaReuniao, Copa, Deposito, Palco, Workshop,
     BriefingArquivoReferencia, BriefingValidacao, BriefingConversation
 )
 
@@ -22,7 +22,7 @@ from projetos.forms.briefing import (
     BriefingEtapa1Form, BriefingEtapa2Form,
     BriefingEtapa3Form, BriefingEtapa4Form,
     BriefingArquivoReferenciaForm, BriefingMensagemForm,
-    CopaForm, DepositoForm
+    CopaForm, DepositoForm, PalcoForm, WorkshopForm
 )
 
 from projetos.views import validar_secao_briefing
@@ -635,8 +635,6 @@ def briefing_perguntar_feira(request, briefing_id):
             messages.error(request, 'Por favor, informe uma pergunta.')
             return redirect('cliente:briefing_perguntar_feira', briefing_id=briefing.id)
         
-        # Aqui você implementaria a lógica para consultar a IA com RAG usando Pinecone
-        # Por enquanto, vamos criar uma resposta simulada
         resposta = f"Esta é uma resposta simulada sobre a feira {feira.nome}. Em uma implementação real, a IA consultaria a base de conhecimento vetorial no Pinecone para fornecer informações específicas do manual da feira."
         
         # Registrar a interação
@@ -698,6 +696,7 @@ def briefing_etapa(request, projeto_id, etapa):
         secao = 'dados_complementares'
 
     if request.method == 'POST':
+
         if etapa == 3:
             form = form_class(request.POST)
             if form.is_valid():
@@ -705,18 +704,22 @@ def briefing_etapa(request, projeto_id, etapa):
                     # Checkboxes principais
                     tem_area_exposicao = form.cleaned_data.get('tem_area_exposicao', False)
                     tem_sala_reuniao = form.cleaned_data.get('tem_sala_reuniao', False)
+                    tem_palco = form.cleaned_data.get('tem_palco', False)  # NOVO
+                    tem_workshop = form.cleaned_data.get('tem_workshop', False)  # NOVO
                     tem_copa = form.cleaned_data.get('tem_copa', False)
                     tem_deposito = form.cleaned_data.get('tem_deposito', False)
 
+                    # Limpar áreas não selecionadas
                     if not tem_area_exposicao:
                         AreaExposicao.objects.filter(briefing=briefing).delete()
-
                     if not tem_sala_reuniao:
                         SalaReuniao.objects.filter(briefing=briefing).delete()
-
+                    if not tem_palco:  # NOVO
+                        Palco.objects.filter(briefing=briefing).delete()
+                    if not tem_workshop:  # NOVO
+                        Workshop.objects.filter(briefing=briefing).delete()
                     if not tem_copa:
                         Copa.objects.filter(briefing=briefing).delete()
-
                     if not tem_deposito:
                         Deposito.objects.filter(briefing=briefing).delete()
 
@@ -727,11 +730,6 @@ def briefing_etapa(request, projeto_id, etapa):
                         for i in range(num_areas):
                             if f'area_exposicao-{i}-metragem' in request.POST:
                                 area = AreaExposicao(briefing=briefing)
-
-                                # DEBUG: Verificar valor da metragem recebido
-                                metragem_str = request.POST.get(f'area_exposicao-{i}-metragem', 0)
-                                print(f"🏢 Área {i+1} metragem recebida: '{metragem_str}' (tipo: {type(metragem_str)})")
-
                                 area.tem_lounge = request.POST.get(f'area_exposicao-{i}-tem_lounge') == 'on'
                                 area.tem_vitrine_exposicao = request.POST.get(f'area_exposicao-{i}-tem_vitrine_exposicao') == 'on'
                                 area.tem_balcao_recepcao = request.POST.get(f'area_exposicao-{i}-tem_balcao_recepcao') == 'on'
@@ -754,14 +752,6 @@ def briefing_etapa(request, projeto_id, etapa):
                         for i in range(num_salas):
                             if f'sala_reuniao-{i}-capacidade' in request.POST:
                                 sala = SalaReuniao(briefing=briefing)
-
-                                # DEBUG: Verificar valores recebidos
-                                capacidade_str = request.POST.get(f'sala_reuniao-{i}-capacidade', 0)
-                                metragem_str = request.POST.get(f'sala_reuniao-{i}-metragem', 0)
-                                print(f"🏛️ Sala {i+1} capacidade: '{capacidade_str}', metragem: '{metragem_str}'")
-
-
-
                                 try:
                                     sala.capacidade = int(request.POST.get(f'sala_reuniao-{i}-capacidade', 0))
                                 except (ValueError, TypeError):
@@ -772,6 +762,52 @@ def briefing_etapa(request, projeto_id, etapa):
                                 except (ValueError, TypeError):
                                     sala.metragem = 0
                                 sala.save()
+
+                    # NOVO: Palcos
+                    if tem_palco:
+                        Palco.objects.filter(briefing=briefing).delete()
+                        num_palcos = int(request.POST.get('num_palcos', 1))
+                        for i in range(num_palcos):
+                            if f'palco-{i}-metragem' in request.POST:
+                                palco = Palco(briefing=briefing)
+                                palco.tem_elevacao_podium = request.POST.get(f'palco-{i}-tem_elevacao_podium') == 'on'
+                                palco.tem_sistema_som = request.POST.get(f'palco-{i}-tem_sistema_som') == 'on'
+                                palco.tem_microfone = request.POST.get(f'palco-{i}-tem_microfone') == 'on'
+                                palco.tem_telao_tv = request.POST.get(f'palco-{i}-tem_telao_tv') == 'on'
+                                palco.tem_iluminacao_cenica = request.POST.get(f'palco-{i}-tem_iluminacao_cenica') == 'on'
+                                palco.tem_backdrop_cenario = request.POST.get(f'palco-{i}-tem_backdrop_cenario') == 'on'
+                                palco.tem_bancada_demonstracao = request.POST.get(f'palco-{i}-tem_bancada_demonstracao') == 'on'
+                                palco.tem_espaco_plateia = request.POST.get(f'palco-{i}-tem_espaco_plateia') == 'on'
+                                palco.equipamentos = request.POST.get(f'palco-{i}-equipamentos', '')
+                                palco.observacoes = request.POST.get(f'palco-{i}-observacoes', '')
+                                try:
+                                    palco.metragem = float(request.POST.get(f'palco-{i}-metragem', 0))
+                                except (ValueError, TypeError):
+                                    palco.metragem = 0
+                                palco.save()
+
+                    # NOVO: Workshops
+                    if tem_workshop:
+                        Workshop.objects.filter(briefing=briefing).delete()
+                        num_workshops = int(request.POST.get('num_workshops', 1))
+                        for i in range(num_workshops):
+                            if f'workshop-{i}-metragem' in request.POST:
+                                workshop = Workshop(briefing=briefing)
+                                workshop.tem_bancada_trabalho = request.POST.get(f'workshop-{i}-tem_bancada_trabalho') == 'on'
+                                workshop.tem_mesas_participantes = request.POST.get(f'workshop-{i}-tem_mesas_participantes') == 'on'
+                                workshop.tem_cadeiras_bancos = request.POST.get(f'workshop-{i}-tem_cadeiras_bancos') == 'on'
+                                workshop.tem_quadro_flipchart = request.POST.get(f'workshop-{i}-tem_quadro_flipchart') == 'on'
+                                workshop.tem_projetor_tv = request.POST.get(f'workshop-{i}-tem_projetor_tv') == 'on'
+                                workshop.tem_pia_bancada_molhada = request.POST.get(f'workshop-{i}-tem_pia_bancada_molhada') == 'on'
+                                workshop.tem_armario_materiais = request.POST.get(f'workshop-{i}-tem_armario_materiais') == 'on'
+                                workshop.tem_pontos_eletricos_extras = request.POST.get(f'workshop-{i}-tem_pontos_eletricos_extras') == 'on'
+                                workshop.equipamentos = request.POST.get(f'workshop-{i}-equipamentos', '')
+                                workshop.observacoes = request.POST.get(f'workshop-{i}-observacoes', '')
+                                try:
+                                    workshop.metragem = float(request.POST.get(f'workshop-{i}-metragem', 0))
+                                except (ValueError, TypeError):
+                                    workshop.metragem = 0
+                                workshop.save()
 
                     # Copa e Depósito usando arrays corretamente
                     if tem_copa:
@@ -805,6 +841,7 @@ def briefing_etapa(request, projeto_id, etapa):
                 print(f"🔍 ETAPA 3 SALVA - Endereço: '{briefing.endereco_estande}'")
             else:
                 print("Form etapa 3 inválido:", form.errors)
+
         else:
             # Para outras etapas, usar o formulário normalmente
             form = form_class(request.POST, request.FILES, instance=briefing)
@@ -828,39 +865,18 @@ def briefing_etapa(request, projeto_id, etapa):
 
     else:
         # GET request - exibir formulário
-        # DEBUG: Verificar endereço antes de carregar o form
-        if etapa == 1:
-            print(f"=== DEBUG GET ETAPA 1 ===")
-            print(f"Briefing ID: {briefing.id}")
-            print(f"Endereço atual no banco: '{briefing.endereco_estande}'")
-            print(f"Tipo projeto: {briefing.projeto.tipo_projeto}")
-            if briefing.projeto.tipo_projeto == 'outros':
-                print(f"Nome evento: '{briefing.nome_evento}'")
-                print(f"Local evento: '{briefing.local_evento}'")
-                print(f"Organizador: '{briefing.organizador_evento}'")
-            print("===========================")
             
         if etapa == 3:
-
-            # DEBUG: Verificar dados das áreas antes de renderizar
-            areas_existentes = AreaExposicao.objects.filter(briefing=briefing)
-            salas_existentes = SalaReuniao.objects.filter(briefing=briefing)
             
-            print(f"🔍 GET ETAPA 3 - Áreas existentes: {areas_existentes.count()}")
-            for i, area in enumerate(areas_existentes):
-                print(f"  Área {i+1}: metragem={area.metragem} equipamentos='{area.equipamentos}'")
-            
-            print(f"🔍 GET ETAPA 3 - Salas existentes: {salas_existentes.count()}")
-            for i, sala in enumerate(salas_existentes):
-                print(f"  Sala {i+1}: capacidade={sala.capacidade} metragem={sala.metragem} equipamentos='{sala.equipamentos}'")
-
-
             form = BriefingEtapa3Form(initial={
                 'tem_area_exposicao': AreaExposicao.objects.filter(briefing=briefing).exists(),
                 'tem_sala_reuniao': SalaReuniao.objects.filter(briefing=briefing).exists(),
+                'tem_palco': Palco.objects.filter(briefing=briefing).exists(),  # NOVO
+                'tem_workshop': Workshop.objects.filter(briefing=briefing).exists(),  # NOVO
                 'tem_copa': Copa.objects.filter(briefing=briefing).exists(),
                 'tem_deposito': Deposito.objects.filter(briefing=briefing).exists(),
             })
+
         else:
             form = form_class(instance=briefing)
 
@@ -889,16 +905,24 @@ def briefing_etapa(request, projeto_id, etapa):
     if etapa == 3:
         areas_exposicao = list(AreaExposicao.objects.filter(briefing=briefing)) or [None]
         salas_reuniao = list(SalaReuniao.objects.filter(briefing=briefing)) or [None]
+        palcos = list(Palco.objects.filter(briefing=briefing)) or [None]  # NOVO
+        workshops = list(Workshop.objects.filter(briefing=briefing)) or [None]  # NOVO
         copa = Copa.objects.filter(briefing=briefing).first()
         deposito = Deposito.objects.filter(briefing=briefing).first()
 
         context.update({
             'areas_exposicao': areas_exposicao,
             'salas_reuniao': salas_reuniao,
+            'palcos': palcos,  # NOVO
+            'workshops': workshops,  # NOVO
             'copa_form': CopaForm(instance=copa) if copa else CopaForm(prefix='copa'),
             'deposito_form': DepositoForm(instance=deposito) if deposito else DepositoForm(prefix='deposito'),
+            'palco_form': PalcoForm(prefix='palco'),  # NOVO
+            'workshop_form': WorkshopForm(prefix='workshop'),  # NOVO
             'num_areas_exposicao': len(areas_exposicao),
             'num_salas_reuniao': len(salas_reuniao),
+            'num_palcos': len(palcos),  # NOVO
+            'num_workshops': len(workshops),  # NOVO
         })
 
     # Renderiza template dinâmico por etapa

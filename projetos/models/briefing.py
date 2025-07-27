@@ -329,15 +329,16 @@ class Briefing(models.Model):
         if not self.pk:
             return False
             
-        # Verifica se existe alguma área de exposição, sala, copa ou depósito
+        # Importar os novos modelos
+        from projetos.models.briefing import Palco, Workshop
+            
+        # Verifica se existe alguma área de exposição, sala, palco, workshop, copa ou depósito
         return AreaExposicao.objects.filter(briefing=self).exists() or \
             SalaReuniao.objects.filter(briefing=self).exists() or \
+            Palco.objects.filter(briefing=self).exists() or \
+            Workshop.objects.filter(briefing=self).exists() or \
             Copa.objects.filter(briefing=self).exists() or \
             Deposito.objects.filter(briefing=self).exists()
-
-        def __str__(self):
-            return f"Briefing v{self.versao} - {self.projeto.nome}"
-
 
 class AreaExposicao(models.Model):
     """Modelo para áreas de exposição do estande (múltiplas possíveis)"""
@@ -507,3 +508,82 @@ class BriefingConversation(models.Model):
 
     def __str__(self):
         return f"{self.origem.capitalize()} - {self.timestamp:%d/%m/%Y %H:%M}"
+    
+# projetos/models/briefing.py - ADICIONAR após o modelo Deposito
+
+class Palco(models.Model):
+    """Modelo para palco do estande"""
+    briefing = models.ForeignKey(Briefing, on_delete=models.CASCADE, related_name='palcos')
+    
+    # Items disponíveis (checkboxes)
+    tem_elevacao_podium = models.BooleanField(default=False, verbose_name="Elevação/Pódium")
+    tem_sistema_som = models.BooleanField(default=False, verbose_name="Sistema de Som")
+    tem_microfone = models.BooleanField(default=False, verbose_name="Microfone")
+    tem_telao_tv = models.BooleanField(default=False, verbose_name="Telão/TV")
+    tem_iluminacao_cenica = models.BooleanField(default=False, verbose_name="Iluminação Cênica")
+    tem_backdrop_cenario = models.BooleanField(default=False, verbose_name="Backdrop/Cenário")
+    tem_bancada_demonstracao = models.BooleanField(default=False, verbose_name="Bancada Demonstração")
+    tem_espaco_plateia = models.BooleanField(default=False, verbose_name="Espaço Plateia")
+    
+    # Outros campos tradicionais
+    equipamentos = models.TextField(
+        blank=True, null=True,
+        verbose_name="Equipamentos",
+        help_text="Detalhes adicionais sobre equipamentos específicos"
+    )
+    observacoes = models.TextField(
+        blank=True, null=True,
+        verbose_name="Observações",
+        help_text="Coloque aqui como você imagina o palco"
+    )
+    metragem = models.DecimalField(
+        max_digits=8, decimal_places=2,
+        blank=True, null=True,
+        verbose_name="Metragem (m²)"
+    )
+    
+    class Meta:
+        verbose_name = 'Palco'
+        verbose_name_plural = 'Palcos'
+
+    def __str__(self):
+        return f"Palco - {self.briefing.projeto.nome}"
+
+
+class Workshop(models.Model):
+    """Modelo para workshop do estande"""
+    briefing = models.ForeignKey(Briefing, on_delete=models.CASCADE, related_name='workshops')
+    
+    # Items disponíveis (checkboxes)
+    tem_bancada_trabalho = models.BooleanField(default=False, verbose_name="Bancada de Trabalho")
+    tem_mesas_participantes = models.BooleanField(default=False, verbose_name="Mesas Participantes")
+    tem_cadeiras_bancos = models.BooleanField(default=False, verbose_name="Cadeiras/Bancos")
+    tem_quadro_flipchart = models.BooleanField(default=False, verbose_name="Quadro/Flipchart")
+    tem_projetor_tv = models.BooleanField(default=False, verbose_name="Projetor/TV")
+    tem_pia_bancada_molhada = models.BooleanField(default=False, verbose_name="Pia/Bancada Molhada")
+    tem_armario_materiais = models.BooleanField(default=False, verbose_name="Armário Materiais")
+    tem_pontos_eletricos_extras = models.BooleanField(default=False, verbose_name="Pontos Elétricos Extras")
+    
+    # Outros campos tradicionais
+    equipamentos = models.TextField(
+        blank=True, null=True,
+        verbose_name="Equipamentos",
+        help_text="Detalhes adicionais sobre equipamentos específicos"
+    )
+    observacoes = models.TextField(
+        blank=True, null=True,
+        verbose_name="Observações",
+        help_text="Coloque aqui como você imagina o workshop"
+    )
+    metragem = models.DecimalField(
+        max_digits=8, decimal_places=2,
+        blank=True, null=True,
+        verbose_name="Metragem (m²)"
+    )
+    
+    class Meta:
+        verbose_name = 'Workshop'
+        verbose_name_plural = 'Workshops'
+
+    def __str__(self):
+        return f"Workshop - {self.briefing.projeto.nome}"

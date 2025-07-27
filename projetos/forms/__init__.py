@@ -4,7 +4,6 @@ from projetos.forms.briefing import (
     BriefingEtapa1Form, BriefingEtapa2Form, 
     BriefingEtapa3Form, BriefingEtapa4Form, 
     BriefingArquivoReferenciaForm, BriefingMensagemForm, 
-   
 )
 
 __all__ = [
