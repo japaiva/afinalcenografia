@@ -258,7 +258,6 @@ class Briefing(models.Model):
         verbose_name="Data de Geração do PDF"
     )
     
-    
     def precisa_atualizar_pdf(self):
         """Verifica se o relatório PDF precisa ser atualizado"""
         if not self.pdf_file or not self.pdf_generated_at:
@@ -374,12 +373,28 @@ class AreaExposicao(models.Model):
         verbose_name = 'Área de Exposição'
         verbose_name_plural = 'Áreas de Exposição'
 
+# projetos/models/briefing.py - Modificar o modelo SalaReuniao
 
 class SalaReuniao(models.Model):
     """Modelo para salas de reunião do estande (múltiplas possíveis)"""
+    
+    TIPOS_SALA = (
+        ('aberta', 'Aberta'),
+        ('fechada', 'Fechada'),
+    )
+    
     briefing = models.ForeignKey(Briefing, on_delete=models.CASCADE, related_name='salas_reuniao')
     
     capacidade = models.PositiveSmallIntegerField(default=0, verbose_name="Capacidade (pessoas)")
+    
+    # NOVO CAMPO
+    tipo_sala = models.CharField(
+        max_length=10,
+        choices=TIPOS_SALA,
+        default='fechada',
+        verbose_name="Tipo de Sala"
+    )
+    
     equipamentos = models.TextField(
         blank=True, null=True,
         verbose_name="Equipamentos",
@@ -394,7 +409,6 @@ class SalaReuniao(models.Model):
     class Meta:
         verbose_name = 'Sala de Reunião'
         verbose_name_plural = 'Salas de Reunião'
-
 
 class Copa(models.Model):
     """Modelo para copa do estande"""

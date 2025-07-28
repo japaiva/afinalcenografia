@@ -756,6 +756,10 @@ def briefing_etapa(request, projeto_id, etapa):
                                     sala.capacidade = int(request.POST.get(f'sala_reuniao-{i}-capacidade', 0))
                                 except (ValueError, TypeError):
                                     sala.capacidade = 0
+                                
+                                # NOVO CAMPO - Tipo de Sala
+                                sala.tipo_sala = request.POST.get(f'sala_reuniao-{i}-tipo_sala', 'fechada')
+                                
                                 sala.equipamentos = request.POST.get(f'sala_reuniao-{i}-equipamentos', '')
                                 try:
                                     sala.metragem = float(request.POST.get(f'sala_reuniao-{i}-metragem', 0))

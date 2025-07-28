@@ -674,37 +674,8 @@
             {% endif %}
 
 
-            <!-- Sala de Reunião/Escritório -->
-            <h3>Sala de Reunião/Escritório</h3>
-            {% if briefing.salas_reuniao.all %}
-                {% for sala in briefing.salas_reuniao.all %}
-                    <div class="area-section">
-                        <div class="info-row">
-                            <div class="label">Metragem:</div>
-                            <div class="value">{% if sala.metragem %}{{ sala.metragem }} m²{% else %}Não informada{% endif %}</div>
-                        </div>
-                        
-                        <div class="info-row">
-                            <div class="label">Capacidade:</div>
-                            <div class="value">{% if sala.capacidade %}{{ sala.capacidade }} pessoas{% else %}Não informada{% endif %}</div>
-                        </div>
-                        
-                        <div class="info-row">
-                            <div class="label">Equipamentos:</div>
-                            <div class="value">{% if sala.equipamentos %}{{ sala.equipamentos }}{% else %}Não informados{% endif %}</div>
-                        </div>
-                    </div>
-                {% endfor %}
-            {% else %}
-                <div class="area-section">
-                    <div class="info-row">
-                        <div class="label">Status:</div>
-                        <div class="value">Não incluído no projeto</div>
-                    </div>
-                </div>
-            {% endif %}
 
-            !-- Palco -->
+
             <h3>Palco</h3>
             {% if briefing.palcos.all %}
                 {% for palco in briefing.palcos.all %}
@@ -751,7 +722,6 @@
                 </div>
             {% endif %}
 
-            <!-- Workshop -->
             <h3>Workshop</h3>
             {% if briefing.workshops.all %}
                 {% for workshop in briefing.workshops.all %}
@@ -797,6 +767,42 @@
                     </div>
                 </div>
             {% endif %}
+
+            <h3>Sala de Reunião/Escritório</h3>
+            {% if briefing.salas_reuniao.all %}
+                {% for sala in briefing.salas_reuniao.all %}
+                    <div class="area-section">
+                        <div class="info-row">
+                            <div class="label">Capacidade:</div>
+                            <div class="value">{% if sala.capacidade %}{{ sala.capacidade }} pessoas{% else %}Não informada{% endif %}</div>
+                        </div>
+                        
+                        <!-- NOVO CAMPO -->
+                        <div class="info-row">
+                            <div class="label">Tipo de Sala:</div>
+                            <div class="value">{{ sala.get_tipo_sala_display|default:"Não informado" }}</div>
+                        </div>
+                        
+                        <div class="info-row">
+                            <div class="label">Metragem:</div>
+                            <div class="value">{% if sala.metragem %}{{ sala.metragem }} m²{% else %}Não informada{% endif %}</div>
+                        </div>
+                        
+                        <div class="info-row">
+                            <div class="label">Equipamentos:</div>
+                            <div class="value">{% if sala.equipamentos %}{{ sala.equipamentos }}{% else %}Não informados{% endif %}</div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="area-section">
+                    <div class="info-row">
+                        <div class="label">Status:</div>
+                        <div class="value">Não incluído no projeto</div>
+                    </div>
+                </div>
+            {% endif %}
+
 
             <!-- Copa -->
             <h3>Copa</h3>

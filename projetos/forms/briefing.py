@@ -150,6 +150,8 @@ class AreaExposicaoForm(forms.ModelForm):
         }
 
 
+# projetos/forms/briefing.py - Modificar o SalaReuniaoForm
+
 class SalaReuniaoForm(forms.ModelForm):
     """Formulário para salas de reunião do estande"""
     class Meta:
@@ -159,6 +161,10 @@ class SalaReuniaoForm(forms.ModelForm):
             'capacidade': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'placeholder': ''
+            }),
+            # NOVO WIDGET
+            'tipo_sala': forms.Select(attrs={
+                'class': 'form-select'
             }),
             'equipamentos': forms.Textarea(attrs={
                 'class': 'form-control',
@@ -171,7 +177,6 @@ class SalaReuniaoForm(forms.ModelForm):
                 'step': '0.01'
             }),
         }
-
 
 class CopaForm(forms.ModelForm):
     """Formulário para copas do estande"""

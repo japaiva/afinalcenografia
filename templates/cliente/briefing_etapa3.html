@@ -123,64 +123,8 @@
     </div>
   </div>
   
-  <!-- Sala de Reunião -->
-  <div class="card mb-4">
-    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-      <h5 class="mb-0">Sala de Reunião/Escritório</h5>
-      <button type="button" class="btn btn-sm btn-light" id="add_sala_reuniao">
-        <i class="fas fa-plus"></i> Adicionar Sala
-      </button>
-    </div>
-    <div class="card-body">
-      <div class="row">
-        <div class="col-md-12 mb-3">
-          <div class="form-check form-switch">
-            {{ form.tem_sala_reuniao }}
-            <label class="form-check-label" for="{{ form.tem_sala_reuniao.id_for_label }}">
-              Incluir Salas de Reunião/Escritório
-            </label>
-          </div>
-        </div>
-      </div>
-      
-      <div id="salas_reuniao_container" style="display: {% if form.tem_sala_reuniao.value %}block{% else %}none{% endif %};">
-        <div class="salas_reuniao_list">
-          {% for sala in salas_reuniao %}
-            <div class="sala-reuniao-item card mb-3">
-              <div class="card-header d-flex justify-content-between align-items-center bg-light">
-                <h6 class="mb-0">Sala de Reunião/Escritório {{ forloop.counter }}</h6>
-                <button type="button" class="btn btn-sm btn-danger remove-sala-btn">
-                  <i class="fas fa-trash"></i>
-                </button>
-              </div>
-              <div class="card-body">
-                <div class="row">
-                  <div class="col-md-6 mb-3">
-                    <label class="form-label">Capacidade (pessoas)</label>
-                    <input type="number" class="form-control" name="sala_reuniao-{{ forloop.counter0 }}-capacidade" 
-                           id="sala_reuniao-{{ forloop.counter0 }}-capacidade" value="{{ sala.capacidade|default:'' }}">
-                  </div>
-                  <div class="col-md-6 mb-3">
-                    <label class="form-label">Metragem (m²)</label>
-                    <div class="input-group">
-                      <input type="number" class="form-control" name="sala_reuniao-{{ forloop.counter0 }}-metragem" 
-                             id="sala_reuniao-{{ forloop.counter0 }}-metragem" step="0.01" value="{{ sala.metragem|default_if_none:''|stringformat:'g'  }}">
-                      <span class="input-group-text">m²</span>
-                    </div>
-                  </div>
-                  <div class="col-12 mb-3">
-                    <label class="form-label">Equipamentos da Sala</label>
-                    <textarea class="form-control" name="sala_reuniao-{{ forloop.counter0 }}-equipamentos" 
-                              id="sala_reuniao-{{ forloop.counter0 }}-equipamentos" rows="3">{{ sala.equipamentos|default:'' }}</textarea>
-                  </div>
-                </div>
-              </div>
-            </div>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-  </div>
+
+
   
   <!-- Palco -->
   <div class="card mb-4">
@@ -404,6 +348,76 @@
                     <textarea class="form-control" name="workshop-{{ forloop.counter0 }}-observacoes" 
                               id="workshop-{{ forloop.counter0 }}-observacoes" rows="3">{{ workshop.observacoes|default:'' }}</textarea>
                     <div class="form-text">Descreva como você imagina o workshop</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <!-- Sala de Reunião -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Sala de Reunião/Escritório</h5>
+      <button type="button" class="btn btn-sm btn-light" id="add_sala_reuniao">
+        <i class="fas fa-plus"></i> Adicionar Sala
+      </button>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-12 mb-3">
+          <div class="form-check form-switch">
+            {{ form.tem_sala_reuniao }}
+            <label class="form-check-label" for="{{ form.tem_sala_reuniao.id_for_label }}">
+              Incluir Salas de Reunião/Escritório
+            </label>
+          </div>
+        </div>
+      </div>
+      
+      <div id="salas_reuniao_container" style="display: {% if form.tem_sala_reuniao.value %}block{% else %}none{% endif %};">
+        <div class="salas_reuniao_list">
+          {% for sala in salas_reuniao %}
+            <div class="sala-reuniao-item card mb-3">
+              <div class="card-header d-flex justify-content-between align-items-center bg-light">
+                <h6 class="mb-0">Sala de Reunião/Escritório {{ forloop.counter }}</h6>
+                <button type="button" class="btn btn-sm btn-danger remove-sala-btn">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label">Capacidade (pessoas)</label>
+                    <input type="number" class="form-control" name="sala_reuniao-{{ forloop.counter0 }}-capacidade" 
+                           id="sala_reuniao-{{ forloop.counter0 }}-capacidade" value="{{ sala.capacidade|default:'' }}">
+                  </div>
+                  
+                  <!-- NOVO CAMPO - Tipo de Sala -->
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label">Tipo de Sala</label>
+                    <select class="form-select" name="sala_reuniao-{{ forloop.counter0 }}-tipo_sala" 
+                            id="sala_reuniao-{{ forloop.counter0 }}-tipo_sala">
+                      <option value="fechada" {% if sala.tipo_sala == 'fechada' or not sala.tipo_sala %}selected{% endif %}>Fechada</option>
+                      <option value="aberta" {% if sala.tipo_sala == 'aberta' %}selected{% endif %}>Aberta</option>
+                    </select>
+                  </div>
+                  
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label">Metragem (m²)</label>
+                    <div class="input-group">
+                      <input type="number" class="form-control" name="sala_reuniao-{{ forloop.counter0 }}-metragem" 
+                             id="sala_reuniao-{{ forloop.counter0 }}-metragem" step="0.01" value="{{ sala.metragem|default_if_none:''|stringformat:'g'  }}">
+                      <span class="input-group-text">m²</span>
+                    </div>
+                  </div>
+                  <div class="col-12 mb-3">
+                    <label class="form-label">Equipamentos da Sala</label>
+                    <textarea class="form-control" name="sala_reuniao-{{ forloop.counter0 }}-equipamentos" 
+                              id="sala_reuniao-{{ forloop.counter0 }}-equipamentos" rows="3">{{ sala.equipamentos|default:'' }}</textarea>
                   </div>
                 </div>
               </div>
