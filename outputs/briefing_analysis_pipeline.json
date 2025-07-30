@@ -22,6 +22,7 @@
     {
       "tipo": "sala_reuniao",
       "capacidade": 8,
+      "tipo_sala": "fechada",
       "metragem": 30.0,
       "equipamentos": "mesa, cadeira, moveisss"
     },
@@ -39,24 +40,21 @@
   "validacao_viabilidade_tecnica": {
     "tipo_stand": "ponta_ilha",
     "area_total": 220.0,
-    "dimensoes": {
-      "frente": 20.0,
-      "fundo": 11.0,
-      "lateral_esquerda": 12.0,
-      "lateral_direita": 13.0
-    },
-    "material": "construido",
-    "piso_elevado": "sem_elevacao"
+    "restricoes": {
+      "altura_maxima": "4m",
+      "acesso": "verificar com organizador"
+    }
   },
   "diretrizes_arquitetura_espacial": {
     "estilo": "Moderno",
     "material": "construido",
-    "mood": "inspirado em imagens do filme olympia de 1936 e campanha vem junto nike"
+    "piso_elevado": "sem_elevacao",
+    "tipo_testeira": "reta"
   },
   "dados_crew_2": {
     "estilo": "Moderno",
     "materiais": "construido",
-    "mood": "inspirado em imagens do filme olympia de 1936 e campanha vem junto nike"
+    "mood": "inspirado em imagens do filme olympia de 1936"
   },
   "dados_crew_3": {
     "especificacoes_tecnicas": {
@@ -66,7 +64,10 @@
         "mesa",
         "cadeira"
       ],
-      "restricoes_construtivas": "verificar limitações de altura e peso para estruturas"
+      "restricoes_construtivas": [
+        "verificar com organizador sobre limitações de montagem",
+        "respeitar normas de segurança"
+      ]
     }
   }
 }

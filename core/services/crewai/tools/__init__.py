@@ -1,7 +1,3 @@
-# =============================================================================
-# 3. core/services/crewai/tools/__init__.py - SIMPLIFICADO
-# =============================================================================
-
 from .tools_map import get_tool, list_available_tools, get_tool_info
 from .manager import create_tools_from_config, get_available_tools, validate_tools_config
 
