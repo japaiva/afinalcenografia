@@ -64,12 +64,9 @@
         "tv",
         "ledss",
         "mesa",
-        "cadeira",
-        "moveisss",
-        "umas pias",
-        "umas prateleiras"
+        "cadeira"
       ],
-      "restricoes_construtivas": "verificar a viabilidade de instalação de equipamentos pesados e a necessidade de reforço estrutural"
+      "restricoes_construtivas": "verificar limitações de altura e peso para estruturas"
     }
   }
 }

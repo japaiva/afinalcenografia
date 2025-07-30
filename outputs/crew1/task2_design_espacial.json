@@ -11,62 +11,51 @@
         "y": 5.5
       },
       "dimensoes": {
-        "largura": 10.0,
-        "profundidade": 10.0
+        "largura": 2.0,
+        "altura": 2.0
       }
     },
     "areas_exposicao": [
       {
         "tipo": "exposicao",
+        "metragem": 40.0,
         "posicao": {
-          "x": 2.0,
-          "y": 5.5
+          "x": 1.0,
+          "y": 1.0
         },
-        "dimensoes": {
-          "largura": 8.0,
-          "profundidade": 5.0
-        },
-        "equipamentos": ["tv", "ledss"],
         "elementos": {
           "lounge": true,
           "mesas_atendimento": true,
           "balcao_cafe": true
-        }
+        },
+        "equipamentos": ["tv", "ledss"],
+        "observacoes": "observacoes area 1"
       },
       {
         "tipo": "sala_reuniao",
-        "posicao": {
-          "x": 12.0,
-          "y": 5.5
-        },
-        "dimensoes": {
-          "largura": 6.0,
-          "profundidade": 5.0
-        },
         "capacidade": 8,
+        "metragem": 30.0,
+        "posicao": {
+          "x": 15.0,
+          "y": 1.0
+        },
         "equipamentos": ["mesa", "cadeira", "moveisss"]
       },
       {
         "tipo": "copa",
+        "metragem": 21.0,
         "posicao": {
-          "x": 18.0,
-          "y": 5.5
-        },
-        "dimensoes": {
-          "largura": 3.0,
-          "profundidade": 7.0
+          "x": 1.0,
+          "y": 7.0
         },
         "equipamentos": ["umas pias"]
       },
       {
         "tipo": "deposito",
+        "metragem": 22.0,
         "posicao": {
-          "x": 18.0,
-          "y": 12.5
-        },
-        "dimensoes": {
-          "largura": 3.0,
-          "profundidade": 7.0
+          "x": 15.0,
+          "y": 7.0
         },
         "equipamentos": ["umas prateleiras"]
       }
@@ -86,22 +75,40 @@
         },
         "direcao": "sul"
       },
-      "circulacao": {
-        "largura": 1.5,
-        "direcao": "perimetral"
+      "fluxo_interno": {
+        "caminhos": [
+          {
+            "inicio": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "fim": {
+              "x": 15.0,
+              "y": 1.0
+            }
+          },
+          {
+            "inicio": {
+              "x": 1.0,
+              "y": 7.0
+            },
+            "fim": {
+              "x": 15.0,
+              "y": 7.0
+            }
+          }
+        ]
       }
     }
   },
-  "especificacoes_calculo": {
-    "coordenadas": {
-      "x_min": 0.0,
-      "x_max": 20.0,
-      "y_min": 0.0,
-      "y_max": 11.0
-    },
-    "dimensoes_totais": {
-      "largura": 20.0,
-      "profundidade": 11.0
+  "validacao_viabilidade_tecnica": {
+    "tipo_stand": "ponta_ilha",
+    "area_total": 220.0,
+    "dimensoes": {
+      "frente": 20.0,
+      "fundo": 11.0,
+      "lateral_esquerda": 12.0,
+      "lateral_direita": 13.0
     },
     "material": "construido",
     "piso_elevado": "sem_elevacao"
@@ -111,9 +118,25 @@
     "material": "construido",
     "mood": "inspirado em imagens do filme olympia de 1936 e campanha vem junto nike"
   },
+  "dados_crew_2": {
+    "estilo": "Moderno",
+    "materiais": "construido",
+    "mood": "inspirado em imagens do filme olympia de 1936 e campanha vem junto nike"
+  },
+  "dados_crew_3": {
+    "especificacoes_tecnicas": {
+      "equipamentos": [
+        "tv",
+        "ledss",
+        "mesa",
+        "cadeira"
+      ],
+      "restricoes_construtivas": "verificar limitações de altura e peso para estruturas"
+    }
+  },
   "modelo_3D": {
-    "descricao": "Modelo 3D do estande com visualização das áreas e fluxos definidos",
-    "link": "http://example.com/modelo_3D_hair_summit_2025"
+    "descricao": "Modelo 3D do estande será criado com base nas especificações acima, utilizando software de modelagem 3D.",
+    "link": "http://exemplo.com/modelo3d_hair_summit_2025"
   }
 }
 ```

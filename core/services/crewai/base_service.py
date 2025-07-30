@@ -1,4 +1,4 @@
-# core/services/crewai/base_service.py - VERSÃO COM DEBUG MELHORADO
+# core/services/crewai/base_service.py - VERSÃO SEM VERBOSE
 
 import logging
 import time
@@ -33,14 +33,13 @@ logger = logging.getLogger(__name__)
 
 class CrewAIServiceV2:
     """
-    Serviço CrewAI com verbose DETALHADO e logs manuais
+    Serviço CrewAI SIMPLES sem verbose - foco na execução direta
     """
     
     def __init__(self, crew_nome: str):
         self.crew_nome = crew_nome
         self.logger = logging.getLogger(f"crewai.{crew_nome.lower().replace(' ', '_')}")
         self.django_crew = None
-        self.verbose_manager = None
         
         # Desabilitar telemetria
         self._disable_telemetry()
@@ -87,7 +86,7 @@ class CrewAIServiceV2:
     
     def executar(self, inputs: Dict[str, Any], contexto: Optional[Dict] = None) -> Dict:
         """
-        Executa crew com verbose DETALHADO
+        Executa crew de forma DIRETA - sem logs verbose
         """
         if not CREWAI_AVAILABLE:
             return {'success': False, 'error': 'CrewAI não disponível'}
@@ -101,41 +100,25 @@ class CrewAIServiceV2:
             # 1. Criar execução no banco
             execucao = self._criar_execucao(inputs, contexto)
             
-            # 2. 🔥 INICIALIZAR VERBOSE PRIMEIRO
-            self._inicializar_verbose(execucao.id)
+            # 2. Log simples de início
+            self.logger.info(f"🚀 Iniciando crew '{self.crew_nome}' - Execução ID: {execucao.id}")
             
-            # 3. Logs iniciais detalhados
-            self.verbose_manager.log_step("🚀 CrewAI V2 Pipeline iniciado", "inicio")
-            self.verbose_manager.log_step(f"👥 Crew: {self.crew_nome}", "sistema")
-            self.verbose_manager.log_step(f"📋 Execução ID: {execucao.id}", "sistema")
-            
-            # Pequeno delay para garantir que logs apareçam
-            time.sleep(0.5)
-            
-            # 4. Buscar configurações
-            membros = self.django_crew.membros.filter(ativo=True).order_by('ordem_execucao')
-            tasks = self.django_crew.tasks.filter(ativo=True).order_by('ordem_execucao')
-            
-            self.verbose_manager.log_step(f"🔧 Encontrados {membros.count()} agentes", "sistema")
-            self.verbose_manager.log_step(f"📋 Encontradas {tasks.count()} tasks", "sistema")
-            time.sleep(0.3)
-            
-            # 5. Criar crew framework
-            self.verbose_manager.log_step("🏗️ Criando estrutura do CrewAI...", "sistema")
-            crewai_crew = self._criar_crewai_framework_verbose()
+            # 3. Criar crew framework
+            crewai_crew = self._criar_crewai_framework()
             
             if not crewai_crew:
                 raise Exception("Falha ao criar CrewAI Framework")
             
-            # 6. 🔥 EXECUTAR COM LOGS DETALHADOS
-            resultado = self._executar_com_logs_detalhados(crewai_crew, inputs, membros, tasks)
+            # 4. EXECUTAR CREW DIRETAMENTE
+            self.logger.info("⚡ Executando CrewAI kickoff...")
+            resultado = crewai_crew.kickoff(inputs=inputs)
+            self.logger.info("✅ CrewAI kickoff concluído")
             
-            # 7. Finalizar
+            # 5. Finalizar
             tempo_execucao = time.time() - inicio
             self._finalizar_execucao(execucao, resultado, tempo_execucao)
             
-            self.verbose_manager.log_step(f"🎯 Pipeline concluído em {tempo_execucao:.1f}s!", "fim")
-            self.verbose_manager.stop()
+            self.logger.info(f"🎯 Pipeline concluído em {tempo_execucao:.1f}s!")
             
             return {
                 'success': True,
@@ -149,115 +132,13 @@ class CrewAIServiceV2:
         except Exception as e:
             self.logger.error(f"❌ Erro na execução: {str(e)}")
             
-            if self.verbose_manager:
-                self.verbose_manager.log_error(str(e))
-                self.verbose_manager.stop()
-            
             if 'execucao' in locals():
                 self._marcar_execucao_erro(execucao, str(e))
                 
             return {'success': False, 'error': str(e)}
     
-    def _executar_com_logs_detalhados(self, crewai_crew, inputs, membros, tasks):
-        """
-        🔥 EXECUÇÃO COM LOGS DETALHADOS PASSO A PASSO
-        """
-        try:
-            # Log de cada agente ANTES da execução
-            for i, (membro, task) in enumerate(zip(membros, tasks), 1):
-                agent_name = membro.agente.crew_role
-                
-                self.verbose_manager.log_step(f"🤖 Preparando Agente {i}: {agent_name}", "agente")
-                time.sleep(0.3)
-                
-                self.verbose_manager.log_step(f"📋 Task {i}: {task.descricao[:50]}...", "task")
-                time.sleep(0.3)
-                
-                # Log das ferramentas se houver
-                if task.tools_config and task.tools_config.get('tools'):
-                    tools_names = task.tools_config.get('tools', [])
-                    self.verbose_manager.log_step(f"🛠️ Tools configuradas: {', '.join(tools_names)}", "tool")
-                    time.sleep(0.2)
-            
-            # Log antes da execução principal
-            self.verbose_manager.log_step("⚡ Iniciando execução do pipeline...", "execucao")
-            time.sleep(0.5)
-            
-            # 🔥 EXECUTAR CREW E SIMULAR PROGRESSÃO
-            self._simular_execucao_agentes(membros, tasks)
-            
-            # Executar o crew real
-            self.verbose_manager.log_step("🚀 Executando CrewAI kickoff...", "execucao")
-            resultado = crewai_crew.kickoff(inputs=inputs)
-            
-            # Log de conclusão
-            self.verbose_manager.log_step("✅ CrewAI kickoff concluído", "execucao")
-            time.sleep(0.3)
-            
-            return resultado
-            
-        except Exception as e:
-            self.verbose_manager.log_error(f"Erro na execução: {str(e)}")
-            raise
-    
-    def _simular_execucao_agentes(self, membros, tasks):
-        """Simula progressão dos agentes com logs detalhados"""
-        
-        for i, (membro, task) in enumerate(zip(membros, tasks), 1):
-            agent_name = membro.agente.crew_role
-            
-            # Início do agente
-            self.verbose_manager.log_step(f"🚀 Agente {i} ({agent_name}) iniciando...", "agente")
-            time.sleep(0.4)
-            
-            # Simulação de pensamento
-            self.verbose_manager.log_step(f"💭 Analisando dados do briefing...", "pensamento")
-            time.sleep(0.5)
-            
-            # Simulação de ação
-            if "Analista" in agent_name:
-                self.verbose_manager.log_step("⚡ Extraindo dados estruturados do briefing", "acao")
-            elif "Arquiteto" in agent_name:
-                self.verbose_manager.log_step("⚡ Calculando layout espacial otimizado", "acao")
-            elif "Calculador" in agent_name:
-                self.verbose_manager.log_step("⚡ Convertendo áreas em coordenadas precisas", "acao")
-            elif "Gerador" in agent_name:
-                self.verbose_manager.log_step("⚡ Gerando arquivo SVG técnico", "acao")
-            else:
-                self.verbose_manager.log_step(f"⚡ Processando tarefa: {agent_name}", "acao")
-            
-            time.sleep(0.6)
-            
-            # Tool usage para o último agente
-            if i == 4:
-                self.verbose_manager.log_tool_usage("svg_generator", agent_name, "SVG com 2.5KB gerado")
-                time.sleep(0.4)
-            
-            # Conclusão do agente
-            self.verbose_manager.log_step(f"✅ Agente {i} ({agent_name}) concluído", "agente_fim")
-            time.sleep(0.3)
-    
-    def _inicializar_verbose(self, execucao_id):
-        """🔥 INICIALIZA VERBOSE COM TESTE IMEDIATO"""
-        try:
-            from .verbose.manager import VerboseManager
-            
-            self.verbose_manager = VerboseManager(str(execucao_id), self.crew_nome)
-            self.verbose_manager.start()
-            
-            # 🔥 TESTE IMEDIATO
-            self.verbose_manager.log_step("📡 Sistema de verbose inicializado", "sistema")
-            
-            # Verificar se foi salvo
-            logs_teste = self.verbose_manager.get_logs()
-            self.logger.info(f"✅ Verbose inicializado - {len(logs_teste)} logs no cache")
-            
-        except ImportError as e:
-            self.logger.warning(f"Verbose não disponível: {e}")
-            self.verbose_manager = None
-    
-    def _criar_crewai_framework_verbose(self) -> Optional[CrewAI_Framework]:
-        """Cria CrewAI Framework com logs detalhados e DEBUG MELHORADO"""
+    def _criar_crewai_framework(self) -> Optional[CrewAI_Framework]:
+        """Cria CrewAI Framework de forma DIRETA"""
         try:
             membros = self.django_crew.membros.filter(ativo=True).order_by('ordem_execucao')
             tasks = self.django_crew.tasks.filter(ativo=True).order_by('ordem_execucao')
@@ -265,27 +146,15 @@ class CrewAIServiceV2:
             if not membros.exists() or not tasks.exists():
                 raise Exception(f"Crew sem membros ou tasks ativas")
             
-            # 🔍 DEBUG - VERIFICAR DADOS ANTES DA CRIAÇÃO
-            self.logger.info(f"🔍 DEBUG: Iniciando criação de {membros.count()} agentes")
+            self.logger.info(f"🔧 Criando {membros.count()} agentes e {tasks.count()} tasks")
             
             crewai_agents = []
             crewai_tasks = []
             
-            # Criar agentes com logs e VALIDAÇÃO
+            # Criar agentes e tasks
             for i, (membro, task) in enumerate(zip(membros, tasks), 1):
                 try:
-                    # 🔍 DEBUG DETALHADO DOS DADOS
-                    self.logger.info(f"🔍 DEBUG Agente {i}:")
-                    self.logger.info(f"   ID: {membro.agente.id}")
-                    self.logger.info(f"   Nome: {membro.agente.nome}")
-                    self.logger.info(f"   Role: '{membro.agente.crew_role}'")
-                    self.logger.info(f"   Goal: '{membro.agente.crew_goal[:100] if membro.agente.crew_goal else 'VAZIO'}'")
-                    self.logger.info(f"   Backstory: '{membro.agente.crew_backstory[:100] if membro.agente.crew_backstory else 'VAZIO'}'")
-                    self.logger.info(f"   LLM Provider: '{membro.agente.llm_provider}'")
-                    self.logger.info(f"   LLM Model: '{membro.agente.llm_model}'")
-                    self.logger.info(f"   LLM Temperature: {membro.agente.llm_temperature}")
-                    
-                    # 🔍 VALIDAÇÃO DE CAMPOS OBRIGATÓRIOS
+                    # Validar campos obrigatórios
                     campos_obrigatorios = {
                         'crew_role': membro.agente.crew_role,
                         'crew_goal': membro.agente.crew_goal,
@@ -298,48 +167,24 @@ class CrewAIServiceV2:
                         if not valor or str(valor).strip() == '':
                             raise Exception(f"Agente {membro.agente.nome}: campo '{campo}' está vazio")
                     
-                    self.verbose_manager.log_step(f"🔧 Configurando Agente {i}: {membro.agente.crew_role}", "config")
-                    time.sleep(0.2)
-                    
                     # Criar LLM
-                    self.logger.info(f"🔍 Criando LLM para agente {i}...")
                     llm = self._criar_llm_sem_telemetria(membro.agente)
-                    self.logger.info(f"✅ LLM criado: {type(llm).__name__}")
                     
                     # Criar ferramentas
-                    self.logger.info(f"🔍 Criando tools para agente {i}...")
-                    tools = self._criar_tools_com_verbose(task.tools_config or {})
-                    self.logger.info(f"✅ {len(tools)} tools criadas")
-                    
-                    # 🔍 DEBUG - DADOS FINAIS ANTES DA CRIAÇÃO
-                    self.logger.info(f"🔍 Criando CrewAI_Agent com:")
-                    self.logger.info(f"   role='{membro.agente.crew_role}'")
-                    self.logger.info(f"   goal='{membro.agente.crew_goal[:50]}...'")
-                    self.logger.info(f"   tools={len(tools)} tools")
-                    self.logger.info(f"   llm={type(llm).__name__}")
+                    tools = self._criar_tools_simples(task.tools_config or {})
                     
                     # Criar agente CrewAI
                     agent = CrewAI_Agent(
-                        role=str(membro.agente.crew_role),  # Garantir string
-                        goal=str(membro.agente.crew_goal),  # Garantir string
-                        backstory=str(membro.agente.crew_backstory),  # Garantir string
+                        role=str(membro.agente.crew_role),
+                        goal=str(membro.agente.crew_goal),
+                        backstory=str(membro.agente.crew_backstory),
                         llm=llm,
                         tools=tools,
-                        verbose=True,  # Usar nosso verbose
+                        verbose=True,  # Manter verbose interno do CrewAI
                         allow_delegation=bool(membro.pode_delegar),
                         max_iter=int(membro.max_iter),
                         max_execution_time=int(membro.max_execution_time)
                     )
-                    
-                    self.logger.info(f"✅ CrewAI_Agent {i} criado com sucesso")
-                    
-                    # 🔍 DEBUG - DADOS DA TASK
-                    self.logger.info(f"🔍 DEBUG Task {i}:")
-                    self.logger.info(f"   Nome: '{task.nome}'")
-                    self.logger.info(f"   Descrição: '{task.descricao[:100] if task.descricao else 'VAZIO'}'")
-                    self.logger.info(f"   Expected Output: '{task.expected_output[:100] if task.expected_output else 'VAZIO'}'")
-                    self.logger.info(f"   Tools Config: {task.tools_config}")
-                    self.logger.info(f"   Output File: '{task.output_file}'")
                     
                     # Validar campos da task
                     if not task.descricao or str(task.descricao).strip() == '':
@@ -359,53 +204,33 @@ class CrewAIServiceV2:
                     if task.output_file:
                         crew_task.output_file = str(task.output_file)
                     
-                    self.logger.info(f"✅ CrewAI_Task {i} criada com sucesso")
-                    
                     crewai_agents.append(agent)
                     crewai_tasks.append(crew_task)
                     
-                    self.verbose_manager.log_step(f"✅ Agente {i} configurado com {len(tools)} tools", "config")
-                    time.sleep(0.2)
+                    self.logger.info(f"✅ Agente {i} ({membro.agente.crew_role}) criado com {len(tools)} tools")
                     
                 except Exception as agent_error:
                     self.logger.error(f"❌ Erro ao criar agente {i}: {str(agent_error)}")
-                    self.logger.error(f"   Agente: {membro.agente.nome}")
-                    self.logger.error(f"   Task: {task.nome}")
                     raise Exception(f"Erro no agente {i} ({membro.agente.nome}): {str(agent_error)}")
             
             # Criar crew
-            self.verbose_manager.log_step("🏗️ Montando CrewAI Framework...", "sistema")
-            self.logger.info(f"🔍 Criando CrewAI_Framework com:")
-            self.logger.info(f"   agents={len(crewai_agents)} agentes")
-            self.logger.info(f"   tasks={len(crewai_tasks)} tasks")
-            self.logger.info(f"   process='{self.django_crew.processo}'")
-            self.logger.info(f"   memory={self.django_crew.memory}")
-            
-            time.sleep(0.3)
+            self.logger.info("🏗️ Montando CrewAI Framework...")
             
             crewai_framework = CrewAI_Framework(
                 agents=crewai_agents,
                 tasks=crewai_tasks,
                 process=str(self.django_crew.processo),
-                verbose=True,  # Usar nosso verbose
+                verbose=True,  # Manter verbose interno
                 memory=bool(self.django_crew.memory),
                 manager_llm=self._criar_manager_llm() if self.django_crew.processo == 'hierarchical' else None
             )
             
-            self.logger.info("✅ CrewAI_Framework criado com sucesso")
-            self.verbose_manager.log_step("✅ CrewAI Framework pronto", "sistema")
-            time.sleep(0.2)
+            self.logger.info("✅ CrewAI Framework criado com sucesso")
             
             return crewai_framework
             
         except Exception as e:
             self.logger.error(f"❌ Erro ao criar framework: {str(e)}")
-            self.logger.error(f"   Tipo do erro: {type(e).__name__}")
-            import traceback
-            self.logger.error(f"   Traceback: {traceback.format_exc()}")
-            
-            if self.verbose_manager:
-                self.verbose_manager.log_error(f"Erro na criação: {str(e)}")
             return None
     
     def _criar_llm_sem_telemetria(self, agente_db):
@@ -433,8 +258,8 @@ class CrewAIServiceV2:
         else:
             raise Exception(f"Provider '{provider}' não suportado")
     
-    def _criar_tools_com_verbose(self, tools_config: Dict) -> List:
-        """Cria tools com logs"""
+    def _criar_tools_simples(self, tools_config: Dict) -> List:
+        """Cria tools de forma simples - sem verbose"""
         if not tools_config:
             return []
         
@@ -442,10 +267,11 @@ class CrewAIServiceV2:
             from .tools.manager import create_tools_from_config
             
             tools_names = tools_config.get('tools', [])
-            if tools_names and self.verbose_manager:
-                self.verbose_manager.log_step(f"🔧 Criando {len(tools_names)} tools", "tool")
+            if tools_names:
+                self.logger.info(f"🔧 Carregando {len(tools_names)} tools: {tools_names}")
             
-            tools = create_tools_from_config(tools_config, self.verbose_manager)
+            # Passar None em vez do verbose_manager
+            tools = create_tools_from_config(tools_config, verbose_manager=None)
             
             return tools
             

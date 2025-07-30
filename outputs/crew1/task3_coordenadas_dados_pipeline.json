@@ -11,62 +11,51 @@
         "y": 5.5
       },
       "dimensoes": {
-        "largura": 10.0,
-        "profundidade": 10.0
+        "largura": 2.0,
+        "altura": 2.0
       }
     },
     "areas_exposicao": [
       {
         "tipo": "exposicao",
+        "metragem": 40.0,
         "posicao": {
-          "x": 2.0,
-          "y": 5.5
+          "x": 1.0,
+          "y": 1.0
         },
-        "dimensoes": {
-          "largura": 8.0,
-          "profundidade": 5.0
-        },
-        "equipamentos": ["tv", "ledss"],
         "elementos": {
           "lounge": true,
           "mesas_atendimento": true,
           "balcao_cafe": true
-        }
+        },
+        "equipamentos": ["tv", "ledss"],
+        "observacoes": "observacoes area 1"
       },
       {
         "tipo": "sala_reuniao",
-        "posicao": {
-          "x": 12.0,
-          "y": 5.5
-        },
-        "dimensoes": {
-          "largura": 6.0,
-          "profundidade": 5.0
-        },
         "capacidade": 8,
+        "metragem": 30.0,
+        "posicao": {
+          "x": 15.0,
+          "y": 1.0
+        },
         "equipamentos": ["mesa", "cadeira", "moveisss"]
       },
       {
         "tipo": "copa",
+        "metragem": 21.0,
         "posicao": {
-          "x": 18.0,
-          "y": 5.5
-        },
-        "dimensoes": {
-          "largura": 3.0,
-          "profundidade": 7.0
+          "x": 1.0,
+          "y": 7.0
         },
         "equipamentos": ["umas pias"]
       },
       {
         "tipo": "deposito",
+        "metragem": 22.0,
         "posicao": {
-          "x": 18.0,
-          "y": 12.5
-        },
-        "dimensoes": {
-          "largura": 3.0,
-          "profundidade": 7.0
+          "x": 15.0,
+          "y": 7.0
         },
         "equipamentos": ["umas prateleiras"]
       }
@@ -86,22 +75,40 @@
         },
         "direcao": "sul"
       },
-      "circulacao": {
-        "largura": 1.5,
-        "direcao": "perimetral"
+      "fluxo_interno": {
+        "caminhos": [
+          {
+            "inicio": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "fim": {
+              "x": 15.0,
+              "y": 1.0
+            }
+          },
+          {
+            "inicio": {
+              "x": 1.0,
+              "y": 7.0
+            },
+            "fim": {
+              "x": 15.0,
+              "y": 7.0
+            }
+          }
+        ]
       }
     }
   },
-  "especificacoes_calculo": {
-    "coordenadas": {
-      "x_min": 0.0,
-      "x_max": 20.0,
-      "y_min": 0.0,
-      "y_max": 11.0
-    },
-    "dimensoes_totais": {
-      "largura": 20.0,
-      "profundidade": 11.0
+  "validacao_viabilidade_tecnica": {
+    "tipo_stand": "ponta_ilha",
+    "area_total": 220.0,
+    "dimensoes": {
+      "frente": 20.0,
+      "fundo": 11.0,
+      "lateral_esquerda": 12.0,
+      "lateral_direita": 13.0
     },
     "material": "construido",
     "piso_elevado": "sem_elevacao"
@@ -122,25 +129,18 @@
         "tv",
         "ledss",
         "mesa",
-        "cadeira",
-        "moveisss",
-        "umas pias",
-        "umas prateleiras"
+        "cadeira"
       ],
-      "restricoes_construtivas": "verificar a viabilidade de instalação de equipamentos pesados e a necessidade de reforço estrutural"
+      "restricoes_construtivas": "verificar limitações de altura e peso para estruturas"
     }
   },
   "modelo_3D": {
-    "descricao": "Modelo 3D do estande com visualização das áreas e fluxos definidos",
-    "link": "http://example.com/modelo_3D_hair_summit_2025"
+    "descricao": "Modelo 3D do estande será criado com base nas especificações acima, utilizando software de modelagem 3D.",
+    "link": "http://exemplo.com/modelo3d_hair_summit_2025"
   },
   "metadados_svg": {
-    "titulo": "Hair Summit 2025 - Stand Visual",
-    "descricao": "Representação SVG do estande com áreas e fluxos",
-    "dimensoes_svg": {
-      "largura": 200,
-      "altura": 110
-    },
+    "titulo": "Estande Hair Summit 2025",
+    "descricao": "Representação gráfica do estande para renderização SVG.",
     "elementos_svg": [
       {
         "tipo": "retangulo",
@@ -149,58 +149,31 @@
           "y": 0
         },
         "dimensoes": {
-          "largura": 200,
-          "altura": 110
+          "largura": 20,
+          "altura": 11
         },
         "cor": "#FFFFFF"
       },
       {
         "tipo": "retangulo",
         "posicao": {
-          "x": 20,
-          "y": 10
+          "x": 1,
+          "y": 1
         },
         "dimensoes": {
-          "largura": 80,
-          "altura": 50
+          "largura": 18,
+          "altura": 8
         },
-        "cor": "#FFCC00"
+        "cor": "#F0F0F0"
       },
       {
-        "tipo": "retangulo",
+        "tipo": "circulo",
         "posicao": {
-          "x": 120,
-          "y": 10
+          "x": 10,
+          "y": 5.5
         },
-        "dimensoes": {
-          "largura": 60,
-          "altura": 50
-        },
-        "cor": "#00CCFF"
-      },
-      {
-        "tipo": "retangulo",
-        "posicao": {
-          "x": 180,
-          "y": 10
-        },
-        "dimensoes": {
-          "largura": 30,
-          "altura": 70
-        },
-        "cor": "#FF6699"
-      },
-      {
-        "tipo": "retangulo",
-        "posicao": {
-          "x": 180,
-          "y": 80
-        },
-        "dimensoes": {
-          "largura": 30,
-          "altura": 30
-        },
-        "cor": "#66FF66"
+        "raio": 1,
+        "cor": "#FF0000"
       }
     ]
   }

@@ -1,6 +1,4 @@
-# =============================================================================
-# 2. core/services/crewai/tools/manager.py - SIMPLIFICADO
-# =============================================================================
+# core/services/crewai/tools/manager.py - SEM VERBOSE
 
 from typing import List, Dict, Any
 import logging
@@ -10,10 +8,11 @@ logger = logging.getLogger(__name__)
 def create_tools_from_config(tools_config: dict, verbose_manager=None) -> List:
     """
     Cria lista de tools baseada na configuração do banco
+    VERSÃO SIMPLIFICADA SEM VERBOSE
     
     Args:
         tools_config: Configuração vinda do banco {"tools": ["svg_generator"]}
-        verbose_manager: Sistema de logs verbose (opcional)
+        verbose_manager: Sistema de logs verbose (IGNORADO nesta versão)
         
     Returns:
         Lista de instâncias de tools prontas para usar
@@ -35,28 +34,16 @@ def create_tools_from_config(tools_config: dict, verbose_manager=None) -> List:
     
     for tool_name in tools_names:
         try:
-            if verbose_manager:
-                verbose_manager.log_step(f"🔧 Carregando tool '{tool_name}'", "tool")
-            
             tool_instance = get_tool(tool_name)
             
             if tool_instance:
                 tools_instances.append(tool_instance)
                 logger.info(f"✅ Tool '{tool_name}' carregada com sucesso")
-                
-                if verbose_manager:
-                    verbose_manager.log_step(f"✅ Tool '{tool_name}' ativa", "tool")
             else:
                 logger.warning(f"❌ Tool '{tool_name}' não encontrada")
                 
-                if verbose_manager:
-                    verbose_manager.log_step(f"❌ Tool '{tool_name}' não encontrada", "tool")
-                
         except Exception as e:
             logger.error(f"❌ Erro ao carregar tool '{tool_name}': {str(e)}")
-            
-            if verbose_manager:
-                verbose_manager.log_step(f"❌ Erro na tool '{tool_name}': {str(e)}", "tool")
     
     logger.info(f"🎯 Total de tools carregadas: {len(tools_instances)}")
     return tools_instances

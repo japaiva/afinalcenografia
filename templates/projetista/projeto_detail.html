@@ -6,24 +6,6 @@
 
 {% block extra_css %}
 <style>
-/* Estilos para o modal de verbose */
-#verboseModal .modal-lg {
-    max-width: 800px;
-}
-
-#logsContainer {
-    background: #1e1e1e;
-    color: #f8f9fa;
-    font-family: 'Courier New', 'Monaco', monospace;
-    font-size: 13px;
-    line-height: 1.4;
-    border-radius: 6px;
-}
-
-#logsContainer .text-muted {
-    color: #6c757d !important;
-}
-
 .feedback-area {
     min-height: 50px;
 }
@@ -31,19 +13,6 @@
 .btn-loading {
     pointer-events: none;
     opacity: 0.7;
-}
-
-.log-entry {
-    transition: background-color 0.3s ease;
-}
-
-.log-entry:hover {
-    background-color: rgba(255, 255, 255, 0.05) !important;
-}
-
-.verbose-stats {
-    font-size: 11px;
-    color: #6c757d;
 }
 
 .pipeline-progress {
@@ -404,7 +373,7 @@
             </a>
           </div>
 
-          <!-- ✅ ÁREA DE FEEDBACK CORRIGIDA -->
+          <!-- ÁREA DE FEEDBACK SIMPLIFICADA -->
           <div id="feedback-area" class="feedback-area mt-3">
             <div id="status-message" class="alert d-none" role="alert">
               <span id="status-text"></span>
@@ -444,38 +413,23 @@
   </div>
 </div>
 
-<!-- ✅ CSRF TOKEN GARANTIDO -->
+<!-- CSRF TOKEN -->
 {% csrf_token %}
 <meta name="csrf-token" content="{{ csrf_token }}">
 
 {% endblock %}
+
 {% block extra_js %}
 <script>
-// ✅ GARANTIR QUE VARIÁVEIS ESTEJAM DISPONÍVEIS
+// VARIÁVEIS GLOBAIS SIMPLIFICADAS
 window.PROJETO_ID = {{ projeto.id }};
 window.CSRF_TOKEN = '{{ csrf_token }}';
 
-console.log("🚀 Projeto Detail carregado:");
+console.log("🚀 Projeto Detail carregado (MODO SIMPLES):");
 console.log("- PROJETO_ID:", window.PROJETO_ID);
 console.log("- CSRF_TOKEN:", window.CSRF_TOKEN ? "✅ Configurado" : "❌ Não configurado");
 
-// 🔥 JAVASCRIPT SIMPLIFICADO QUE FUNCIONA - VERBOSE EM TEMPO REAL
-
-// === CONFIGURAÇÕES ===
-const CONFIG = {
-    POLLING_INTERVAL: 1000,  // 1 segundo - mais rápido
-    MAX_RETRIES: 5,
-    DEBUG: true
-};
-
-// === VARIÁVEIS GLOBAIS ===
-let execucaoAtual = null;
-let ultimoLogIndex = 0;
-let intervaloPesquisa = null;
-let intervaloStatus = null;
-let modalAberto = false;
-
-// === FEEDBACK SISTEMA ===
+// ===== FEEDBACK SISTEMA SIMPLIFICADO =====
 function showFeedback(type, message) {
     const statusDiv = document.getElementById('status-message');
     const statusText = document.getElementById('status-text');
@@ -506,285 +460,16 @@ function setButtonLoading(button, loading) {
     }
 }
 
-// === MODAL SIMPLES ===
-function criarModalVerbose() {
-    console.log("🎬 Criando modal verbose...");
-    
-    // Remover modal existente
-    const existing = document.getElementById('verboseModal');
-    if (existing) existing.remove();
-    
-    const modalHtml = `
-        <div class="modal fade" id="verboseModal" tabindex="-1" data-bs-backdrop="static">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header bg-dark text-white">
-                        <h5 class="modal-title">
-                            🤖 CrewAI Pipeline
-                            <span class="badge bg-info ms-2" id="statusBadge">Conectando...</span>
-                        </h5>
-                    </div>
-                    <div class="modal-body p-0">
-                        <div id="logsContainer" style="
-                            height: 400px; 
-                            overflow-y: auto; 
-                            background: #1a1a1a; 
-                            color: #fff; 
-                            font-family: 'Courier New', monospace; 
-                            font-size: 13px; 
-                            padding: 15px;
-                            line-height: 1.4;
-                        ">
-                            <div class="text-center text-muted py-4" id="loadingMsg">
-                                <div class="spinner-border spinner-border-sm me-2"></div>
-                                Aguardando conexão...
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <small class="text-muted me-auto">
-                            Logs: <span id="logCount">0</span> | 
-                            Polling: ${CONFIG.POLLING_INTERVAL}ms
-                        </small>
-                        <button type="button" class="btn btn-secondary" onclick="fecharModal()" disabled id="btnFechar">
-                            <i class="fas fa-clock me-1"></i> Aguarde...
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
-    const modal = new bootstrap.Modal(document.getElementById('verboseModal'));
-    modal.show();
-    modalAberto = true;
-    
-    console.log("✅ Modal criado");
-    return modal;
-}
-
-function fecharModal() {
-    console.log("🔄 Fechando modal...");
-    
-    // Parar polling
-    if (intervaloPesquisa) {
-        clearInterval(intervaloPesquisa);
-        intervaloPesquisa = null;
-    }
-    if (intervaloStatus) {
-        clearInterval(intervaloStatus);
-        intervaloStatus = null;
-    }
-    
-    // Fechar modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('verboseModal'));
-    if (modal) {
-        modal.hide();
-        setTimeout(() => {
-            const modalEl = document.getElementById('verboseModal');
-            if (modalEl) modalEl.remove();
-        }, 300);
-    }
-    
-    modalAberto = false;
-    execucaoAtual = null;
-    ultimoLogIndex = 0;
-}
-
-// === MONITORAMENTO ===
-function iniciarMonitoramento(execucaoId) {
-    console.log(`📋 Iniciando monitoramento: ${execucaoId}`);
-    
-    execucaoAtual = execucaoId;
-    ultimoLogIndex = 0;
-    
-    // Atualizar status
-    const badge = document.getElementById('statusBadge');
-    if (badge) {
-        badge.textContent = 'Monitorando...';
-        badge.className = 'badge bg-success ms-2';
-    }
-    
-    // Remover loading
-    const loading = document.getElementById('loadingMsg');
-    if (loading) loading.remove();
-    
-    // Log inicial
-    adicionarLogLocal('📡 Sistema conectado - Monitorando logs...', 'sistema');
-    
-    // Começar polling IMEDIATAMENTE
-    buscarLogsNovos();
-    intervaloPesquisa = setInterval(buscarLogsNovos, CONFIG.POLLING_INTERVAL);
-    intervaloStatus = setInterval(() => verificarStatus(execucaoId), 3000);
-}
-
-function buscarLogsNovos() {
-    if (!execucaoAtual) return;
-    
-    const url = `/projetista/execucao/${execucaoAtual}/logs/?desde=${ultimoLogIndex}`;
-    
-    if (CONFIG.DEBUG) {
-        console.log(`📥 Buscando logs desde ${ultimoLogIndex}...`);
-    }
-    
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.logs && data.logs.length > 0) {
-                console.log(`📋 ${data.logs.length} novos logs recebidos`);
-                
-                // Adicionar logs
-                data.logs.forEach(log => adicionarLogAoContainer(log));
-                ultimoLogIndex = data.total_logs;
-                
-                // Atualizar contador
-                const counter = document.getElementById('logCount');
-                if (counter) counter.textContent = data.total_logs;
-            }
-        })
-        .catch(error => {
-            console.error('❌ Erro ao buscar logs:', error);
-            adicionarLogLocal('❌ Erro de conexão', 'erro');
-        });
-}
-
-function verificarStatus(execucaoId) {
-    fetch(`/projetista/execucao/${execucaoId}/status/`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const badge = document.getElementById('statusBadge');
-                const btnFechar = document.getElementById('btnFechar');
-                
-                if (data.status === 'completed') {
-                    badge.textContent = '✅ Concluído';
-                    badge.className = 'badge bg-success ms-2';
-                    btnFechar.disabled = false;
-                    btnFechar.innerHTML = '<i class="fas fa-check me-1"></i> Fechar';
-                    
-                    adicionarLogLocal('🎯 Execução concluída!', 'sucesso');
-                    
-                    // Parar monitoramento
-                    clearInterval(intervaloPesquisa);
-                    clearInterval(intervaloStatus);
-                    intervaloPesquisa = null;
-                    intervaloStatus = null;
-                    
-                } else if (data.status === 'failed') {
-                    badge.textContent = '❌ Erro';
-                    badge.className = 'badge bg-danger ms-2';
-                    btnFechar.disabled = false;
-                    btnFechar.innerHTML = '<i class="fas fa-times me-1"></i> Fechar';
-                    
-                    adicionarLogLocal('❌ Execução falhou!', 'erro');
-                    
-                    clearInterval(intervaloPesquisa);
-                    clearInterval(intervaloStatus);
-                    intervaloPesquisa = null;
-                    intervaloStatus = null;
-                }
-            }
-        })
-        .catch(error => console.error('❌ Erro status:', error));
-}
-
-// === LOGS ===
-function adicionarLogLocal(message, tipo = 'info') {
-    const log = {
-        timestamp: new Date().toLocaleTimeString(),
-        message: message,
-        tipo: tipo
-    };
-    adicionarLogAoContainer(log);
-}
-
-function adicionarLogAoContainer(log) {
-    const container = document.getElementById('logsContainer');
-    if (!container) return;
-    
-    const logDiv = document.createElement('div');
-    logDiv.style.marginBottom = '3px';
-    logDiv.style.padding = '2px 0';
-    
-    // Cores por tipo
-    let cor = '#ffffff';
-    let icone = '📝';
-    
-    switch(log.tipo) {
-        case 'inicio':
-            cor = '#28a745'; icone = '🚀';
-            break;
-        case 'sistema':
-            cor = '#17a2b8'; icone = '⚙️';
-            break;
-        case 'agente':
-            cor = '#007bff'; icone = '🤖';
-            break;
-        case 'task':
-            cor = '#28a745'; icone = '📋';
-            break;
-        case 'config':
-            cor = '#ffc107'; icone = '🔧';
-            break;
-        case 'execucao':
-            cor = '#fd7e14'; icone = '⚡';
-            break;
-        case 'agente_fim':
-            cor = '#28a745'; icone = '✅';
-            break;
-        case 'pensamento':
-            cor = '#6f42c1'; icone = '💭';
-            break;
-        case 'acao':
-            cor = '#fd7e14'; icone = '⚡';
-            break;
-        case 'tool':
-            cor = '#17a2b8'; icone = '🛠️';
-            break;
-        case 'resposta':
-            cor = '#20c997'; icone = '📊';
-            break;
-        case 'erro':
-            cor = '#dc3545'; icone = '❌';
-            break;
-        case 'fim':
-        case 'sucesso':
-            cor = '#28a745'; icone = '🎯';
-            break;
-    }
-    
-    logDiv.innerHTML = `
-        <span style="color: #888; font-size: 11px;">[${log.timestamp}]</span>
-        <span style="color: ${cor}; margin-left: 8px;">${icone} ${log.message}</span>
-    `;
-    
-    container.appendChild(logDiv);
-    container.scrollTop = container.scrollHeight;
-    
-    // Limitar logs para performance
-    const logs = container.children;
-    if (logs.length > 100) {
-        for (let i = 0; i < logs.length - 100; i++) {
-            logs[i].remove();
-        }
-    }
-}
-
-// === GERAÇÃO DE PLANTA BAIXA ===
+// ===== GERAÇÃO DE PLANTA BAIXA SIMPLIFICADA =====
 function gerarPlantaBaixa() {
     const button = event.target;
     
-    console.log("🚀 Iniciando geração de planta baixa...");
+    console.log("🚀 Iniciando geração de planta baixa (modo simples)...");
     
     setButtonLoading(button, true);
-    showFeedback('info', 'Iniciando CrewAI Pipeline...');
+    showFeedback('info', 'Iniciando geração da planta baixa...');
     
-    // Mostrar modal
-    criarModalVerbose();
-    
-    // Fazer requisição
+    // Fazer requisição direta
     fetch(`/projetista/projetos/${window.PROJETO_ID}/planta-baixa/gerar/`, {
         method: 'POST',
         headers: {
@@ -792,50 +477,42 @@ function gerarPlantaBaixa() {
             'Content-Type': 'application/json'
         }
     })
-    .then(response => response.json())
-    .then(data => {
+    .then(response => {
         setButtonLoading(button, false);
         
-        console.log("📊 Resposta:", data);
-        
-        if (data.success) {
-            const execucaoId = data.execucao_id;
-            
-            if (execucaoId) {
-                console.log(`✅ Execução ID: ${execucaoId}`);
-                showFeedback('success', 'Pipeline iniciado! Acompanhe no modal.');
-                
-                // Iniciar monitoramento
-                setTimeout(() => iniciarMonitoramento(execucaoId), 500);
-                
-            } else {
-                console.warn("⚠️ Execução ID não recebido");
-                adicionarLogLocal('⚠️ ID de execução não recebido', 'erro');
-            }
-            
-            // Auto-reload se não estiver monitorando
+        // Se for redirecionamento, seguir
+        if (response.redirected) {
+            showFeedback('success', 'Planta baixa gerada! Redirecionando...');
             setTimeout(() => {
-                if (!intervaloPesquisa) {
-                    console.log("🔄 Recarregando página...");
-                    location.reload();
-                }
-            }, 12000);
+                window.location.href = response.url;
+            }, 1000);
+            return;
+        }
+        
+        // Tentar processar como JSON
+        return response.json();
+    })
+    .then(data => {
+        if (data && data.success) {
+            showFeedback('success', 'Planta baixa gerada com sucesso!');
             
-        } else {
-            console.error("❌ Erro:", data);
-            fecharModal();
-            showFeedback('danger', data.error || 'Erro ao executar pipeline');
+            // Recarregar após 2 segundos
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+            
+        } else if (data && data.error) {
+            showFeedback('danger', data.error);
         }
     })
     .catch(error => {
-        console.error('❌ Erro requisição:', error);
+        console.error('❌ Erro na requisição:', error);
         setButtonLoading(button, false);
-        fecharModal();
-        showFeedback('danger', 'Erro de comunicação');
+        showFeedback('danger', 'Erro de comunicação com o servidor');
     });
 }
 
-// === OUTRAS FUNÇÕES ===
+// ===== OUTRAS FUNÇÕES PLACEHOLDER =====
 function gerarConceitoVisual() {
     showFeedback('info', 'Segundo Agente - Em desenvolvimento');
 }
@@ -844,23 +521,11 @@ function gerarModelo3D() {
     showFeedback('info', 'Terceiro Agente - Em desenvolvimento');
 }
 
-// === INICIALIZAÇÃO ===
+// ===== INICIALIZAÇÃO =====
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("🎬 Sistema verbose inicializado");
+    console.log("🎬 Sistema simplificado inicializado");
     console.log(`📋 PROJETO_ID: ${window.PROJETO_ID}`);
     console.log(`🔐 CSRF_TOKEN: ${window.CSRF_TOKEN ? 'OK' : 'ERRO'}`);
-    
-    // Teste rápido
-    if (window.location.search.includes('test')) {
-        console.log("🧪 Modo teste");
-        setTimeout(criarModalVerbose, 1000);
-    }
-});
-
-// === CLEANUP ===
-window.addEventListener('beforeunload', function() {
-    if (intervaloPesquisa) clearInterval(intervaloPesquisa);
-    if (intervaloStatus) clearInterval(intervaloStatus);
 });
 </script>
 {% endblock %}
