@@ -1,166 +1,88 @@
-```json
 {
-  "nome_projeto": "Hair Summit 2025",
-  "empresa": "Beauty Fair",
-  "tipo_stand": "ponta_ilha",
-  "area_total": 220.0,
-  "distribuicao_espacial": {
-    "nucleo_central": {
-      "posicao": "centro",
-      "dimensao": "5x5",
-      "elementos": [
-        {
-          "tipo": "exposicao",
-          "metragem": 40.0,
-          "posicao": {
-            "x": 10,
-            "y": 10,
-            "z": 0
-          },
-          "equipamentos": ["tv", "ledss"],
-          "elementos": {
-            "lounge": true,
-            "vitrine_exposicao": false,
-            "balcao_recepcao": false,
-            "mesas_atendimento": true,
-            "balcao_cafe": true,
-            "balcao_vitrine": false,
-            "caixa_vendas": false
-          },
-          "observacoes": "observacoes area 1"
-        },
-        {
-          "tipo": "sala_reuniao",
-          "capacidade": 8,
-          "tipo_sala": "fechada",
-          "metragem": 30.0,
-          "posicao": {
-            "x": 5,
-            "y": 15,
-            "z": 0
-          },
-          "equipamentos": ["mesa", "cadeira", "moveisss"]
-        },
-        {
-          "tipo": "copa",
-          "metragem": 21.0,
-          "posicao": {
-            "x": 15,
-            "y": 5,
-            "z": 0
-          },
-          "equipamentos": ["umas pias"]
-        },
-        {
-          "tipo": "deposito",
-          "metragem": 22.0,
-          "posicao": {
-            "x": 15,
-            "y": 15,
-            "z": 0
-          },
-          "equipamentos": ["umas prateleiras"]
-        }
-      ]
+  "projeto_info": {
+    "nome": "Feira de Inovação 2023",
+    "empresa": "InovaTech",
+    "area_total": 100.0,
+    "tipo_stand": "Ilha"
+  },
+  "dimensoes_stand": {
+    "frente": 10.0,
+    "fundo": 10.0,
+    "area_calculada": 100.0
+  },
+  "areas_posicionadas": [
+    {
+      "id": "area_recepcao",
+      "tipo": "Recepção",
+      "nome": "Recepção Principal",
+      "coordenadas": {
+        "x": 0.0,
+        "y": 0.0,
+        "largura": 5.0,
+        "profundidade": 4.0
+      },
+      "area_m2": 20.0,
+      "elementos": {},
+      "equipamentos": ["Balcão de Atendimento", "Computador"]
+    },
+    {
+      "id": "area_demonstração",
+      "tipo": "Demonstração de Produtos",
+      "nome": "Área de Demonstração",
+      "coordenadas": {
+        "x": 2.5,
+        "y": 4.0,
+        "largura": 7.0,
+        "profundidade": 7.0
+      },
+      "area_m2": 49.0,
+      "elementos": {"iluminação": "LED"},
+      "equipamentos": ["Mesas de Demonstração", "Telão"]
+    },
+    {
+      "id": "area_reuniao",
+      "tipo": "Sala de Reuniões",
+      "nome": "Sala de Reuniões",
+      "coordenadas": {
+        "x": 7.0,
+        "y": 0.0,
+        "largura": 3.0,
+        "profundidade": 5.0
+      },
+      "area_m2": 15.0,
+      "elementos": {},
+      "equipamentos": ["Mesa de Reunião", "Cadeiras"]
+    },
+    {
+      "id": "area_networking",
+      "tipo": "Área de Networking",
+      "nome": "Espaço de Networking",
+      "coordenadas": {
+        "x": 7.0,
+        "y": 5.0,
+        "largura": 3.0,
+        "profundidade": 5.0
+      },
+      "area_m2": 15.0,
+      "elementos": {},
+      "equipamentos": ["Mesas Altas", "Cadeiras"]
+    }
+  ],
+  "validacao_layout": {
+    "areas_dentro_limites": true,
+    "sobreposicoes": false,
+    "soma_areas": 99.0,
+    "area_livre": 1.0,
+    "percentual_ocupacao": 99.0,
+    "acessibilidade": {
+      "largura_minima_corredores": 1.5,
+      "entrada_acessivel": true
     }
   },
-  "fluxos": {
-    "entrada": "sul",
-    "saida": "norte",
-    "fluxo_principal": {
-      "direcao": "circular",
-      "pontos_de_acesso": [
-        {
-          "local": "entrada_sul",
-          "descricao": "fluxo de visitantes para a área de exposição"
-        },
-        {
-          "local": "saida_norte",
-          "descricao": "fluxo de saída após interação"
-        }
-      ]
-    }
-  },
-  "especificacoes_tecnicas": {
-    "altura_maxima": "4m",
-    "acesso": "verificar com organizador",
-    "restricoes_construtivas": [
-      "verificar com organizador sobre limitações de montagem",
-      "respeitar normas de segurança"
-    ]
-  },
-  "diretrizes_arquitetura_espacial": {
-    "estilo": "Moderno",
-    "material": "construido",
-    "piso_elevado": "sem_elevacao",
-    "tipo_testeira": "reta"
-  },
-  "dados_crew_2": {
-    "estilo": "Moderno",
-    "materiais": "construido",
-    "mood": "inspirado em imagens do filme olympia de 1936"
-  },
-  "dados_crew_3": {
-    "especificacoes_tecnicas": {
-      "equipamentos": [
-        "tv",
-        "ledss",
-        "mesa",
-        "cadeira"
-      ],
-      "restricoes_construtivas": [
-        "verificar com organizador sobre limitações de montagem",
-        "respeitar normas de segurança"
-      ]
-    }
-  },
-  "metadados_svg": {
-    "elementos_svg": [
-      {
-        "tipo": "retangulo",
-        "coordenadas": {
-          "x": 10,
-          "y": 10,
-          "largura": 40,
-          "altura": 40
-        },
-        "cor": "#FF5733"
-      },
-      {
-        "tipo": "retangulo",
-        "coordenadas": {
-          "x": 5,
-          "y": 15,
-          "largura": 30,
-          "altura": 30
-        },
-        "cor": "#33FF57"
-      },
-      {
-        "tipo": "retangulo",
-        "coordenadas": {
-          "x": 15,
-          "y": 5,
-          "largura": 21,
-          "altura": 21
-        },
-        "cor": "#3357FF"
-      },
-      {
-        "tipo": "retangulo",
-        "coordenadas": {
-          "x": 15,
-          "y": 15,
-          "largura": 22,
-          "altura": 22
-        },
-        "cor": "#FF33A1"
-      }
-    ]
-  },
-  "modelo_3D": {
-    "descricao": "Modelo 3D do estande com visualização das áreas e fluxos definidos.",
-    "link": "https://linkparaoseumodelo3d.com"
+  "metadados_geracao": {
+    "algoritmo": "distribuicao_espacial_v2",
+    "validado": true,
+    "timestamp": "2023-10-01T12:00:00Z",
+    "agente": "calculador_coordenadas"
   }
 }
-```

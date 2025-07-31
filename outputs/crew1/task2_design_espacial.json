@@ -1,104 +1,118 @@
-```json
 {
-  "nome_projeto": "Hair Summit 2025",
-  "empresa": "Beauty Fair",
-  "tipo_stand": "ponta_ilha",
-  "area_total": 220.0,
-  "distribuicao_espacial": {
-    "nucleo_central": {
-      "posicao": "centro",
-      "dimensao": "5x5",
-      "elementos": [
-        {
-          "tipo": "exposicao",
-          "metragem": 40.0,
-          "posicao": "nordeste",
-          "equipamentos": ["tv", "ledss"],
-          "elementos": {
-            "lounge": true,
-            "vitrine_exposicao": false,
-            "balcao_recepcao": false,
-            "mesas_atendimento": true,
-            "balcao_cafe": true,
-            "balcao_vitrine": false,
-            "caixa_vendas": false
-          },
-          "observacoes": "observacoes area 1"
-        },
-        {
-          "tipo": "sala_reuniao",
-          "capacidade": 8,
-          "tipo_sala": "fechada",
-          "metragem": 30.0,
-          "posicao": "noroeste",
-          "equipamentos": ["mesa", "cadeira", "moveisss"]
-        },
-        {
-          "tipo": "copa",
-          "metragem": 21.0,
-          "posicao": "sudeste",
-          "equipamentos": ["umas pias"]
-        },
-        {
-          "tipo": "deposito",
-          "metragem": 22.0,
-          "posicao": "sudeste",
-          "equipamentos": ["umas prateleiras"]
-        }
-      ]
-    }
+  "projeto_info": {
+    "nome": "Feira de Inovação 2023",
+    "empresa": "InovaTech",
+    "tipo_stand": "Ilha",
+    "area_total": 100.0
   },
-  "fluxos": {
-    "entrada": "sul",
-    "saida": "norte",
-    "fluxo_principal": {
-      "direcao": "circular",
-      "pontos_de_acesso": [
-        {
-          "local": "entrada_sul",
-          "descricao": "fluxo de visitantes para a área de exposição"
-        },
-        {
-          "local": "saida_norte",
-          "descricao": "fluxo de saída após interação"
-        }
-      ]
-    }
+  "estrategia_espacial": {
+    "conceito_layout": "Espaço aberto e interativo com áreas funcionais bem definidas para maximizar a experiência do visitante.",
+    "tipo_distribuicao": "Distribuição radial com núcleo central para facilitar o fluxo de visitantes.",
+    "justificativa": "A distribuição radial permite que os visitantes acessem facilmente todas as áreas funcionais, promovendo interação e engajamento."
   },
-  "especificacoes_tecnicas": {
-    "altura_maxima": "4m",
-    "acesso": "verificar com organizador",
-    "restricoes_construtivas": [
-      "verificar com organizador sobre limitações de montagem",
-      "respeitar normas de segurança"
-    ]
+  "nucleo_central": {
+    "posicionamento": "Centro do estande",
+    "dimensoes_estimadas": {
+      "largura": 4.0,
+      "profundidade": 4.0,
+      "area_total": 16.0
+    },
+    "composicao": ["copa", "deposito"],
+    "justificativa_posicao": "Posicionado no centro para facilitar o acesso a todas as áreas funcionais e otimizar a logística de materiais."
   },
-  "diretrizes_arquitetura_espacial": {
-    "estilo": "Moderno",
-    "material": "construido",
-    "piso_elevado": "sem_elevacao",
-    "tipo_testeira": "reta"
-  },
-  "dados_crew": [
+  "areas_distribuidas": [
     {
-      "estilo": "Moderno",
-      "materiais": "construido",
-      "mood": "inspirado em imagens do filme olympia de 1936"
+      "tipo": "Recepção",
+      "nome": "Recepção Principal",
+      "zona_preferencial": "Frente do estande",
+      "dimensoes_estimadas": {
+        "largura": 5.0,
+        "profundidade": 4.0,
+        "area": 20.0
+      },
+      "adjacencias_obrigatorias": ["Demonstração de Produtos"],
+      "equipamentos": ["Balcão de Atendimento", "Computador"],
+      "prioridade_posicionamento": 1
     },
     {
-      "especificacoes_tecnicas": {
-        "equipamentos": [
-          "tv",
-          "ledss",
-          "mesa",
-          "cadeira"
-        ]
-      }
+      "tipo": "Demonstração de Produtos",
+      "nome": "Área de Demonstração",
+      "zona_preferencial": "Centro do estande",
+      "dimensoes_estimadas": {
+        "largura": 7.0,
+        "profundidade": 7.0,
+        "area": 49.0
+      },
+      "adjacencias_obrigatorias": ["Recepção", "Sala de Reuniões"],
+      "equipamentos": ["Mesas de Demonstração", "Telão"],
+      "prioridade_posicionamento": 2
+    },
+    {
+      "tipo": "Sala de Reuniões",
+      "nome": "Sala de Reuniões",
+      "zona_preferencial": "Lateral direita",
+      "dimensoes_estimadas": {
+        "largura": 3.0,
+        "profundidade": 5.0,
+        "area": 15.0
+      },
+      "adjacencias_obrigatorias": ["Área de Networking"],
+      "equipamentos": ["Mesa de Reunião", "Cadeiras"],
+      "prioridade_posicionamento": 3
+    },
+    {
+      "tipo": "Área de Networking",
+      "nome": "Espaço de Networking",
+      "zona_preferencial": "Lateral esquerda",
+      "dimensoes_estimadas": {
+        "largura": 3.0,
+        "profundidade": 5.0,
+        "area": 15.0
+      },
+      "adjacencias_obrigatorias": ["Sala de Reuniões"],
+      "equipamentos": ["Mesas Altas", "Cadeiras"],
+      "prioridade_posicionamento": 4
     }
   ],
-  "modelo_3D": {
-    "descricao": "Modelo 3D do estande com visualização das áreas e fluxos definidos.",
-    "link": "https://linkparaoseumodelo3d.com"
+  "fluxos_definidos": {
+    "entrada_principal": {
+      "posicao_sugerida": "Frente do estande",
+      "largura_minima": 2.0
+    },
+    "circulacao_interna": {
+      "corredores_principais": ["Corredor Central", "Corredor Lateral Direito", "Corredor Lateral Esquerdo"],
+      "largura_minima": 1.5
+    },
+    "zonas_privadas": ["Sala de Reuniões"],
+    "zonas_publicas": ["Recepção", "Demonstração de Produtos", "Área de Networking"]
+  },
+  "especificacoes_pipeline": {
+    "para_calculador": {
+      "sistema_coordenadas": "Sistema de coordenadas cartesianas",
+      "precisao_requerida": 0.1,
+      "restricoes_matematicas": ["Limitação de altura de 4 metros"]
+    },
+    "para_conceito_visual": {
+      "pontos_focais": ["Telão na Área de Demonstração", "Balcão de Recepção"],
+      "hierarquia_visual": ["Recepção", "Demonstração de Produtos", "Sala de Reuniões", "Área de Networking"],
+      "mood_espacial": "Inovação e Tecnologia"
+    },
+    "para_modelo_3d": {
+      "elementos_estruturais": ["Pilares de Alumínio", "Estruturas de Vidro"],
+      "materiais_predominantes": ["Alumínio", "Vidro", "Madeira"],
+      "iluminacao_conceitual": "Iluminação LED com destaque para as áreas de interação"
+    }
+  },
+  "validacao_design": {
+    "areas_acomodadas": true,
+    "fluxos_otimizados": true,
+    "regulamentacoes_atendidas": true,
+    "alertas": []
+  },
+  "metadados_geracao": {
+    "algoritmo": "distribuicao_espacial_v2",
+    "timestamp": "2023-10-01T12:00:00Z",
+    "agente": "arquiteto_espacial",
+    "baseado_em": "analise_briefing"
   }
 }
-```

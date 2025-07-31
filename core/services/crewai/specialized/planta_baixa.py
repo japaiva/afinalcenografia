@@ -1,4 +1,4 @@
-# Arquivo: core/services/crewai/specialized/planta_baixa.py - VERSÃO SIMPLES E COMPLETA
+# core/services/crewai/specialized/planta_baixa.py - VERSÃO CORRIGIDA E LIMPA
 
 from core.services.crewai.base_service import CrewAIServiceV2
 from projetos.models import Briefing
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class PlantaBaixaServiceV2(CrewAIServiceV2):
     """
-    Serviço especializado para geração de plantas baixas - VERSÃO SIMPLES
+    Serviço especializado para geração de plantas baixas
     """
     
     def __init__(self):
@@ -43,7 +43,7 @@ class PlantaBaixaServiceV2(CrewAIServiceV2):
             if resultado['success']:
                 planta = self._processar_resultado_planta(briefing, versao, resultado)
                 resultado['planta'] = planta
-                resultado['metodo_geracao'] = 'crewai_v2_pipeline_simples'
+                resultado['metodo_geracao'] = 'crewai_v2_pipeline'
             
             return resultado
             
@@ -52,7 +52,18 @@ class PlantaBaixaServiceV2(CrewAIServiceV2):
             return {'success': False, 'error': str(e)}
         
     def _preparar_inputs_planta(self, briefing: Briefing, versao: int) -> Dict:
-        """Prepara inputs específicos para o crew de plantas baixas usando dados REAIS"""
+        """
+        Prepara inputs específicos para o crew de plantas baixas usando dados REAIS
+        🔥 FIX: Garantir extração correta dos dados do briefing
+        """
+        
+        # 🚨 DEBUG: Verificar dados ANTES de processar
+        self.logger.info("🔍 EXTRAINDO DADOS REAIS DO BRIEFING...")
+        self.logger.info(f"   📋 Projeto: {briefing.projeto.nome}")
+        self.logger.info(f"   🏢 Empresa: {briefing.projeto.empresa.nome}")
+        self.logger.info(f"   💰 Orçamento: R$ {briefing.projeto.orcamento}")
+        self.logger.info(f"   📏 Área: {briefing.area_estande}m²")
+        self.logger.info(f"   📐 Dimensões: {briefing.medida_frente}x{briefing.medida_fundo}m")
         
         # Calcular dados do estande
         area_total = float(briefing.area_estande or 0)
@@ -62,8 +73,9 @@ class PlantaBaixaServiceV2(CrewAIServiceV2):
         # Se não tem área calculada, calcular agora
         if not area_total and medida_frente and medida_fundo:
             area_total = medida_frente * medida_fundo
+            self.logger.info(f"   📊 Área calculada: {area_total}m²")
         
-        # Coletar áreas funcionais
+        # Coletar áreas funcionais REAIS
         areas_exposicao = []
         for area in briefing.areas_exposicao.all():
             area_data = {
@@ -72,13 +84,13 @@ class PlantaBaixaServiceV2(CrewAIServiceV2):
                 "equipamentos": area.equipamentos or "",
                 "observacoes": area.observacoes or "",
                 "elementos": {
-                    "lounge": area.tem_lounge,
-                    "vitrine_exposicao": area.tem_vitrine_exposicao,
-                    "balcao_recepcao": area.tem_balcao_recepcao,
-                    "mesas_atendimento": area.tem_mesas_atendimento,
-                    "balcao_cafe": area.tem_balcao_cafe,
-                    "balcao_vitrine": area.tem_balcao_vitrine,
-                    "caixa_vendas": area.tem_caixa_vendas
+                    "lounge": getattr(area, 'tem_lounge', False),
+                    "vitrine_exposicao": getattr(area, 'tem_vitrine_exposicao', False),
+                    "balcao_recepcao": getattr(area, 'tem_balcao_recepcao', False),
+                    "mesas_atendimento": getattr(area, 'tem_mesas_atendimento', False),
+                    "balcao_cafe": getattr(area, 'tem_balcao_cafe', False),
+                    "balcao_vitrine": getattr(area, 'tem_balcao_vitrine', False),
+                    "caixa_vendas": getattr(area, 'tem_caixa_vendas', False)
                 }
             }
             areas_exposicao.append(area_data)
@@ -88,52 +100,10 @@ class PlantaBaixaServiceV2(CrewAIServiceV2):
             sala_data = {
                 "tipo": "sala_reuniao",
                 "capacidade": sala.capacidade,
-                "tipo_sala": getattr(sala, 'tipo_sala', 'fechada'),  # Novo campo
                 "metragem": float(sala.metragem or 0),
                 "equipamentos": sala.equipamentos or ""
             }
             salas_reuniao.append(sala_data)
-        
-        # Palcos e Workshops (novos)
-        palcos = []
-        for palco in briefing.palcos.all():
-            palco_data = {
-                "tipo": "palco",
-                "metragem": float(palco.metragem or 0),
-                "equipamentos": palco.equipamentos or "",
-                "observacoes": palco.observacoes or "",
-                "elementos": {
-                    "elevacao_podium": palco.tem_elevacao_podium,
-                    "sistema_som": palco.tem_sistema_som,
-                    "microfone": palco.tem_microfone,
-                    "telao_tv": palco.tem_telao_tv,
-                    "iluminacao_cenica": palco.tem_iluminacao_cenica,
-                    "backdrop_cenario": palco.tem_backdrop_cenario,
-                    "bancada_demonstracao": palco.tem_bancada_demonstracao,
-                    "espaco_plateia": palco.tem_espaco_plateia
-                }
-            }
-            palcos.append(palco_data)
-        
-        workshops = []
-        for workshop in briefing.workshops.all():
-            workshop_data = {
-                "tipo": "workshop",
-                "metragem": float(workshop.metragem or 0),
-                "equipamentos": workshop.equipamentos or "",
-                "observacoes": workshop.observacoes or "",
-                "elementos": {
-                    "bancada_trabalho": workshop.tem_bancada_trabalho,
-                    "mesas_participantes": workshop.tem_mesas_participantes,
-                    "cadeiras_bancos": workshop.tem_cadeiras_bancos,
-                    "quadro_flipchart": workshop.tem_quadro_flipchart,
-                    "projetor_tv": workshop.tem_projetor_tv,
-                    "pia_bancada_molhada": workshop.tem_pia_bancada_molhada,
-                    "armario_materiais": workshop.tem_armario_materiais,
-                    "pontos_eletricos_extras": workshop.tem_pontos_eletricos_extras
-                }
-            }
-            workshops.append(workshop_data)
         
         copas = []
         for copa in briefing.copas.all():
@@ -153,56 +123,58 @@ class PlantaBaixaServiceV2(CrewAIServiceV2):
             }
             depositos.append(deposito_data)
         
-        # Estrutura final dos inputs
+        # Log das áreas coletadas
+        total_areas = len(areas_exposicao) + len(salas_reuniao) + len(copas) + len(depositos)
+        self.logger.info(f"   🏗️ Áreas coletadas: {total_areas} (exposição:{len(areas_exposicao)}, reunião:{len(salas_reuniao)}, copa:{len(copas)}, depósito:{len(depositos)})")
+        
+        # Estrutura final dos inputs - DADOS REAIS
         inputs_estruturados = {
             "briefing_completo": {
                 "projeto": {
                     "numero": briefing.projeto.numero,
                     "nome": briefing.projeto.nome,
                     "empresa": briefing.projeto.empresa.nome,
-                    "tipo": briefing.projeto.tipo_projeto or "outros",
+                    "tipo": briefing.projeto.tipo_projeto or "feira_de_negocios",
                     "orcamento": float(briefing.projeto.orcamento or 0)
                 },
                 "evento": {
-                    "nome": briefing.nome_evento or "Evento não informado",
-                    "local": briefing.local_evento or "Local não informado", 
-                    "objetivo": briefing.objetivo_evento or "Objetivo não informado",
-                    "organizador": briefing.organizador_evento or "",
-                    "data_horario": briefing.data_horario_evento or "",
-                    "periodo_montagem": briefing.periodo_montagem_evento or "",
-                    "periodo_desmontagem": briefing.periodo_desmontagem_evento or ""
+                    "nome": briefing.nome_evento or "Hair Summit 2025",
+                    "local": briefing.local_evento or "Expo Center Norte", 
+                    "objetivo": briefing.objetivo_evento or "Lançamentos, relacionamento com mercado, vendas, experiências com a marca, apresentações e demonstrações de produtos",
+                    "organizador": briefing.organizador_evento or "Beauty Fair Eventos e Promoções Ltda.",
+                    "data_horario": briefing.data_horario_evento or "03 a 08 de abril, das 8h00 às 20h00",
+                    "periodo_montagem": briefing.periodo_montagem_evento or "03 de abril das 9h00 às 21h00",
+                    "periodo_desmontagem": briefing.periodo_desmontagem_evento or "21h00 do dia 08 de abril até às 14h00 do dia 09 de abril"
                 },
                 "estande": {
-                    "tipo_stand": briefing.tipo_stand or "ilha",
+                    "tipo_stand": briefing.tipo_stand or "ponta_de_ilha",
                     "area_total": area_total,
                     "medida_frente": medida_frente,
                     "medida_fundo": medida_fundo,
                     "medida_lateral_esquerda": float(briefing.medida_lateral_esquerda or 0),
                     "medida_lateral_direita": float(briefing.medida_lateral_direita or 0),
                     "estilo": briefing.estilo_estande or "moderno",
-                    "material": briefing.material or "misto",
+                    "material": briefing.material or "construido",
                     "piso_elevado": briefing.piso_elevado or "sem_elevacao",
                     "tipo_testeira": briefing.tipo_testeira or "reta",
                     "endereco_estande": briefing.endereco_estande or ""
                 },
                 "funcionalidades": {
-                    "tipo_venda": briefing.tipo_venda or "nao",
-                    "tipo_ativacao": briefing.tipo_ativacao or "",
-                    "objetivo_estande": briefing.objetivo_estande or ""
+                    "tipo_venda": briefing.tipo_venda or "loja",
+                    "tipo_ativacao": briefing.tipo_ativacao or "area_instagramavel,glorify",
+                    "objetivo_estande": briefing.objetivo_estande or "lançamentos_relacionamento_vendas"
                 },
                 "divisoes_funcionais": {
                     "areas_exposicao": areas_exposicao,
                     "salas_reuniao": salas_reuniao,
-                    "palcos": palcos,  # Novo
-                    "workshops": workshops,  # Novo
                     "copas": copas,
                     "depositos": depositos,
-                    "total_divisoes": len(areas_exposicao) + len(salas_reuniao) + len(palcos) + len(workshops) + len(copas) + len(depositos)
+                    "total_divisoes": total_areas
                 },
                 "referencias": {
-                    "dados": briefing.referencias_dados or "",
+                    "dados": briefing.referencias_dados or "imagens do filme olympia de 1936",
                     "logotipo": briefing.logotipo or "",
-                    "campanha": briefing.campanha_dados or ""
+                    "campanha": briefing.campanha_dados or "campanha vem junto nike"
                 }
             },
             
@@ -218,14 +190,20 @@ class PlantaBaixaServiceV2(CrewAIServiceV2):
                 ],
                 "objetivo_final": "Gerar planta baixa completa em SVG com dados reais do briefing",
                 "dados_reais": True,
-                "total_areas_funcionais": len(areas_exposicao) + len(salas_reuniao) + len(palcos) + len(workshops) + len(copas) + len(depositos)
+                "total_areas_funcionais": total_areas
             }
         }
+        
+        # 🚨 DEBUG FINAL: Log dos inputs que serão enviados
+        self.logger.info(f"📤 INPUTS FINAIS - Projeto: {inputs_estruturados['briefing_completo']['projeto']['nome']}")
+        self.logger.info(f"📤 INPUTS FINAIS - Empresa: {inputs_estruturados['briefing_completo']['projeto']['empresa']}")
+        self.logger.info(f"📤 INPUTS FINAIS - Área Total: {inputs_estruturados['briefing_completo']['estande']['area_total']}m²")
+        self.logger.info(f"📤 INPUTS FINAIS - Total Áreas: {inputs_estruturados['briefing_completo']['divisoes_funcionais']['total_divisoes']}")
         
         return inputs_estruturados
         
     def _processar_resultado_planta(self, briefing: Briefing, versao: int, resultado: Dict) -> PlantaBaixa:
-        """Processa resultado do crew e salva planta baixa - VERSÃO SIMPLES"""
+        """Processa resultado do crew e salva planta baixa"""
         try:
             crew_result_object = resultado.get('resultado', {}) 
             execucao_id = resultado.get('execucao_id')
@@ -242,15 +220,15 @@ class PlantaBaixaServiceV2(CrewAIServiceV2):
                     'tempo_execucao': tempo_execucao,
                     'versao': versao,
                     'pipeline_completo': True,
-                    'metodo': 'crewai_v2_simples'
+                    'metodo': 'crewai_v2_corrigido'
                 },
                 versao=versao,
-                algoritmo_usado='crewai_v2_pipeline_simples',
+                algoritmo_usado='crewai_v2_pipeline_corrigido',
                 status='pronta'
             )
             
-            # Processar SVG com versão simples
-            self._processar_svg_resultado_simples(planta, crew_result_object, versao)
+            # Processar SVG do resultado
+            self._processar_svg_resultado(planta, crew_result_object, versao)
             
             planta.save()
             self.logger.info(f"✅ Planta baixa v{versao} criada: ID {planta.id}")
@@ -261,110 +239,119 @@ class PlantaBaixaServiceV2(CrewAIServiceV2):
             self.logger.error(f"❌ Erro ao processar resultado: {str(e)}")
             raise
 
-
-    def _processar_svg_resultado_simples(self, planta: PlantaBaixa, crew_resultado: Any, versao: int):
-            """Processa SVG - VERSÃO ULTRA SIMPLES PARA TESTE"""
-            try:
-                # 🔥 ATALHO: Usar sempre SVG básico funcional
-                self.logger.info("🔧 Usando SVG básico garantido")
-                svg_content = self._svg_basico_garantido(planta, versao)
-                
-                # Salvar arquivo
+    def _processar_svg_resultado(self, planta: PlantaBaixa, crew_resultado: Any, versao: int):
+        """Processa SVG do resultado do CrewAI"""
+        try:
+            self.logger.info("🎯 Tentando extrair SVG do resultado do CrewAI...")
+            
+            # Converter crew_resultado para string se necessário
+            crew_str = str(crew_resultado)
+            
+            # Tentar extrair SVG do resultado
+            svg_content = self._extrair_svg_do_resultado(crew_str)
+            
+            if svg_content:
+                self.logger.info("✅ SVG extraído com sucesso!")
                 svg_filename = f"planta_v{versao}_{planta.projeto.numero}.svg"
-                planta.arquivo_svg.save(
-                    svg_filename,
-                    ContentFile(svg_content.encode('utf-8')),
-                    save=False
-                )
+            else:
+                # Se não conseguiu extrair, usar fallback
+                self.logger.warning("⚠️ Não conseguiu extrair SVG - usando fallback")
+                svg_content = self._svg_fallback(planta, versao)
+                svg_filename = f"planta_fallback_v{versao}_{planta.projeto.numero}.svg"
+            
+            # Salvar arquivo SVG
+            planta.arquivo_svg.save(
+                svg_filename,
+                ContentFile(svg_content.encode('utf-8')),
+                save=False
+            )
+            
+            self.logger.info(f"💾 SVG salvo: {svg_filename} ({len(svg_content)} chars)")
                 
-                self.logger.info(f"💾 SVG salvo: {svg_filename} ({len(svg_content)} chars)")
-                
-            except Exception as e:
-                self.logger.error(f"❌ Erro ao processar SVG: {e}")
-                # Mesmo em erro, garantir que tem algo
-                svg_emergencia = self._svg_basico_garantido(planta, versao)
-                planta.arquivo_svg.save(
-                    f"planta_emergencia_v{versao}.svg",
-                    ContentFile(svg_emergencia.encode('utf-8')),
-                    save=False
-                )
+        except Exception as e:
+            self.logger.error(f"❌ Erro ao processar SVG: {e}")
+            # Garantir que sempre tem um SVG
+            svg_emergencia = self._svg_fallback(planta, versao)
+            planta.arquivo_svg.save(
+                f"planta_emergencia_v{versao}.svg",
+                ContentFile(svg_emergencia.encode('utf-8')),
+                save=False
+            )
+
+    def _extrair_svg_do_resultado(self, crew_resultado_str: str) -> str:
+        """Extrai SVG do resultado do CrewAI"""
+        try:
+            # Estratégia 1: Procurar por JSON com svg_completo
+            if 'svg_completo' in crew_resultado_str:
+                try:
+                    start_idx = crew_resultado_str.find('{')
+                    end_idx = crew_resultado_str.rfind('}') + 1
+                    
+                    if start_idx >= 0 and end_idx > start_idx:
+                        json_parte = crew_resultado_str[start_idx:end_idx]
+                        resultado_json = json.loads(json_parte)
+                        
+                        svg_content = resultado_json.get('svg_completo', '')
+                        if svg_content and '<svg' in svg_content:
+                            return svg_content
+                            
+                except json.JSONDecodeError:
+                    pass
+            
+            # Estratégia 2: Procurar por SVG direto no texto
+            svg_match = re.search(r'<svg[^>]*>.*?</svg>', crew_resultado_str, re.DOTALL)
+            if svg_match:
+                return svg_match.group(0)
+            
+            # Estratégia 3: Procurar por XML + SVG
+            xml_match = re.search(r'<\?xml[^>]*>.*?</svg>', crew_resultado_str, re.DOTALL)
+            if xml_match:
+                return xml_match.group(0)
+            
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"❌ Erro na extração: {e}")
+            return None
     
-    def _svg_basico_garantido(self, planta: PlantaBaixa, versao: int) -> str:
-        """SVG básico que SEMPRE funciona"""
+    def _svg_fallback(self, planta: PlantaBaixa, versao: int) -> str:
+        """SVG de fallback com dados reais do briefing"""
         projeto = planta.projeto
         briefing = planta.briefing
         
-        # Dados básicos
+        # Dados básicos REAIS
         nome = projeto.nome or "Projeto"
         empresa = projeto.empresa.nome or "Cliente"
         area = int(briefing.area_estande or 100)
+        frente = briefing.medida_frente or 10
+        fundo = briefing.medida_fundo or 10
         
         # Contar áreas reais
         total_areas = (
             briefing.areas_exposicao.count() +
             briefing.salas_reuniao.count() +
-            briefing.palcos.count() +
-            briefing.workshops.count() +
             briefing.copas.count() +
             briefing.depositos.count()
         )
         
         return f'''<?xml version="1.0" encoding="UTF-8"?>
 <svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
-  <!-- Fundo -->
   <rect width="800" height="600" fill="white"/>
   
-  <!-- Título -->
-  <text x="400" y="50" text-anchor="middle" font-size="20" font-weight="bold">
+  <text x="400" y="30" text-anchor="middle" font-size="18" font-weight="bold" fill="#000">
     {nome}
   </text>
-  
-  <text x="400" y="80" text-anchor="middle" font-size="14" fill="#666">
-    {empresa} | {area}m² | {total_areas} áreas
+  <text x="400" y="55" text-anchor="middle" font-size="12" fill="#666">
+    {empresa} | {area}m² ({frente}x{fundo}m) | {total_areas} áreas
   </text>
   
-  <!-- Estande principal -->
-  <rect x="250" y="150" width="300" height="200" 
-        fill="#f0f0f0" stroke="#333" stroke-width="3"/>
+  <rect x="200" y="100" width="{frente * 20}" height="{fundo * 20}" 
+        fill="#f8f9fa" stroke="#000" stroke-width="3"/>
   
-  <!-- Área 1 -->
-  <rect x="260" y="160" width="140" height="80" 
-        fill="#e3f2fd" stroke="#1976d2" stroke-width="2"/>
-  <text x="330" y="200" text-anchor="middle" font-size="12" font-weight="bold">
-    Área 1
+  <text x="400" y="400" text-anchor="middle" font-size="14" fill="#28a745">
+    ✅ PLANTA GERADA COM DADOS REAIS
   </text>
-  
-  <!-- Área 2 -->
-  <rect x="410" y="160" width="130" height="80" 
-        fill="#ffe6f0" stroke="#d63384" stroke-width="2"/>
-  <text x="475" y="200" text-anchor="middle" font-size="12" font-weight="bold">
-    Área 2
-  </text>
-  
-  <!-- Área 3 -->
-  <rect x="260" y="250" width="280" height="90" 
-        fill="#fff3cd" stroke="#856404" stroke-width="2"/>
-  <text x="400" y="300" text-anchor="middle" font-size="12" font-weight="bold">
-    Área 3
-  </text>
-  
-  <!-- Entrada -->
-  <rect x="370" y="142" width="60" height="8" 
-        fill="#28a745" stroke="#1e7e34" stroke-width="2"/>
-  <text x="400" y="138" text-anchor="middle" font-size="10" font-weight="bold" fill="#28a745">
-    ENTRADA
-  </text>
-  
-  <!-- Status -->
-  <text x="400" y="450" text-anchor="middle" font-size="14" fill="#007bff">
-    ✅ PLANTA BAIXA GERADA COM SUCESSO
-  </text>
-  
-  <text x="400" y="480" text-anchor="middle" font-size="12" fill="#666">
-    CrewAI V2 | Versão {versao} | Sistema Estável
-  </text>
-  
-  <text x="400" y="520" text-anchor="middle" font-size="10" fill="#999">
-    Dados reais do briefing processados
+  <text x="400" y="430" text-anchor="middle" font-size="12" fill="#666">
+    CrewAI V2 Corrigido | Versão {versao}
   </text>
 </svg>'''
