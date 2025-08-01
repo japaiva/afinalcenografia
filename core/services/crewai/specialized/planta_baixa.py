@@ -51,7 +51,122 @@ class PlantaBaixaServiceV2(CrewAIServiceV2):
             self.logger.error(f"❌ Erro ao gerar planta: {str(e)}")
             return {'success': False, 'error': str(e)}
         
+
     def _preparar_inputs_planta(self, briefing: Briefing, versao: int) -> Dict:
+        """
+        RESTAURA ESTRUTURA ORIGINAL QUE FUNCIONAVA
+        """
+        
+        # Coletar áreas (igual ao atual)
+        areas_exposicao = []
+        for area in briefing.areas_exposicao.all():
+            area_data = {
+                "tipo": "exposicao",
+                "metragem": float(area.metragem or 0),
+                "equipamentos": area.equipamentos or "",
+                "observacoes": area.observacoes or "",
+                "elementos": {
+                    "lounge": getattr(area, 'tem_lounge', False),
+                    "vitrine_exposicao": getattr(area, 'tem_vitrine_exposicao', False),
+                    "balcao_recepcao": getattr(area, 'tem_balcao_recepcao', False),
+                    "mesas_atendimento": getattr(area, 'tem_mesas_atendimento', False),
+                    "balcao_cafe": getattr(area, 'tem_balcao_cafe', False),
+                    "balcao_vitrine": getattr(area, 'tem_balcao_vitrine', False),
+                    "caixa_vendas": getattr(area, 'tem_caixa_vendas', False)
+                }
+            }
+            areas_exposicao.append(area_data)
+        
+        salas_reuniao = []
+        for sala in briefing.salas_reuniao.all():
+            salas_reuniao.append({
+                "tipo": "sala_reuniao",
+                "capacidade": sala.capacidade,
+                "metragem": float(sala.metragem or 0),
+                "equipamentos": sala.equipamentos or ""
+            })
+        
+        copas = []
+        for copa in briefing.copas.all():
+            copas.append({
+                "tipo": "copa",
+                "metragem": float(copa.metragem or 0),
+                "equipamentos": copa.equipamentos or ""
+            })
+        
+        depositos = []
+        for deposito in briefing.depositos.all():
+            depositos.append({
+                "tipo": "deposito",
+                "metragem": float(deposito.metragem or 0),
+                "equipamentos": deposito.equipamentos or ""
+            })
+        
+        # 🔥 ESTRUTURA ORIGINAL RESTAURADA - DADOS DIRETOS NO ROOT
+        inputs_estruturados = {
+            # DADOS DIRETOS (como era antes)
+            "nome_projeto": briefing.projeto.nome,
+            "empresa": briefing.projeto.empresa.nome,
+            "numero_projeto": briefing.projeto.numero,
+            "tipo_projeto": briefing.projeto.tipo_projeto or "feira_de_negocios",
+            "orcamento": float(briefing.projeto.orcamento or 0),
+            
+            # ESTANDE DIRETO
+            "tipo_stand": briefing.tipo_stand or "ponta_ilha", 
+            "area_total": float(briefing.area_estande or 0),
+            "medida_frente": float(briefing.medida_frente or 0),
+            "medida_fundo": float(briefing.medida_fundo or 0),
+            "medida_lateral_esquerda": float(briefing.medida_lateral_esquerda or 0),
+            "medida_lateral_direita": float(briefing.medida_lateral_direita or 0),
+            "estilo": briefing.estilo_estande or "moderno",
+            "material": briefing.material or "construido",
+            
+            # EVENTO DIRETO
+            "nome_evento": briefing.nome_evento or "Hair Summit 2025",
+            "local_evento": briefing.local_evento or "Expo Center Norte",
+            "objetivo_evento": briefing.objetivo_evento or "Lançamentos, relacionamento com mercado, vendas",
+            
+            # ÁREAS SOLICITADAS (igual ao JSON original)
+            "areas_solicitadas": areas_exposicao + salas_reuniao + copas + depositos,
+            
+            # VALIDAÇÃO VIABILIDADE
+            "validacao_viabilidade_tecnica": {
+                "tipo_stand": briefing.tipo_stand or "ponta_ilha",
+                "area_total": float(briefing.area_estande or 0), 
+                "dimensoes": {
+                    "frente": float(briefing.medida_frente or 0),
+                    "fundo": float(briefing.medida_fundo or 0),
+                    "lateral_esquerda": float(briefing.medida_lateral_esquerda or 0),
+                    "lateral_direita": float(briefing.medida_lateral_direita or 0)
+                },
+                "material": briefing.material or "construido",
+                "piso_elevado": briefing.piso_elevado or "sem_elevacao"
+            },
+            
+            # DIRETRIZES ARQUITETURA
+            "diretrizes_arquitetura_espacial": {
+                "estilo": briefing.estilo_estande or "moderno",
+                "material": briefing.material or "construido", 
+                "mood": briefing.referencias_dados or "inspirado em imagens do filme olympia de 1936"
+            },
+            
+            # PIPELINE INFO (mantido)
+            "pipeline_info": {
+                "versao": versao,
+                "briefing_id": briefing.id,
+                "objetivo_final": "Gerar planta baixa completa em SVG com dados reais",
+                "dados_reais": True
+            }
+        }
+        
+        # Debug
+        self.logger.info(f"🔥 ESTRUTURA RESTAURADA - Nome: {inputs_estruturados['nome_projeto']}")
+        self.logger.info(f"🔥 ESTRUTURA RESTAURADA - Empresa: {inputs_estruturados['empresa']}")
+        self.logger.info(f"🔥 ESTRUTURA RESTAURADA - Total áreas: {len(inputs_estruturados['areas_solicitadas'])}")
+        
+        return inputs_estruturados       
+            
+    def _prepararr_inputs_planta(self, briefing: Briefing, versao: int) -> Dict:
         """
         Prepara inputs específicos para o crew de plantas baixas usando dados REAIS
         🔥 FIX: Garantir extração correta dos dados do briefing

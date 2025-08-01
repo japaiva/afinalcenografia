@@ -1,106 +1,106 @@
 {
   "projeto_info": {
-    "nome": "Feira de Inovação 2023",
-    "empresa": "InovaTech",
-    "tipo_stand": "Ilha",
-    "area_total": 100.0
+    "nome": "Hair Summit 2025",
+    "empresa": "Beauty Fair",
+    "tipo_stand": "ponta_ilha",
+    "area_total": 220.0
   },
   "estrategia_espacial": {
-    "conceito_layout": "Espaço aberto e interativo com áreas funcionais bem definidas para maximizar a experiência do visitante.",
-    "tipo_distribuicao": "Distribuição radial com núcleo central para facilitar o fluxo de visitantes.",
-    "justificativa": "A distribuição radial permite que os visitantes acessem facilmente todas as áreas funcionais, promovendo interação e engajamento."
+    "conceito_layout": "Distribuição funcional otimizada para interação e visibilidade",
+    "tipo_distribuicao": "Ponta de ilha com áreas interativas e de apoio",
+    "justificativa": "Maximiza a circulação e a exposição dos produtos, favorecendo o relacionamento com o público."
   },
   "nucleo_central": {
-    "posicionamento": "Centro do estande",
+    "posicionamento": "Centro do estande, acessível a todas as áreas",
     "dimensoes_estimadas": {
-      "largura": 4.0,
+      "largura": 5.0,
       "profundidade": 4.0,
-      "area_total": 16.0
+      "area_total": 20.0
     },
     "composicao": ["copa", "deposito"],
-    "justificativa_posicao": "Posicionado no centro para facilitar o acesso a todas as áreas funcionais e otimizar a logística de materiais."
+    "justificativa_posicao": "Facilita o acesso para funcionários e visitantes, centralizando os serviços de apoio."
   },
   "areas_distribuidas": [
     {
-      "tipo": "Recepção",
-      "nome": "Recepção Principal",
+      "tipo": "exposicao",
+      "nome": "Área de Exposição Principal",
       "zona_preferencial": "Frente do estande",
       "dimensoes_estimadas": {
-        "largura": 5.0,
+        "largura": 10.0,
         "profundidade": 4.0,
-        "area": 20.0
+        "area": 40.0
       },
-      "adjacencias_obrigatorias": ["Demonstração de Produtos"],
-      "equipamentos": ["Balcão de Atendimento", "Computador"],
+      "adjacencias_obrigatorias": ["sala_reuniao", "nucleo_central"],
+      "equipamentos": ["tv", "ledss"],
       "prioridade_posicionamento": 1
     },
     {
-      "tipo": "Demonstração de Produtos",
-      "nome": "Área de Demonstração",
-      "zona_preferencial": "Centro do estande",
+      "tipo": "sala_reuniao",
+      "nome": "Sala de Reunião",
+      "zona_preferencial": "Lateral direita",
       "dimensoes_estimadas": {
-        "largura": 7.0,
-        "profundidade": 7.0,
-        "area": 49.0
+        "largura": 5.0,
+        "profundidade": 6.0,
+        "area": 30.0
       },
-      "adjacencias_obrigatorias": ["Recepção", "Sala de Reuniões"],
-      "equipamentos": ["Mesas de Demonstração", "Telão"],
+      "adjacencias_obrigatorias": ["nucleo_central"],
+      "equipamentos": ["mesa", "cadeira"],
       "prioridade_posicionamento": 2
     },
     {
-      "tipo": "Sala de Reuniões",
-      "nome": "Sala de Reuniões",
-      "zona_preferencial": "Lateral direita",
+      "tipo": "copa",
+      "nome": "Copa",
+      "zona_preferencial": "Centro",
       "dimensoes_estimadas": {
         "largura": 3.0,
-        "profundidade": 5.0,
-        "area": 15.0
+        "profundidade": 7.0,
+        "area": 21.0
       },
-      "adjacencias_obrigatorias": ["Área de Networking"],
-      "equipamentos": ["Mesa de Reunião", "Cadeiras"],
+      "adjacencias_obrigatorias": ["nucleo_central"],
+      "equipamentos": ["umas pias"],
       "prioridade_posicionamento": 3
     },
     {
-      "tipo": "Área de Networking",
-      "nome": "Espaço de Networking",
+      "tipo": "deposito",
+      "nome": "Depósito",
       "zona_preferencial": "Lateral esquerda",
       "dimensoes_estimadas": {
-        "largura": 3.0,
-        "profundidade": 5.0,
-        "area": 15.0
+        "largura": 4.0,
+        "profundidade": 5.5,
+        "area": 22.0
       },
-      "adjacencias_obrigatorias": ["Sala de Reuniões"],
-      "equipamentos": ["Mesas Altas", "Cadeiras"],
+      "adjacencias_obrigatorias": ["nucleo_central"],
+      "equipamentos": ["umas prateleiras"],
       "prioridade_posicionamento": 4
     }
   ],
   "fluxos_definidos": {
     "entrada_principal": {
       "posicao_sugerida": "Frente do estande",
-      "largura_minima": 2.0
+      "largura_minima": 3.0
     },
     "circulacao_interna": {
-      "corredores_principais": ["Corredor Central", "Corredor Lateral Direito", "Corredor Lateral Esquerdo"],
+      "corredores_principais": ["corredor_lateral_direito", "corredor_lateral_esquerdo"],
       "largura_minima": 1.5
     },
-    "zonas_privadas": ["Sala de Reuniões"],
-    "zonas_publicas": ["Recepção", "Demonstração de Produtos", "Área de Networking"]
+    "zonas_privadas": ["nucleo_central", "sala_reuniao"],
+    "zonas_publicas": ["area_exposicao", "copa"]
   },
   "especificacoes_pipeline": {
     "para_calculador": {
-      "sistema_coordenadas": "Sistema de coordenadas cartesianas",
+      "sistema_coordenadas": "cartesiano",
       "precisao_requerida": 0.1,
-      "restricoes_matematicas": ["Limitação de altura de 4 metros"]
+      "restricoes_matematicas": ["area_total <= 220.0", "percentual_ocupacao <= 70"]
     },
     "para_conceito_visual": {
-      "pontos_focais": ["Telão na Área de Demonstração", "Balcão de Recepção"],
-      "hierarquia_visual": ["Recepção", "Demonstração de Produtos", "Sala de Reuniões", "Área de Networking"],
-      "mood_espacial": "Inovação e Tecnologia"
+      "pontos_focais": ["tv_exposicao", "mesa_reuniao"],
+      "hierarquia_visual": ["entrada_principal", "area_exposicao", "nucleo_central"],
+      "mood_espacial": "Moderno e acolhedor"
     },
     "para_modelo_3d": {
-      "elementos_estruturais": ["Pilares de Alumínio", "Estruturas de Vidro"],
-      "materiais_predominantes": ["Alumínio", "Vidro", "Madeira"],
-      "iluminacao_conceitual": "Iluminação LED com destaque para as áreas de interação"
+      "elementos_estruturais": ["pilares", "painéis de vidro"],
+      "materiais_predominantes": ["madeira", "metal", "vidro"],
+      "iluminacao_conceitual": "iluminação suave com spots direcionais"
     }
   },
   "validacao_design": {
@@ -111,7 +111,7 @@
   },
   "metadados_geracao": {
     "algoritmo": "distribuicao_espacial_v2",
-    "timestamp": "2023-10-01T12:00:00Z",
+    "timestamp": "2023-10-05T12:00:00Z",
     "agente": "arquiteto_espacial",
     "baseado_em": "analise_briefing"
   }

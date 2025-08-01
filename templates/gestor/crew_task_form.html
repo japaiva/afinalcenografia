@@ -1,15 +1,15 @@
 {% extends 'gestor/base_gestor.html' %}
 
 {% block title %}
-  {% if is_create %}Nova{% else %}Editar{% endif %} Tarefa | {{ crew.nome }} | Portal do Gestor
+  {% if form.instance.pk %}Editar{% else %}Nova{% endif %} Tarefa | {{ crew.nome }} | Portal do Gestor
 {% endblock %}
 
 {% block content %}
 <div class="card shadow">
   <div class="card-header bg-light d-flex justify-content-between align-items-center">
     <h5 class="card-title mb-0">
-      <i class="fas {% if is_create %}fa-plus-circle{% else %}fa-edit{% endif %} me-2"></i>
-      {% if is_create %}Nova{% else %}Editar{% endif %} Tarefa
+      <i class="fas {% if form.instance.pk %}fa-edit{% else %}fa-plus-circle{% endif %} me-2"></i>
+      {% if form.instance.pk %}Editar{% else %}Nova{% endif %} Tarefa
     </h5>
     <a href="{% url 'gestor:crew_detail' crew.id %}" class="btn btn-outline-secondary btn-sm">
       <i class="fas fa-arrow-left me-1"></i> Voltar ao Crew
@@ -43,10 +43,11 @@
       {% endif %}
 
       <div class="row g-3">
-        <!-- Nome da Tarefa -->
-        <div class="col-12">
-          <label for="{{ form.nome.id_for_label }}" class="form-label">{{ form.nome.label }}*</label>
+        <!-- INFORMAÇÕES BÁSICAS -->
+        <div class="col-md-8">
+          <label for="{{ form.nome.id_for_label }}" class="form-label">Nome da Tarefa*</label>
           {{ form.nome }}
+          <div class="form-text">Ex: "Analisar Briefing", "Gerar Layout", "Criar SVG"</div>
           {% if form.nome.errors %}
             <div class="text-danger small mt-1">
               {% for error in form.nome.errors %}{{ error }}{% endfor %}
@@ -54,33 +55,30 @@
           {% endif %}
         </div>
 
-        <!-- Descrição -->
-        <div class="col-12">
-          <label for="{{ form.descricao.id_for_label }}" class="form-label">{{ form.descricao.label }}*</label>
-          {{ form.descricao }}
-          <div class="form-text">Descrição detalhada do que esta tarefa deve fazer</div>
-          {% if form.descricao.errors %}
+        <div class="col-md-2">
+          <label for="{{ form.ordem_execucao.id_for_label }}" class="form-label">Ordem*</label>
+          {{ form.ordem_execucao }}
+          {% if form.ordem_execucao.errors %}
             <div class="text-danger small mt-1">
-              {% for error in form.descricao.errors %}{{ error }}{% endfor %}
+              {% for error in form.ordem_execucao.errors %}{{ error }}{% endfor %}
             </div>
           {% endif %}
         </div>
 
-        <!-- Resultado Esperado -->
-        <div class="col-12">
-          <label for="{{ form.expected_output.id_for_label }}" class="form-label">{{ form.expected_output.label }}*</label>
-          {{ form.expected_output }}
-          <div class="form-text">Descreva o formato e conteúdo esperado do resultado</div>
-          {% if form.expected_output.errors %}
+        <div class="col-md-2">
+          <div class="form-check form-switch mt-4">
+            {{ form.ativo }}
+            <label class="form-check-label" for="{{ form.ativo.id_for_label }}">Ativa</label>
+          </div>
+          {% if form.ativo.errors %}
             <div class="text-danger small mt-1">
-              {% for error in form.expected_output.errors %}{{ error }}{% endfor %}
+              {% for error in form.ativo.errors %}{{ error }}{% endfor %}
             </div>
           {% endif %}
         </div>
 
-        <!-- Agente Responsável e Ordem -->
-        <div class="col-md-6">
-          <label for="{{ form.agente_responsavel.id_for_label }}" class="form-label">{{ form.agente_responsavel.label }}*</label>
+        <div class="col-12">
+          <label for="{{ form.agente_responsavel.id_for_label }}" class="form-label">Agente Responsável*</label>
           {{ form.agente_responsavel }}
           <div class="form-text">Apenas agentes que são membros deste crew</div>
           {% if form.agente_responsavel.errors %}
@@ -90,47 +88,143 @@
           {% endif %}
         </div>
 
-        <div class="col-md-6">
-          <label for="{{ form.ordem_execucao.id_for_label }}" class="form-label">{{ form.ordem_execucao.label }}*</label>
-          {{ form.ordem_execucao }}
-          <div class="form-text">Posição na sequência de execução</div>
-          {% if form.ordem_execucao.errors %}
+        <!-- DESCRIÇÃO DA TAREFA - CAMPO PRINCIPAL AUMENTADO -->
+        <div class="col-12">
+          <label for="{{ form.descricao.id_for_label }}" class="form-label">
+            <strong>Descrição da Tarefa*</strong>
+            <span class="badge bg-success ms-2">Crítico</span>
+          </label>
+          <textarea class="form-control" name="{{ form.descricao.name }}" 
+                    id="{{ form.descricao.id_for_label }}" rows="10" 
+                    style="font-family: 'Courier New', monospace; font-size: 13px; background-color: #f0f8f0; border: 2px solid #c3e6cb;">{{ form.descricao.value|default:"" }}</textarea>
+          <div class="form-text">
+            <i class="fas fa-lightbulb me-1 text-warning"></i>
+            Descrição detalhada do que esta tarefa deve fazer - seja muito específico!
+          </div>
+          {% if form.descricao.errors %}
             <div class="text-danger small mt-1">
-              {% for error in form.ordem_execucao.errors %}{{ error }}{% endfor %}
+              {% for error in form.descricao.errors %}{{ error }}{% endfor %}
             </div>
           {% endif %}
         </div>
 
-        <!-- DEPENDÊNCIAS CORRIGIDAS -->
+        <!-- RESULTADO ESPERADO - CAMPO PRINCIPAL AUMENTADO -->
         <div class="col-12">
-          <label class="form-label">
-            <i class="fas fa-link me-2"></i>{{ form.dependencias.label }}
+          <label for="{{ form.expected_output.id_for_label }}" class="form-label">
+            <strong>Resultado Esperado*</strong>
+            <span class="badge bg-info ms-2">Crítico</span>
           </label>
+          <textarea class="form-control" name="{{ form.expected_output.name }}" 
+                    id="{{ form.expected_output.id_for_label }}" rows="8" 
+                    style="font-family: 'Courier New', monospace; font-size: 13px; background-color: #f0f8ff; border: 2px solid #cce7ff;">{{ form.expected_output.value|default:"" }}</textarea>
+          <div class="form-text">
+            <i class="fas fa-target me-1 text-info"></i>
+            Formato exato do resultado que esta tarefa deve produzir
+          </div>
+          {% if form.expected_output.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.expected_output.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- TEMPLATE DE CONTEXTO - CAMPO AUMENTADO -->
+        <div class="col-12">
+          <label for="{{ form.context_template.id_for_label }}" class="form-label">
+            <strong>Template de Contexto</strong>
+            <span class="badge bg-warning ms-2">Importante</span>
+          </label>
+          <textarea class="form-control" name="{{ form.context_template.name }}" 
+                    id="{{ form.context_template.id_for_label }}" rows="10" 
+                    style="font-family: 'Courier New', monospace; background-color: #fffdf5; border: 2px solid #fff3cd;">{{ form.context_template.value|default:"" }}</textarea>
+          <div class="form-text">Template para contexto da tarefa com variáveis como {empresa_nome}, {projeto_nome}</div>
+          {% if form.context_template.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.context_template.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- CONFIGURAÇÕES AVANÇADAS -->
+        <div class="col-12"><hr class="my-4"></div>
+        <div class="col-12">
+          <h6 class="text-secondary mb-3">
+            <i class="fas fa-cogs me-2"></i>Configurações Avançadas
+            <span class="badge bg-secondary ms-2">Opcional</span>
+          </h6>
+        </div>
+
+        <div class="col-md-6">
+          <label for="{{ form.tools_config.id_for_label }}" class="form-label">Configuração de Ferramentas (JSON)</label>
+          {{ form.tools_config }}
+          <div class="form-text">JSON com configurações de ferramentas específicas</div>
+          {% if form.tools_config.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.tools_config.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-6">
+          <label for="{{ form.output_file.id_for_label }}" class="form-label">Arquivo de Saída</label>
+          {{ form.output_file }}
+          <div class="form-text">Caminho para salvar o resultado automaticamente</div>
+          {% if form.output_file.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.output_file.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-6">
+          <div class="form-check form-switch">
+            {{ form.async_execution }}
+            <label class="form-check-label" for="{{ form.async_execution.id_for_label }}">
+              Execução Assíncrona
+            </label>
+          </div>
+          <div class="form-text">Não aguarda conclusão para continuar pipeline</div>
+          {% if form.async_execution.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.async_execution.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- DEPENDÊNCIAS -->
+        <div class="col-12"><hr class="my-4"></div>
+        <div class="col-12">
+          <h6 class="text-info mb-3">
+            <i class="fas fa-project-diagram me-2"></i>Dependências Entre Tasks
+            <span class="badge bg-info ms-2">Avançado</span>
+          </h6>
+          
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Para casos complexos:</strong> Defina quais tasks devem ser executadas antes desta.
+            <br><small>Na maioria dos casos, a ordem sequencial simples é suficiente.</small>
+          </div>
           
           {% if form.dependencias.field.queryset.exists %}
-            <div class="card">
-              <div class="card-body">
-                <div class="form-text mb-3">{{ form.dependencias.help_text }}</div>
-                <div class="row">
-                  {% for checkbox in form.dependencias %}
-                    <div class="col-md-6 mb-2">
-                      <div class="form-check">
-                        {{ checkbox.tag }}
-                        <label class="form-check-label" for="{{ checkbox.id_for_label }}">
-                          <strong>{{ checkbox.choice_label }}</strong>
-                          <br><small class="text-muted">Ordem: 
-                            {% for task in form.dependencias.field.queryset %}
-                              {% if task.id|stringformat:"s" == checkbox.data.value|stringformat:"s" %}
-                                {{ task.ordem_execucao }}
-                              {% endif %}
-                            {% endfor %}
-                          </small>
-                        </label>
-                      </div>
-                    </div>
-                  {% endfor %}
+            <label for="{{ form.dependencias.id_for_label }}" class="form-label">Tasks que devem executar antes</label>
+            <div class="row">
+              {% for checkbox in form.dependencias %}
+                <div class="col-md-6 mb-2">
+                  <div class="form-check">
+                    {{ checkbox.tag }}
+                    <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                      <strong>{{ checkbox.choice_label }}</strong>
+                      <br><small class="text-muted">Ordem: 
+                        {% for task in form.dependencias.field.queryset %}
+                          {% if task.id|stringformat:"s" == checkbox.data.value|stringformat:"s" %}
+                            {{ task.ordem_execucao }}
+                          {% endif %}
+                        {% endfor %}
+                      </small>
+                    </label>
+                  </div>
                 </div>
-              </div>
+              {% endfor %}
             </div>
           {% else %}
             <div class="alert alert-info">
@@ -145,140 +239,12 @@
             </div>
           {% endif %}
         </div>
-
-        <!-- Template de Contexto -->
-        <div class="col-12">
-          <label for="{{ form.context_template.id_for_label }}" class="form-label">
-            <i class="fas fa-code me-2"></i>{{ form.context_template.label }}
-          </label>
-          {{ form.context_template }}
-          <div class="form-text">Template para contexto com variáveis como {empresa_nome}, {projeto_nome}</div>
-          {% if form.context_template.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.context_template.errors %}{{ error }}{% endfor %}
-            </div>
-          {% endif %}
-        </div>
-
-        <!-- Configurações de Ferramentas -->
-        <div class="col-md-6">
-          <label for="{{ form.tools_config.id_for_label }}" class="form-label">
-            <i class="fas fa-tools me-2"></i>{{ form.tools_config.label }}
-          </label>
-          {{ form.tools_config }}
-          <div class="form-text">JSON com configurações de ferramentas</div>
-          {% if form.tools_config.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.tools_config.errors %}{{ error }}{% endfor %}
-            </div>
-          {% endif %}
-        </div>
-
-        <!-- Arquivo de Output -->
-        <div class="col-md-6">
-          <label for="{{ form.output_file.id_for_label }}" class="form-label">
-            <i class="fas fa-file-export me-2"></i>{{ form.output_file.label }}
-          </label>
-          {{ form.output_file }}
-          <div class="form-text">Caminho para salvar o resultado automaticamente</div>
-          {% if form.output_file.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.output_file.errors %}{{ error }}{% endfor %}
-            </div>
-          {% endif %}
-        </div>
-
-        <!-- Configurações de Execução -->
-        <div class="col-12">
-          <hr>
-          <h6 class="text-primary">
-            <i class="fas fa-cogs me-2"></i>Configurações de Execução
-          </h6>
-        </div>
-
-        <div class="col-md-6">
-          <div class="form-check form-switch">
-            {{ form.async_execution }}
-            <label class="form-check-label" for="{{ form.async_execution.id_for_label }}">
-              {{ form.async_execution.label }}
-            </label>
-          </div>
-          <div class="form-text">Execução assíncrona (não aguarda conclusão)</div>
-          {% if form.async_execution.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.async_execution.errors %}{{ error }}{% endfor %}
-            </div>
-          {% endif %}
-        </div>
-
-        <div class="col-md-6">
-          <div class="form-check form-switch">
-            {{ form.ativo }}
-            <label class="form-check-label" for="{{ form.ativo.id_for_label }}">
-              {{ form.ativo.label }}
-            </label>
-          </div>
-          <div class="form-text">Tarefas inativas não são executadas</div>
-          {% if form.ativo.errors %}
-            <div class="text-danger small mt-1">
-              {% for error in form.ativo.errors %}{{ error }}{% endfor %}
-            </div>
-          {% endif %}
-        </div>
       </div>
 
-      <!-- Tasks Existentes (referência) -->
-      {% if crew.tasks.count > 0 and is_create %}
-      <div class="mt-4">
-        <h6 class="text-muted">
-          <i class="fas fa-list me-2"></i>Tasks Existentes ({{ crew.tasks.count }})
-        </h6>
-        <div class="table-responsive">
-          <table class="table table-sm table-bordered">
-            <thead class="table-light">
-              <tr>
-                <th>Ordem</th>
-                <th>Nome</th>
-                <th>Responsável</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for existing_task in crew.tasks.all %}
-                <tr>
-                  <td>
-                    <span class="badge bg-secondary">{{ existing_task.ordem_execucao }}</span>
-                  </td>
-                  <td>{{ existing_task.nome }}</td>
-                  <td>
-                    {% if existing_task.agente_responsavel %}
-                      {{ existing_task.agente_responsavel.nome }}
-                    {% else %}
-                      <em class="text-muted">Não atribuído</em>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {% if existing_task.ativo %}
-                      <span class="badge bg-success">Ativa</span>
-                    {% else %}
-                      <span class="badge bg-secondary">Inativa</span>
-                    {% endif %}
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      {% endif %}
-
-      <div class="d-flex justify-content-between mt-4">
-        <a href="{% url 'gestor:crew_detail' crew.id %}" class="btn btn-outline-secondary">
-          <i class="fas fa-times me-1"></i> Cancelar
-        </a>
+      <div class="d-flex justify-content-end mt-4">
         <button type="submit" class="btn btn-primary">
           <i class="fas fa-save me-1"></i> 
-          {% if is_create %}Criar Tarefa{% else %}Salvar Alterações{% endif %}
+          {% if form.instance.pk %}Salvar Alterações{% else %}Criar Tarefa{% endif %}
         </button>
       </div>
     </form>
@@ -286,27 +252,26 @@
 </div>
 
 <script>
+// Validação do JSON no campo tools_config
 document.addEventListener('DOMContentLoaded', function() {
-    // Validação do JSON no campo tools_config
-    const toolsConfigField = document.getElementById('{{ form.tools_config.id_for_label }}');
-    if (toolsConfigField) {
-        toolsConfigField.addEventListener('blur', function() {
-            const value = this.value.trim();
-            if (value && value !== '') {
-                try {
-                    JSON.parse(value);
-                    this.classList.remove('is-invalid');
-                    this.classList.add('is-valid');
-                } catch (e) {
-                    this.classList.remove('is-valid');
-                    this.classList.add('is-invalid');
-                }
-            } else {
-                this.classList.remove('is-invalid', 'is-valid');
-            }
-        });
-    }
+  const toolsConfigField = document.getElementById('{{ form.tools_config.id_for_label }}');
+  if (toolsConfigField) {
+    toolsConfigField.addEventListener('blur', function() {
+      const value = this.value.trim();
+      if (value && value !== '') {
+        try {
+          JSON.parse(value);
+          this.classList.remove('is-invalid');
+          this.classList.add('is-valid');
+        } catch (e) {
+          this.classList.remove('is-valid');
+          this.classList.add('is-invalid');
+        }
+      } else {
+        this.classList.remove('is-invalid', 'is-valid');
+      }
+    });
+  }
 });
 </script>
-
 {% endblock %}

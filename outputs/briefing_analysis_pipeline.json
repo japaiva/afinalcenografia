@@ -1,71 +1,74 @@
 {
   "projeto_info": {
-    "nome": "Feira de Inovação 2023",
-    "empresa": "InovaTech",
-    "numero": "IT2023",
-    "tipo_projeto": "Estand Interativo",
-    "orcamento": 150000.00
+    "nome": "Hair Summit 2025",
+    "empresa": "Beauty Fair",
+    "numero": "12",
+    "tipo_projeto": "feira_negocios",
+    "orcamento": "100000.0"
   },
   "estande_validado": {
-    "tipo_stand": "Ilha",
-    "area_total": 100.0,
+    "tipo_stand": "ponta_ilha",
+    "area_total": "220.0",
     "dimensoes": {
-      "frente": 10.0,
-      "fundo": 10.0,
-      "lateral_esquerda": 10.0,
-      "lateral_direita": 10.0
+      "frente": "20.0",
+      "fundo": "11.0",
+      "lateral_esquerda": "12.0",
+      "lateral_direita": "13.0"
     },
     "estilo": "Moderno",
-    "material": "Alumínio e Vidro",
-    "objetivo": "Demonstração de Produtos Inovadores"
+    "material": "construido",
+    "objetivo": "Lançamentos, relacionamento com mercado, vendas"
   },
   "areas_funcionais": [
     {
-      "tipo": "Recepção",
-      "metragem_solicitada": 20.0,
-      "equipamentos": ["Balcão de Atendimento", "Computador"],
-      "elementos_especiais": {},
-      "observacoes": "Espaço para interação com visitantes."
+      "tipo": "exposicao",
+      "metragem": 40.0,
+      "equipamentos": "tv, ledss",
+      "observacoes": "observacoes area 1",
+      "elementos": {
+        "lounge": true,
+        "vitrine_exposicao": false,
+        "balcao_recepcao": false,
+        "mesas_atendimento": true,
+        "balcao_cafe": true,
+        "balcao_vitrine": false,
+        "caixa_vendas": false
+      }
     },
     {
-      "tipo": "Demonstração de Produtos",
-      "metragem_solicitada": 50.0,
-      "equipamentos": ["Mesas de Demonstração", "Telão"],
-      "elementos_especiais": {"iluminação": "LED"},
-      "observacoes": "Área central do estande."
+      "tipo": "sala_reuniao",
+      "capacidade": 8,
+      "metragem": 30.0,
+      "equipamentos": "mesa, cadeira, moveisss"
     },
     {
-      "tipo": "Sala de Reuniões",
-      "metragem_solicitada": 15.0,
-      "equipamentos": ["Mesa de Reunião", "Cadeiras"],
-      "elementos_especiais": {},
-      "observacoes": "Privacidade para reuniões com clientes."
+      "tipo": "copa",
+      "metragem": 21.0,
+      "equipamentos": "umas pias"
     },
     {
-      "tipo": "Área de Networking",
-      "metragem_solicitada": 15.0,
-      "equipamentos": ["Mesas Altas", "Cadeiras"],
-      "elementos_especiais": {},
-      "observacoes": "Espaço para interação informal."
+      "tipo": "deposito",
+      "metragem": 22.0,
+      "equipamentos": "umas prateleiras"
     }
   ],
   "validacao_viabilidade": {
-    "area_total_solicitada": 100.0,
-    "area_disponivel": 100.0,
-    "percentual_ocupacao": 100.0,
+    "area_total_solicitada": 113.0,
+    "area_disponivel": "220.0",
+    "percentual_ocupacao": 51.36,
     "viavel": true,
-    "alertas": []
+    "alertas": ["baseado na análise real"]
   },
   "diretrizes_arquitetura": {
     "estilo_preferido": "Moderno",
-    "materiais_sugeridos": "Alumínio, Vidro e Madeira",
-    "mood_campanha": "Inovação e Tecnologia",
-    "restricoes_tecnicas": "Limitação de altura de 4 metros."
+    "materiais_sugeridos": "construido",
+    "mood_campanha": "baseado nos dados recebidos",
+    "restricoes_tecnicas": "analise técnica baseada nos dados"
   },
   "metadados_pipeline": {
-    "timestamp": "2023-10-01T12:00:00Z",
+    "timestamp": "2023-10-05T12:00:00Z",
     "agente": "analista_briefing",
-    "briefing_id": "BRF2023-IT",
-    "versao": 1
+    "briefing_id": "pipeline_info.briefing_id",
+    "versao": "pipeline_info.versao"
   }
 }

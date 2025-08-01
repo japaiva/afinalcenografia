@@ -1,225 +1,238 @@
 {% extends 'gestor/base_gestor.html' %}
 
 {% block title %}
-  {% if form.instance.pk %}Editar{% else %}Novo{% endif %} Agente de IA | Portal do Gestor | Afinal Cenografia
+  {% if form.instance.pk %}Editar{% else %}Novo{% endif %} Agente | Portal do Gestor | Afinal Cenografia
 {% endblock %}
 
 {% block content %}
-  <div class="card shadow">
-    <div class="card-header bg-light d-flex justify-content-between align-items-center">
-      <h5 class="card-title mb-0">
-        <i class="fas {% if form.instance.pk %}fa-edit{% else %}fa-plus-circle{% endif %} me-2"></i>
-        {% if form.instance.pk %}Editar{% else %}Novo{% endif %} Agente de IA
-      </h5>
-      <a href="{% url 'gestor:agente_list' %}" class="btn btn-outline-secondary btn-sm">
-        <i class="fas fa-arrow-left me-1"></i> Voltar
-      </a>
-    </div>
-
-    <div class="card-body">
-      <form method="post" id="agenteForm">
-        {% csrf_token %}
-
-        {% if form.non_field_errors %}
-          <div class="alert alert-danger">
-            {% for error in form.non_field_errors %}
-              <p class="mb-0">{{ error }}</p>
-            {% endfor %}
-          </div>
-        {% endif %}
-
-        <!-- TIPO DE AGENTE - PRIMEIRA DECISÃO -->
-        <div class="row g-3">
-
-          <div class="col-md-6">
-            <label for="{{ form.tipo.id_for_label }}" class="form-label">Tipo de Agente*</label>
-            {{ form.tipo }}
-            <div class="form-text">Individual ou Membro de Crew (equipe)</div>
-            {% if form.tipo.errors %}
-              <div class="text-danger small mt-1">
-                {% for error in form.tipo.errors %}{{ error }}{% endfor %}
-              </div>
-            {% endif %}
-          </div>
-
-          <div class="col-md-6 d-flex align-items-center">
-            <div class="form-check form-switch">
-              {{ form.ativo }}
-              <label class="form-check-label" for="{{ form.ativo.id_for_label }}">Agente Ativo</label>
-            </div>
-          </div>
-        </div>
-
-        <hr class="my-4">
-
-        <!-- INFORMAÇÕES BÁSICAS -->
-        <h6 class="text-primary mb-3"><i class="fas fa-robot me-2"></i>Informações Básicas</h6>
-        <div class="row g-3">
-          <div class="col-md-8">
-            <label for="{{ form.nome.id_for_label }}" class="form-label">Nome do Agente*</label>
-            {{ form.nome }}
-            <div class="form-text">Nome descritivo (ex: "Analista de Briefing", "Gerador de SVG")</div>
-            {% if form.nome.errors %}
-              <div class="text-danger small mt-1">
-                {% for error in form.nome.errors %}{{ error }}{% endfor %}
-              </div>
-            {% endif %}
-          </div>
-
-          <div class="col-12">
-            <label for="{{ form.descricao.id_for_label }}" class="form-label">Descrição</label>
-            {{ form.descricao }}
-            <div class="form-text">Descrição detalhada da função do agente</div>
-            {% if form.descricao.errors %}
-              <div class="text-danger small mt-1">
-                {% for error in form.descricao.errors %}{{ error }}{% endfor %}
-              </div>
-            {% endif %}
-          </div>
-        </div>
-
-        <hr class="my-4">
-
-        <!-- CONFIGURAÇÕES LLM -->
-        <h6 class="text-success mb-3"><i class="fas fa-cog me-2"></i>Configurações do Modelo</h6>
-        <div class="row g-3">
-          <div class="col-md-4">
-            <label for="{{ form.llm_provider.id_for_label }}" class="form-label">Provedor LLM*</label>
-            {{ form.llm_provider }}
-            <div class="form-text">Ex: "openai", "anthropic"</div>
-            {% if form.llm_provider.errors %}
-              <div class="text-danger small mt-1">
-                {% for error in form.llm_provider.errors %}{{ error }}{% endfor %}
-              </div>
-            {% endif %}
-          </div>
-
-          <div class="col-md-4">
-            <label for="{{ form.llm_model.id_for_label }}" class="form-label">Modelo LLM*</label>
-            {{ form.llm_model }}
-            <div class="form-text">Ex: "gpt-4", "claude-3-opus"</div>
-            {% if form.llm_model.errors %}
-              <div class="text-danger small mt-1">
-                {% for error in form.llm_model.errors %}{{ error }}{% endfor %}
-              </div>
-            {% endif %}
-          </div>
-
-          <div class="col-md-4">
-            <label for="{{ form.llm_temperature.id_for_label }}" class="form-label">Temperatura*</label>
-            {{ form.llm_temperature }}
-            <div class="form-text">0.0 = consistente, 1.0 = criativo</div>
-            {% if form.llm_temperature.errors %}
-              <div class="text-danger small mt-1">
-                {% for error in form.llm_temperature.errors %}{{ error }}{% endfor %}
-              </div>
-            {% endif %}
-          </div>
-        </div>
-
-        <hr class="my-4">
-
-        <!-- PROMPTS E INSTRUÇÕES -->
-        <h6 class="text-warning mb-3"><i class="fas fa-file-alt me-2"></i>Prompts e Instruções</h6>
-        <div class="row g-3">
-          <div class="col-12">
-            <label for="{{ form.llm_system_prompt.id_for_label }}" class="form-label">Prompt do Sistema*</label>
-            {{ form.llm_system_prompt }}
-            <div class="form-text">Prompt base que define o comportamento e personalidade do agente</div>
-            {% if form.llm_system_prompt.errors %}
-              <div class="text-danger small mt-1">
-                {% for error in form.llm_system_prompt.errors %}{{ error }}{% endfor %}
-              </div>
-            {% endif %}
-          </div>
-
-          <div class="col-12">
-            <label for="{{ form.task_instructions.id_for_label }}" class="form-label">Instruções de Tarefa</label>
-            {{ form.task_instructions }}
-            <div class="form-text">Instruções específicas para execução de tarefas</div>
-            {% if form.task_instructions.errors %}
-              <div class="text-danger small mt-1">
-                {% for error in form.task_instructions.errors %}{{ error }}{% endfor %}
-              </div>
-            {% endif %}
-          </div>
-        </div>
-
-        <!-- SEÇÃO ESPECÍFICA PARA CREW MEMBERS -->
-        <div id="crewMemberSection" style="display: none;">
-          <hr class="my-4">
-          <h6 class="text-info mb-3"><i class="fas fa-users me-2"></i>Configurações para Crew</h6>
-
-          <div class="row g-3">
-            <div class="col-md-12">
-              <label for="{{ form.crew_role.id_for_label }}" class="form-label">Papel no Crew</label>
-              {{ form.crew_role }}
-              <div class="form-text">Ex: "Analista de Dados", "Arquiteto Espacial", "Gerador de SVG"</div>
-              {% if form.crew_role.errors %}
-                <div class="text-danger small mt-1">
-                  {% for error in form.crew_role.errors %}{{ error }}{% endfor %}
-                </div>
-              {% endif %}
-            </div>
-
-            <div class="col-12">
-              <label for="{{ form.crew_goal.id_for_label }}" class="form-label">Objetivo no Crew</label>
-              {{ form.crew_goal }}
-              <div class="form-text">Objetivo específico deste agente dentro do fluxo de trabalho</div>
-              {% if form.crew_goal.errors %}
-                <div class="text-danger small mt-1">
-                  {% for error in form.crew_goal.errors %}{{ error }}{% endfor %}
-                </div>
-              {% endif %}
-            </div>
-
-            <div class="col-12">
-              <label for="{{ form.crew_backstory.id_for_label }}" class="form-label">Background/História</label>
-              {{ form.crew_backstory }}
-              <div class="form-text">Contexto e experiência do agente para melhor performance no crew</div>
-              {% if form.crew_backstory.errors %}
-                <div class="text-danger small mt-1">
-                  {% for error in form.crew_backstory.errors %}{{ error }}{% endfor %}
-                </div>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-
-        <div class="d-flex justify-content-between mt-4">
-          <div>
-            {% if form.instance.pk and form.instance.tipo == 'crew_member' %}
-              <a href="{% url 'gestor:crew_list' %}" class="btn btn-info btn-sm">
-                <i class="fas fa-users me-1"></i> Ver Crews
-              </a>
-            {% endif %}
-          </div>
-          <button type="submit" class="btn btn-primary">
-            <i class="fas fa-save me-1"></i> Salvar
-          </button>
-        </div>
-      </form>
-    </div>
+<div class="card shadow">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">
+      <i class="fas {% if form.instance.pk %}fa-edit{% else %}fa-plus-circle{% endif %} me-2"></i>
+      {% if form.instance.pk %}Editar{% else %}Novo{% endif %} Agente de IA
+    </h5>
+    <a href="{% url 'gestor:agente_list' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i> Voltar
+    </a>
   </div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const tipoSelect = document.getElementById('{{ form.tipo.id_for_label }}');
-      const crewSection = document.getElementById('crewMemberSection');
-      
-      function toggleCrewSection() {
-        if (tipoSelect.value === 'crew_member') {
-          crewSection.style.display = 'block';
-        } else {
-          crewSection.style.display = 'none';
-        }
-      }
-      
-      // Executar ao carregar a página
-      toggleCrewSection();
-      
-      // Executar quando mudar a seleção
-      tipoSelect.addEventListener('change', toggleCrewSection);
-    });
-  </script>
+  <div class="card-body">
+    <form method="post" id="agenteForm">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+          {% for error in form.non_field_errors %}
+            <p class="mb-0">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- INFORMAÇÕES BÁSICAS -->
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label for="{{ form.nome.id_for_label }}" class="form-label">Nome do Agente*</label>
+          {{ form.nome }}
+          <div class="form-text">Ex: "Analista de Briefing", "Arquiteto Espacial"</div>
+          {% if form.nome.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.nome.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-3">
+          <label for="{{ form.tipo.id_for_label }}" class="form-label">Tipo de Agente*</label>
+          {{ form.tipo }}
+          {% if form.tipo.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.tipo.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-3">
+          <div class="form-check form-switch mt-4">
+            {{ form.ativo }}
+            <label class="form-check-label" for="{{ form.ativo.id_for_label }}">Agente Ativo</label>
+          </div>
+          {% if form.ativo.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.ativo.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="col-12">
+          <label for="{{ form.descricao.id_for_label }}" class="form-label">Descrição</label>
+          {{ form.descricao }}
+          <div class="form-text">Descrição da função do agente</div>
+          {% if form.descricao.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.descricao.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- SYSTEM PROMPT - CAMPO PRINCIPAL AUMENTADO -->
+        <div class="col-12">
+          <label for="{{ form.llm_system_prompt.id_for_label }}" class="form-label">
+            <strong>System Prompt*</strong>
+            <span class="badge bg-primary ms-2">Crítico</span>
+          </label>
+          <textarea class="form-control" name="{{ form.llm_system_prompt.name }}" 
+                    id="{{ form.llm_system_prompt.id_for_label }}" rows="12" 
+                    style="font-family: 'Courier New', monospace; font-size: 13px; background-color: #f8f9ff; border: 2px solid #e3e6f0;">{{ form.llm_system_prompt.value|default:"" }}</textarea>
+          <div class="form-text">
+            <i class="fas fa-lightbulb me-1 text-warning"></i>
+            Este é o "DNA" do agente - define comportamento, personalidade e expertise
+          </div>
+          {% if form.llm_system_prompt.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.llm_system_prompt.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- CONFIGURAÇÕES LLM -->
+        <div class="col-12"><hr class="my-4"></div>
+        <div class="col-12">
+          <h6 class="text-success mb-3">
+            <i class="fas fa-cogs me-2"></i>Configurações do Modelo
+          </h6>
+        </div>
+
+        <div class="col-md-4">
+          <label for="{{ form.llm_provider.id_for_label }}" class="form-label">Provedor LLM*</label>
+          {{ form.llm_provider }}
+          <div class="form-text">Ex: "openai", "anthropic"</div>
+          {% if form.llm_provider.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.llm_provider.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-4">
+          <label for="{{ form.llm_model.id_for_label }}" class="form-label">Modelo LLM*</label>
+          {{ form.llm_model }}
+          <div class="form-text">Ex: "gpt-4", "claude-3-opus"</div>
+          {% if form.llm_model.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.llm_model.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-4">
+          <label for="{{ form.llm_temperature.id_for_label }}" class="form-label">Temperatura*</label>
+          {{ form.llm_temperature }}
+          <div class="form-text">0.0 = consistente, 1.0 = criativo</div>
+          {% if form.llm_temperature.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.llm_temperature.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- INSTRUÇÕES DE TAREFA - CAMPO AUMENTADO -->
+        <div class="col-12">
+          <label for="{{ form.task_instructions.id_for_label }}" class="form-label">
+            <strong>Instruções de Tarefa</strong>
+            <span class="badge bg-warning ms-2">Importante</span>
+          </label>
+          <textarea class="form-control" name="{{ form.task_instructions.name }}" 
+                    id="{{ form.task_instructions.id_for_label }}" rows="8" 
+                    style="font-family: 'Courier New', monospace; background-color: #fffdf5; border: 2px solid #fff3cd;">{{ form.task_instructions.value|default:"" }}</textarea>
+          <div class="form-text">Instruções específicas para execução de tarefas</div>
+          {% if form.task_instructions.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.task_instructions.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- SEÇÃO CREW (SÓ SE CREW_MEMBER) -->
+      <div id="crewSection" style="display: none;">
+        <hr class="my-4">
+        <h6 class="text-info mb-3">
+          <i class="fas fa-users me-2"></i>Configurações para Crew
+        </h6>
+
+        <div class="row g-3">
+          <div class="col-md-12">
+            <label for="{{ form.crew_role.id_for_label }}" class="form-label">Papel no Crew</label>
+            {{ form.crew_role }}
+            <div class="form-text">Ex: "Analista de Dados", "Arquiteto Espacial", "Gerador de SVG"</div>
+            {% if form.crew_role.errors %}
+              <div class="text-danger small mt-1">
+                {% for error in form.crew_role.errors %}{{ error }}{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="col-12">
+            <label for="{{ form.crew_goal.id_for_label }}" class="form-label">
+              <strong>Objetivo no Crew</strong>
+              <span class="badge bg-info ms-2">Crew</span>
+            </label>
+            <textarea class="form-control" name="{{ form.crew_goal.name }}" 
+                      id="{{ form.crew_goal.id_for_label }}" rows="4"
+                      style="background-color: #f0f8ff; border: 2px solid #cce7ff;">{{ form.crew_goal.value|default:"" }}</textarea>
+            <div class="form-text">Objetivo específico deste agente dentro do fluxo de trabalho</div>
+            {% if form.crew_goal.errors %}
+              <div class="text-danger small mt-1">
+                {% for error in form.crew_goal.errors %}{{ error }}{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="col-12">
+            <label for="{{ form.crew_backstory.id_for_label }}" class="form-label">
+              <strong>Background/História</strong>
+              <span class="badge bg-info ms-2">Crew</span>
+            </label>
+            <textarea class="form-control" name="{{ form.crew_backstory.name }}" 
+                      id="{{ form.crew_backstory.id_for_label }}" rows="5"
+                      style="background-color: #f0f8ff; border: 2px solid #cce7ff;">{{ form.crew_backstory.value|default:"" }}</textarea>
+            <div class="form-text">Contexto e experiência do agente para melhor performance no crew</div>
+            {% if form.crew_backstory.errors %}
+              <div class="text-danger small mt-1">
+                {% for error in form.crew_backstory.errors %}{{ error }}{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-end mt-4">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save me-1"></i> Salvar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const tipoSelect = document.getElementById('{{ form.tipo.id_for_label }}');
+  const crewSection = document.getElementById('crewSection');
+  
+  function toggleCrewSection() {
+    if (tipoSelect.value === 'crew_member') {
+      crewSection.style.display = 'block';
+    } else {
+      crewSection.style.display = 'none';
+    }
+  }
+  
+  // Executar ao carregar a página
+  toggleCrewSection();
+  
+  // Executar quando mudar a seleção
+  tipoSelect.addEventListener('change', toggleCrewSection);
+});
+</script>
 {% endblock %}
