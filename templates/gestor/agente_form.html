@@ -32,8 +32,10 @@
       <div class="row g-3">
         <div class="col-md-6">
           <label for="{{ form.nome.id_for_label }}" class="form-label">Nome do Agente*</label>
-          {{ form.nome }}
-          <div class="form-text">Ex: "Analista de Briefing", "Arquiteto Espacial"</div>
+          <input type="text" class="form-control" name="{{ form.nome.name }}" 
+                 id="{{ form.nome.id_for_label }}" value="{{ form.nome.value|default:"" }}"
+                 style="background-color: #f8f9fa; border: 1px solid #dee2e6;">
+          <div class="form-text small">Ex: "Analista de Briefing", "Arquiteto Espacial"</div>
           {% if form.nome.errors %}
             <div class="text-danger small mt-1">
               {% for error in form.nome.errors %}{{ error }}{% endfor %}
@@ -43,7 +45,11 @@
 
         <div class="col-md-3">
           <label for="{{ form.tipo.id_for_label }}" class="form-label">Tipo de Agente*</label>
-          {{ form.tipo }}
+          <select class="form-select" name="{{ form.tipo.name }}" id="{{ form.tipo.id_for_label }}"
+                  style="background-color: #f8f9fa; border: 1px solid #dee2e6;">
+            <option value="individual" {% if form.tipo.value == 'individual' %}selected{% endif %}>Individual</option>
+            <option value="crew_member" {% if form.tipo.value == 'crew_member' %}selected{% endif %}>Membro de Crew</option>
+          </select>
           {% if form.tipo.errors %}
             <div class="text-danger small mt-1">
               {% for error in form.tipo.errors %}{{ error }}{% endfor %}
@@ -53,7 +59,8 @@
 
         <div class="col-md-3">
           <div class="form-check form-switch mt-4">
-            {{ form.ativo }}
+            <input class="form-check-input" type="checkbox" name="{{ form.ativo.name }}" 
+                   id="{{ form.ativo.id_for_label }}" {% if form.ativo.value %}checked{% endif %}>
             <label class="form-check-label" for="{{ form.ativo.id_for_label }}">Agente Ativo</label>
           </div>
           {% if form.ativo.errors %}
@@ -65,8 +72,10 @@
 
         <div class="col-12">
           <label for="{{ form.descricao.id_for_label }}" class="form-label">Descrição</label>
-          {{ form.descricao }}
-          <div class="form-text">Descrição da função do agente</div>
+          <textarea class="form-control" name="{{ form.descricao.name }}" 
+                    id="{{ form.descricao.id_for_label }}" rows="3"
+                    style="font-family: 'Courier New', monospace; font-size: 13px; background-color: #f8f9ff; border: 2px solid #e3e6f0;">{{ form.descricao.value|default:"" }}</textarea>
+          <div class="form-text small">Descrição da função do agente</div>
           {% if form.descricao.errors %}
             <div class="text-danger small mt-1">
               {% for error in form.descricao.errors %}{{ error }}{% endfor %}
@@ -104,8 +113,10 @@
 
         <div class="col-md-4">
           <label for="{{ form.llm_provider.id_for_label }}" class="form-label">Provedor LLM*</label>
-          {{ form.llm_provider }}
-          <div class="form-text">Ex: "openai", "anthropic"</div>
+          <input type="text" class="form-control" name="{{ form.llm_provider.name }}" 
+                 id="{{ form.llm_provider.id_for_label }}" value="{{ form.llm_provider.value|default:"" }}"
+                 style="background-color: #f0f8f0; border: 1px solid #c3e6cb; font-size: 13px;">
+          <div class="form-text small">Ex: "openai", "anthropic"</div>
           {% if form.llm_provider.errors %}
             <div class="text-danger small mt-1">
               {% for error in form.llm_provider.errors %}{{ error }}{% endfor %}
@@ -115,8 +126,10 @@
 
         <div class="col-md-4">
           <label for="{{ form.llm_model.id_for_label }}" class="form-label">Modelo LLM*</label>
-          {{ form.llm_model }}
-          <div class="form-text">Ex: "gpt-4", "claude-3-opus"</div>
+          <input type="text" class="form-control" name="{{ form.llm_model.name }}" 
+                 id="{{ form.llm_model.id_for_label }}" value="{{ form.llm_model.value|default:"" }}"
+                 style="background-color: #f0f8f0; border: 1px solid #c3e6cb; font-size: 13px;">
+          <div class="form-text small">Ex: "gpt-4", "claude-3-opus"</div>
           {% if form.llm_model.errors %}
             <div class="text-danger small mt-1">
               {% for error in form.llm_model.errors %}{{ error }}{% endfor %}
@@ -126,8 +139,10 @@
 
         <div class="col-md-4">
           <label for="{{ form.llm_temperature.id_for_label }}" class="form-label">Temperatura*</label>
-          {{ form.llm_temperature }}
-          <div class="form-text">0.0 = consistente, 1.0 = criativo</div>
+          <input type="text" class="form-control" name="{{ form.llm_temperature.name }}" 
+                 id="{{ form.llm_temperature.id_for_label }}" value="{{ form.llm_temperature.value|default:"0.3" }}"
+                 style="background-color: #f0f8f0; border: 1px solid #c3e6cb; font-size: 13px;">
+          <div class="form-text small">0.0 = consistente, 1.0 = criativo</div>
           {% if form.llm_temperature.errors %}
             <div class="text-danger small mt-1">
               {% for error in form.llm_temperature.errors %}{{ error }}{% endfor %}
@@ -135,7 +150,7 @@
           {% endif %}
         </div>
 
-        <!-- INSTRUÇÕES DE TAREFA - CAMPO AUMENTADO -->
+        <!-- INSTRUÇÕES DE TAREFA - FIELD AUMENTADO -->
         <div class="col-12">
           <label for="{{ form.task_instructions.id_for_label }}" class="form-label">
             <strong>Instruções de Tarefa</strong>
@@ -163,8 +178,10 @@
         <div class="row g-3">
           <div class="col-md-12">
             <label for="{{ form.crew_role.id_for_label }}" class="form-label">Papel no Crew</label>
-            {{ form.crew_role }}
-            <div class="form-text">Ex: "Analista de Dados", "Arquiteto Espacial", "Gerador de SVG"</div>
+            <input type="text" class="form-control" name="{{ form.crew_role.name }}" 
+                   id="{{ form.crew_role.id_for_label }}" value="{{ form.crew_role.value|default:"" }}"
+                   style="font-family: 'Courier New', monospace; font-size: 13px; background-color: #f8f9ff; border: 2px solid #e3e6f0;">
+            <div class="form-text small">Ex: "Analista de Dados", "Arquiteto Espacial", "Gerador de SVG"</div>
             {% if form.crew_role.errors %}
               <div class="text-danger small mt-1">
                 {% for error in form.crew_role.errors %}{{ error }}{% endfor %}
@@ -179,7 +196,7 @@
             </label>
             <textarea class="form-control" name="{{ form.crew_goal.name }}" 
                       id="{{ form.crew_goal.id_for_label }}" rows="4"
-                      style="background-color: #f0f8ff; border: 2px solid #cce7ff;">{{ form.crew_goal.value|default:"" }}</textarea>
+                      style="font-family: 'Courier New', monospace; font-size: 13px; background-color: #f8f9ff; border: 2px solid #e3e6f0;">{{ form.crew_goal.value|default:"" }}</textarea>
             <div class="form-text">Objetivo específico deste agente dentro do fluxo de trabalho</div>
             {% if form.crew_goal.errors %}
               <div class="text-danger small mt-1">
@@ -195,7 +212,7 @@
             </label>
             <textarea class="form-control" name="{{ form.crew_backstory.name }}" 
                       id="{{ form.crew_backstory.id_for_label }}" rows="5"
-                      style="background-color: #f0f8ff; border: 2px solid #cce7ff;">{{ form.crew_backstory.value|default:"" }}</textarea>
+                      style="font-family: 'Courier New', monospace; font-size: 13px; background-color: #f8f9ff; border: 2px solid #e3e6f0;">{{ form.crew_backstory.value|default:"" }}</textarea>
             <div class="form-text">Contexto e experiência do agente para melhor performance no crew</div>
             {% if form.crew_backstory.errors %}
               <div class="text-danger small mt-1">

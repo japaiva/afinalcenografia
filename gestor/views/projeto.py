@@ -13,6 +13,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.db.models import Q
+from .conceito_visual import conceito_visual, conceito_etapa1_esboco, conceito_etapa2_referencias, conceito_etapa3_geracao
 
 from core.models import Usuario, Empresa, Feira, FeiraManualQA
 from projetos.models import (

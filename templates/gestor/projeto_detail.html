@@ -554,19 +554,10 @@
         <div class="card-body">
           <div class="d-grid gap-2">
             {% if projeto.has_briefing %}
-              {% with briefing=projeto.briefings.first %}
-                {% if briefing.pdf_file %}
-                  <a href="{{ briefing.pdf_file.url }}" class="btn btn-outline-primary" target="_blank">
-                    <i class="fas fa-file-pdf me-2"></i> Ver PDF do Briefing
-                  </a>
-                {% else %}
-                  <a href="{% url 'cliente:relatorio_briefing' projeto_id=projeto.id %}" class="btn btn-outline-primary">
-                    <i class="fas fa-sync-alt me-2"></i> Gerar PDF do Briefing
-                  </a>
-                {% endif %}
-              {% endwith %}
+              <a href="{% url 'gestor:conceito_visual' projeto_id=projeto.id %}" class="btn btn-primary">
+                <i class="fas fa-paint-brush me-2"></i> Conceito Visual
+              </a>
             {% endif %}
-            
             <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#atribuirProjetistaModal">
               <i class="fas fa-user-plus me-2"></i> Atribuir Projetista
             </button>

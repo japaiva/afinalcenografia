@@ -1,4 +1,4 @@
-# core/services/crewai/specialized/planta_baixa.py - VERSÃO CORRIGIDA E LIMPA
+# core/services/crewai/specialized/planta_baixa.py
 
 from core.services.crewai.base_service import CrewAIServiceV2
 from projetos.models import Briefing

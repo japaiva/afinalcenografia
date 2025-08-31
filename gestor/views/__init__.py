@@ -19,6 +19,14 @@ from .agents_crews import (
     api_agentes_crew_members, api_crew_stats # These are in agents_crews.py
 )
 
+# Imports do Conceito Visual (NOVO)
+from .conceito_visual import (
+    conceito_visual,
+    conceito_etapa1_esboco,
+    conceito_etapa2_referencias,
+    conceito_etapa3_geracao
+) # These are in conceito_visual.py
+
 # Imports dos arquivos de feira
 from .feira import (
     feira_list, feira_create, feira_update, feira_toggle_status, feira_detail,
@@ -96,6 +104,12 @@ __all__ = [
     # Projeto
     'projeto_list', 'projeto_detail', 'projeto_atribuir',
     'projeto_alterar_status', 'ver_briefing', # From projeto.py
+
+    # Conceito Visual
+    'conceito_visual',
+    'conceito_etapa1_esboco',
+    'conceito_etapa2_referencias',
+    'conceito_etapa3_geracao',
 
     # Mensagens
     'mensagens', 'nova_mensagem', 'mensagens_projeto', 'limpar_mensagens' # From mensagens.py

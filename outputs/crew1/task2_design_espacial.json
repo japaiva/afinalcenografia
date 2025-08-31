@@ -1,3 +1,4 @@
+```json
 {
   "projeto_info": {
     "nome": "Hair Summit 2025",
@@ -6,19 +7,19 @@
     "area_total": 220.0
   },
   "estrategia_espacial": {
-    "conceito_layout": "Distribuição funcional otimizada para interação e visibilidade",
-    "tipo_distribuicao": "Ponta de ilha com áreas interativas e de apoio",
-    "justificativa": "Maximiza a circulação e a exposição dos produtos, favorecendo o relacionamento com o público."
+    "conceito_layout": "Layout aberto com áreas funcionais bem definidas, priorizando a circulação e a visibilidade.",
+    "tipo_distribuicao": "Distribuição em zonas funcionais com núcleo central.",
+    "justificativa": "A distribuição em zonas permite um fluxo eficiente de visitantes, maximizando a interação e a exposição dos produtos."
   },
   "nucleo_central": {
-    "posicionamento": "Centro do estande, acessível a todas as áreas",
+    "posicionamento": "Centro do estande, acessível a partir de todas as áreas.",
     "dimensoes_estimadas": {
       "largura": 5.0,
       "profundidade": 4.0,
       "area_total": 20.0
     },
     "composicao": ["copa", "deposito"],
-    "justificativa_posicao": "Facilita o acesso para funcionários e visitantes, centralizando os serviços de apoio."
+    "justificativa_posicao": "Posicionado centralmente para facilitar o acesso e a funcionalidade, servindo como apoio para as áreas de exposição e reunião."
   },
   "areas_distribuidas": [
     {
@@ -30,21 +31,21 @@
         "profundidade": 4.0,
         "area": 40.0
       },
-      "adjacencias_obrigatorias": ["sala_reuniao", "nucleo_central"],
+      "adjacencias_obrigatorias": ["sala_reuniao", "copa"],
       "equipamentos": ["tv", "ledss"],
       "prioridade_posicionamento": 1
     },
     {
       "tipo": "sala_reuniao",
       "nome": "Sala de Reunião",
-      "zona_preferencial": "Lateral direita",
+      "zona_preferencial": "Lateral esquerda",
       "dimensoes_estimadas": {
         "largura": 5.0,
         "profundidade": 6.0,
         "area": 30.0
       },
-      "adjacencias_obrigatorias": ["nucleo_central"],
-      "equipamentos": ["mesa", "cadeira"],
+      "adjacencias_obrigatorias": ["exposicao"],
+      "equipamentos": ["mesa", "cadeira", "moveisss"],
       "prioridade_posicionamento": 2
     },
     {
@@ -52,24 +53,24 @@
       "nome": "Copa",
       "zona_preferencial": "Centro",
       "dimensoes_estimadas": {
-        "largura": 3.0,
-        "profundidade": 7.0,
+        "largura": 5.0,
+        "profundidade": 4.0,
         "area": 21.0
       },
-      "adjacencias_obrigatorias": ["nucleo_central"],
+      "adjacencias_obrigatorias": [],
       "equipamentos": ["umas pias"],
       "prioridade_posicionamento": 3
     },
     {
       "tipo": "deposito",
       "nome": "Depósito",
-      "zona_preferencial": "Lateral esquerda",
+      "zona_preferencial": "Centro",
       "dimensoes_estimadas": {
-        "largura": 4.0,
-        "profundidade": 5.5,
+        "largura": 5.0,
+        "profundidade": 4.0,
         "area": 22.0
       },
-      "adjacencias_obrigatorias": ["nucleo_central"],
+      "adjacencias_obrigatorias": [],
       "equipamentos": ["umas prateleiras"],
       "prioridade_posicionamento": 4
     }
@@ -80,27 +81,27 @@
       "largura_minima": 3.0
     },
     "circulacao_interna": {
-      "corredores_principais": ["corredor_lateral_direito", "corredor_lateral_esquerdo"],
-      "largura_minima": 1.5
+      "corredores_principais": ["Corredor central"],
+      "largura_minima": 2.0
     },
-    "zonas_privadas": ["nucleo_central", "sala_reuniao"],
-    "zonas_publicas": ["area_exposicao", "copa"]
+    "zonas_privadas": ["copa", "deposito"],
+    "zonas_publicas": ["exposicao", "sala_reuniao"]
   },
   "especificacoes_pipeline": {
     "para_calculador": {
       "sistema_coordenadas": "cartesiano",
       "precisao_requerida": 0.1,
-      "restricoes_matematicas": ["area_total <= 220.0", "percentual_ocupacao <= 70"]
+      "restricoes_matematicas": ["área_total <= 220"]
     },
     "para_conceito_visual": {
-      "pontos_focais": ["tv_exposicao", "mesa_reuniao"],
-      "hierarquia_visual": ["entrada_principal", "area_exposicao", "nucleo_central"],
+      "pontos_focais": ["Área de Exposição Principal", "Sala de Reunião"],
+      "hierarquia_visual": ["exposicao", "sala_reuniao", "copa", "deposito"],
       "mood_espacial": "Moderno e acolhedor"
     },
     "para_modelo_3d": {
-      "elementos_estruturais": ["pilares", "painéis de vidro"],
-      "materiais_predominantes": ["madeira", "metal", "vidro"],
-      "iluminacao_conceitual": "iluminação suave com spots direcionais"
+      "elementos_estruturais": ["paredes", "teto", "piso"],
+      "materiais_predominantes": ["construido"],
+      "iluminacao_conceitual": "Iluminação suave com foco nas áreas de exposição"
     }
   },
   "validacao_design": {
@@ -116,3 +117,4 @@
     "baseado_em": "analise_briefing"
   }
 }
+```

@@ -38,14 +38,14 @@
       "tipo": "sala_reuniao",
       "nome": "Sala de Reunião",
       "coordenadas": {
-        "x": 10.0,
-        "y": 0.0,
+        "x": 0.0,
+        "y": 4.0,
         "largura": 5.0,
         "profundidade": 6.0
       },
       "area_m2": 30.0,
       "elementos": {},
-      "equipamentos": ["mesa", "cadeira"]
+      "equipamentos": ["mesa", "cadeira", "moveisss"]
     },
     {
       "id": "copa",
@@ -54,8 +54,8 @@
       "coordenadas": {
         "x": 5.0,
         "y": 4.0,
-        "largura": 3.0,
-        "profundidade": 7.0
+        "largura": 5.0,
+        "profundidade": 4.0
       },
       "area_m2": 21.0,
       "elementos": {},
@@ -66,10 +66,10 @@
       "tipo": "deposito",
       "nome": "Depósito",
       "coordenadas": {
-        "x": 0.0,
-        "y": 4.0,
-        "largura": 4.0,
-        "profundidade": 5.5
+        "x": 5.0,
+        "y": 8.0,
+        "largura": 5.0,
+        "profundidade": 4.0
       },
       "area_m2": 22.0,
       "elementos": {},
@@ -83,7 +83,7 @@
     "area_livre": 107.0,
     "percentual_ocupacao": 51.36,
     "acessibilidade": {
-      "largura_minima_corredores": 1.5,
+      "largura_minima_corredores": 2.0,
       "entrada_acessivel": true
     }
   },

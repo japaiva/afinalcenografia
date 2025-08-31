@@ -108,6 +108,30 @@ class Projeto(models.Model):
         help_text="Data em que o estande foi entregue finalizado"
     )
 
+    # Metadados de análise visual (preparação para automação futura)
+    layout_identificado = models.JSONField(
+        default=dict, blank=True,
+        verbose_name="Layout do Esboço Identificado",
+        help_text="Estrutura JSON com áreas identificadas no esboço da planta"
+    )
+
+    inspiracoes_visuais = models.JSONField(
+        default=dict, blank=True, 
+        verbose_name="Inspirações das Referências",
+        help_text="Análise das imagens de referência enviadas pelo cliente"
+    )
+
+    # Controle de processamento
+    analise_visual_processada = models.BooleanField(
+        default=False,
+        verbose_name="Análise Visual Processada"
+    )
+
+    data_analise_visual = models.DateTimeField(
+        blank=True, null=True,
+        verbose_name="Data da Análise Visual"
+    )
+
     # Campos para métricas
     tempo_projeto = models.DurationField(
         blank=True, null=True, verbose_name="Tempo de Projeto",

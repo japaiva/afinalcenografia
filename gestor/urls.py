@@ -89,6 +89,12 @@ urlpatterns = [
     path('projetos/<int:pk>/alterar-status/', views.projeto_alterar_status, name='projeto_alterar_status'),
     path('projetos/<int:projeto_id>/briefing/', views.ver_briefing, name='ver_briefing'), 
  
+    # Conceito Visual
+    path('projeto/<int:projeto_id>/conceito-visual/', views.conceito_visual, name='conceito_visual'),
+    path('projeto/<int:projeto_id>/conceito-visual/etapa1/', views.conceito_etapa1_esboco, name='conceito_etapa1'),
+    path('projeto/<int:projeto_id>/conceito-visual/etapa2/', views.conceito_etapa2_referencias, name='conceito_etapa2'),  
+    path('projeto/<int:projeto_id>/conceito-visual/etapa3/', views.conceito_etapa3_geracao, name='conceito_etapa3'),
+
     # =================================================================
     # SISTEMA DE MENSAGENS
     # =================================================================

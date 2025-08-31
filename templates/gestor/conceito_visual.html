@@ -1,0 +1,187 @@
+<!-- conceito_visual.html - SEGUINDO PADRÃO DO PROJETO (3 ETAPAS) -->
+{% extends 'gestor/base_gestor.html' %}
+{% load formatadores %}
+
+{% block title %}Conceito Visual - {{ projeto.nome }} | Portal do Gestor{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+  <!-- CABEÇALHO -->
+  <div class="card shadow mb-4">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center">
+        <i class="fas fa-paint-brush me-2"></i>
+        <h4 class="mb-0">Conceito Visual - {{ projeto.nome }}</h4>
+      </div>
+      <div>
+        <a href="{% url 'gestor:projeto_detail' pk=projeto.id %}" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-1"></i> Voltar
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- COLUNA ESQUERDA -->
+    <div class="col-md-8">
+      <!-- PROCESSO -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0"><i class="fas fa-cogs me-2"></i> Processo de Geração</h5>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" onclick="executarEtapa1()">Rodar Etapa 1</button>
+            <button class="btn btn-outline-primary btn-sm" onclick="executarEtapa2()">Rodar Etapa 2</button>
+            <button class="btn btn-outline-primary btn-sm" onclick="executarEtapa3()">Rodar Etapa 3</button>
+            <button class="btn btn-success btn-sm" id="btn-iniciar" onclick="iniciarProcesso()">Iniciar (1→2→3)</button>
+            <button class="btn btn-outline-danger btn-sm d-none" id="btn-parar">Parar</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- ETAPA 1 -->
+          <div class="step-container mb-3" id="step-1">
+            <div class="d-flex align-items-center">
+              <div class="step-icon me-3" id="icon-1"><i class="fas fa-circle text-muted"></i></div>
+              <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="mb-0">Análise do Esboço</h6>
+                    <small class="text-muted">Interpretando planta baixa desenhada</small>
+                  </div>
+                  <span class="badge bg-secondary" id="status-1">Aguardando</span>
+                </div>
+                <div class="progress mt-2" style="height: 4px;"><div class="progress-bar" id="progress-1" style="width: 0%"></div></div>
+              </div>
+            </div>
+            <div class="result-container d-none mt-3" id="result-1">
+              <div class="alert alert-info">
+                <strong>Layout Identificado:</strong>
+                <pre class="small mb-0 mt-2" id="layout-json"></pre>
+              </div>
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- ETAPA 2 -->
+          <div class="step-container mb-3" id="step-2">
+            <div class="d-flex align-items-center">
+              <div class="step-icon me-3" id="icon-2"><i class="fas fa-circle text-muted"></i></div>
+              <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="mb-0">Referências + Consolidação</h6>
+                    <small class="text-muted">Analisando referências e gerando prompt</small>
+                  </div>
+                  <span class="badge bg-secondary" id="status-2">Aguardando</span>
+                </div>
+                <div class="progress mt-2" style="height: 4px;"><div class="progress-bar" id="progress-2" style="width: 0%"></div></div>
+              </div>
+            </div>
+            <div class="result-container d-none mt-3" id="result-2">
+              <div class="alert alert-info"><strong>Inspirações Visuais:</strong><pre class="small mb-0 mt-2" id="inspiracoes-json"></pre></div>
+              <div class="alert alert-info mt-3"><strong>Dataset Consolidado:</strong><pre class="small mb-0 mt-2" id="dataset-json"></pre></div>
+              <div class="alert alert-secondary mt-3"><strong>Prompt Final:</strong><pre class="small mb-0 mt-2" id="prompt-final"></pre></div>
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- ETAPA 3 -->
+          <div class="step-container mb-0" id="step-3">
+            <div class="d-flex align-items-center">
+              <div class="step-icon me-3" id="icon-3"><i class="fas fa-circle text-muted"></i></div>
+              <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="mb-0">Geração do Conceito</h6>
+                    <small class="text-muted">Criando imagem a partir do prompt final</small>
+                  </div>
+                  <span class="badge bg-secondary" id="status-3">Aguardando</span>
+                </div>
+                <div class="progress mt-2" style="height: 4px;"><div class="progress-bar" id="progress-3" style="width: 0%"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RESULTADO FINAL -->
+      <div class="card shadow mb-4 d-none" id="resultado-final">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0"><i class="fas fa-check-circle me-2"></i> Conceito Visual Gerado</h5>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" onclick="executarEtapa3()">Regenerar Imagem</button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="regenerarConceito()">Recomeçar</button>
+          </div>
+        </div>
+        <div class="card-body text-center">
+          <img id="imagem-conceito" src="" class="img-fluid rounded mb-3" style="max-height: 400px;">
+          <div><a id="link-download" href="" download class="btn btn-primary">Baixar Imagem</a></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- COLUNA DIREITA -->
+    <div class="col-md-4">
+      <!-- Dados do projeto -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-light"><h5 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i> Dados do Projeto</h5></div>
+        <div class="card-body">
+          <strong>Empresa:</strong> {{ projeto.empresa.nome }}<br>
+          {% if projeto.briefings.first %}
+            {% with briefing=projeto.briefings.first %}
+              <strong>Dimensões:</strong> {{ briefing.medida_frente }}m × {{ briefing.medida_fundo }}m<br>
+              <strong>Área:</strong> {{ briefing.area_estande }}m²<br>
+              <strong>Tipo de Stand:</strong> {{ briefing.get_tipo_stand_display }}<br>
+              <strong>Estilo:</strong> {{ briefing.estilo_estande|default:"Não informado" }}
+            {% endwith %}
+          {% endif %}
+        </div>
+      </div>
+      <!-- Log -->
+      <div class="card shadow">
+        <div class="card-header bg-light"><h5 class="card-title mb-0"><i class="fas fa-terminal me-2"></i> Log de Execução</h5></div>
+        <div class="card-body"><div id="log-container" style="height:200px;overflow-y:auto;font-family:monospace;font-size:0.875rem;background:#f8f9fa;padding:10px;border-radius:4px;">Aguardando início...</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let processoAtivo = false;
+let promptFinalCache = null;
+
+function iniciarProcesso(){ if(processoAtivo)return; processoAtivo=true; executarEtapa1(); }
+
+async function executarEtapa1(){
+  atualizarStep(1,'running','Executando'); adicionarLog('Etapa 1...');
+  try{
+    const r=await fetch(`/gestor/projeto/{{ projeto.id }}/conceito-visual/etapa1/`,{method:'POST',headers:{'X-CSRFToken':document.querySelector('[name=csrfmiddlewaretoken]').value}});
+    const d=await r.json();
+    if(d.sucesso){document.getElementById('layout-json').textContent=JSON.stringify(d.layout,null,2);document.getElementById('result-1').classList.remove('d-none');atualizarStep(1,'completed','Concluído');setTimeout(executarEtapa2,800);} else {atualizarStep(1,'error','Erro');adicionarLog(d.erro);}
+  }catch(e){atualizarStep(1,'error','Erro');adicionarLog(e.message);}
+}
+
+async function executarEtapa2(){
+  atualizarStep(2,'running','Executando'); adicionarLog('Etapa 2...');
+  try{
+    const r=await fetch(`/gestor/projeto/{{ projeto.id }}/conceito-visual/etapa2/`,{method:'POST',headers:{'X-CSRFToken':document.querySelector('[name=csrfmiddlewaretoken]').value}});
+    const d=await r.json();
+    if(d.sucesso){document.getElementById('inspiracoes-json').textContent=JSON.stringify(d.inspiracoes,null,2);document.getElementById('dataset-json').textContent=JSON.stringify(d.dataset_consolidado,null,2);document.getElementById('prompt-final').textContent=d.prompt_final;document.getElementById('result-2').classList.remove('d-none');promptFinalCache=d.prompt_final;atualizarStep(2,'completed','Concluído');setTimeout(executarEtapa3,800);} else {atualizarStep(2,'error','Erro');adicionarLog(d.erro);}
+  }catch(e){atualizarStep(2,'error','Erro');adicionarLog(e.message);}
+}
+
+async function executarEtapa3(){
+  atualizarStep(3,'running','Executando'); adicionarLog('Etapa 3...');
+  try{
+    const r=await fetch(`/gestor/projeto/{{ projeto.id }}/conceito-visual/etapa3/`,{method:'POST',headers:{'X-CSRFToken':document.querySelector('[name=csrfmiddlewaretoken]').value},body:JSON.stringify({prompt:promptFinalCache})});
+    const d=await r.json();
+    if(d.sucesso){document.getElementById('imagem-conceito').src=d.image_url||d.url_imagem;document.getElementById('link-download').href=d.download_url||d.image_url||d.url_imagem;document.getElementById('resultado-final').classList.remove('d-none');atualizarStep(3,'completed','Concluído');} else {atualizarStep(3,'error','Erro');adicionarLog(d.erro);}
+  }catch(e){atualizarStep(3,'error','Erro');adicionarLog(e.message);}
+}
+
+function atualizarStep(step,status,text){const i=document.getElementById(`icon-${step}`),p=document.getElementById(`progress-${step}`),b=document.getElementById(`status-${step}`);i.className='fas ';b.className='badge ';if(status==='running'){i.className+='fa-circle-notch fa-spin text-primary';p.style.width='50%';p.className='progress-bar bg-primary';b.className+='bg-primary';b.textContent=text;}else if(status==='completed'){i.className+='fa-check-circle text-success';p.style.width='100%';p.className='progress-bar bg-success';b.className+='bg-success';b.textContent=text;}else{i.className+='fa-times-circle text-danger';p.className='progress-bar bg-danger';b.className+='bg-danger';b.textContent=text;}}
+function adicionarLog(msg){const l=document.getElementById('log-container');l.innerHTML+=`<div>[${new Date().toLocaleTimeString()}] ${msg}</div>`;l.scrollTop=l.scrollHeight;}
+function regenerarConceito(){location.reload();}
+</script>
+{% endblock %}
