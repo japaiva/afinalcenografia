@@ -1,21 +1,4 @@
-# gestor/views/conceito_visual.py
-# -----------------------------------------------------------------------------
-# CONCEITO VISUAL - Fluxo em 3 botões:
-#  1) Etapa 1: Analisar Esboço (CV)  -> salva em projeto.layout_identificado
-#  2) Etapa 2: Referências + Consolidação (+ Prompt Final)
-#        - Analisa referências (CV)   -> projeto.inspiracoes_visuais
-#        - Consolida com briefing+A1  -> projeto.dados_consolidados
-#        - Monta prompt final         -> projeto.prompt_final
-#  3) Etapa 3: Geração de imagem (DALL·E / fallback)
-#        - Usa projeto.prompt_final   -> projeto.analise_visual_processada=True
-#
-# Observações:
-# - Tudo que for "simulado" está isolado e fácil de trocar por integração real.
-# - Respostas JSON incluem 'sucesso' e retornam o resultado para a UI.
-# - Flags visuais na UI podem ler do front, mas aqui já persistimos os estados.
-# -----------------------------------------------------------------------------
-
-from __future__ import annotations
+# gestor/views/conceito_visual.py - VERSÃO CORRIGIDA COMPLETA
 
 import json
 import os
@@ -31,16 +14,24 @@ from django.views.decorators.http import require_GET, require_POST
 
 from core.decorators import gestor_required
 from core.models import Agente
-from projetos.models import Projeto  # ajuste se o caminho do modelo for diferente
+from projetos.models import Projeto
+
+# ========================== Tenta importar executor central ===================
+
+_RUN_AGENT_EXECUTOR = None
+try:
+    from .agents_crews import run_agent as _RUN_AGENT_EXECUTOR
+except Exception:
+    _RUN_AGENT_EXECUTOR = None
 
 # ============================== Helpers de dados ==============================
 
 def _briefing(projeto: Projeto):
-    # Adeque conforme seu relacionamento real
+    """Retorna o primeiro briefing relacionado ao projeto."""
     return getattr(projeto, "briefings", None).first()
 
 def _arquivos(briefing_obj, tipo: str) -> List[Any]:
-    """Retorna QuerySet de arquivos do briefing por tipo ('planta' | 'referencia')."""
+    """Retorna uma lista de arquivos do briefing por tipo."""
     if not briefing_obj:
         return []
     return list(briefing_obj.arquivos.filter(tipo=tipo))
@@ -51,70 +42,153 @@ def _float_or(value, default):
     except Exception:
         return default
 
-# ======================== Fallbacks/Simulações controladas ====================
+# ======================= Função para normalizar resposta do agente ======================
 
-def _stub_layout(brief) -> Dict[str, Any]:
-    return {
-        "tipo_estande": getattr(brief, "tipo_stand", None) or "ponta_de_ilha",
-        "dimensoes_detectadas": {
-            "largura": _float_or(getattr(brief, "medida_frente", None), 6),
-            "profundidade": _float_or(getattr(brief, "medida_fundo", None), 8),
-            "altura": _float_or(getattr(brief, "altura_maxima", None), 4),
-        },
-        "areas": {
-            "area_principal": {"posicao": "centro", "tipo": "exposicao", "tamanho_estimado": 30},
-            "area_reuniao": {"posicao": "superior_direita", "tipo": "fechada", "tamanho_estimado": 12},
-        },
-        "circulacao_principal": "centro_vertical",
-        "acessos": ["frente"],
-        "confidence": 0.8,
-        "processado_em": timezone.now().isoformat(),
-    }
+def _normalize_agent_response(resp: Dict[str, Any], expected_structure: str) -> Dict[str, Any]:
+    """
+    Normaliza a resposta do agente para o formato esperado
+    """
+    if expected_structure == "areas":
+        # Se veio como 'layout', mapear para 'areas'
+        if "layout" in resp and "areas" not in resp:
+            layout_data = resp["layout"]
+            
+            # Se layout é um dict com áreas
+            if isinstance(layout_data, dict):
+                # Várias possibilidades de estrutura
+                if "areas" in layout_data:
+                    resp["areas"] = layout_data["areas"]
+                elif "zones" in layout_data:
+                    resp["areas"] = layout_data["zones"]
+                elif "espacos" in layout_data:
+                    resp["areas"] = layout_data["espacos"]
+                else:
+                    # Se layout tem estrutura direta de áreas
+                    areas_encontradas = {}
+                    for key, value in layout_data.items():
+                        if isinstance(value, dict) and ("bbox" in value or "posicao" in value or "area" in str(key).lower()):
+                            areas_encontradas[key] = value
+                    
+                    if areas_encontradas:
+                        resp["areas"] = areas_encontradas
+                    else:
+                        # Fallback: criar uma área genérica
+                        resp["areas"] = {
+                            "area_principal": {
+                                "nome": "Área Principal",
+                                "tipo": resp.get("type", "stand"),
+                                "bbox_norm": {"x": 0, "y": 0, "w": 1, "h": 1}
+                            }
+                        }
+            
+            # Se ainda não tem areas, criar estrutura mínima
+            if "areas" not in resp:
+                resp["areas"] = {
+                    "area_central": {
+                        "nome": "Área Central",
+                        "tipo": resp.get("type", "desconhecido"),
+                        "dimensoes": resp.get("dimensions", {}),
+                        "bbox_norm": {"x": 0, "y": 0, "w": 1, "h": 1}
+                    }
+                }
+        
+        # Adicionar campos complementares se não existirem
+        if "dimensoes_detectadas" not in resp and "dimensions" in resp:
+            resp["dimensoes_detectadas"] = resp["dimensions"]
+        
+        if "tipo_estande" not in resp and "type" in resp:
+            resp["tipo_estande"] = resp["type"]
+    
+    return resp
 
-def _stub_inspiracoes(brief, referencias_qs) -> Dict[str, Any]:
-    return {
-        "estilo_identificado": {"principal": "contemporaneo_clean", "secundario": "nature_inspired"},
-        "cores_hex": [
-            {"hex": "#F4F1EC", "uso": "painéis/ripados"},
-            {"hex": "#6DB37F", "uso": "parede verde/acento"},
-            {"hex": "#1A1A1A", "uso": "contraste/logotipia"},
-        ],
-        "materiais_sugeridos": [
-            {"nome": "ripado_madeira_clara", "tag": "revestimento"},
-            {"nome": "marmorite_bege_claro", "tag": "piso"},
-            {"nome": "perfis_aluminio_branco", "tag": "estrutura"},
-            {"nome": "led_linear_embutido_4000K", "tag": "iluminacao"},
-        ],
-        "elementos_destaque": ["parede verde iluminada", "logo volumétrico frontal", "nichos iluminados"],
-        "iluminacao": {"temperatura": "4000K", "solucoes": ["rasgos no forro", "pendentes no lounge"]},
-        "riscos_e_mitigacoes": [{"risco": "ofuscamento LED", "mitigacao": "usar difusor/controle de brilho"}],
-        "confidence": 0.85 if referencias_qs else 0.3,
-        "arquivos_analisados": [getattr(ref, "nome", getattr(ref, "arquivo", "")) for ref in referencias_qs],
-        "processado_em": timezone.now().isoformat(),
-    }
+# ======================= Execução de agentes COM NORMALIZACAO ===================
+
+def _run_agent(nome_agente: str, payload: Dict[str, Any], imagens: Optional[List[str]] = None) -> Dict[str, Any]:
+    """Executa agente com normalização de resposta"""
+    if not _RUN_AGENT_EXECUTOR:
+        return {"erro": "Sistema de agentes não disponível", "sucesso": False}
+    
+    try:
+        # Construir prompt limpo baseado no tipo de agente
+        if "Esboço" in nome_agente or "Esboco" in nome_agente:
+            briefing_data = payload.get("briefing", {})
+            
+            prompt = f"""Analise este esboço de planta baixa e extraia o layout estruturado:
+
+DADOS DO PROJETO:
+- ID: {payload.get('projeto_id')}
+- Tipo de stand: {briefing_data.get('tipo_stand', 'não informado')}
+- Dimensões: {briefing_data.get('medida_frente_m', 'não informado')}m x {briefing_data.get('medida_fundo_m', 'não informado')}m
+- Altura máxima: {briefing_data.get('altura_m', 3.0)}m
+
+IMPORTANTE: Retorne um JSON com a estrutura 'areas' contendo as diferentes zonas/espaços identificados no layout.
+Exemplo esperado:
+{{
+  "areas": {{
+    "recepcao": {{"nome": "Recepção", "bbox_norm": {{"x": 0, "y": 0, "w": 0.3, "h": 0.4}}}},
+    "reuniao": {{"nome": "Sala de Reunião", "bbox_norm": {{"x": 0.3, "y": 0, "w": 0.4, "h": 0.6}}}}
+  }},
+  "dimensoes_detectadas": {{"largura": {briefing_data.get('medida_frente_m', 6)}, "profundidade": {briefing_data.get('medida_fundo_m', 8)}}},
+  "tipo_estande": "{briefing_data.get('tipo_stand', 'corporativo')}"
+}}
+
+Por favor, analise a imagem fornecida e retorne o layout estruturado."""
+
+        elif "Referência" in nome_agente or "Referencia" in nome_agente:
+            prompt = f"""Analise as imagens de referência para o projeto ID {payload.get('projeto_id')}.
+Marca/Cliente: {payload.get('marca', 'não informado')}
+
+Extraia e retorne JSON com:
+- estilo_identificado, cores_hex, materiais_sugeridos, elementos_destaque, iluminacao, riscos_e_mitigacoes"""
+        else:
+            prompt = json.dumps(payload, indent=2)
+        
+        print(f"DEBUG - Prompt enviado: {prompt[:300]}...")
+        
+        # Executar com prompt específico
+        executor_payload = {"prompt": prompt, **payload}
+        resultado = _RUN_AGENT_EXECUTOR(nome_agente, executor_payload, imagens)
+        
+        # Verificar se retornou erro
+        if not resultado or "erro" in resultado:
+            return {"erro": resultado.get("erro", "Agente não retornou resultado válido"), "sucesso": False}
+        
+        # Extrair dados se veio do executor genérico
+        if "_metadata" in resultado:
+            resultado = {k: v for k, v in resultado.items() if k != "_metadata"}
+        
+        # NORMALIZAR RESPOSTA baseado no tipo de agente
+        if "Esboço" in nome_agente or "Esboco" in nome_agente:
+            resultado = _normalize_agent_response(resultado, "areas")
+        
+        return resultado
+        
+    except Exception as e:
+        print(f"ERRO no executor: {str(e)}")
+        return {"erro": f"Erro na execução do agente: {str(e)}", "sucesso": False}
+
+# ======================= Consolidação + Prompt (Etapa 2) ======================
 
 def _consolidar(brief, layout: Dict[str, Any], inspiracoes: Dict[str, Any]) -> Dict[str, Any]:
-    largura = layout.get("dimensoes_detectadas", {}).get("largura")
-    profundidade = layout.get("dimensoes_detectadas", {}).get("profundidade")
-    altura = layout.get("dimensoes_detectadas", {}).get("altura")
-
-    if largura is None: largura = _float_or(getattr(brief, "medida_frente", None), 6)
-    if profundidade is None: profundidade = _float_or(getattr(brief, "medida_fundo", None), 8)
-    if altura is None: altura = _float_or(getattr(brief, "altura_maxima", None), 4)
-
-    paleta = [c.get("hex") for c in inspiracoes.get("cores_hex", []) if c.get("hex")]
+    # Tentar extrair dimensões do layout primeiro, depois do briefing
+    dimensoes_layout = layout.get("dimensoes_detectadas", {}) if isinstance(layout.get("dimensoes_detectadas"), dict) else {}
+    
+    largura = dimensoes_layout.get("largura") or _float_or(getattr(brief, "medida_frente", None), 6.0)
+    profundidade = dimensoes_layout.get("profundidade") or _float_or(getattr(brief, "medida_fundo", None), 8.0)
+    altura = dimensoes_layout.get("altura") or 3.0  # Altura padrão
+    
+    paleta = []
+    if isinstance(inspiracoes.get("cores_hex"), list):
+        paleta = [c.get("hex") for c in inspiracoes["cores_hex"] if isinstance(c, dict) and c.get("hex")]
+    
     if not paleta:
-        paleta = ["#FFFFFF", "#1A1A1A"]
+        paleta = ["#FFFFFF", "#1A1A1A"]  # Padrão
 
     dataset = {
         "dimensoes": {
             "largura_m": float(largura),
             "profundidade_m": float(profundidade),
             "altura_m": float(altura),
-            "assuncao_dimensional": any([
-                getattr(brief, "medida_frente", None) is None,
-                getattr(brief, "medida_fundo", None) is None
-            ]),
         },
         "tipo_estande": layout.get("tipo_estande") or getattr(brief, "tipo_stand", None) or "desconhecido",
         "zonas": [],
@@ -124,15 +198,18 @@ def _consolidar(brief, layout: Dict[str, Any], inspiracoes: Dict[str, Any]) -> D
         "pronto_para_geracao": True,
     }
 
-    # Converte "areas" do layout em "zonas"
-    for nome, a in (layout.get("areas") or {}).items():
-        dataset["zonas"].append({
-            "nome": nome,
-            "bbox_norm": a.get("bbox_norm", {"x": 0, "y": 0, "w": 1, "h": 1}),
-            "materiais": [m.get("nome") for m in inspiracoes.get("materiais_sugeridos", []) if m.get("nome")],
-            "elementos": inspiracoes.get("elementos_destaque", []),
-            "cores_hex": paleta[:2],
-        })
+    # Processar áreas
+    areas = layout.get("areas", {})
+    if isinstance(areas, dict):
+        for nome, a in areas.items():
+            if isinstance(a, dict):
+                dataset["zonas"].append({
+                    "nome": nome,
+                    "bbox_norm": a.get("bbox_norm", {"x": 0, "y": 0, "w": 1, "h": 1}),
+                    "materiais": [],  # Será preenchido se necessário
+                    "elementos": inspiracoes.get("elementos_destaque", []) if isinstance(inspiracoes.get("elementos_destaque"), list) else [],
+                    "cores_hex": paleta[:2],
+                })
 
     return dataset
 
@@ -141,67 +218,34 @@ def _montar_prompt(brief, dataset: Dict[str, Any], inspiracoes: Dict[str, Any]) 
     D = dataset["dimensoes"]["profundidade_m"]
     H = dataset["dimensoes"]["altura_m"]
     tipo = dataset.get("tipo_estande", "desconhecido")
-    setores = getattr(brief, "setor_atuacao", None) or "não informado"
 
-    areas_txt = "\n".join(f"- {z.get('nome')}" for z in dataset.get("zonas", [])) or "- (não informado)"
-    materiais = []
-    for z in dataset.get("zonas", []):
-        for m in z.get("materiais", []):
-            if m not in materiais:
-                materiais.append(m)
+    areas_txt = "\n".join(f"- {z.get('nome')}" for z in dataset.get("zonas", [])) or "- Área central"
     cores = ", ".join(dataset.get("paleta_final_hex", []))
-    estilo_extra = (inspiracoes.get("estilo_identificado", {}).get("principal") or "contemporaneo").replace("_", " ")
+    
+    estilo_extra = "moderno"
+    if isinstance(inspiracoes.get("estilo_identificado"), dict):
+        estilo_extra = inspiracoes["estilo_identificado"].get("principal", "moderno").replace("_", " ")
 
-    prompt = f"""
-Você é um especialista em cenografia para feiras de negócios. Crie uma imagem de estande seguindo este raciocínio passo a passo:
+    prompt = f"""Crie uma imagem realística 3/4 em alta resolução de um estande de feira de negócios:
 
-*ETAPA 1 - ANÁLISE DE OBJETIVOS E IDENTIDADE*
-Objetivo do estande: {getattr(brief, 'objetivo_estande', None) or "não informado"}
-Descrição da empresa: {getattr(brief, 'descricao_empresa', None) or "não informado"}
-Setor de atuação: {setores}
-
-*ETAPA 2 - ANÁLISE ESPACIAL*
-Dimensões: {W}m x {D}m
-Altura máxima: {H}m
-Tipo de estande: {tipo}
-Posição nos corredores: {getattr(brief, 'posicionamento', None) or "não informado"}
-
-*ETAPA 3 - CÁLCULO DE ÁREAS INTERNAS*
+Dimensões: {W}m x {D}m x {H}m, tipo {tipo}
 Áreas internas:
 {areas_txt}
-Priorize: circulação principal >= 1,2m, funcionalidade e harmonia visual.
 
-*ETAPA 4 - ESTRUTURA E MATERIAIS*
-Estrutura: personalizada/modular (ajuste conforme necessidade)
-Piso: (conforme inspiração)
-Testeira: (conforme inspiração)
-Altura das divisórias: {getattr(brief, 'altura_divisorias', None) or "padrão"}
-
-*ETAPA 5 - FUNCIONALIDADES E ÁREAS EXTERNAS*
-Áreas de ativação: recepção, exposição de produtos, possíveis áreas instagramáveis
-Referências visuais consideradas: paleta e estilo consolidados
-
-*PROMPT FINAL PARA IA:*
-Crie uma imagem realística 3/4 em alta resolução de um estande de feira de negócios com as seguintes características:
-
-Conceito: {(getattr(brief, 'objetivo_estande', None) or "atrair leads qualificados")} alinhado à identidade da marca
-Dimensões: {W}m x {D}m x {H}m, tipo {tipo}
-Layout: Áreas internas distribuídas conforme zonas, com circulação principal >= 1,2m
-Estrutura: {", ".join(materiais) if materiais else "materiais a partir das inspirações"}, iluminação coerente (4000K)
 Elementos visuais: paleta de cores {cores}
-Estilo: Moderno, profissional, acolhedor, {estilo_extra}
+Estilo: Moderno, profissional, {estilo_extra}
 
-Renderize em perspectiva 3/4 mostrando a fachada principal e uma lateral, com pessoas interagindo naturalmente no espaço, iluminação de feira comercial realística, acabamento fotorrealístico.
-""".strip()
+Renderize em perspectiva 3/4 mostrando a fachada principal e uma lateral, com pessoas interagindo naturalmente no espaço, iluminação de feira comercial realística, acabamento fotorrealístico.""".strip()
+    
     return prompt
 
 def _gerar_imagem_stub(prompt: str, projeto_id: int) -> Tuple[str, str]:
-    """
-    Fallback local: gera PNG simples com o prompt impresso (para validação do fluxo).
-    """
+    """Fallback local com PIL para validar o fluxo."""
     from PIL import Image, ImageDraw
 
-    media_root = getattr(settings, "MEDIA_ROOT", os.path.join(settings.BASE_DIR, "media"))
+    media_root = getattr(settings, "MEDIA_ROOT", os.path.join(getattr(settings, "BASE_DIR", ""), "media"))
+    if not media_root:
+        media_root = os.path.join(os.getcwd(), "media")
     media_url = getattr(settings, "MEDIA_URL", "/media/")
     out_dir = os.path.join(media_root, "conceitos")
     os.makedirs(out_dir, exist_ok=True)
@@ -239,9 +283,7 @@ def _gerar_imagem_stub(prompt: str, projeto_id: int) -> Tuple[str, str]:
 @gestor_required
 @require_GET
 def conceito_visual(request: HttpRequest, projeto_id: int) -> HttpResponse:
-    """
-    Tela principal do Conceito Visual
-    """
+    """Tela principal do Conceito Visual"""
     projeto = get_object_or_404(Projeto, pk=projeto_id)
 
     if not getattr(projeto, "has_briefing", False):
@@ -266,36 +308,102 @@ def conceito_visual(request: HttpRequest, projeto_id: int) -> HttpResponse:
 @gestor_required
 @require_POST
 def conceito_etapa1_esboco(request: HttpRequest, projeto_id: int) -> JsonResponse:
-    """
-    Etapa 1: Análise do esboço (A1)
-    """
+    """Etapa 1: Análise do esboço (A1) - VERSÃO CORRIGIDA"""
     projeto = get_object_or_404(Projeto, pk=projeto_id)
     brief = _briefing(projeto)
     if not brief:
         return JsonResponse({"sucesso": False, "erro": "Briefing não encontrado."}, status=400)
 
-    # Agente opcional (se quiser validar existência)
+    # Verificar agente
+    agente_nome = "Analisador de Esboços de Planta"
+    agente_id = None
     try:
-        Agente.objects.get(nome="Analisador de Esboços de Planta", tipo="individual", ativo=True)
+        agente_obj = Agente.objects.get(nome=agente_nome, tipo="individual", ativo=True)
+        agente_id = agente_obj.id
     except Agente.DoesNotExist:
-        # Não bloqueia; seguimos com stub
-        pass
+        agente_obj = None
 
-    esbocos = _arquivos(brief, "planta")
-    if not esbocos:
+    # Body para arquivo específico
+    try:
+        body = json.loads(request.body or "{}")
+    except Exception:
+        body = {}
+    arquivo_id = body.get("arquivo_id")
+
+    # Coletar esboços
+    esbocos_qs = brief.arquivos.filter(tipo="planta")
+    
+    if not esbocos_qs.exists():
         return JsonResponse({"sucesso": False, "erro": "Nenhum esboço de planta encontrado."}, status=400)
 
-    # TODO: substituir por chamada real ao agente de visão
-    layout = _stub_layout(brief)
+    if arquivo_id:
+        esboco = esbocos_qs.filter(id=arquivo_id).first()
+        if not esboco:
+            return JsonResponse({"sucesso": False, "erro": f"Esboço id={arquivo_id} não encontrado."}, status=404)
+    else:
+        esboco = esbocos_qs.first()
 
-    # Persistir no projeto
-    projeto.layout_identificado = layout
+    # Path/URL do arquivo
+    if not esboco.arquivo:
+        return JsonResponse({"sucesso": False, "erro": "Esboço não possui arquivo anexado."}, status=400)
+    
+    arquivo_nome = esboco.nome or esboco.arquivo.name
+    esboco_url = esboco.arquivo.url
+    esboco_path = esboco.arquivo.url  # Para MinIO
+
+    # Payload consistente
+    payload = {
+        "projeto_id": projeto.id,
+        "briefing_id": brief.id,
+        "briefing": {
+            "tipo_stand": brief.tipo_stand,
+            "medida_frente_m": float(brief.medida_frente) if brief.medida_frente else None,
+            "medida_fundo_m": float(brief.medida_fundo) if brief.medida_fundo else None,
+            "altura_m": 3.0,
+        }
+    }
+
+    executor_nome = "agents_crews.run_agent" if _RUN_AGENT_EXECUTOR else "sem_executor"
+    imagens_usadas = [esboco_path] if esboco_path else []
+
+    # Chamada do agente
+    resp = _run_agent(agente_nome, payload, imagens=imagens_usadas)
+    
+    # Verificar erros
+    if not resp.get("sucesso", True) or "erro" in resp:
+        return JsonResponse({
+            "sucesso": False, 
+            "erro": resp.get("erro", "Agente não conseguiu processar o esboço")
+        }, status=400)
+
+    # Verificar estrutura válida (agora deve ter 'areas' após normalização)
+    if "areas" not in resp:
+        return JsonResponse({
+            "sucesso": False, 
+            "erro": f"Agente não retornou estrutura 'areas'. Estrutura retornada: {list(resp.keys())}"
+        }, status=400)
+
+    # Persistir resultado
+    projeto.layout_identificado = resp
     projeto.save(update_fields=["layout_identificado"])
 
     return JsonResponse({
         "sucesso": True,
-        "layout": layout,
-        "arquivo_analisado": getattr(esbocos[0], "nome", getattr(esbocos[0], "arquivo", "")),
+        "agente": {
+            "nome": agente_nome,
+            "id": agente_id,
+            "ativo_no_banco": agente_obj is not None,
+        },
+        "executor": executor_nome,
+        "modo_demo": False,
+        "layout": resp,
+        "arquivo": {
+            "id": getattr(esboco, "id", None),
+            "nome": arquivo_nome,
+            "url": esboco_url,
+            "tem_path": bool(esboco_path),
+        },
+        "imagens_usadas": imagens_usadas,
         "calculado": True,
         "processado_em": timezone.now().isoformat(),
     })
@@ -304,41 +412,50 @@ def conceito_etapa1_esboco(request: HttpRequest, projeto_id: int) -> JsonRespons
 @gestor_required
 @require_POST
 def conceito_etapa2_referencias(request: HttpRequest, projeto_id: int) -> JsonResponse:
-    """
-    Etapa 2: Referências (A2) + Consolidação (A3) + Prompt Final
-    """
+    """Etapa 2: Referências (A2) + Consolidação (A3) + Prompt Final"""
     projeto = get_object_or_404(Projeto, pk=projeto_id)
     brief = _briefing(projeto)
     if not brief:
         return JsonResponse({"sucesso": False, "erro": "Briefing não encontrado."}, status=400)
 
-    # Validar existência do agente (não bloqueante)
-    try:
-        Agente.objects.get(nome="Analisador de Referências Visuais", tipo="individual", ativo=True)
-    except Agente.DoesNotExist:
-        pass
-
+    # Coletar referências
     refs = _arquivos(brief, "referencia")
+    imagens_ref = []
+    for ref in refs:
+        if ref.arquivo:
+            imagens_ref.append(ref.arquivo.url)  # Para MinIO usar URL
 
-    # Inspirações (CV)
-    inspiracoes = _stub_inspiracoes(brief, refs)
+    # Executar agente de referências
+    payload = {"projeto_id": projeto.id, "marca": getattr(projeto.empresa, "nome", None)}
+    inspiracoes = _run_agent("Analisador de Referências Visuais", payload, imagens=imagens_ref)
+    
+    # Verificar erro nas inspirações
+    if "erro" in inspiracoes:
+        return JsonResponse({
+            "sucesso": False,
+            "erro": f"Erro na análise de referências: {inspiracoes.get('erro')}"
+        }, status=400)
 
-    # Layout: pegar o que veio da etapa 1 (se existir) ou usar stub
+    # Layout: request.body > projeto.layout_identificado > erro
     try:
         body = json.loads(request.body or "{}")
     except Exception:
         body = {}
+    
+    layout = body.get("layout") or getattr(projeto, "layout_identificado", None)
+    
+    if not layout:
+        return JsonResponse({
+            "sucesso": False,
+            "erro": "Layout não disponível. Execute a Etapa 1 primeiro."
+        }, status=400)
 
-    layout = body.get("layout") or getattr(projeto, "layout_identificado", None) or _stub_layout(brief)
-
-    # Consolidação (A3) local
+    # Consolidar e gerar prompt
     dataset = _consolidar(brief, layout, inspiracoes)
     dataset["projeto_id"] = projeto.id
-
-    # Prompt Final
     prompt_final = _montar_prompt(brief, dataset, inspiracoes)
 
-    # Persistir no projeto (flags de "calculado")
+    # Salvar no projeto
     projeto.inspiracoes_visuais = inspiracoes
     projeto.dados_consolidados = dataset
     projeto.prompt_final = prompt_final
@@ -357,11 +474,7 @@ def conceito_etapa2_referencias(request: HttpRequest, projeto_id: int) -> JsonRe
 @gestor_required
 @require_POST
 def conceito_etapa3_geracao(request: HttpRequest, projeto_id: int) -> JsonResponse:
-    """
-    Etapa 3: Geração final (DALL·E/SDXL)
-    - Usa projeto.prompt_final ou o 'prompt' enviado no body.
-    - Aqui deixamos um fallback local com PIL para validar o fluxo.
-    """
+    """Etapa 3: Geração final (DALL·E/SDXL)"""
     projeto = get_object_or_404(Projeto, pk=projeto_id)
 
     try:
@@ -373,15 +486,10 @@ def conceito_etapa3_geracao(request: HttpRequest, projeto_id: int) -> JsonRespon
     if not prompt:
         return JsonResponse({"sucesso": False, "erro": "Prompt final não disponível."}, status=400)
 
-    # TODO: integrar com DalleService ou provedor real
-    # from gestor.services.dalle_service import DalleService
-    # url_imagem = DalleService().gerar_imagem(prompt)
-    # download_url = url_imagem
-
-    # Fallback local:
+    # TODO: integrar com serviço real
+    # Fallback local por enquanto
     url_imagem, download_url = _gerar_imagem_stub(prompt, projeto_id)
 
-    # Persistir flag/tempo
     projeto.analise_visual_processada = True
     projeto.data_analise_visual = timezone.now()
     projeto.save(update_fields=["analise_visual_processada", "data_analise_visual"])

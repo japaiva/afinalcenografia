@@ -14,6 +14,13 @@ from projetos.models import Projeto # Assuming Projeto might be needed for agent
 from core.decorators import gestor_required # Keep if agents/crews can only be managed by gestor
 from core.models import CrewExecucao # Import the missing model
 
+import os
+from typing import Dict, Any, List, Optional
+from django.utils import timezone
+import logging
+
+logger = logging.getLogger(__name__)
+
 ##############################
 # CRUD AGENTE
 ##############################
@@ -787,3 +794,199 @@ def crew_member_delete(request, crew_id, membro_id):
     
     messages.success(request, f'Agente {agente_nome} removido do crew com sucesso!')
     return redirect('gestor:crew_detail', pk=crew_id)
+
+import tempfile
+import requests
+import os
+from typing import Dict, Any, List, Optional
+
+# Função run_agent COMPLETA e SIMPLIFICADA para agents_crews.py
+# O AgenteService já faz todo o trabalho pesado!
+
+def run_agent(nome_agente: str, payload: Dict[str, Any], imagens: Optional[List[str]] = None) -> Dict[str, Any]:
+    """
+    Executor central de agentes - versão simplificada
+    O AgenteService já lida com downloads de URLs, conversão para base64, etc.
+    """
+    logger.info(f"[EXECUTOR] Iniciando execução do agente: {nome_agente}")
+    logger.info(f"[EXECUTOR] Payload keys: {list(payload.keys())}")
+    logger.info(f"[EXECUTOR] Imagens: {len(imagens) if imagens else 0} arquivos")
+    
+    try:
+        # Buscar agente no banco
+        agente = Agente.objects.get(nome=nome_agente, tipo="individual", ativo=True)
+        logger.info(f"[EXECUTOR] Agente encontrado: {agente.nome} (ID: {agente.id}, Modelo: {agente.llm_model})")
+        
+        # Importar o serviço de agentes
+        from ..services.agente_service import AgenteService
+        
+        # O prompt deve vir no payload ou ser construído fora do executor
+        prompt_usuario = payload.get('prompt') or _build_default_prompt(payload)
+        
+        if not prompt_usuario:
+            raise ValueError("Payload deve conter 'prompt' ou dados suficientes para gerar prompt")
+        
+        logger.info(f"[EXECUTOR] Prompt (primeiros 200 chars): {prompt_usuario[:200]}...")
+        
+        # Executar agente - SIMPLES ASSIM!
+        service = AgenteService()
+        
+        # O AgenteService.executar_agente já aceita imagens como terceiro parâmetro
+        # e faz todo o processamento (download de URLs, conversão base64, etc.)
+        if imagens and len(imagens) > 0:
+            logger.info(f"[EXECUTOR] Executando com {len(imagens)} imagens")
+            # Log das URLs/paths para debug
+            for i, img in enumerate(imagens, 1):
+                logger.info(f"[EXECUTOR] Imagem {i}: {img[:100]}...")
+            
+            # Passar direto pro service - ele cuida de tudo!
+            resposta = service.executar_agente(agente, prompt_usuario, imagens)
+        else:
+            logger.info("[EXECUTOR] Executando sem imagens")
+            resposta = service.executar_agente(agente, prompt_usuario)
+        
+        logger.info(f"[EXECUTOR] Resposta recebida ({len(resposta) if resposta else 0} chars)")
+        
+        # Processar resposta
+        resultado = _process_generic_response(resposta, payload, nome_agente)
+        
+        logger.info("[EXECUTOR] Execução concluída com sucesso")
+        return resultado
+        
+    except Agente.DoesNotExist:
+        logger.error(f"[EXECUTOR] Agente '{nome_agente}' não encontrado")
+        raise ValueError(f"Agente '{nome_agente}' não encontrado no sistema")
+        
+    except Exception as e:
+        logger.error(f"[EXECUTOR] Erro na execução: {str(e)}", exc_info=True)
+        raise RuntimeError(f"Falha na execução do agente: {str(e)}")
+
+def _build_default_prompt(payload: Dict[str, Any]) -> str:
+    """
+    Constrói um prompt básico se não foi fornecido explicitamente.
+    Esta função é apenas um fallback - o ideal é que o prompt venha no payload.
+    """
+    logger.warning("[EXECUTOR] Construindo prompt padrão - recomenda-se enviar prompt explícito")
+    
+    # Prompt genérico baseado no payload
+    prompt_parts = []
+    
+    if payload.get('projeto_id'):
+        prompt_parts.append(f"Projeto ID: {payload['projeto_id']}")
+    
+    if payload.get('instrucoes'):
+        prompt_parts.append(f"Instruções: {payload['instrucoes']}")
+    
+    if payload.get('dados'):
+        prompt_parts.append(f"Dados para análise: {json.dumps(payload['dados'], indent=2)}")
+    
+    if not prompt_parts:
+        # Último recurso
+        prompt_parts.append(f"Processar dados: {json.dumps(payload, indent=2)}")
+    
+    return "\n\n".join(prompt_parts)
+
+
+def _process_generic_response(resposta: str, payload: Dict[str, Any], nome_agente: str) -> Dict[str, Any]:
+    """
+    Processa a resposta do agente de forma genérica.
+    Tenta extrair JSON, mas mantém resposta original se não conseguir.
+    """
+    
+    try:
+        # Tentar extrair JSON da resposta
+        json_resposta = _extract_json_from_response(resposta)
+        
+        if json_resposta:
+            # Adicionar metadados ao JSON extraído
+            resultado = {
+                **json_resposta,
+                "_metadata": {
+                    "processado_em": timezone.now().isoformat(),
+                    "projeto_id": payload.get("projeto_id"),
+                    "agente_executado": nome_agente,
+                    "parsing_success": True,
+                    "response_type": "json"
+                }
+            }
+        else:
+            # Se não conseguir extrair JSON, retornar estrutura com resposta crua
+            resultado = {
+                "resposta_texto": resposta,
+                "_metadata": {
+                    "processado_em": timezone.now().isoformat(),
+                    "projeto_id": payload.get("projeto_id"),
+                    "agente_executado": nome_agente,
+                    "parsing_success": False,
+                    "response_type": "text"
+                }
+            }
+        
+        return resultado
+            
+    except Exception as e:
+        logger.error(f"[EXECUTOR] Erro ao processar resposta: {str(e)}")
+        return {
+            "erro_processamento": str(e),
+            "resposta_original": resposta,
+            "_metadata": {
+                "processado_em": timezone.now().isoformat(),
+                "projeto_id": payload.get("projeto_id"),
+                "agente_executado": nome_agente,
+                "parsing_success": False,
+                "response_type": "error"
+            }
+        }
+
+
+def _extract_json_from_response(resposta: str) -> Optional[Dict[str, Any]]:
+    """Extrai JSON válido da resposta do agente usando várias estratégias"""
+    
+    if not resposta or not resposta.strip():
+        return None
+    
+    # Estratégia 1: Parse direto
+    try:
+        return json.loads(resposta.strip())
+    except:
+        pass
+    
+    # Estratégia 2: JSON entre ```json e ```
+    try:
+        import re
+        json_match = re.search(r'```json\s*\n?(.*?)\n?\s*```', resposta, re.DOTALL)
+        if json_match:
+            return json.loads(json_match.group(1).strip())
+    except:
+        pass
+    
+    # Estratégia 3: JSON entre ``` e ``` (sem especificar linguagem)
+    try:
+        import re
+        json_match = re.search(r'```\s*\n?(.*?)\n?\s*```', resposta, re.DOTALL)
+        if json_match:
+            content = json_match.group(1).strip()
+            if content.startswith('{') or content.startswith('['):
+                return json.loads(content)
+    except:
+        pass
+    
+    # Estratégia 4: Primeiro { até último }
+    try:
+        import re
+        json_match = re.search(r'\{.*\}', resposta, re.DOTALL)
+        if json_match:
+            return json.loads(json_match.group(0))
+    except:
+        pass
+    
+    # Estratégia 5: Primeiro [ até último ]
+    try:
+        import re
+        json_match = re.search(r'\[.*\]', resposta, re.DOTALL)
+        if json_match:
+            return json.loads(json_match.group(0))
+    except:
+        pass
+    
+    return None

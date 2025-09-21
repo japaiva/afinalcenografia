@@ -1,4 +1,4 @@
-<!-- conceito_visual.html - SEGUINDO PADRÃO DO PROJETO (3 ETAPAS) -->
+<!-- templates/gestor/conceito_visual.html -->
 {% extends 'gestor/base_gestor.html' %}
 {% load formatadores %}
 
@@ -24,23 +24,26 @@
   <div class="row">
     <!-- COLUNA ESQUERDA -->
     <div class="col-md-8">
-      <!-- PROCESSO -->
+      <!-- PROGRESSO -->
       <div class="card shadow mb-4">
         <div class="card-header bg-light d-flex justify-content-between align-items-center">
           <h5 class="card-title mb-0"><i class="fas fa-cogs me-2"></i> Processo de Geração</h5>
           <div class="d-flex gap-2">
-            <button class="btn btn-outline-primary btn-sm" onclick="executarEtapa1()">Rodar Etapa 1</button>
-            <button class="btn btn-outline-primary btn-sm" onclick="executarEtapa2()">Rodar Etapa 2</button>
-            <button class="btn btn-outline-primary btn-sm" onclick="executarEtapa3()">Rodar Etapa 3</button>
-            <button class="btn btn-success btn-sm" id="btn-iniciar" onclick="iniciarProcesso()">Iniciar (1→2→3)</button>
-            <button class="btn btn-outline-danger btn-sm d-none" id="btn-parar">Parar</button>
+            <button class="btn btn-success btn-sm" id="btn-iniciar" onclick="iniciarProcesso()">
+              <i class="fas fa-play me-1"></i> Iniciar
+            </button>
+            <button class="btn btn-outline-danger btn-sm d-none" id="btn-parar">
+              <i class="fas fa-stop me-1"></i> Parar
+            </button>
           </div>
         </div>
         <div class="card-body">
-          <!-- ETAPA 1 -->
+          <!-- Etapa 1 -->
           <div class="step-container mb-3" id="step-1">
             <div class="d-flex align-items-center">
-              <div class="step-icon me-3" id="icon-1"><i class="fas fa-circle text-muted"></i></div>
+              <div class="step-icon me-3" id="icon-1">
+                <i class="fas fa-circle text-muted"></i>
+              </div>
               <div class="flex-grow-1">
                 <div class="d-flex justify-content-between align-items-center">
                   <div>
@@ -49,7 +52,9 @@
                   </div>
                   <span class="badge bg-secondary" id="status-1">Aguardando</span>
                 </div>
-                <div class="progress mt-2" style="height: 4px;"><div class="progress-bar" id="progress-1" style="width: 0%"></div></div>
+                <div class="progress mt-2" style="height:4px;">
+                  <div class="progress-bar" id="progress-1" style="width:0%"></div>
+                </div>
               </div>
             </div>
             <div class="result-container d-none mt-3" id="result-1">
@@ -57,48 +62,63 @@
                 <strong>Layout Identificado:</strong>
                 <pre class="small mb-0 mt-2" id="layout-json"></pre>
               </div>
+              <div class="alert alert-light border mt-2" id="esboco-info" style="display:none;">
+                <strong>Arquivo analisado:</strong> <span id="esboco-nome"></span>
+                <div class="mt-2">
+                  <img id="esboco-thumb" src="" class="img-fluid rounded" style="max-height:160px;">
+                </div>
+              </div>
             </div>
           </div>
 
           <hr>
 
-          <!-- ETAPA 2 -->
+          <!-- Etapa 2 -->
           <div class="step-container mb-3" id="step-2">
             <div class="d-flex align-items-center">
-              <div class="step-icon me-3" id="icon-2"><i class="fas fa-circle text-muted"></i></div>
+              <div class="step-icon me-3" id="icon-2">
+                <i class="fas fa-circle text-muted"></i>
+              </div>
               <div class="flex-grow-1">
                 <div class="d-flex justify-content-between align-items-center">
                   <div>
-                    <h6 class="mb-0">Referências + Consolidação</h6>
-                    <small class="text-muted">Analisando referências e gerando prompt</small>
+                    <h6 class="mb-0">Análise de Referências</h6>
+                    <small class="text-muted">Extraindo cores e estilos</small>
                   </div>
                   <span class="badge bg-secondary" id="status-2">Aguardando</span>
                 </div>
-                <div class="progress mt-2" style="height: 4px;"><div class="progress-bar" id="progress-2" style="width: 0%"></div></div>
+                <div class="progress mt-2" style="height:4px;">
+                  <div class="progress-bar" id="progress-2" style="width:0%"></div>
+                </div>
               </div>
             </div>
             <div class="result-container d-none mt-3" id="result-2">
-              <div class="alert alert-info"><strong>Inspirações Visuais:</strong><pre class="small mb-0 mt-2" id="inspiracoes-json"></pre></div>
-              <div class="alert alert-info mt-3"><strong>Dataset Consolidado:</strong><pre class="small mb-0 mt-2" id="dataset-json"></pre></div>
-              <div class="alert alert-secondary mt-3"><strong>Prompt Final:</strong><pre class="small mb-0 mt-2" id="prompt-final"></pre></div>
+              <div class="alert alert-info">
+                <strong>Inspirações Visuais:</strong>
+                <pre class="small mb-0 mt-2" id="inspiracoes-json"></pre>
+              </div>
             </div>
           </div>
 
           <hr>
 
-          <!-- ETAPA 3 -->
+          <!-- Etapa 3 -->
           <div class="step-container mb-0" id="step-3">
             <div class="d-flex align-items-center">
-              <div class="step-icon me-3" id="icon-3"><i class="fas fa-circle text-muted"></i></div>
+              <div class="step-icon me-3" id="icon-3">
+                <i class="fas fa-circle text-muted"></i>
+              </div>
               <div class="flex-grow-1">
                 <div class="d-flex justify-content-between align-items-center">
                   <div>
                     <h6 class="mb-0">Geração do Conceito</h6>
-                    <small class="text-muted">Criando imagem a partir do prompt final</small>
+                    <small class="text-muted">Criando prompt e imagem</small>
                   </div>
                   <span class="badge bg-secondary" id="status-3">Aguardando</span>
                 </div>
-                <div class="progress mt-2" style="height: 4px;"><div class="progress-bar" id="progress-3" style="width: 0%"></div></div>
+                <div class="progress mt-2" style="height:4px;">
+                  <div class="progress-bar" id="progress-3" style="width:0%"></div>
+                </div>
               </div>
             </div>
           </div>
@@ -109,79 +129,251 @@
       <div class="card shadow mb-4 d-none" id="resultado-final">
         <div class="card-header bg-light d-flex justify-content-between align-items-center">
           <h5 class="card-title mb-0"><i class="fas fa-check-circle me-2"></i> Conceito Visual Gerado</h5>
-          <div class="d-flex gap-2">
-            <button class="btn btn-outline-primary btn-sm" onclick="executarEtapa3()">Regenerar Imagem</button>
-            <button class="btn btn-outline-secondary btn-sm" onclick="regenerarConceito()">Recomeçar</button>
+          <div>
+            <button class="btn btn-outline-primary btn-sm" onclick="regenerarConceito()">
+              <i class="fas fa-redo me-1"></i> Regenerar
+            </button>
           </div>
         </div>
         <div class="card-body text-center">
-          <img id="imagem-conceito" src="" class="img-fluid rounded mb-3" style="max-height: 400px;">
-          <div><a id="link-download" href="" download class="btn btn-primary">Baixar Imagem</a></div>
+          <img id="imagem-conceito" src="" alt="Conceito Visual" class="img-fluid rounded mb-3" style="max-height:400px;">
+          <div>
+            <a id="link-download" href="" download class="btn btn-primary">
+              <i class="fas fa-download me-2"></i> Baixar Imagem
+            </a>
+          </div>
         </div>
       </div>
     </div>
-    
+
     <!-- COLUNA DIREITA -->
     <div class="col-md-4">
-      <!-- Dados do projeto -->
+      <!-- Dados Projeto -->
       <div class="card shadow mb-4">
-        <div class="card-header bg-light"><h5 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i> Dados do Projeto</h5></div>
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i> Dados do Projeto</h5>
+        </div>
         <div class="card-body">
-          <strong>Empresa:</strong> {{ projeto.empresa.nome }}<br>
+          <div><strong>Empresa:</strong> {{ projeto.empresa.nome }}</div>
           {% if projeto.briefings.first %}
             {% with briefing=projeto.briefings.first %}
-              <strong>Dimensões:</strong> {{ briefing.medida_frente }}m × {{ briefing.medida_fundo }}m<br>
-              <strong>Área:</strong> {{ briefing.area_estande }}m²<br>
-              <strong>Tipo de Stand:</strong> {{ briefing.get_tipo_stand_display }}<br>
-              <strong>Estilo:</strong> {{ briefing.estilo_estande|default:"Não informado" }}
+              <div><strong>Dimensões:</strong>
+                {% if briefing.medida_frente and briefing.medida_fundo %}
+                  {{ briefing.medida_frente }}m × {{ briefing.medida_fundo }}m
+                {% else %}Não informado{% endif %}
+              </div>
+              <div><strong>Área:</strong>
+                {% if briefing.area_estande %}{{ briefing.area_estande }}m²{% else %}Não informado{% endif %}
+              </div>
+              <div><strong>Tipo de Stand:</strong> {{ briefing.get_tipo_stand_display }}</div>
+              <div><strong>Estilo:</strong> {{ briefing.estilo_estande|default:"Não informado" }}</div>
             {% endwith %}
           {% endif %}
         </div>
       </div>
+
+      <!-- Arquivos -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-light"><h5 class="card-title mb-0"><i class="fas fa-images me-2"></i> Arquivos de Análise</h5></div>
+        <div class="card-body">
+          {% if projeto.briefings.first %}
+            {% with briefing=projeto.briefings.first %}
+              <h6 class="mb-2">Esboços de Planta</h6>
+              {% if arquivos_planta %}
+                {% for arquivo in arquivos_planta %}
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="d-flex align-items-center">
+                      <i class="fas fa-file-image me-2 text-primary"></i>
+                      <span class="small">{{ arquivo.nome }}</span>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary" onclick="executarEtapa1Arquivo({{ arquivo.id }})">
+                      Calcular
+                    </button>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="text-muted small mb-3">Nenhum esboço enviado.</div>
+              {% endif %}
+
+              <hr class="my-3">
+
+              <h6 class="mb-2">Referências Visuais</h6>
+              {% if arquivos_referencia %}
+                {% for arquivo in arquivos_referencia %}
+                  <div class="d-flex align-items-center mb-1">
+                    <i class="fas fa-file-image me-2 text-info"></i>
+                    <span class="small">{{ arquivo.nome }}</span>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="text-muted small">Nenhuma referência enviada.</div>
+              {% endif %}
+            {% endwith %}
+          {% endif %}
+        </div>
+      </div>
+
       <!-- Log -->
       <div class="card shadow">
         <div class="card-header bg-light"><h5 class="card-title mb-0"><i class="fas fa-terminal me-2"></i> Log de Execução</h5></div>
-        <div class="card-body"><div id="log-container" style="height:200px;overflow-y:auto;font-family:monospace;font-size:0.875rem;background:#f8f9fa;padding:10px;border-radius:4px;">Aguardando início...</div></div>
+        <div class="card-body">
+          <div id="log-container" style="height:200px; overflow-y:auto; font-family:monospace; font-size:0.875rem; background:#f8f9fa; padding:10px; border-radius:4px;">
+            <div class="text-muted text-center">Aguardando início do processo...</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
 <script>
+// === Helpers CSRF ===
+function getCookie(name){
+  const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+  return m ? decodeURIComponent(m[1]) : '';
+}
+const CSRF_TOKEN = getCookie('csrftoken');
+
+// === Processo ===
 let processoAtivo = false;
-let promptFinalCache = null;
 
-function iniciarProcesso(){ if(processoAtivo)return; processoAtivo=true; executarEtapa1(); }
-
-async function executarEtapa1(){
-  atualizarStep(1,'running','Executando'); adicionarLog('Etapa 1...');
-  try{
-    const r=await fetch(`/gestor/projeto/{{ projeto.id }}/conceito-visual/etapa1/`,{method:'POST',headers:{'X-CSRFToken':document.querySelector('[name=csrfmiddlewaretoken]').value}});
-    const d=await r.json();
-    if(d.sucesso){document.getElementById('layout-json').textContent=JSON.stringify(d.layout,null,2);document.getElementById('result-1').classList.remove('d-none');atualizarStep(1,'completed','Concluído');setTimeout(executarEtapa2,800);} else {atualizarStep(1,'error','Erro');adicionarLog(d.erro);}
-  }catch(e){atualizarStep(1,'error','Erro');adicionarLog(e.message);}
+function iniciarProcesso() {
+  if (processoAtivo) return;
+  processoAtivo = true;
+  document.getElementById('btn-iniciar').classList.add('d-none');
+  document.getElementById('btn-parar').classList.remove('d-none');
+  adicionarLog('Iniciando processo de geração...');
+  executarEtapa1();
 }
 
-async function executarEtapa2(){
-  atualizarStep(2,'running','Executando'); adicionarLog('Etapa 2...');
-  try{
-    const r=await fetch(`/gestor/projeto/{{ projeto.id }}/conceito-visual/etapa2/`,{method:'POST',headers:{'X-CSRFToken':document.querySelector('[name=csrfmiddlewaretoken]').value}});
-    const d=await r.json();
-    if(d.sucesso){document.getElementById('inspiracoes-json').textContent=JSON.stringify(d.inspiracoes,null,2);document.getElementById('dataset-json').textContent=JSON.stringify(d.dataset_consolidado,null,2);document.getElementById('prompt-final').textContent=d.prompt_final;document.getElementById('result-2').classList.remove('d-none');promptFinalCache=d.prompt_final;atualizarStep(2,'completed','Concluído');setTimeout(executarEtapa3,800);} else {atualizarStep(2,'error','Erro');adicionarLog(d.erro);}
-  }catch(e){atualizarStep(2,'error','Erro');adicionarLog(e.message);}
+async function executarEtapa1Arquivo(arquivoId){
+  atualizarStep(1,'running','Executando');
+  adicionarLog(`Etapa 1: Analisando esboço (arquivo id=${arquivoId})...`);
+  try {
+    const r = await fetch(`/gestor/projeto/{{ projeto.id }}/conceito-visual/etapa1/`, {
+      method:'POST',
+      headers:{'X-CSRFToken':CSRF_TOKEN,'Content-Type':'application/json'},
+      body: JSON.stringify({arquivo_id: arquivoId})
+    });
+    const data = await r.json();
+    if (data.sucesso){
+      // resultado
+      document.getElementById('layout-json').textContent = JSON.stringify(data.layout,null,2);
+      document.getElementById('result-1').classList.remove('d-none');
+
+      // thumb/nome
+      if (data.arquivo){
+        if (data.arquivo.nome) document.getElementById('esboco-nome').textContent = data.arquivo.nome;
+        if (data.arquivo.url)  document.getElementById('esboco-thumb').src = data.arquivo.url;
+        document.getElementById('esboco-info').style.display='block';
+      }
+
+      // log detalhado
+      adicionarLog(`Agente: ${data.agente?.nome || '-'} (id=${data.agente?.id || '-'}, ativo=${data.agente?.ativo_no_banco})`);
+      adicionarLog(`Executor: ${data.executor} | modo_demo=${data.modo_demo}`);
+      if (data.imagens_usadas && data.imagens_usadas.length){
+        adicionarLog(`Imagem usada: ${data.imagens_usadas[0]}`);
+      }
+
+      atualizarStep(1,'completed','Concluído');
+    } else {
+      atualizarStep(1,'error','Erro'); adicionarLog(`Etapa 1 ERRO: ${data.erro}`);
+    }
+  } catch(e){
+    atualizarStep(1,'error','Erro'); adicionarLog(`Etapa 1 EXC: ${e}`);
+  }
 }
 
-async function executarEtapa3(){
-  atualizarStep(3,'running','Executando'); adicionarLog('Etapa 3...');
-  try{
-    const r=await fetch(`/gestor/projeto/{{ projeto.id }}/conceito-visual/etapa3/`,{method:'POST',headers:{'X-CSRFToken':document.querySelector('[name=csrfmiddlewaretoken]').value},body:JSON.stringify({prompt:promptFinalCache})});
-    const d=await r.json();
-    if(d.sucesso){document.getElementById('imagem-conceito').src=d.image_url||d.url_imagem;document.getElementById('link-download').href=d.download_url||d.image_url||d.url_imagem;document.getElementById('resultado-final').classList.remove('d-none');atualizarStep(3,'completed','Concluído');} else {atualizarStep(3,'error','Erro');adicionarLog(d.erro);}
-  }catch(e){atualizarStep(3,'error','Erro');adicionarLog(e.message);}
+async function executarEtapa1() {
+  atualizarStep(1,'running','Executando');
+  adicionarLog('Etapa 1: Analisando esboço...');
+  try {
+    const r = await fetch(`/gestor/projeto/{{ projeto.id }}/conceito-visual/etapa1/`,{
+      method:'POST',
+      headers:{'X-CSRFToken':CSRF_TOKEN,'Content-Type':'application/json'}
+    });
+    const data = await r.json();
+    if (data.sucesso){
+      // layout
+      document.getElementById('layout-json').textContent = JSON.stringify(data.layout,null,2);
+      document.getElementById('result-1').classList.remove('d-none');
+
+      // arquivo (novo formato)
+      if (data.arquivo){
+        if (data.arquivo.nome) document.getElementById('esboco-nome').textContent = data.arquivo.nome;
+        if (data.arquivo.url)  document.getElementById('esboco-thumb').src = data.arquivo.url;
+        document.getElementById('esboco-info').style.display='block';
+      }
+
+      // logs extras
+      adicionarLog(`Agente: ${data.agente?.nome || '-'} (id=${data.agente?.id || '-'}, ativo=${data.agente?.ativo_no_banco})`);
+      adicionarLog(`Executor: ${data.executor} | modo_demo=${data.modo_demo}`);
+      if (data.imagens_usadas && data.imagens_usadas.length){
+        adicionarLog(`Imagem usada: ${data.imagens_usadas[0]}`);
+      }
+
+      atualizarStep(1,'completed','Concluído');
+      adicionarLog('Etapa 1 concluída');
+      setTimeout(()=>executarEtapa2(),1000);
+    } else {
+      atualizarStep(1,'error','Erro'); adicionarLog(`Etapa 1 ERRO: ${data.erro}`);
+    }
+  } catch(e){ atualizarStep(1,'error','Erro'); adicionarLog(`Etapa 1 EXC: ${e}`); }
 }
 
-function atualizarStep(step,status,text){const i=document.getElementById(`icon-${step}`),p=document.getElementById(`progress-${step}`),b=document.getElementById(`status-${step}`);i.className='fas ';b.className='badge ';if(status==='running'){i.className+='fa-circle-notch fa-spin text-primary';p.style.width='50%';p.className='progress-bar bg-primary';b.className+='bg-primary';b.textContent=text;}else if(status==='completed'){i.className+='fa-check-circle text-success';p.style.width='100%';p.className='progress-bar bg-success';b.className+='bg-success';b.textContent=text;}else{i.className+='fa-times-circle text-danger';p.className='progress-bar bg-danger';b.className+='bg-danger';b.textContent=text;}}
-function adicionarLog(msg){const l=document.getElementById('log-container');l.innerHTML+=`<div>[${new Date().toLocaleTimeString()}] ${msg}</div>`;l.scrollTop=l.scrollHeight;}
-function regenerarConceito(){location.reload();}
+async function executarEtapa2() {
+  atualizarStep(2,'running','Executando');
+  adicionarLog('Etapa 2: Analisando referências...');
+  try {
+    const r = await fetch(`/gestor/projeto/{{ projeto.id }}/conceito-visual/etapa2/`,{
+      method:'POST',
+      headers:{'X-CSRFToken':CSRF_TOKEN,'Content-Type':'application/json'}
+    });
+    const data = await r.json();
+    if (data.sucesso){
+      document.getElementById('inspiracoes-json').textContent = JSON.stringify(data.inspiracoes,null,2);
+      document.getElementById('result-2').classList.remove('d-none');
+      atualizarStep(2,'completed','Concluído');
+      adicionarLog('Etapa 2 concluída');
+      setTimeout(()=>executarEtapa3(),1000);
+    } else { atualizarStep(2,'error','Erro'); adicionarLog(`Etapa 2 ERRO: ${data.erro}`); }
+  } catch(e){ atualizarStep(2,'error','Erro'); adicionarLog(`Etapa 2 EXC: ${e}`); }
+}
+
+async function executarEtapa3() {
+  atualizarStep(3,'running','Executando');
+  adicionarLog('Etapa 3: Gerando conceito visual...');
+  try {
+    const r = await fetch(`/gestor/projeto/{{ projeto.id }}/conceito-visual/etapa3/`,{
+      method:'POST',
+      headers:{'X-CSRFToken':CSRF_TOKEN,'Content-Type':'application/json'}
+    });
+    const data = await r.json();
+    if (data.sucesso){
+      document.getElementById('resultado-final').classList.remove('d-none');
+      document.getElementById('imagem-conceito').src = data.image_url;
+      document.getElementById('link-download').href = data.download_url || data.image_url;
+      atualizarStep(3,'completed','Concluído');
+      adicionarLog('Etapa 3 concluída');
+    } else { atualizarStep(3,'error','Erro'); adicionarLog(`Etapa 3 ERRO: ${data.erro}`); }
+  } catch(e){ atualizarStep(3,'error','Erro'); adicionarLog(`Etapa 3 EXC: ${e}`); }
+}
+
+// === Utils ===
+function atualizarStep(step,status,text){
+  const icon=document.getElementById(`icon-${step}`);
+  const prog=document.getElementById(`progress-${step}`);
+  const badge=document.getElementById(`status-${step}`);
+  icon.className='fas '; badge.className='badge ';
+  if(status==='running'){icon.className+='fa-circle-notch fa-spin text-primary';prog.style.width='50%';prog.className='progress-bar bg-primary';badge.className+='bg-primary';}
+  if(status==='completed'){icon.className+='fa-check-circle text-success';prog.style.width='100%';prog.className='progress-bar bg-success';badge.className+='bg-success';}
+  if(status==='error'){icon.className+='fa-times-circle text-danger';prog.className='progress-bar bg-danger';badge.className+='bg-danger';}
+  badge.textContent=text;
+}
+function adicionarLog(msg){
+  const log=document.getElementById('log-container'); const t=new Date().toLocaleTimeString();
+  log.innerHTML+=`<div>[${t}] ${msg}</div>`; log.scrollTop=log.scrollHeight;
+}
+function regenerarConceito(){ if(confirm('Deseja regenerar?')) location.reload(); }
 </script>
 {% endblock %}
