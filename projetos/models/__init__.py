@@ -23,6 +23,10 @@ from projetos.models.marco import (
     ProjetoMarco
 )
 
+from projetos.models.conceito_visual import (
+    ConceitoVisual
+)
+
 __all__ = [
     'Projeto',
     'ProjetoPlanta',
@@ -35,4 +39,5 @@ __all__ = [
     'AnexoMensagem',
     'ArquivoProjeto',
     'ProjetoMarco',
+    'ConceitoVisual'
 ]

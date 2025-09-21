@@ -1,4 +1,4 @@
-# gestor/views/conceito_visual.py - VERSÃO 2 SIMPLIFICADA
+# gestor/views/conceito_visual.py - VERSÃO 3 COMPLETA COM INTEGRAÇÃO DO AGENTE
 
 import json
 import os
@@ -101,7 +101,7 @@ def _normalize_agent_response(resp: Dict[str, Any], expected_structure: str) -> 
     
     return resp
 
-# ======================= Execução de agentes COM NORMALIZACAO ===================
+# ======================= Execução de agentes COM NORMALIZAÇÃO ===================
 
 def _run_agent(nome_agente: str, payload: Dict[str, Any], imagens: Optional[List[str]] = None) -> Dict[str, Any]:
     """Executa agente com normalização de resposta"""
@@ -167,7 +167,7 @@ Extraia e retorne JSON com:
         print(f"ERRO no executor: {str(e)}")
         return {"erro": f"Erro na execução do agente: {str(e)}", "sucesso": False}
 
-# ======================= Consolidação + Prompt (MOVIDO PARA ETAPA 3) ======================
+# ======================= Consolidação + Prompt ======================
 
 def _consolidar(brief, layout: Dict[str, Any], inspiracoes: Dict[str, Any]) -> Dict[str, Any]:
     """Consolida dados do layout e inspirações em um dataset estruturado"""
@@ -228,7 +228,7 @@ def _consolidar(brief, layout: Dict[str, Any], inspiracoes: Dict[str, Any]) -> D
     return dataset
 
 def _montar_prompt(brief, dataset: Dict[str, Any]) -> str:
-    """Monta o prompt final para geração da imagem"""
+    """Monta o prompt final para geração da imagem - FALLBACK"""
     W = dataset["dimensoes"]["largura_m"]
     D = dataset["dimensoes"]["profundidade_m"]
     H = dataset["dimensoes"]["altura_m"]
@@ -313,6 +313,211 @@ def _gerar_imagem_stub(prompt: str, projeto_id: int) -> Tuple[str, str]:
     img.save(out_path, "PNG")
     url = f"{media_url}conceitos/{fn}"
     return url, url
+
+# ======================= NOVA FUNÇÃO: Processar Template do Agente ======================
+
+def _processar_template_agente(template: str, briefing, layout: Dict, inspiracoes: Dict, projeto) -> str:
+    """
+    Interpola o template do agente com dados reais do projeto
+    """
+    # Preparar dados do briefing
+    largura = float(briefing.medida_frente) if briefing.medida_frente else 6.0
+    profundidade = float(briefing.medida_fundo) if briefing.medida_fundo else 8.0
+    altura = 3.0  # Padrão para feiras
+    area_total = briefing.area_estande or (largura * profundidade)
+    
+    # Processar áreas do layout
+    areas_internas = []
+    areas_externas = []
+    
+    if layout and 'areas' in layout:
+        areas = layout['areas']
+        if isinstance(areas, dict):
+            for nome, dados in areas.items():
+                area_desc = f"{nome}"
+                if isinstance(dados, dict):
+                    if dados.get('m2_estimado'):
+                        area_desc += f" ({dados['m2_estimado']:.1f}m²)"
+                    
+                    # Classificar como interna ou externa
+                    tipo = dados.get('tipo', '').lower()
+                    if any(x in tipo for x in ['reuniao', 'copa', 'deposito', 'workshop']):
+                        areas_internas.append(area_desc)
+                    else:
+                        areas_externas.append(area_desc)
+        elif isinstance(areas, list):
+            for area in areas:
+                if isinstance(area, dict):
+                    nome = area.get('nome', area.get('id', 'área'))
+                    m2 = area.get('m2_estimado', 0)
+                    area_desc = f"{nome} ({m2:.1f}m²)" if m2 > 0 else nome
+                    areas_internas.append(area_desc)
+    
+    # Se não tem áreas específicas, criar padrão
+    if not areas_internas and not areas_externas:
+        areas_internas = ["Área de exposição principal", "Balcão de atendimento"]
+        areas_externas = ["Área de demonstração", "Lounge de espera"]
+    
+    # Processar cores e materiais das inspirações
+    cores_principais = []
+    materiais_principais = []
+    estilo_visual = "moderno e profissional"
+    
+    if inspiracoes:
+        # Cores
+        if 'cores_predominantes' in inspiracoes and isinstance(inspiracoes['cores_predominantes'], list):
+            for cor in inspiracoes['cores_predominantes'][:3]:  # Top 3 cores
+                if isinstance(cor, dict) and 'hex' in cor:
+                    cor_desc = cor['hex']
+                    if cor.get('uso'):
+                        cor_desc += f" para {cor['uso']}"
+                    cores_principais.append(cor_desc)
+        
+        # Materiais
+        if 'materiais_sugeridos' in inspiracoes and isinstance(inspiracoes['materiais_sugeridos'], list):
+            for mat in inspiracoes['materiais_sugeridos'][:4]:
+                if isinstance(mat, dict):
+                    material = mat.get('material', '')
+                    if material:
+                        materiais_principais.append(material)
+        
+        # Estilo
+        if 'estilo_identificado' in inspiracoes and isinstance(inspiracoes['estilo_identificado'], dict):
+            principal = inspiracoes['estilo_identificado'].get('principal', 'moderno')
+            secundario = inspiracoes['estilo_identificado'].get('secundario', '')
+            estilo_visual = principal.replace('_', ' ')
+            if secundario:
+                estilo_visual += f" com toques de {secundario.replace('_', ' ')}"
+    
+    # Valores padrão se não tiver dados
+    if not cores_principais:
+        cores_principais = ["tons neutros", "detalhes em azul corporativo", "acentos em branco"]
+    
+    if not materiais_principais:
+        materiais_principais = ["madeira clara", "vidro temperado", "metal escovado", "iluminação LED"]
+    
+    # Preparar tipo de estrutura baseado no material do briefing
+    tipo_estrutura = "misto (parte construída + parte padrão)"
+    if briefing.material == 'construido':
+        tipo_estrutura = "totalmente construído com estrutura personalizada"
+    elif briefing.material == 'padrao':
+        tipo_estrutura = "padrão com módulos de vidro e armação metálica"
+    
+    # Preparar elevação do piso
+    elevacao_piso = "sem"
+    altura_piso = "0"
+    if briefing.piso_elevado:
+        if briefing.piso_elevado == '3cm':
+            elevacao_piso = "com"
+            altura_piso = "3"
+        elif briefing.piso_elevado == '10cm':
+            elevacao_piso = "com"
+            altura_piso = "10"
+    
+    # Tipo de testeira
+    tipo_testeira = briefing.tipo_testeira or "reta"
+    material_testeira = "acrílico iluminado com logo em destaque"
+    if tipo_testeira == "curva":
+        material_testeira = "estrutura curva em acrílico retroiluminado"
+    
+    # Equipamentos e mobiliário baseado nas áreas
+    lista_mobiliario = []
+    lista_equipamentos = []
+    
+    # Analisar áreas de exposição do briefing
+    if hasattr(briefing, 'areas_exposicao'):
+        for area_expo in briefing.areas_exposicao.all():
+            if area_expo.tem_lounge:
+                lista_mobiliario.append("sofás e poltronas confortáveis")
+            if area_expo.tem_balcao_recepcao:
+                lista_mobiliario.append("balcão de recepção moderno")
+            if area_expo.tem_mesas_atendimento:
+                lista_mobiliario.append("mesas de atendimento com cadeiras")
+            if area_expo.tem_balcao_vitrine:
+                lista_mobiliario.append("balcão vitrine iluminado")
+            if area_expo.equipamentos:
+                lista_equipamentos.append(area_expo.equipamentos)
+    
+    # Analisar salas de reunião
+    if hasattr(briefing, 'salas_reuniao'):
+        for sala in briefing.salas_reuniao.all():
+            if sala.capacidade:
+                lista_mobiliario.append(f"sala de reunião para {sala.capacidade} pessoas")
+            if sala.equipamentos:
+                lista_equipamentos.append(sala.equipamentos)
+    
+    # Valores padrão se não tiver mobiliário/equipamentos
+    if not lista_mobiliario:
+        lista_mobiliario = ["balcão de atendimento", "expositores", "banquetas altas", "mesa de centro"]
+    
+    if not lista_equipamentos:
+        lista_equipamentos = ["TVs de LED 55\"", "tablets para apresentação", "sistema de som ambiente"]
+    
+    # Elementos decorativos baseados no estilo
+    elementos_decorativos = []
+    if "moderno" in estilo_visual.lower():
+        elementos_decorativos.append("plantas ornamentais")
+        elementos_decorativos.append("iluminação decorativa em LED")
+    if "tecnolog" in estilo_visual.lower() or "digital" in estilo_visual.lower():
+        elementos_decorativos.append("displays digitais interativos")
+        elementos_decorativos.append("elementos holográficos")
+    if "sustentavel" in estilo_visual.lower() or "eco" in estilo_visual.lower():
+        elementos_decorativos.append("jardim vertical")
+        elementos_decorativos.append("materiais reciclados aparentes")
+    
+    if not elementos_decorativos:
+        elementos_decorativos = ["plantas ornamentais", "displays de produtos", "painéis decorativos"]
+    
+    # Conceito integrado
+    conceito_integrado = f"Estande {estilo_visual} para {projeto.empresa.nome}"
+    if projeto.empresa.descricao:
+        conceito_integrado += f", refletindo {projeto.empresa.descricao[:100]}"
+    if briefing.objetivo_estande:
+        conceito_integrado += f", focado em {briefing.objetivo_estande}"
+    
+    # Dicionário de substituições
+    replacements = {
+        "[OBJETIVO_ESTANDE]": briefing.objetivo_estande or briefing.objetivo_evento or "exposição e networking",
+        "[DESCRICAO_EMPRESA]": projeto.empresa.descricao or f"Empresa líder no setor",
+        "[SETOR]": "corporativo",  # Poderia vir de um campo específico
+        "[LARGURA]": str(largura),
+        "[PROFUNDIDADE]": str(profundidade),
+        "[ALTURA]": str(altura),
+        "[TIPO]": briefing.get_tipo_stand_display() if briefing.tipo_stand else "ilha",
+        "[POSICIONAMENTO]": "posição estratégica com alta visibilidade",
+        "[AREAS_INTERNAS]": ", ".join(areas_internas),
+        "[TIPO_ESTRUTURA]": tipo_estrutura,
+        "[PISO_ELEVADO]": elevacao_piso,
+        "[ALTURA_PISO]": altura_piso,
+        "[MATERIAL_PISO]": "carpete grafite" if elevacao_piso == "com" else "piso da feira",
+        "[TIPO_TESTEIRA]": tipo_testeira,
+        "[MATERIAL_TESTEIRA]": material_testeira,
+        "[ALTURA_DIVISORIAS]": "2.5",
+        "[AREAS_FUNCIONAIS]": ", ".join(areas_externas) if areas_externas else "área de demonstração de produtos",
+        "[REFERENCIAS]": f"Estilo {estilo_visual} com paleta de cores em {', '.join(cores_principais[:2])}",
+        "[CONCEITO_INTEGRADO]": conceito_integrado,
+        "[TIPO_ESTANDE]": briefing.get_tipo_stand_display() if briefing.tipo_stand else "ilha",
+        "[LISTA_AREAS_INTERNAS]": ", ".join(areas_internas),
+        "[LARGURA_CIRCULACAO]": "1.5",
+        "[AREAS_EXTERNAS]": ", ".join(areas_externas) if areas_externas else "área de ativação frontal",
+        "[MATERIAIS_PRINCIPAIS]": ", ".join(materiais_principais),
+        "[TIPO_PISO]": "elevado" if elevacao_piso == "com" else "nivelado",
+        "[ELEVACAO_PISO]": f"{altura_piso}cm de" if elevacao_piso == "com" else "sem",
+        "[TIPO_ILUMINACAO]": "profissional com spots direcionados e iluminação ambiente em LED",
+        "[CORES_PRINCIPAIS]": ", ".join(cores_principais),
+        "[SETOR_EMPRESA]": "o setor de atuação",
+        "[LISTA_MOBILIARIO]": ", ".join(lista_mobiliario),
+        "[LISTA_EQUIPAMENTOS]": ", ".join(lista_equipamentos),
+        "[ELEMENTOS_DECORATIVOS]": ", ".join(elementos_decorativos),
+        "[CARACTERISTICAS_ESPECIFICAS]": estilo_visual
+    }
+    
+    # Aplicar todas as substituições
+    prompt_final = template
+    for key, value in replacements.items():
+        prompt_final = prompt_final.replace(key, str(value))
+    
+    return prompt_final
 
 # =================================== Views ===================================
 
@@ -495,8 +700,8 @@ def conceito_etapa2_referencias(request: HttpRequest, projeto_id: int) -> JsonRe
 @require_POST
 def conceito_etapa3_geracao(request: HttpRequest, projeto_id: int) -> JsonResponse:
     """
-    Etapa 3: Consolidação + Geração do conceito visual
-    Precisa dos resultados das Etapas 1 e 2
+    Etapa 3: Consolidação + Geração do conceito visual com DALL-E
+    Usa o template do agente com interpolação de variáveis
     """
     projeto = get_object_or_404(Projeto, pk=projeto_id)
     brief = _briefing(projeto)
@@ -524,37 +729,110 @@ def conceito_etapa3_geracao(request: HttpRequest, projeto_id: int) -> JsonRespon
         body = {}
     
     prompt_customizado = body.get("prompt")
+    usar_dalle = body.get("usar_dalle", True)
     
-    if prompt_customizado:
-        # Usar prompt fornecido pelo usuário
-        prompt_final = prompt_customizado
-        dataset = None  # Não precisamos do dataset se usar prompt customizado
+    # Se não tem prompt customizado, usar o template do agente
+    if not prompt_customizado:
+        try:
+            # Buscar o agente de imagem principal
+            agente_imagem = Agente.objects.get(
+                nome="Agente de Imagem Principal",
+                tipo="individual",
+                ativo=True
+            )
+            
+            # Usar o task_instructions como template
+            template = agente_imagem.task_instructions
+            
+            # Interpolar o template com dados reais
+            prompt_final = _processar_template_agente(
+                template, 
+                brief, 
+                layout, 
+                inspiracoes, 
+                projeto
+            )
+            
+        except Agente.DoesNotExist:
+            # Fallback: usar a função antiga de montar prompt
+            dataset = _consolidar(brief, layout, inspiracoes)
+            prompt_final = _montar_prompt(brief, dataset)
     else:
-        # Consolidar dados e gerar prompt automaticamente
+        prompt_final = prompt_customizado
+    
+    # Importar serviço DALL-E
+    from gestor.services.conceito_visual_dalle import ConceitoVisualDalleService
+    dalle_service = ConceitoVisualDalleService()
+    
+    # Gerar conceito visual
+    if usar_dalle:
+        # Usar serviço DALL-E real
+        resultado = dalle_service.gerar_conceito_visual(
+            brief, 
+            layout, 
+            inspiracoes, 
+            prompt_final  # Passa o prompt final processado
+        )
+        
+        if resultado["sucesso"]:
+            # Salvar URL e prompt no projeto
+            if not hasattr(projeto, 'conceito_visual_url'):
+                # Se o campo não existe no modelo, salvar em JSON field
+                if not projeto.layout_identificado:
+                    projeto.layout_identificado = {}
+                projeto.layout_identificado['conceito_visual_url'] = resultado["image_url"]
+                projeto.layout_identificado['conceito_visual_prompt'] = resultado["prompt_usado"]
+                projeto.layout_identificado['conceito_visual_data'] = timezone.now().isoformat()
+            
+            # Marcar como processado
+            projeto.analise_visual_processada = True
+            projeto.data_analise_visual = timezone.now()
+            
+            projeto.save(update_fields=[
+                "layout_identificado",
+                "analise_visual_processada", 
+                "data_analise_visual"
+            ])
+            
+            # Consolidar dataset para debug
+            dataset = _consolidar(brief, layout, inspiracoes)
+            
+            return JsonResponse({
+                "sucesso": True,
+                "image_url": resultado["image_url"],
+                "download_url": resultado["image_url"],
+                "prompt_usado": resultado["prompt_usado"],
+                "modelo": resultado["modelo"],
+                "metricas": resultado.get("metricas", {}),
+                "processado_em": resultado["timestamp"],
+                "dataset_consolidado": dataset,
+                "template_usado": not bool(prompt_customizado)
+            })
+        else:
+            # Erro na geração
+            return JsonResponse({
+                "sucesso": False,
+                "erro": resultado.get("erro", "Erro ao gerar imagem"),
+                "tipo_erro": resultado.get("tipo_erro", "unknown"),
+                "detalhes": resultado
+            }, status=400)
+    else:
+        # Fallback para modo stub (desenvolvimento)
         dataset = _consolidar(brief, layout, inspiracoes)
-        dataset["projeto_id"] = projeto.id
-        prompt_final = _montar_prompt(brief, dataset)
-    
-    # TODO: Integrar com serviço real de geração de imagem
-    # Por enquanto, usar fallback local
-    url_imagem, download_url = _gerar_imagem_stub(prompt_final, projeto_id)
-    
-    # Marcar projeto como processado
-    projeto.analise_visual_processada = True
-    projeto.data_analise_visual = timezone.now()
-    projeto.save(update_fields=["analise_visual_processada", "data_analise_visual"])
-    
-    # Preparar resposta
-    response_data = {
-        "sucesso": True,
-        "image_url": url_imagem,
-        "download_url": download_url,
-        "prompt_usado": prompt_final,
-        "processado_em": timezone.now().isoformat(),
-    }
-    
-    # Incluir dataset se foi gerado
-    if dataset:
-        response_data["dataset_consolidado"] = dataset
-    
-    return JsonResponse(response_data)
+        url_imagem, download_url = _gerar_imagem_stub(prompt_final, projeto_id)
+        
+        # Marcar projeto como processado
+        projeto.analise_visual_processada = True
+        projeto.data_analise_visual = timezone.now()
+        projeto.save(update_fields=["analise_visual_processada", "data_analise_visual"])
+        
+        return JsonResponse({
+            "sucesso": True,
+            "image_url": url_imagem,
+            "download_url": download_url,
+            "prompt_usado": prompt_final,
+            "modelo": "stub",
+            "processado_em": timezone.now().isoformat(),
+            "dataset_consolidado": dataset,
+            "template_usado": not bool(prompt_customizado)
+        })
