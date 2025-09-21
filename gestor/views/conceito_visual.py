@@ -1,4 +1,4 @@
-# gestor/views/conceito_visual.py - VERSÃO CORRIGIDA COMPLETA
+# gestor/views/conceito_visual.py - VERSÃO COMPLETA ATUALIZADA
 
 import json
 import os
@@ -178,7 +178,11 @@ def _consolidar(brief, layout: Dict[str, Any], inspiracoes: Dict[str, Any]) -> D
     altura = dimensoes_layout.get("altura") or 3.0  # Altura padrão
     
     paleta = []
-    if isinstance(inspiracoes.get("cores_hex"), list):
+    if isinstance(inspiracoes.get("cores_predominantes"), list):
+        # Mudança aqui: cores_predominantes ao invés de cores_hex
+        paleta = [c.get("hex") for c in inspiracoes["cores_predominantes"] if isinstance(c, dict) and c.get("hex")]
+    elif isinstance(inspiracoes.get("cores_hex"), list):
+        # Fallback para cores_hex se existir
         paleta = [c.get("hex") for c in inspiracoes["cores_hex"] if isinstance(c, dict) and c.get("hex")]
     
     if not paleta:
@@ -283,7 +287,7 @@ def _gerar_imagem_stub(prompt: str, projeto_id: int) -> Tuple[str, str]:
 @gestor_required
 @require_GET
 def conceito_visual(request: HttpRequest, projeto_id: int) -> HttpResponse:
-    """Tela principal do Conceito Visual"""
+    """Tela principal do Conceito Visual - COM CONTEXTO DOS DADOS SALVOS"""
     projeto = get_object_or_404(Projeto, pk=projeto_id)
 
     if not getattr(projeto, "has_briefing", False):
@@ -301,7 +305,10 @@ def conceito_visual(request: HttpRequest, projeto_id: int) -> HttpResponse:
         "arquivos_referencia": arquivos_referencia,
         "tem_esbocos": bool(arquivos_planta),
         "tem_referencias": bool(arquivos_referencia),
+        # NÃO PRECISA ADICIONAR NADA AQUI
+        # O template acessará projeto.layout_identificado e projeto.inspiracoes_visuais diretamente
     }
+    
     return render(request, "gestor/conceito_visual.html", context)
 
 @login_required
@@ -412,7 +419,7 @@ def conceito_etapa1_esboco(request: HttpRequest, projeto_id: int) -> JsonRespons
 @gestor_required
 @require_POST
 def conceito_etapa2_referencias(request: HttpRequest, projeto_id: int) -> JsonResponse:
-    """Etapa 2: Referências (A2) + Consolidação (A3) + Prompt Final"""
+    """Etapa 2: Referências (A2) + Consolidação (A3) + Prompt Final - CORRIGIDA"""
     projeto = get_object_or_404(Projeto, pk=projeto_id)
     brief = _briefing(projeto)
     if not brief:
@@ -423,20 +430,19 @@ def conceito_etapa2_referencias(request: HttpRequest, projeto_id: int) -> JsonRe
     imagens_ref = []
     for ref in refs:
         if ref.arquivo:
-            imagens_ref.append(ref.arquivo.url)  # Para MinIO usar URL
+            imagens_ref.append(ref.arquivo.url)
 
     # Executar agente de referências
     payload = {"projeto_id": projeto.id, "marca": getattr(projeto.empresa, "nome", None)}
     inspiracoes = _run_agent("Analisador de Referências Visuais", payload, imagens=imagens_ref)
     
-    # Verificar erro nas inspirações
     if "erro" in inspiracoes:
         return JsonResponse({
             "sucesso": False,
             "erro": f"Erro na análise de referências: {inspiracoes.get('erro')}"
         }, status=400)
 
-    # Layout: request.body > projeto.layout_identificado > erro
+    # Layout do request ou do projeto
     try:
         body = json.loads(request.body or "{}")
     except Exception:
@@ -452,20 +458,19 @@ def conceito_etapa2_referencias(request: HttpRequest, projeto_id: int) -> JsonRe
 
     # Consolidar e gerar prompt
     dataset = _consolidar(brief, layout, inspiracoes)
-    dataset["projeto_id"] = projeto.id
+    dataset["projeto_id"] = projeto.id  # Adicionar ID do projeto ao dataset
     prompt_final = _montar_prompt(brief, dataset, inspiracoes)
 
-    # Salvar no projeto
+    # SALVAR APENAS O NECESSÁRIO - CORRIGIDO
     projeto.inspiracoes_visuais = inspiracoes
-    projeto.dados_consolidados = dataset
-    projeto.prompt_final = prompt_final
-    projeto.save(update_fields=["inspiracoes_visuais", "dados_consolidados", "prompt_final"])
+    projeto.save(update_fields=["inspiracoes_visuais"])  # Apenas inspiracoes_visuais existe no modelo
 
+    # RETORNAR tudo para o frontend usar
     return JsonResponse({
         "sucesso": True,
         "inspiracoes": inspiracoes,
-        "dataset_consolidado": dataset,
-        "prompt_final": prompt_final,
+        "dataset_consolidado": dataset,  # Não salva, só retorna
+        "prompt_final": prompt_final,     # Não salva, só retorna
         "calculado": True,
         "processado_em": timezone.now().isoformat(),
     })
@@ -482,14 +487,29 @@ def conceito_etapa3_geracao(request: HttpRequest, projeto_id: int) -> JsonRespon
     except Exception:
         body = {}
 
-    prompt = body.get("prompt") or getattr(projeto, "prompt_final", None)
+    prompt = body.get("prompt")
+    
     if not prompt:
-        return JsonResponse({"sucesso": False, "erro": "Prompt final não disponível."}, status=400)
+        # Se não veio prompt no body, tentar regenerar a partir dos dados salvos
+        brief = _briefing(projeto)
+        layout = getattr(projeto, "layout_identificado", None)
+        inspiracoes = getattr(projeto, "inspiracoes_visuais", None)
+        
+        if brief and layout and inspiracoes:
+            dataset = _consolidar(brief, layout, inspiracoes)
+            prompt = _montar_prompt(brief, dataset, inspiracoes)
+    
+    if not prompt:
+        return JsonResponse({
+            "sucesso": False, 
+            "erro": "Prompt não fornecido. Execute a Etapa 2 ou forneça um prompt customizado."
+        }, status=400)
 
-    # TODO: integrar com serviço real
-    # Fallback local por enquanto
+    # TODO: integrar com serviço real de geração de imagem
+    # Por enquanto, usar fallback local
     url_imagem, download_url = _gerar_imagem_stub(prompt, projeto_id)
 
+    # Marcar projeto como processado
     projeto.analise_visual_processada = True
     projeto.data_analise_visual = timezone.now()
     projeto.save(update_fields=["analise_visual_processada", "data_analise_visual"])
