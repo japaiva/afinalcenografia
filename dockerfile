@@ -1,5 +1,8 @@
 # Use an official Python runtime as a parent image
-FROM python:3.12-slim
+FROM python:3.12-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
@@ -12,15 +15,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcairo2 \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
-    libgdk-pixbuf2.0-0 \
+    libgdk-pixbuf-2.0-0 \
     libffi-dev \
     shared-mime-info \
     fonts-liberation \
-    # Para compilação das dependências
+    # Para compilação e VCS
     gcc \
-    # Limpa após instalação para reduzir o tamanho da imagem
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    git \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
 
 # Copy entrypoint script
 COPY entrypoint.sh /entrypoint.sh
@@ -31,7 +34,7 @@ COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Install Gunicorn
-RUN pip install gunicorn
+RUN pip install --no-cache-dir gunicorn
 
 # Copy project
 COPY . /app/

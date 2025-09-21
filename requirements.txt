@@ -37,7 +37,7 @@ cohere==5.15.0
 colorama==0.4.6
 coloredlogs==15.0.1
 crewai==0.140.0
-crewai-tools==0.49.0
+crewai-tools @ git+https://github.com/joaomdmoura/crewai-tools.git@a3a5bdca36170f7a0a85469e90858255e8604236
 cryptography==45.0.5
 cssselect2==0.8.0
 dataclasses-json==0.6.7
@@ -177,6 +177,7 @@ pure_eval==0.2.3
 pyarrow==20.0.0
 pyasn1==0.6.1
 pyasn1_modules==0.4.2
+pybase64==1.4.1
 pycparser==2.22
 pydantic==2.11.7
 pydantic-settings==2.10.1
