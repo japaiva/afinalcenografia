@@ -1,4 +1,4 @@
-<!-- templates/gestor/conceito_visual.html -->
+<!-- templates/gestor/conceito_visual.html - VERSÃO 2 SIMPLIFICADA -->
 {% extends 'gestor/base_gestor.html' %}
 {% load formatadores %}
 
@@ -17,9 +17,6 @@
         <button class="btn btn-success" onclick="executarProcessoCompleto()">
           <i class="fas fa-play-circle me-1"></i> Executar Tudo
         </button>
-        <button class="btn btn-outline-warning" onclick="limparResultados()">
-          <i class="fas fa-broom me-1"></i> Limpar Cache
-        </button>
         <a href="{% url 'gestor:projeto_detail' pk=projeto.id %}" class="btn btn-outline-secondary">
           <i class="fas fa-arrow-left me-1"></i> Voltar
         </a>
@@ -33,62 +30,55 @@
       
       <!-- ETAPA 1: ANÁLISE DE ESBOÇO -->
       <div class="card shadow mb-4">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
           <h5 class="card-title mb-0">
-            <span class="badge bg-primary rounded-circle me-2">1</span>
+            <span class="badge bg-white text-primary rounded-circle me-2">1</span>
             Análise do Esboço
           </h5>
           <div class="d-flex gap-2 align-items-center">
-            <span class="badge" id="status-badge-1">Não Executado</span>
-            <button class="btn btn-primary btn-sm" onclick="executarEtapa1Independente()" id="btn-etapa1">
-              <i class="fas fa-play me-1"></i> Executar
+            <span class="badge bg-light text-dark" id="status-badge-1">Não Executado</span>
+            <button class="btn btn-light btn-sm" onclick="executarEtapa1()" id="btn-etapa1">
+              <i class="fas fa-play text-primary me-1"></i> Executar
             </button>
           </div>
         </div>
         <div class="card-body">
-          <p class="text-muted">Interpreta a planta baixa desenhada e identifica áreas, dimensões e layout espacial.</p>
+          <p class="text-muted">
+            <i class="fas fa-info-circle me-1"></i>
+            Extrai a estrutura espacial do esboço: áreas, dimensões e layout.
+          </p>
           
-          <!-- Seletor de Arquivo -->
-          <div class="mb-3" id="selector-arquivo-1">
-            <label class="form-label">Selecione o esboço para análise:</label>
-            <select class="form-select" id="select-esboco">
-              <option value="">Usar primeiro arquivo disponível</option>
-              {% for arquivo in arquivos_planta %}
-                <option value="{{ arquivo.id }}">{{ arquivo.nome }}</option>
-              {% endfor %}
-            </select>
+          {% if arquivos_planta %}
+          <div class="mb-3">
+            <p class="fw-bold">{{ arquivos_planta|length }} esboço(s) de planta disponível(is)</p>
           </div>
+          {% else %}
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Nenhum esboço de planta disponível. Faça upload no briefing primeiro.
+          </div>
+          {% endif %}
 
           <!-- Resultado -->
           <div class="result-container d-none" id="result-1">
-            <div class="alert alert-success mb-3">
-              <i class="fas fa-check-circle me-2"></i> Análise concluída com sucesso
-              <span class="badge bg-info ms-2 d-none" id="badge-salvo-1">Dados Salvos</span>
+            <div class="alert alert-success">
+              <i class="fas fa-check-circle me-2"></i> Layout extraído com sucesso
             </div>
             
             <div class="row">
               <div class="col-md-8">
-                <h6>Layout Identificado:</h6>
+                <h6 class="fw-bold">Layout Identificado:</h6>
                 <pre class="bg-light p-3 rounded small" id="layout-json" style="max-height: 300px; overflow-y: auto;"></pre>
               </div>
               <div class="col-md-4">
                 <div id="arquivo-info-1" class="d-none">
-                  <h6>Arquivo Analisado:</h6>
+                  <h6 class="fw-bold">Arquivo Analisado:</h6>
                   <div class="text-center">
                     <img id="esboco-thumb" src="" class="img-fluid rounded shadow-sm mb-2" style="max-height:200px;">
                     <p class="small text-muted mb-0" id="esboco-nome"></p>
                   </div>
                 </div>
               </div>
-            </div>
-            
-            <div class="mt-3">
-              <button class="btn btn-outline-primary btn-sm" onclick="baixarResultadoEtapa1()">
-                <i class="fas fa-download me-1"></i> Baixar JSON
-              </button>
-              <button class="btn btn-outline-secondary btn-sm" onclick="reexecutarEtapa1()">
-                <i class="fas fa-redo me-1"></i> Reexecutar
-              </button>
             </div>
           </div>
 
@@ -104,67 +94,48 @@
 
       <!-- ETAPA 2: ANÁLISE DE REFERÊNCIAS -->
       <div class="card shadow mb-4">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
           <h5 class="card-title mb-0">
-            <span class="badge bg-info rounded-circle me-2">2</span>
-            Análise de Referências + Consolidação
+            <span class="badge bg-white text-info rounded-circle me-2">2</span>
+            Análise de Referências Visuais
           </h5>
           <div class="d-flex gap-2 align-items-center">
-            <span class="badge" id="status-badge-2">Não Executado</span>
-            <button class="btn btn-info btn-sm" onclick="executarEtapa2Independente()" id="btn-etapa2">
-              <i class="fas fa-play me-1"></i> Executar
+            <span class="badge bg-light text-dark" id="status-badge-2">Não Executado</span>
+            <button class="btn btn-light btn-sm" onclick="executarEtapa2()" id="btn-etapa2">
+              <i class="fas fa-play text-info me-1"></i> Executar
             </button>
           </div>
         </div>
         <div class="card-body">
-          <p class="text-muted">Extrai cores, estilos e inspirações das imagens de referência. Consolida dados e gera prompt final.</p>
+          <p class="text-muted">
+            <i class="fas fa-info-circle me-1"></i>
+            Extrai paleta de cores, estilos e inspirações das imagens de referência.
+          </p>
           
-          <!-- Opções -->
-          <div class="form-check mb-3">
-            <input class="form-check-input" type="checkbox" id="usar-layout-etapa1" checked>
-            <label class="form-check-label" for="usar-layout-etapa1">
-              Usar layout da Etapa 1 (se disponível)
-            </label>
+          {% if arquivos_referencia %}
+          <div class="mb-3">
+            <p class="fw-bold">{{ arquivos_referencia|length }} imagem(ns) de referência disponível(is)</p>
           </div>
+          {% else %}
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Nenhuma imagem de referência disponível. Faça upload no briefing primeiro.
+          </div>
+          {% endif %}
 
           <!-- Resultado -->
           <div class="result-container d-none" id="result-2">
-            <div class="alert alert-success mb-3">
-              <i class="fas fa-check-circle me-2"></i> Análise e consolidação concluídas
-              <span class="badge bg-info ms-2 d-none" id="badge-salvo-2">Dados Salvos</span>
+            <div class="alert alert-success">
+              <i class="fas fa-check-circle me-2"></i> Inspirações extraídas com sucesso
             </div>
             
-            <ul class="nav nav-tabs" role="tablist">
-              <li class="nav-item">
-                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#inspiracoes-tab">Inspirações</button>
-              </li>
-              <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#dataset-tab">Dataset Consolidado</button>
-              </li>
-              <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#prompt-tab">Prompt Final</button>
-              </li>
-            </ul>
+            <h6 class="fw-bold">Análise Visual:</h6>
+            <pre class="bg-light p-3 rounded small" id="inspiracoes-json" style="max-height: 300px; overflow-y: auto;"></pre>
             
-            <div class="tab-content pt-3">
-              <div class="tab-pane fade show active" id="inspiracoes-tab">
-                <pre class="bg-light p-3 rounded small" id="inspiracoes-json" style="max-height: 300px; overflow-y: auto;"></pre>
-              </div>
-              <div class="tab-pane fade" id="dataset-tab">
-                <pre class="bg-light p-3 rounded small" id="dataset-json" style="max-height: 300px; overflow-y: auto;"></pre>
-              </div>
-              <div class="tab-pane fade" id="prompt-tab">
-                <div class="bg-light p-3 rounded" id="prompt-final"></div>
-              </div>
-            </div>
-            
-            <div class="mt-3">
-              <button class="btn btn-outline-info btn-sm" onclick="baixarResultadoEtapa2()">
-                <i class="fas fa-download me-1"></i> Baixar Dados
-              </button>
-              <button class="btn btn-outline-secondary btn-sm" onclick="reexecutarEtapa2()">
-                <i class="fas fa-redo me-1"></i> Reexecutar
-              </button>
+            <!-- Preview de cores -->
+            <div id="cores-preview" class="mt-3 d-none">
+              <h6 class="fw-bold">Paleta de Cores:</h6>
+              <div class="d-flex gap-2" id="cores-container"></div>
             </div>
           </div>
 
@@ -173,50 +144,93 @@
             <div class="spinner-border text-info" role="status">
               <span class="visually-hidden">Processando...</span>
             </div>
-            <p class="mt-2 text-muted">Analisando referências e consolidando dados...</p>
+            <p class="mt-2 text-muted">Analisando referências...</p>
           </div>
         </div>
       </div>
 
       <!-- ETAPA 3: GERAÇÃO DO CONCEITO -->
       <div class="card shadow mb-4">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
           <h5 class="card-title mb-0">
-            <span class="badge bg-success rounded-circle me-2">3</span>
-            Geração do Conceito Visual
+            <span class="badge bg-white text-success rounded-circle me-2">3</span>
+            Consolidação e Geração do Conceito Visual
           </h5>
           <div class="d-flex gap-2 align-items-center">
-            <span class="badge" id="status-badge-3">Não Executado</span>
-            <button class="btn btn-success btn-sm" onclick="executarEtapa3Independente()" id="btn-etapa3">
-              <i class="fas fa-play me-1"></i> Executar
+            <span class="badge bg-light text-dark" id="status-badge-3">Não Executado</span>
+            <button class="btn btn-light btn-sm" onclick="executarEtapa3()" id="btn-etapa3">
+              <i class="fas fa-magic text-success me-1"></i> Gerar
             </button>
           </div>
         </div>
         <div class="card-body">
-          <p class="text-muted">Gera a imagem final do conceito visual baseada no prompt consolidado.</p>
+          <p class="text-muted">
+            <i class="fas fa-info-circle me-1"></i>
+            Combina o layout (Etapa 1) com as inspirações (Etapa 2) para gerar o conceito visual.
+          </p>
           
+          <!-- Pré-requisitos -->
+          <div class="alert alert-info" id="prerequisitos-3">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <strong>Pré-requisitos:</strong> Execute as Etapas 1 e 2 primeiro
+          </div>
+
           <!-- Editor de Prompt -->
-          <div class="mb-3">
-            <label class="form-label">Prompt para geração:</label>
-            <textarea class="form-control" id="prompt-editor" rows="4" placeholder="O prompt será carregado da Etapa 2 ou você pode editar manualmente..."></textarea>
+          <div class="mb-3 d-none" id="prompt-section">
+            <label class="form-label fw-bold">Prompt de Geração:</label>
+            <textarea class="form-control" id="prompt-editor" rows="6"></textarea>
             <small class="text-muted">Você pode editar o prompt antes de gerar a imagem</small>
           </div>
 
           <!-- Resultado -->
           <div class="result-container d-none" id="result-3">
             <div class="alert alert-success mb-3">
-              <i class="fas fa-check-circle me-2"></i> Conceito visual gerado com sucesso
+              <i class="fas fa-check-circle me-2"></i> Conceito visual gerado com sucesso!
             </div>
             
-            <div class="text-center">
-              <img id="imagem-conceito" src="" alt="Conceito Visual" class="img-fluid rounded shadow mb-3" style="max-height:500px;">
-              <div>
-                <a id="link-download" href="" download class="btn btn-success me-2">
-                  <i class="fas fa-download me-2"></i> Baixar Imagem
-                </a>
-                <button class="btn btn-outline-secondary" onclick="reexecutarEtapa3()">
-                  <i class="fas fa-redo me-1"></i> Regenerar
+            <!-- Tabs para organizar informações -->
+            <ul class="nav nav-tabs mb-3" role="tablist">
+              <li class="nav-item">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-imagem">
+                  <i class="fas fa-image me-1"></i> Imagem
                 </button>
+              </li>
+              <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-dataset">
+                  <i class="fas fa-database me-1"></i> Dataset
+                </button>
+              </li>
+              <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-prompt">
+                  <i class="fas fa-code me-1"></i> Prompt
+                </button>
+              </li>
+            </ul>
+            
+            <div class="tab-content">
+              <!-- Tab Imagem -->
+              <div class="tab-pane fade show active" id="tab-imagem">
+                <div class="text-center">
+                  <img id="imagem-conceito" src="" alt="Conceito Visual" class="img-fluid rounded shadow mb-3" style="max-height:500px;">
+                  <div>
+                    <a id="link-download" href="" download class="btn btn-success me-2">
+                      <i class="fas fa-download me-2"></i> Baixar Imagem
+                    </a>
+                    <button class="btn btn-outline-secondary" onclick="regenerarConceito()">
+                      <i class="fas fa-redo me-1"></i> Regenerar
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Tab Dataset -->
+              <div class="tab-pane fade" id="tab-dataset">
+                <pre class="bg-light p-3 rounded small" id="dataset-json" style="max-height: 400px; overflow-y: auto;"></pre>
+              </div>
+              
+              <!-- Tab Prompt -->
+              <div class="tab-pane fade" id="tab-prompt">
+                <div class="bg-light p-3 rounded" id="prompt-final-display"></div>
               </div>
             </div>
           </div>
@@ -240,28 +254,32 @@
           <h5 class="card-title mb-0"><i class="fas fa-tasks me-2"></i> Status do Processo</h5>
         </div>
         <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <span>Etapa 1 - Esboço</span>
-            <span id="status-1" class="badge bg-secondary">Pendente</span>
-          </div>
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <span>Etapa 2 - Referências</span>
-            <span id="status-2" class="badge bg-secondary">Pendente</span>
-          </div>
-          <div class="d-flex justify-content-between align-items-center">
-            <span>Etapa 3 - Geração</span>
-            <span id="status-3" class="badge bg-secondary">Pendente</span>
-          </div>
-          <hr>
-          <div class="text-center">
-            <small class="text-muted">Última atualização:</small><br>
-            <span id="ultima-atualizacao">-</span>
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span><i class="fas fa-map me-1 text-primary"></i> Layout</span>
+              <span id="status-1" class="badge bg-secondary">Pendente</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span><i class="fas fa-palette me-1 text-info"></i> Inspirações</span>
+              <span id="status-2" class="badge bg-secondary">Pendente</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <span><i class="fas fa-image me-1 text-success"></i> Conceito</span>
+              <span id="status-3" class="badge bg-secondary">Pendente</span>
+            </div>
           </div>
           
-          <!-- Indicador de dados salvos -->
-          <div class="mt-3 text-center d-none" id="indicador-dados-salvos">
-            <small class="text-success">
-              <i class="fas fa-database me-1"></i> Dados recuperados do banco
+          <hr>
+          
+          <!-- Indicadores de dados salvos -->
+          <div class="text-center">
+            <div class="d-none" id="dados-salvos-info">
+              <small class="text-success">
+                <i class="fas fa-database me-1"></i> Dados recuperados do banco
+              </small>
+            </div>
+            <small class="text-muted d-block mt-2">
+              Última atualização: <span id="ultima-atualizacao">-</span>
             </small>
           </div>
         </div>
@@ -283,7 +301,7 @@
                 {% if briefing.medida_frente and briefing.medida_fundo %}
                   {{ briefing.medida_frente }}m × {{ briefing.medida_fundo }}m
                 {% else %}
-                  Não informado
+                  <span class="text-muted">Não informado</span>
                 {% endif %}
               </dd>
               
@@ -292,15 +310,12 @@
                 {% if briefing.area_estande %}
                   {{ briefing.area_estande }}m²
                 {% else %}
-                  Não informado
+                  <span class="text-muted">Não informado</span>
                 {% endif %}
               </dd>
               
               <dt class="col-5">Tipo Stand:</dt>
               <dd class="col-7">{{ briefing.get_tipo_stand_display|default:"Não informado" }}</dd>
-              
-              <dt class="col-5">Estilo:</dt>
-              <dd class="col-7">{{ briefing.estilo_estande|default:"Não informado" }}</dd>
             {% endif %}
           </dl>
         </div>
@@ -312,32 +327,36 @@
           <h5 class="card-title mb-0"><i class="fas fa-folder-open me-2"></i> Arquivos Disponíveis</h5>
         </div>
         <div class="card-body">
-          <h6 class="text-primary">Esboços ({{ arquivos_planta|length }})</h6>
+          <h6 class="text-primary">
+            <i class="fas fa-map me-1"></i> Esboços ({{ arquivos_planta|length }})
+          </h6>
           {% if arquivos_planta %}
-            <ul class="list-unstyled small">
+            <ul class="list-unstyled small mb-3">
               {% for arquivo in arquivos_planta %}
                 <li class="mb-1">
-                  <i class="fas fa-file-image text-primary me-1"></i>
+                  <i class="fas fa-file-image text-muted me-1"></i>
                   {{ arquivo.nome }}
                 </li>
               {% endfor %}
             </ul>
           {% else %}
-            <p class="text-muted small">Nenhum esboço disponível</p>
+            <p class="text-muted small mb-3">Nenhum esboço disponível</p>
           {% endif %}
           
-          <h6 class="text-info mt-3">Referências ({{ arquivos_referencia|length }})</h6>
+          <h6 class="text-info">
+            <i class="fas fa-palette me-1"></i> Referências ({{ arquivos_referencia|length }})
+          </h6>
           {% if arquivos_referencia %}
-            <ul class="list-unstyled small">
+            <ul class="list-unstyled small mb-0">
               {% for arquivo in arquivos_referencia %}
                 <li class="mb-1">
-                  <i class="fas fa-image text-info me-1"></i>
+                  <i class="fas fa-image text-muted me-1"></i>
                   {{ arquivo.nome }}
                 </li>
               {% endfor %}
             </ul>
           {% else %}
-            <p class="text-muted small">Nenhuma referência disponível</p>
+            <p class="text-muted small mb-0">Nenhuma referência disponível</p>
           {% endif %}
         </div>
       </div>
@@ -358,7 +377,6 @@
 let resultadoEtapa1 = null;
 let resultadoEtapa2 = null;
 let resultadoEtapa3 = null;
-let dadosCarregadosDoBanco = false;
 
 // === CSRF Token ===
 function getCookie(name) {
@@ -368,9 +386,7 @@ function getCookie(name) {
 const CSRF_TOKEN = getCookie('csrftoken');
 
 // === ETAPA 1: Análise de Esboço ===
-async function executarEtapa1Independente() {
-  const arquivoId = document.getElementById('select-esboco').value;
-  
+async function executarEtapa1() {
   // UI
   document.getElementById('btn-etapa1').disabled = true;
   document.getElementById('loading-1').classList.remove('d-none');
@@ -378,15 +394,14 @@ async function executarEtapa1Independente() {
   atualizarStatus(1, 'executando');
   
   try {
-    const body = arquivoId ? JSON.stringify({arquivo_id: parseInt(arquivoId)}) : '{}';
-    
+    // Sempre usa o primeiro arquivo disponível
     const response = await fetch(`/gestor/projeto/{{ projeto.id }}/conceito-visual/etapa1/`, {
       method: 'POST',
       headers: {
         'X-CSRFToken': CSRF_TOKEN,
         'Content-Type': 'application/json'
       },
-      body: body
+      body: '{}'  // Sem arquivo_id específico
     });
     
     const data = await response.json();
@@ -408,8 +423,8 @@ async function executarEtapa1Independente() {
       }
       
       document.getElementById('result-1').classList.remove('d-none');
-      document.getElementById('badge-salvo-1').classList.add('d-none'); // Não mostrar "Dados Salvos" em nova execução
       atualizarStatus(1, 'concluido');
+      verificarPreRequisitos();
       
     } else {
       alert(`Erro na Etapa 1: ${data.erro}`);
@@ -426,7 +441,7 @@ async function executarEtapa1Independente() {
 }
 
 // === ETAPA 2: Análise de Referências ===
-async function executarEtapa2Independente() {
+async function executarEtapa2() {
   // UI
   document.getElementById('btn-etapa2').disabled = true;
   document.getElementById('loading-2').classList.remove('d-none');
@@ -434,20 +449,13 @@ async function executarEtapa2Independente() {
   atualizarStatus(2, 'executando');
   
   try {
-    const usarLayoutEtapa1 = document.getElementById('usar-layout-etapa1').checked;
-    const body = {};
-    
-    if (usarLayoutEtapa1 && resultadoEtapa1 && resultadoEtapa1.layout) {
-      body.layout = resultadoEtapa1.layout;
-    }
-    
     const response = await fetch(`/gestor/projeto/{{ projeto.id }}/conceito-visual/etapa2/`, {
       method: 'POST',
       headers: {
         'X-CSRFToken': CSRF_TOKEN,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(body)
+      body: '{}'
     });
     
     const data = await response.json();
@@ -455,17 +463,18 @@ async function executarEtapa2Independente() {
     if (data.sucesso) {
       resultadoEtapa2 = data;
       
-      // Mostrar resultados
+      // Mostrar resultado
       document.getElementById('inspiracoes-json').textContent = JSON.stringify(data.inspiracoes, null, 2);
-      document.getElementById('dataset-json').textContent = JSON.stringify(data.dataset_consolidado, null, 2);
-      document.getElementById('prompt-final').textContent = data.prompt_final;
       
-      // Auto-preencher editor de prompt da Etapa 3
-      document.getElementById('prompt-editor').value = data.prompt_final;
+      // Mostrar preview de cores se existir
+      if (data.inspiracoes.cores_predominantes) {
+        mostrarPreviewCores(data.inspiracoes.cores_predominantes);
+      }
       
       document.getElementById('result-2').classList.remove('d-none');
-      document.getElementById('badge-salvo-2').classList.add('d-none'); // Não mostrar "Dados Salvos" em nova execução
       atualizarStatus(2, 'concluido');
+      verificarPreRequisitos();
+      
     } else {
       alert(`Erro na Etapa 2: ${data.erro}`);
       atualizarStatus(2, 'erro');
@@ -481,13 +490,14 @@ async function executarEtapa2Independente() {
 }
 
 // === ETAPA 3: Geração do Conceito ===
-async function executarEtapa3Independente() {
-  const prompt = document.getElementById('prompt-editor').value.trim();
-  
-  if (!prompt) {
-    alert('Por favor, forneça um prompt para geração (execute a Etapa 2 ou escreva manualmente)');
+async function executarEtapa3() {
+  // Verificar pré-requisitos
+  if (!resultadoEtapa1 || !resultadoEtapa2) {
+    alert('Execute as Etapas 1 e 2 primeiro!');
     return;
   }
+  
+  const promptCustomizado = document.getElementById('prompt-editor').value.trim();
   
   // UI
   document.getElementById('btn-etapa3').disabled = true;
@@ -496,13 +506,15 @@ async function executarEtapa3Independente() {
   atualizarStatus(3, 'executando');
   
   try {
+    const body = promptCustomizado ? JSON.stringify({ prompt: promptCustomizado }) : '{}';
+    
     const response = await fetch(`/gestor/projeto/{{ projeto.id }}/conceito-visual/etapa3/`, {
       method: 'POST',
       headers: {
         'X-CSRFToken': CSRF_TOKEN,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ prompt: prompt })
+      body: body
     });
     
     const data = await response.json();
@@ -514,8 +526,20 @@ async function executarEtapa3Independente() {
       document.getElementById('imagem-conceito').src = data.image_url;
       document.getElementById('link-download').href = data.download_url || data.image_url;
       
+      // Mostrar dataset e prompt
+      if (data.dataset_consolidado) {
+        document.getElementById('dataset-json').textContent = JSON.stringify(data.dataset_consolidado, null, 2);
+      }
+      document.getElementById('prompt-final-display').textContent = data.prompt_usado;
+      
+      // Atualizar editor de prompt
+      if (!promptCustomizado) {
+        document.getElementById('prompt-editor').value = data.prompt_usado;
+      }
+      
       document.getElementById('result-3').classList.remove('d-none');
       atualizarStatus(3, 'concluido');
+      
     } else {
       alert(`Erro na Etapa 3: ${data.erro || 'Erro desconhecido'}`);
       atualizarStatus(3, 'erro');
@@ -532,71 +556,23 @@ async function executarEtapa3Independente() {
 
 // === Processo Completo ===
 async function executarProcessoCompleto() {
-  if (confirm('Executar todas as etapas em sequência?')) {
-    // Se não tiver resultado da Etapa 1, executar
-    if (!resultadoEtapa1 || !resultadoEtapa1.layout) {
-      await executarEtapa1Independente();
-      // Aguardar um pouco para garantir que a etapa foi concluída
-      await new Promise(resolve => setTimeout(resolve, 500));
-    }
-    
-    // Se tiver resultado da Etapa 1, executar Etapa 2
-    if (resultadoEtapa1 && resultadoEtapa1.layout) {
-      await executarEtapa2Independente();
-      await new Promise(resolve => setTimeout(resolve, 500));
-    }
-    
-    // Se tiver resultado da Etapa 2, executar Etapa 3
-    if (resultadoEtapa2 && resultadoEtapa2.prompt_final) {
-      await executarEtapa3Independente();
-    }
+  if (!confirm('Executar todas as etapas em sequência?')) return;
+  
+  // Etapa 1
+  if (!resultadoEtapa1) {
+    await executarEtapa1();
+    await new Promise(resolve => setTimeout(resolve, 1000));
   }
-}
-
-// === Funções de Reexecução ===
-function reexecutarEtapa1() {
-  if (confirm('Reexecutar análise de esboço?')) {
-    executarEtapa1Independente();
+  
+  // Etapa 2
+  if (!resultadoEtapa2) {
+    await executarEtapa2();
+    await new Promise(resolve => setTimeout(resolve, 1000));
   }
-}
-
-function reexecutarEtapa2() {
-  if (confirm('Reexecutar análise de referências?')) {
-    executarEtapa2Independente();
-  }
-}
-
-function reexecutarEtapa3() {
-  if (confirm('Regenerar conceito visual?')) {
-    executarEtapa3Independente();
-  }
-}
-
-// === Funções de Download ===
-function baixarResultadoEtapa1() {
-  if (resultadoEtapa1) {
-    const blob = new Blob([JSON.stringify(resultadoEtapa1.layout, null, 2)], {type: 'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `layout_esboco_projeto_{{ projeto.id }}.json`;
-    a.click();
-  }
-}
-
-function baixarResultadoEtapa2() {
-  if (resultadoEtapa2) {
-    const dados = {
-      inspiracoes: resultadoEtapa2.inspiracoes,
-      dataset_consolidado: resultadoEtapa2.dataset_consolidado,
-      prompt_final: resultadoEtapa2.prompt_final
-    };
-    const blob = new Blob([JSON.stringify(dados, null, 2)], {type: 'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `dados_consolidados_projeto_{{ projeto.id }}.json`;
-    a.click();
+  
+  // Etapa 3
+  if (resultadoEtapa1 && resultadoEtapa2) {
+    await executarEtapa3();
   }
 }
 
@@ -626,41 +602,52 @@ function atualizarStatus(etapa, status) {
   document.getElementById('ultima-atualizacao').textContent = new Date().toLocaleTimeString();
 }
 
-function limparResultados() {
-  if (confirm('Limpar cache local? (Os dados salvos no banco permanecerão)')) {
-    // Limpar estado local apenas
-    resultadoEtapa1 = null;
-    resultadoEtapa2 = null;
-    resultadoEtapa3 = null;
+function verificarPreRequisitos() {
+  // Verificar se pode executar Etapa 3
+  if (resultadoEtapa1 && resultadoEtapa2) {
+    document.getElementById('prerequisitos-3').classList.add('d-none');
+    document.getElementById('prompt-section').classList.remove('d-none');
     
-    // Esconder resultados
-    ['result-1', 'result-2', 'result-3'].forEach(id => {
-      document.getElementById(id).classList.add('d-none');
-    });
-    
-    // Reset status
-    [1, 2, 3].forEach(etapa => {
-      atualizarStatus(etapa, 'pendente');
-    });
-    
-    // Limpar editor
-    document.getElementById('prompt-editor').value = '';
-    
-    // Ocultar indicador
-    document.getElementById('indicador-dados-salvos').classList.add('d-none');
-    
-    // Recarregar dados do banco
-    setTimeout(() => {
-      carregarDadosSalvos();
-    }, 500);
+    // Se ainda não tem prompt, gerar um padrão
+    if (!document.getElementById('prompt-editor').value) {
+      document.getElementById('prompt-editor').value = 'Prompt será gerado automaticamente com base nos dados...';
+    }
   }
 }
 
-// === Carregar Dados Salvos do Banco ===
+function mostrarPreviewCores(cores) {
+  if (!cores || !Array.isArray(cores)) return;
+  
+  const container = document.getElementById('cores-container');
+  container.innerHTML = '';
+  
+  cores.forEach(cor => {
+    if (cor.hex) {
+      const div = document.createElement('div');
+      div.style.width = '60px';
+      div.style.height = '60px';
+      div.style.backgroundColor = cor.hex;
+      div.style.border = '2px solid #ddd';
+      div.style.borderRadius = '4px';
+      div.title = cor.uso || cor.hex;
+      container.appendChild(div);
+    }
+  });
+  
+  document.getElementById('cores-preview').classList.remove('d-none');
+}
+
+function regenerarConceito() {
+  if (confirm('Regenerar conceito visual?')) {
+    executarEtapa3();
+  }
+}
+
+// === Carregar Dados Salvos ===
 function carregarDadosSalvos() {
   let houveCarregamento = false;
   
-  // Carregar layout salvo (Etapa 1)
+  // Carregar layout salvo
   const layoutElement = document.getElementById('layout-data');
   if (layoutElement) {
     try {
@@ -668,25 +655,20 @@ function carregarDadosSalvos() {
       if (layoutSalvo && (layoutSalvo.areas || Object.keys(layoutSalvo).length > 0)) {
         resultadoEtapa1 = {
           layout: layoutSalvo,
-          sucesso: true,
-          carregadoDoBanco: true
+          sucesso: true
         };
         
-        // Mostrar resultado
         document.getElementById('layout-json').textContent = JSON.stringify(layoutSalvo, null, 2);
         document.getElementById('result-1').classList.remove('d-none');
-        document.getElementById('badge-salvo-1').classList.remove('d-none');
         atualizarStatus(1, 'salvo');
         houveCarregamento = true;
-        
-        console.log('Layout carregado do banco de dados');
       }
     } catch (e) {
-      console.error('Erro ao carregar layout salvo:', e);
+      console.error('Erro ao carregar layout:', e);
     }
   }
   
-  // Carregar inspirações salvas (Etapa 2)
+  // Carregar inspirações salvas
   const inspiracoesElement = document.getElementById('inspiracoes-data');
   if (inspiracoesElement) {
     try {
@@ -694,65 +676,67 @@ function carregarDadosSalvos() {
       if (inspiracoesSalvas && Object.keys(inspiracoesSalvas).length > 0) {
         resultadoEtapa2 = {
           inspiracoes: inspiracoesSalvas,
-          sucesso: true,
-          carregadoDoBanco: true
+          sucesso: true
         };
         
-        // Mostrar resultado
         document.getElementById('inspiracoes-json').textContent = JSON.stringify(inspiracoesSalvas, null, 2);
         document.getElementById('result-2').classList.remove('d-none');
-        document.getElementById('badge-salvo-2').classList.remove('d-none');
         
-        document.getElementById('dataset-json').textContent = '// Dataset será gerado ao executar a etapa';
-        document.getElementById('prompt-final').textContent = 'Prompt será gerado ao executar a etapa';
+        if (inspiracoesSalvas.cores_predominantes) {
+          mostrarPreviewCores(inspiracoesSalvas.cores_predominantes);
+        }
         
         atualizarStatus(2, 'salvo');
         houveCarregamento = true;
-        
-        console.log('Inspirações carregadas do banco de dados');
       }
     } catch (e) {
-      console.error('Erro ao carregar inspirações salvas:', e);
+      console.error('Erro ao carregar inspirações:', e);
     }
   }
   
-  // Mostrar indicador se houve carregamento
   if (houveCarregamento) {
-    document.getElementById('indicador-dados-salvos').classList.remove('d-none');
-    dadosCarregadosDoBanco = true;
+    document.getElementById('dados-salvos-info').classList.remove('d-none');
+    verificarPreRequisitos();
   }
 }
 
 // === Inicialização ===
 document.addEventListener('DOMContentLoaded', function() {
-  // Carregar dados salvos do banco
+  // Carregar dados salvos
   carregarDadosSalvos();
   
-  // Verificar se há esboços disponíveis
-  if ({{ arquivos_planta|length }} === 0) {
+  // Verificar disponibilidade de arquivos
+  {% if not arquivos_planta %}
     document.getElementById('btn-etapa1').disabled = true;
     document.getElementById('btn-etapa1').innerHTML = '<i class="fas fa-times me-1"></i> Sem Esboços';
-  }
+  {% endif %}
   
-  // Verificar se há referências disponíveis
-  if ({{ arquivos_referencia|length }} === 0) {
-    console.log('Aviso: Sem arquivos de referência, mas a etapa 2 ainda pode executar');
-  }
-  
-  // Se tiver dados carregados, atualizar timestamp
-  if (dadosCarregadosDoBanco) {
-    document.getElementById('ultima-atualizacao').textContent = 'Dados recuperados';
-  }
+  {% if not arquivos_referencia %}
+    document.getElementById('btn-etapa2').disabled = true;
+    document.getElementById('btn-etapa2').innerHTML = '<i class="fas fa-times me-1"></i> Sem Referências';
+  {% endif %}
 });
 </script>
 
 <style>
-.nav-link {
-  color: #6c757d;
-  border: 1px solid transparent;
+/* Estilos customizados */
+.badge.rounded-circle {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
 }
 
-.nav-link.active {
+.nav-tabs .nav-link {
+  color: #6c757d;
+  border: 1px solid transparent;
+  background: transparent;
+}
+
+.nav-tabs .nav-link.active {
   color: #495057;
   background-color: #fff;
   border-color: #dee2e6 #dee2e6 #fff;
@@ -761,25 +745,17 @@ document.addEventListener('DOMContentLoaded', function() {
 .tab-content {
   border: 1px solid #dee2e6;
   border-top: none;
+  padding: 1rem;
   background: white;
 }
 
-.badge.rounded-circle {
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+#cores-container > div {
+  cursor: pointer;
+  transition: transform 0.2s;
 }
 
-#indicador-dados-salvos {
-  animation: fadeIn 0.5s ease-in;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+#cores-container > div:hover {
+  transform: scale(1.1);
 }
 </style>
 {% endblock %}

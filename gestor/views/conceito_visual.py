@@ -1,4 +1,4 @@
-# gestor/views/conceito_visual.py - VERSÃO COMPLETA ATUALIZADA
+# gestor/views/conceito_visual.py - VERSÃO 2 SIMPLIFICADA
 
 import json
 import os
@@ -139,7 +139,7 @@ Por favor, analise a imagem fornecida e retorne o layout estruturado."""
 Marca/Cliente: {payload.get('marca', 'não informado')}
 
 Extraia e retorne JSON com:
-- estilo_identificado, cores_hex, materiais_sugeridos, elementos_destaque, iluminacao, riscos_e_mitigacoes"""
+- estilo_identificado, cores_predominantes, materiais_sugeridos, elementos_destaque, iluminacao, riscos_e_mitigacoes"""
         else:
             prompt = json.dumps(payload, indent=2)
         
@@ -167,9 +167,10 @@ Extraia e retorne JSON com:
         print(f"ERRO no executor: {str(e)}")
         return {"erro": f"Erro na execução do agente: {str(e)}", "sucesso": False}
 
-# ======================= Consolidação + Prompt (Etapa 2) ======================
+# ======================= Consolidação + Prompt (MOVIDO PARA ETAPA 3) ======================
 
 def _consolidar(brief, layout: Dict[str, Any], inspiracoes: Dict[str, Any]) -> Dict[str, Any]:
+    """Consolida dados do layout e inspirações em um dataset estruturado"""
     # Tentar extrair dimensões do layout primeiro, depois do briefing
     dimensoes_layout = layout.get("dimensoes_detectadas", {}) if isinstance(layout.get("dimensoes_detectadas"), dict) else {}
     
@@ -179,11 +180,7 @@ def _consolidar(brief, layout: Dict[str, Any], inspiracoes: Dict[str, Any]) -> D
     
     paleta = []
     if isinstance(inspiracoes.get("cores_predominantes"), list):
-        # Mudança aqui: cores_predominantes ao invés de cores_hex
         paleta = [c.get("hex") for c in inspiracoes["cores_predominantes"] if isinstance(c, dict) and c.get("hex")]
-    elif isinstance(inspiracoes.get("cores_hex"), list):
-        # Fallback para cores_hex se existir
-        paleta = [c.get("hex") for c in inspiracoes["cores_hex"] if isinstance(c, dict) and c.get("hex")]
     
     if not paleta:
         paleta = ["#FFFFFF", "#1A1A1A"]  # Padrão
@@ -198,48 +195,84 @@ def _consolidar(brief, layout: Dict[str, Any], inspiracoes: Dict[str, Any]) -> D
         "zonas": [],
         "circulacao": {"min_m": 1.2, "rotas": layout.get("circulacao", [])},
         "paleta_final_hex": paleta,
+        "materiais": inspiracoes.get("materiais_sugeridos", []),
+        "elementos_destaque": inspiracoes.get("elementos_destaque", []),
+        "estilo": inspiracoes.get("estilo_identificado", {}),
         "riscos": inspiracoes.get("riscos_e_mitigacoes", []),
         "pronto_para_geracao": True,
     }
 
     # Processar áreas
     areas = layout.get("areas", {})
-    if isinstance(areas, dict):
+    if isinstance(areas, list):
+        # Se areas é uma lista
+        for a in areas:
+            if isinstance(a, dict):
+                dataset["zonas"].append({
+                    "nome": a.get("id", "area"),
+                    "tipo": a.get("subtipo", "generico"),
+                    "bbox_norm": a.get("bbox_norm", {"x": 0, "y": 0, "w": 1, "h": 1}),
+                    "m2": a.get("m2_estimado", 0),
+                })
+    elif isinstance(areas, dict):
+        # Se areas é um dict
         for nome, a in areas.items():
             if isinstance(a, dict):
                 dataset["zonas"].append({
                     "nome": nome,
+                    "tipo": a.get("tipo", "generico"),
                     "bbox_norm": a.get("bbox_norm", {"x": 0, "y": 0, "w": 1, "h": 1}),
-                    "materiais": [],  # Será preenchido se necessário
-                    "elementos": inspiracoes.get("elementos_destaque", []) if isinstance(inspiracoes.get("elementos_destaque"), list) else [],
-                    "cores_hex": paleta[:2],
+                    "m2": a.get("m2_estimado", 0),
                 })
 
     return dataset
 
-def _montar_prompt(brief, dataset: Dict[str, Any], inspiracoes: Dict[str, Any]) -> str:
+def _montar_prompt(brief, dataset: Dict[str, Any]) -> str:
+    """Monta o prompt final para geração da imagem"""
     W = dataset["dimensoes"]["largura_m"]
     D = dataset["dimensoes"]["profundidade_m"]
     H = dataset["dimensoes"]["altura_m"]
     tipo = dataset.get("tipo_estande", "desconhecido")
 
-    areas_txt = "\n".join(f"- {z.get('nome')}" for z in dataset.get("zonas", [])) or "- Área central"
+    areas_txt = "\n".join(f"- {z.get('nome')}: {z.get('m2', 0)}m²" for z in dataset.get("zonas", [])) or "- Área central"
     cores = ", ".join(dataset.get("paleta_final_hex", []))
     
-    estilo_extra = "moderno"
-    if isinstance(inspiracoes.get("estilo_identificado"), dict):
-        estilo_extra = inspiracoes["estilo_identificado"].get("principal", "moderno").replace("_", " ")
+    # Materiais
+    materiais_txt = ""
+    if dataset.get("materiais"):
+        materiais_list = [f"{m.get('material')}" for m in dataset["materiais"] if isinstance(m, dict)]
+        if materiais_list:
+            materiais_txt = f"\nMateriais principais: {', '.join(materiais_list)}"
+    
+    # Estilo
+    estilo_txt = "moderno"
+    if isinstance(dataset.get("estilo"), dict):
+        estilo_txt = dataset["estilo"].get("principal", "moderno").replace("_", " ")
+        if dataset["estilo"].get("secundario"):
+            estilo_txt += f", {dataset['estilo']['secundario'].replace('_', ' ')}"
 
-    prompt = f"""Crie uma imagem realística 3/4 em alta resolução de um estande de feira de negócios:
+    prompt = f"""Crie uma imagem fotorrealística em alta resolução de um estande de feira de negócios profissional:
 
-Dimensões: {W}m x {D}m x {H}m, tipo {tipo}
-Áreas internas:
+ESPECIFICAÇÕES:
+- Dimensões: {W}m x {D}m x {H}m
+- Tipo: {tipo}
+- Estilo: {estilo_txt}
+
+ÁREAS DO ESTANDE:
 {areas_txt}
 
-Elementos visuais: paleta de cores {cores}
-Estilo: Moderno, profissional, {estilo_extra}
+DESIGN:
+- Paleta de cores: {cores}
+{materiais_txt}
 
-Renderize em perspectiva 3/4 mostrando a fachada principal e uma lateral, com pessoas interagindo naturalmente no espaço, iluminação de feira comercial realística, acabamento fotorrealístico.""".strip()
+VISUALIZAÇÃO:
+- Perspectiva 3/4 mostrando fachada principal e lateral
+- Pessoas interagindo naturalmente no espaço
+- Iluminação profissional de feira comercial
+- Acabamento fotorrealístico e moderno
+- Qualidade de renderização arquitetônica
+
+Criar uma imagem que demonstre profissionalismo, funcionalidade e atratividade visual.""".strip()
     
     return prompt
 
@@ -287,7 +320,7 @@ def _gerar_imagem_stub(prompt: str, projeto_id: int) -> Tuple[str, str]:
 @gestor_required
 @require_GET
 def conceito_visual(request: HttpRequest, projeto_id: int) -> HttpResponse:
-    """Tela principal do Conceito Visual - COM CONTEXTO DOS DADOS SALVOS"""
+    """Tela principal do Conceito Visual"""
     projeto = get_object_or_404(Projeto, pk=projeto_id)
 
     if not getattr(projeto, "has_briefing", False):
@@ -305,8 +338,6 @@ def conceito_visual(request: HttpRequest, projeto_id: int) -> HttpResponse:
         "arquivos_referencia": arquivos_referencia,
         "tem_esbocos": bool(arquivos_planta),
         "tem_referencias": bool(arquivos_referencia),
-        # NÃO PRECISA ADICIONAR NADA AQUI
-        # O template acessará projeto.layout_identificado e projeto.inspiracoes_visuais diretamente
     }
     
     return render(request, "gestor/conceito_visual.html", context)
@@ -315,7 +346,10 @@ def conceito_visual(request: HttpRequest, projeto_id: int) -> HttpResponse:
 @gestor_required
 @require_POST
 def conceito_etapa1_esboco(request: HttpRequest, projeto_id: int) -> JsonResponse:
-    """Etapa 1: Análise do esboço (A1) - VERSÃO CORRIGIDA"""
+    """
+    Etapa 1: Análise APENAS do esboço (layout/geometria)
+    Não precisa de inspirações, apenas extrai a estrutura espacial
+    """
     projeto = get_object_or_404(Projeto, pk=projeto_id)
     brief = _briefing(projeto)
     if not brief:
@@ -383,35 +417,25 @@ def conceito_etapa1_esboco(request: HttpRequest, projeto_id: int) -> JsonRespons
             "erro": resp.get("erro", "Agente não conseguiu processar o esboço")
         }, status=400)
 
-    # Verificar estrutura válida (agora deve ter 'areas' após normalização)
+    # Verificar estrutura válida
     if "areas" not in resp:
         return JsonResponse({
             "sucesso": False, 
             "erro": f"Agente não retornou estrutura 'areas'. Estrutura retornada: {list(resp.keys())}"
         }, status=400)
 
-    # Persistir resultado
+    # Persistir APENAS o layout
     projeto.layout_identificado = resp
     projeto.save(update_fields=["layout_identificado"])
 
     return JsonResponse({
         "sucesso": True,
-        "agente": {
-            "nome": agente_nome,
-            "id": agente_id,
-            "ativo_no_banco": agente_obj is not None,
-        },
-        "executor": executor_nome,
-        "modo_demo": False,
         "layout": resp,
         "arquivo": {
             "id": getattr(esboco, "id", None),
             "nome": arquivo_nome,
             "url": esboco_url,
-            "tem_path": bool(esboco_path),
         },
-        "imagens_usadas": imagens_usadas,
-        "calculado": True,
         "processado_em": timezone.now().isoformat(),
     })
 
@@ -419,7 +443,10 @@ def conceito_etapa1_esboco(request: HttpRequest, projeto_id: int) -> JsonRespons
 @gestor_required
 @require_POST
 def conceito_etapa2_referencias(request: HttpRequest, projeto_id: int) -> JsonResponse:
-    """Etapa 2: Referências (A2) + Consolidação (A3) + Prompt Final - CORRIGIDA"""
+    """
+    Etapa 2: Análise APENAS das referências visuais (cores/estilos)
+    Não precisa do layout, apenas extrai inspirações visuais
+    """
     projeto = get_object_or_404(Projeto, pk=projeto_id)
     brief = _briefing(projeto)
     if not brief:
@@ -427,13 +454,23 @@ def conceito_etapa2_referencias(request: HttpRequest, projeto_id: int) -> JsonRe
 
     # Coletar referências
     refs = _arquivos(brief, "referencia")
+    if not refs:
+        return JsonResponse({
+            "sucesso": False,
+            "erro": "Nenhuma imagem de referência encontrada."
+        }, status=400)
+    
     imagens_ref = []
     for ref in refs:
         if ref.arquivo:
             imagens_ref.append(ref.arquivo.url)
 
-    # Executar agente de referências
-    payload = {"projeto_id": projeto.id, "marca": getattr(projeto.empresa, "nome", None)}
+    # Executar agente de referências - SEM PRECISAR DO LAYOUT
+    payload = {
+        "projeto_id": projeto.id,
+        "marca": getattr(projeto.empresa, "nome", None)
+    }
+    
     inspiracoes = _run_agent("Analisador de Referências Visuais", payload, imagens=imagens_ref)
     
     if "erro" in inspiracoes:
@@ -442,36 +479,14 @@ def conceito_etapa2_referencias(request: HttpRequest, projeto_id: int) -> JsonRe
             "erro": f"Erro na análise de referências: {inspiracoes.get('erro')}"
         }, status=400)
 
-    # Layout do request ou do projeto
-    try:
-        body = json.loads(request.body or "{}")
-    except Exception:
-        body = {}
-    
-    layout = body.get("layout") or getattr(projeto, "layout_identificado", None)
-    
-    if not layout:
-        return JsonResponse({
-            "sucesso": False,
-            "erro": "Layout não disponível. Execute a Etapa 1 primeiro."
-        }, status=400)
-
-    # Consolidar e gerar prompt
-    dataset = _consolidar(brief, layout, inspiracoes)
-    dataset["projeto_id"] = projeto.id  # Adicionar ID do projeto ao dataset
-    prompt_final = _montar_prompt(brief, dataset, inspiracoes)
-
-    # SALVAR APENAS O NECESSÁRIO - CORRIGIDO
+    # Persistir APENAS as inspirações
     projeto.inspiracoes_visuais = inspiracoes
-    projeto.save(update_fields=["inspiracoes_visuais"])  # Apenas inspiracoes_visuais existe no modelo
+    projeto.save(update_fields=["inspiracoes_visuais"])
 
-    # RETORNAR tudo para o frontend usar
     return JsonResponse({
         "sucesso": True,
         "inspiracoes": inspiracoes,
-        "dataset_consolidado": dataset,  # Não salva, só retorna
-        "prompt_final": prompt_final,     # Não salva, só retorna
-        "calculado": True,
+        "quantidade_imagens": len(imagens_ref),
         "processado_em": timezone.now().isoformat(),
     })
 
@@ -479,45 +494,67 @@ def conceito_etapa2_referencias(request: HttpRequest, projeto_id: int) -> JsonRe
 @gestor_required
 @require_POST
 def conceito_etapa3_geracao(request: HttpRequest, projeto_id: int) -> JsonResponse:
-    """Etapa 3: Geração final (DALL·E/SDXL)"""
+    """
+    Etapa 3: Consolidação + Geração do conceito visual
+    Precisa dos resultados das Etapas 1 e 2
+    """
     projeto = get_object_or_404(Projeto, pk=projeto_id)
-
+    brief = _briefing(projeto)
+    
+    # Verificar se tem os dados necessários
+    layout = getattr(projeto, "layout_identificado", None)
+    inspiracoes = getattr(projeto, "inspiracoes_visuais", None)
+    
+    if not layout:
+        return JsonResponse({
+            "sucesso": False,
+            "erro": "Layout não encontrado. Execute a Etapa 1 primeiro."
+        }, status=400)
+    
+    if not inspiracoes:
+        return JsonResponse({
+            "sucesso": False,
+            "erro": "Inspirações não encontradas. Execute a Etapa 2 primeiro."
+        }, status=400)
+    
+    # Verificar se veio um prompt customizado
     try:
         body = json.loads(request.body or "{}")
     except Exception:
         body = {}
-
-    prompt = body.get("prompt")
     
-    if not prompt:
-        # Se não veio prompt no body, tentar regenerar a partir dos dados salvos
-        brief = _briefing(projeto)
-        layout = getattr(projeto, "layout_identificado", None)
-        inspiracoes = getattr(projeto, "inspiracoes_visuais", None)
-        
-        if brief and layout and inspiracoes:
-            dataset = _consolidar(brief, layout, inspiracoes)
-            prompt = _montar_prompt(brief, dataset, inspiracoes)
+    prompt_customizado = body.get("prompt")
     
-    if not prompt:
-        return JsonResponse({
-            "sucesso": False, 
-            "erro": "Prompt não fornecido. Execute a Etapa 2 ou forneça um prompt customizado."
-        }, status=400)
-
-    # TODO: integrar com serviço real de geração de imagem
+    if prompt_customizado:
+        # Usar prompt fornecido pelo usuário
+        prompt_final = prompt_customizado
+        dataset = None  # Não precisamos do dataset se usar prompt customizado
+    else:
+        # Consolidar dados e gerar prompt automaticamente
+        dataset = _consolidar(brief, layout, inspiracoes)
+        dataset["projeto_id"] = projeto.id
+        prompt_final = _montar_prompt(brief, dataset)
+    
+    # TODO: Integrar com serviço real de geração de imagem
     # Por enquanto, usar fallback local
-    url_imagem, download_url = _gerar_imagem_stub(prompt, projeto_id)
-
+    url_imagem, download_url = _gerar_imagem_stub(prompt_final, projeto_id)
+    
     # Marcar projeto como processado
     projeto.analise_visual_processada = True
     projeto.data_analise_visual = timezone.now()
     projeto.save(update_fields=["analise_visual_processada", "data_analise_visual"])
-
-    return JsonResponse({
+    
+    # Preparar resposta
+    response_data = {
         "sucesso": True,
         "image_url": url_imagem,
         "download_url": download_url,
-        "prompt_usado": (prompt[:600] + "...") if len(prompt) > 600 else prompt,
+        "prompt_usado": prompt_final,
         "processado_em": timezone.now().isoformat(),
-    })
+    }
+    
+    # Incluir dataset se foi gerado
+    if dataset:
+        response_data["dataset_consolidado"] = dataset
+    
+    return JsonResponse(response_data)
