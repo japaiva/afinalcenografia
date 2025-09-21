@@ -1,195 +1,156 @@
-import os
-import base64
+# gestor/services/conceito_visual_dalle.py
+# VERSÃO SIMPLIFICADA - Apenas wrapper do DALL-E
+
 import openai
-import anthropic
 import requests
+import logging
+from typing import Dict, Any, Optional
 from django.conf import settings
-from typing import List, Optional, Dict, Any
+from django.utils import timezone
 
-def _file_to_data_url(path: str) -> str:
-    """Converte um arquivo local para um data URL."""
-    mime = "image/jpeg"
-    ext = os.path.splitext(path)[1].lower()
-    if ext == ".png":
-        mime = "image/png"
-    elif ext == ".webp":
-        mime = "image/webp"
-    elif ext == ".gif":
-        mime = "image/gif"
-    with open(path, "rb") as f:
-        b64 = base64.b64encode(f.read()).decode("utf-8")
-    return f"data:{mime};base64,{b64}"
+logger = logging.getLogger(__name__)
 
-class AgenteService:
-    """Serviço para executar agentes individuais"""
-
-    def executar_agente(
-        self,
-        agente,
-        prompt_usuario: str,
-        imagens: Optional[List[str]] = None,
-    ):
-        provider = getattr(agente, "llm_provider", "openai")
-        if provider == "openai":
-            return self._executar_openai(agente, prompt_usuario, imagens)
-        elif provider == "anthropic":
-            return self._executar_anthropic(agente, prompt_usuario)
-        else:
-            raise ValueError(f"Provider {provider} não suportado")
-
-    # ------------------- OPENAI - VERSÃO CORRIGIDA COM TASK_INSTRUCTIONS -------------------
-    def _executar_openai(
-        self,
-        agente,
-        prompt_usuario: str,
-        imagens: Optional[List[str]] = None,
-    ):
+class ConceitoVisualDalleService:
+    """
+    Wrapper simples para a API do DALL-E 3
+    Apenas recebe um prompt pronto e gera a imagem
+    
+    O prompt é preparado pela view usando:
+    - Template do Agente (system_prompt + task_instructions do banco)
+    - Dados do layout identificado (etapa 1)
+    - Dados das inspirações visuais (etapa 2)
+    - Dados do briefing
+    """
+    
+    def __init__(self):
         openai.api_key = settings.OPENAI_API_KEY
-
-        model = getattr(agente, "llm_model", "gpt-4o")
-        temperature = getattr(agente, "llm_temperature", 0.0) or 0.0
-        max_tokens = getattr(agente, "llm_max_tokens", 2000) or 2000
-        system_prompt = getattr(agente, "llm_system_prompt", "") or ""
-        task_instructions = getattr(agente, "task_instructions", "") or ""  # ← ADICIONAR
-        forcar_json = getattr(agente, "forcar_json", False)
-
-        # MODIFICAÇÃO: Concatenar task_instructions ao prompt do usuário
-        if task_instructions:
-            prompt_completo = f"{task_instructions}\n\n{prompt_usuario}"
-            print(f"[AGENTE_SERVICE] Task instructions incluídas ({len(task_instructions)} chars)")
-        else:
-            prompt_completo = prompt_usuario
-            print(f"[AGENTE_SERVICE] Sem task instructions, usando prompt direto")
-
-        content_parts: List[Dict[str, Any]] = [{"type": "text", "text": prompt_completo}]  # ← USAR prompt_completo
-
-        # --- LÓGICA DE IMAGEM CORRIGIDA ---
-        if imagens:
-            print(f"[AGENTE_SERVICE] Processando {len(imagens)} imagens...")
+        
+    def gerar_conceito_visual(
+        self, 
+        briefing=None,  # Mantido para compatibilidade
+        layout=None,     # Mantido para compatibilidade
+        inspiracoes=None,  # Mantido para compatibilidade
+        prompt_customizado: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Executa o prompt no DALL-E 3 e retorna a imagem
+        
+        Args:
+            prompt_customizado: Prompt já processado pela view
             
-            for i, img_source in enumerate(imagens):
-                if not img_source:
-                    print(f"[AGENTE_SERVICE] Imagem {i+1}: vazia, pulando")
-                    continue
-
-                try:
-                    print(f"[AGENTE_SERVICE] Imagem {i+1}: {img_source[:100]}...")  # Truncar URL longa
-                    
-                    # Se for uma URL HTTP/HTTPS, baixe e converta para Base64
-                    if img_source.startswith("http://") or img_source.startswith("https://"):
-                        print(f"[AGENTE_SERVICE] Baixando URL...")
-                        
-                        # Headers robustos
-                        headers = {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                            'Accept': 'image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-                            'Accept-Language': 'en-US,en;q=0.9',
-                            'Connection': 'keep-alive',
-                        }
-                        
-                        # Download com timeout generoso
-                        response = requests.get(img_source, headers=headers, timeout=(10, 60))
-                        response.raise_for_status()
-                        
-                        print(f"[AGENTE_SERVICE] Download OK: {response.status_code}, {len(response.content)} bytes")
-                        
-                        # Determinar MIME type
-                        mime_type = response.headers.get('Content-Type', '').split(';')[0].strip()
-                        if not mime_type or not mime_type.startswith('image/'):
-                            mime_type = 'image/jpeg'  # fallback seguro
-                        
-                        print(f"[AGENTE_SERVICE] MIME type: {mime_type}")
-                        
-                        # Converter para base64
-                        b64_image = base64.b64encode(response.content).decode('utf-8')
-                        data_url = f"data:{mime_type};base64,{b64_image}"
-                        
-                        content_parts.append({
-                            "type": "image_url", 
-                            "image_url": {"url": data_url}
-                        })
-                        
-                        print(f"[AGENTE_SERVICE] ✅ Imagem {i+1} processada: {len(data_url)} chars")
-                        
-                    # Se já for um data URL, use diretamente
-                    elif img_source.startswith("data:image/"):
-                        print(f"[AGENTE_SERVICE] Data URL detectada, usando diretamente")
-                        content_parts.append({
-                            "type": "image_url", 
-                            "image_url": {"url": img_source}
-                        })
-
-                    # Se for um caminho de arquivo local, converta
-                    elif os.path.exists(img_source):
-                        print(f"[AGENTE_SERVICE] Arquivo local detectado")
-                        data_url = _file_to_data_url(img_source)
-                        content_parts.append({
-                            "type": "image_url", 
-                            "image_url": {"url": data_url}
-                        })
-                    
-                    else:
-                        print(f"[AGENTE_SERVICE] ❌ Formato não reconhecido: {img_source}")
-                        
-                except requests.exceptions.RequestException as e:
-                    print(f"[AGENTE_SERVICE] ❌ Erro de requisição na imagem {i+1}: {e}")
-                    continue
-                except Exception as e:
-                    print(f"[AGENTE_SERVICE] ❌ Erro geral na imagem {i+1}: {e}")
-                    continue
-
-            print(f"[AGENTE_SERVICE] Total de content parts: {len(content_parts)}")
-
-        if forcar_json and system_prompt:
-            system_prompt = system_prompt.strip() + "\n\nIMPORTANTE: Responda APENAS com um JSON válido."
-
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": content_parts},
-        ]
-
+        Returns:
+            Dict com resultado da geração
+        """
+        
+        if not prompt_customizado:
+            return {
+                "sucesso": False,
+                "erro": "Prompt não fornecido",
+                "tipo_erro": "missing_prompt"
+            }
+        
+        prompt = prompt_customizado.strip()
+        
+        # Validações básicas
+        if len(prompt) < 10:
+            return {
+                "sucesso": False,
+                "erro": "Prompt muito curto",
+                "tipo_erro": "invalid_prompt"
+            }
+        
+        # DALL-E 3 tem limite de 4000 caracteres
+        if len(prompt) > 4000:
+            logger.warning(f"Prompt com {len(prompt)} chars, truncando para 4000")
+            prompt = prompt[:3997] + "..."
+        
         try:
-            print(f"[AGENTE_SERVICE] Enviando para OpenAI: modelo={model}, {len(content_parts)} parts")
+            logger.info(f"Gerando imagem com DALL-E 3 - Prompt: {len(prompt)} chars")
             
-            # Debug: mostrar tamanhos
-            print(f"[AGENTE_SERVICE] System prompt: {len(system_prompt)} chars")
-            print(f"[AGENTE_SERVICE] User prompt completo: {len(prompt_completo)} chars")
-            
-            resp = openai.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=float(temperature),
-                max_tokens=int(max_tokens),
+            # Chamar API do DALL-E 3
+            response = openai.images.generate(
+                model="dall-e-3",
+                prompt=prompt,
+                size="1792x1024",  # Landscape HD
+                quality="hd",
+                n=1,
+                style="natural"  # Mais fotorrealista
             )
             
-            result = resp.choices[0].message.content
-            print(f"[AGENTE_SERVICE] ✅ Resposta recebida: {len(result) if result else 0} chars")
-            return result
+            image_url = response.data[0].url
+            revised_prompt = getattr(response.data[0], 'revised_prompt', prompt)
             
-        except openai.APIError as e:
-            print(f"[AGENTE_SERVICE] ❌ Erro OpenAI API: {e}")
-            raise e
-
-    # ------------------- ANTHROPIC - TAMBÉM CORRIGIDA -------------------
-    def _executar_anthropic(self, agente, prompt_usuario: str):
-        client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-        model = getattr(agente, "llm_model", "claude-3-5-sonnet-latest")
-        temperature = getattr(agente, "llm_temperature", 0.2) or 0.2
-        system_prompt = getattr(agente, "llm_system_prompt", "") or ""
-        task_instructions = getattr(agente, "task_instructions", "") or ""  # ← ADICIONAR
+            logger.info(f"✓ Imagem gerada com sucesso")
+            
+            # Retornar resultado
+            return {
+                "sucesso": True,
+                "image_url": image_url,
+                "prompt_usado": prompt,
+                "prompt_revisado": revised_prompt,
+                "modelo": "dall-e-3",
+                "timestamp": timezone.now().isoformat()
+            }
+            
+        except openai.BadRequestError as e:
+            error_msg = str(e)
+            logger.error(f"Erro BadRequest: {error_msg}")
+            
+            if "content_policy" in error_msg.lower() or "safety" in error_msg.lower():
+                return {
+                    "sucesso": False,
+                    "erro": "Prompt rejeitado pela política de conteúdo. Tente remover referências a pessoas ou ajustar o texto.",
+                    "tipo_erro": "content_policy"
+                }
+            
+            return {
+                "sucesso": False,
+                "erro": f"Erro na requisição: {error_msg}",
+                "tipo_erro": "bad_request"
+            }
+            
+        except openai.RateLimitError:
+            logger.error("Rate limit excedido")
+            return {
+                "sucesso": False,
+                "erro": "Limite de requisições excedido. Aguarde alguns minutos.",
+                "tipo_erro": "rate_limit"
+            }
+            
+        except Exception as e:
+            logger.error(f"Erro inesperado: {str(e)}", exc_info=True)
+            return {
+                "sucesso": False,
+                "erro": f"Erro ao gerar imagem: {str(e)}",
+                "tipo_erro": "unknown"
+            }
+    
+    def validar_prompt(self, prompt: str) -> Dict[str, Any]:
+        """
+        Validação opcional do prompt antes de enviar
+        """
+        problemas = []
+        avisos = []
         
-        # MODIFICAÇÃO: Concatenar task_instructions
-        if task_instructions:
-            prompt_completo = f"{task_instructions}\n\n{prompt_usuario}"
-            print(f"[AGENTE_SERVICE] Task instructions incluídas para Anthropic ({len(task_instructions)} chars)")
-        else:
-            prompt_completo = prompt_usuario
+        if not prompt:
+            problemas.append("Prompt vazio")
+        elif len(prompt) < 50:
+            avisos.append("Prompt muito curto, pode gerar resultado genérico")
         
-        msg = client.messages.create(
-            model=model,
-            max_tokens=2000,
-            temperature=float(temperature),
-            system=system_prompt,
-            messages=[{"role": "user", "content": prompt_completo}],
-        )
-        return msg.content[0].text if msg.content else ""
+        if len(prompt) > 4000:
+            problemas.append(f"Prompt excede limite ({len(prompt)}/4000 chars)")
+        elif len(prompt) > 3500:
+            avisos.append(f"Prompt próximo do limite ({len(prompt)}/4000)")
+        
+        # Verificar se menciona conceitos importantes
+        conceitos_esperados = ["estande", "feira", "booth", "exhibition", "trade show"]
+        tem_conceito = any(c in prompt.lower() for c in conceitos_esperados)
+        if not tem_conceito:
+            avisos.append("Prompt não menciona 'estande' ou conceitos relacionados")
+        
+        return {
+            "valido": len(problemas) == 0,
+            "problemas": problemas,
+            "avisos": avisos,
+            "tamanho": len(prompt) if prompt else 0
+        }

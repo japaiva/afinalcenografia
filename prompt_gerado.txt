@@ -1,0 +1,68 @@
+Você é um especialista em cenografia para feiras de negócios. Crie uma imagem de estande seguindo este raciocínio passo a passo:
+
+*ETAPA 1 - ANÁLISE DE OBJETIVOS E IDENTIDADE*
+Primeiro, analise:
+- Objetivo do estande: Relacionamento e vendas
+- Descrição da empresa: Empresa especializada em produtos cosméticos para cabeleireiros.
+- Setor de atuação: cosméticos
+Com base nisso, defina a inspiração do projeto que alia a identidade da empresa com seus objetivos na feira.
+
+*ETAPA 2 - ANÁLISE ESPACIAL*
+Agora examine as dimensões:
+- Dimensões: 11.00m x 11.00m
+- Altura máxima: 3m
+- Tipo de estande: Ponta de Ilha (ilha/ponta de ilha/corredor)
+- Posição nos corredores: posição estratégica na feira
+
+*ETAPA 3 - CÁLCULO DE ÁREAS INTERNAS*
+Calcule mentalmente o espaço necessário para cada área:
+deposito (18m²), workshop (24m²)
+Combine essas áreas priorizando:
+1. Circulação adequada (mín. 1,2m para circulação principal)
+2. Funcionalidade (proximidade de áreas complementares)
+3. Estética (harmonia visual)
+Para ponta de ilha: divisões internas (copa, depósito, workshop, reunião) no fundo.
+
+*ETAPA 4 - ESTRUTURA E MATERIAIS*
+Defina os elementos construtivos:
+- Tipo de estrutura: misto (padrão/misto/totalmente construído)
+  * Padrão: módulos de vidro e armação metálica
+  * Misto: parte construída + parte padrão (interna)
+  * Totalmente construído: estrutura personalizada
+- Piso elevado: com - Altura: 3cm
+- Material do piso: carpete grafite
+- Testeira: reta - Material: acrílico iluminado com logo
+- Altura das divisórias: 2.5m
+
+*ETAPA 5 - FUNCIONALIDADES E ÁREAS EXTERNAS*
+Finalize com as áreas de ativação:
+area exposicao (60m²)
+Referências visuais consideradas: Estilo contemporaneo clean, cores #F4F1EC, #6DB37F
+
+*PROMPT FINAL PARA IA:*
+Crie uma imagem realística 3/4 em alta resolução de um estande de feira de negócios com as seguintes características:
+
+*Conceito:* Estande contemporaneo clean para Aneethun Cosméticos
+
+*Dimensões:* 11.00m x 11.00m x 3m, tipo Ponta de Ilha
+
+*Layout:* 
+- Áreas internas: deposito (18m²), workshop (24m²) posicionadas posição estratégica na feira
+- Circulação principal de 1.5m de largura
+- area exposicao (60m²) nas áreas de maior visibilidade
+
+*Estrutura:*
+- misto com ripado madeira clara, marmorite bege claro, vidro
+- Piso elevado 3cm de elevação
+- Testeira em acrílico iluminado com logo
+- Iluminação LED profissional
+
+*Elementos visuais:*
+- Identidade visual: #F4F1EC, #6DB37F, #1A1A1A, #FFD700 refletindo cosméticos
+- Mobiliário: balcão recepção, expositores, mesas, sofás
+- Equipamentos: TVs LED, tablets, sistema de som
+- Decoração: parede verde iluminada, logo volumétrico frontal, nicho de produtos iluminados
+
+*Estilo:* Moderno, profissional, acolhedor, contemporaneo clean
+
+Renderize em perspectiva 3/4 mostrando a fachada principal e uma lateral, com pessoas interagindo naturalmente no espaço, iluminação de feira comercial realística, e acabamento fotorrealístico.

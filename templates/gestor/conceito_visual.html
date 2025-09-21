@@ -1,4 +1,4 @@
-<!-- templates/gestor/conceito_visual.html - VERSÃO 2 SIMPLIFICADA -->
+<!-- templates/gestor/conceito_visual.html - VERSÃO 3 SIMPLIFICADA -->
 {% extends 'gestor/base_gestor.html' %}
 {% load formatadores %}
 
@@ -149,88 +149,87 @@
         </div>
       </div>
 
-      <!-- ETAPA 3: GERAÇÃO DO CONCEITO -->
+      <!-- ETAPA 3: GERAÇÃO DO CONCEITO VISUAL (SIMPLIFICADA) -->
       <div class="card shadow mb-4">
         <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
           <h5 class="card-title mb-0">
             <span class="badge bg-white text-success rounded-circle me-2">3</span>
-            Consolidação e Geração do Conceito Visual
+            Geração do Conceito Visual
           </h5>
           <div class="d-flex gap-2 align-items-center">
             <span class="badge bg-light text-dark" id="status-badge-3">Não Executado</span>
             <button class="btn btn-light btn-sm" onclick="executarEtapa3()" id="btn-etapa3">
-              <i class="fas fa-magic text-success me-1"></i> Gerar
+              <i class="fas fa-magic text-success me-1"></i> Gerar Imagem
             </button>
           </div>
         </div>
         <div class="card-body">
           <p class="text-muted">
             <i class="fas fa-info-circle me-1"></i>
-            Combina o layout (Etapa 1) com as inspirações (Etapa 2) para gerar o conceito visual.
+            Gera o conceito visual usando os dados das etapas anteriores.
           </p>
           
           <!-- Pré-requisitos -->
           <div class="alert alert-info" id="prerequisitos-3">
             <i class="fas fa-exclamation-circle me-2"></i>
-            <strong>Pré-requisitos:</strong> Execute as Etapas 1 e 2 primeiro
+            <strong>Pré-requisitos:</strong> Execute as Etapas 1 e 2 primeiro para gerar o prompt automaticamente.
           </div>
 
           <!-- Editor de Prompt -->
-          <div class="mb-3 d-none" id="prompt-section">
-            <label class="form-label fw-bold">Prompt de Geração:</label>
-            <textarea class="form-control" id="prompt-editor" rows="6"></textarea>
-            <small class="text-muted">Você pode editar o prompt antes de gerar a imagem</small>
+          <div class="mb-4 d-none" id="prompt-section">
+            <label class="form-label fw-bold">
+              <i class="fas fa-edit me-1"></i> Prompt de Geração:
+            </label>
+            <textarea class="form-control font-monospace" id="prompt-editor" rows="8" 
+                      placeholder="O prompt será gerado automaticamente com base nas análises anteriores..."></textarea>
+            <div class="d-flex justify-content-between align-items-center mt-2">
+              <small class="text-muted">
+                <i class="fas fa-info-circle me-1"></i>
+                Edite o prompt se desejar ajustar a geração da imagem
+              </small>
+              <button class="btn btn-sm btn-outline-secondary" onclick="resetarPrompt()">
+                <i class="fas fa-undo me-1"></i> Resetar Prompt
+              </button>
+            </div>
           </div>
 
-          <!-- Resultado -->
+          <!-- Resultado da Imagem -->
           <div class="result-container d-none" id="result-3">
             <div class="alert alert-success mb-3">
               <i class="fas fa-check-circle me-2"></i> Conceito visual gerado com sucesso!
             </div>
             
-            <!-- Tabs para organizar informações -->
-            <ul class="nav nav-tabs mb-3" role="tablist">
-              <li class="nav-item">
-                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-imagem">
-                  <i class="fas fa-image me-1"></i> Imagem
-                </button>
-              </li>
-              <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-dataset">
-                  <i class="fas fa-database me-1"></i> Dataset
-                </button>
-              </li>
-              <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-prompt">
-                  <i class="fas fa-code me-1"></i> Prompt
-                </button>
-              </li>
-            </ul>
+            <!-- Imagem Gerada -->
+            <div class="text-center mb-4">
+              <img id="imagem-conceito" src="" alt="Conceito Visual" 
+                   class="img-fluid rounded shadow" style="max-height:600px;">
+            </div>
             
-            <div class="tab-content">
-              <!-- Tab Imagem -->
-              <div class="tab-pane fade show active" id="tab-imagem">
-                <div class="text-center">
-                  <img id="imagem-conceito" src="" alt="Conceito Visual" class="img-fluid rounded shadow mb-3" style="max-height:500px;">
-                  <div>
-                    <a id="link-download" href="" download class="btn btn-success me-2">
-                      <i class="fas fa-download me-2"></i> Baixar Imagem
-                    </a>
-                    <button class="btn btn-outline-secondary" onclick="regenerarConceito()">
-                      <i class="fas fa-redo me-1"></i> Regenerar
-                    </button>
-                  </div>
+            <!-- Ações -->
+            <div class="d-flex justify-content-center gap-3 mb-4">
+              <a id="link-download" href="" download class="btn btn-success">
+                <i class="fas fa-download me-2"></i> Baixar Imagem
+              </a>
+              <button class="btn btn-primary" onclick="mostrarPromptUsado()">
+                <i class="fas fa-code me-2"></i> Ver Prompt Usado
+              </button>
+              <button class="btn btn-outline-warning" onclick="regenerarConceito()">
+                <i class="fas fa-redo me-2"></i> Regenerar
+              </button>
+            </div>
+            
+            <!-- Modal para mostrar o prompt usado -->
+            <div id="prompt-usado-container" class="d-none">
+              <div class="card border-secondary">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                  <span class="fw-bold">Prompt Utilizado</span>
+                  <button class="btn btn-sm btn-outline-secondary" onclick="copiarPrompt()">
+                    <i class="fas fa-copy me-1"></i> Copiar
+                  </button>
                 </div>
-              </div>
-              
-              <!-- Tab Dataset -->
-              <div class="tab-pane fade" id="tab-dataset">
-                <pre class="bg-light p-3 rounded small" id="dataset-json" style="max-height: 400px; overflow-y: auto;"></pre>
-              </div>
-              
-              <!-- Tab Prompt -->
-              <div class="tab-pane fade" id="tab-prompt">
-                <div class="bg-light p-3 rounded" id="prompt-final-display"></div>
+                <div class="card-body">
+                  <pre class="mb-0" id="prompt-usado-display" style="white-space: pre-wrap;"></pre>
+                </div>
               </div>
             </div>
           </div>
@@ -240,7 +239,7 @@
             <div class="spinner-border text-success" role="status">
               <span class="visually-hidden">Processando...</span>
             </div>
-            <p class="mt-2 text-muted">Gerando conceito visual...</p>
+            <p class="mt-2 text-muted">Gerando conceito visual... Isso pode levar alguns segundos.</p>
           </div>
         </div>
       </div>
@@ -364,7 +363,7 @@
   </div>
 </div>
 
-<!-- Script tags para dados JSON -->
+<!-- Script tags para dados JSON salvos -->
 {% if projeto.layout_identificado %}
 {{ projeto.layout_identificado|json_script:"layout-data" }}
 {% endif %}
@@ -377,6 +376,7 @@
 let resultadoEtapa1 = null;
 let resultadoEtapa2 = null;
 let resultadoEtapa3 = null;
+let promptOriginal = '';  // Guarda o prompt gerado automaticamente
 
 // === CSRF Token ===
 function getCookie(name) {
@@ -394,14 +394,13 @@ async function executarEtapa1() {
   atualizarStatus(1, 'executando');
   
   try {
-    // Sempre usa o primeiro arquivo disponível
     const response = await fetch(`/gestor/projeto/{{ projeto.id }}/conceito-visual/etapa1/`, {
       method: 'POST',
       headers: {
         'X-CSRFToken': CSRF_TOKEN,
         'Content-Type': 'application/json'
       },
-      body: '{}'  // Sem arquivo_id específico
+      body: '{}'
     });
     
     const data = await response.json();
@@ -489,7 +488,7 @@ async function executarEtapa2() {
   }
 }
 
-// === ETAPA 3: Geração do Conceito ===
+// === ETAPA 3: Geração do Conceito (SIMPLIFICADA) ===
 async function executarEtapa3() {
   // Verificar pré-requisitos
   if (!resultadoEtapa1 || !resultadoEtapa2) {
@@ -497,16 +496,19 @@ async function executarEtapa3() {
     return;
   }
   
-  const promptCustomizado = document.getElementById('prompt-editor').value.trim();
+  // Pegar o prompt do editor (pode ter sido editado pelo usuário)
+  const promptAtual = document.getElementById('prompt-editor').value.trim();
   
   // UI
   document.getElementById('btn-etapa3').disabled = true;
   document.getElementById('loading-3').classList.remove('d-none');
   document.getElementById('result-3').classList.add('d-none');
+  document.getElementById('prompt-usado-container').classList.add('d-none');
   atualizarStatus(3, 'executando');
   
   try {
-    const body = promptCustomizado ? JSON.stringify({ prompt: promptCustomizado }) : '{}';
+    // Se há prompt no editor, enviar ele. Senão, deixar o backend gerar
+    const body = promptAtual ? JSON.stringify({ prompt: promptAtual }) : '{}';
     
     const response = await fetch(`/gestor/projeto/{{ projeto.id }}/conceito-visual/etapa3/`, {
       method: 'POST',
@@ -526,15 +528,13 @@ async function executarEtapa3() {
       document.getElementById('imagem-conceito').src = data.image_url;
       document.getElementById('link-download').href = data.download_url || data.image_url;
       
-      // Mostrar dataset e prompt
-      if (data.dataset_consolidado) {
-        document.getElementById('dataset-json').textContent = JSON.stringify(data.dataset_consolidado, null, 2);
-      }
-      document.getElementById('prompt-final-display').textContent = data.prompt_usado;
+      // Guardar o prompt usado
+      document.getElementById('prompt-usado-display').textContent = data.prompt_usado;
       
-      // Atualizar editor de prompt
-      if (!promptCustomizado) {
+      // Se não tinha prompt no editor (foi gerado automaticamente), mostrar no editor
+      if (!promptAtual && data.prompt_usado) {
         document.getElementById('prompt-editor').value = data.prompt_usado;
+        promptOriginal = data.prompt_usado;  // Guardar o original
       }
       
       document.getElementById('result-3').classList.remove('d-none');
@@ -546,11 +546,38 @@ async function executarEtapa3() {
     }
   } catch (error) {
     console.error('Erro:', error);
-    alert('Erro ao executar Etapa 3');
+    alert('Erro ao gerar conceito visual');
     atualizarStatus(3, 'erro');
   } finally {
     document.getElementById('btn-etapa3').disabled = false;
     document.getElementById('loading-3').classList.add('d-none');
+  }
+}
+
+// === Funções de Interface ===
+function mostrarPromptUsado() {
+  const container = document.getElementById('prompt-usado-container');
+  container.classList.toggle('d-none');
+}
+
+function copiarPrompt() {
+  const prompt = document.getElementById('prompt-usado-display').textContent;
+  navigator.clipboard.writeText(prompt).then(() => {
+    alert('Prompt copiado para a área de transferência!');
+  });
+}
+
+function resetarPrompt() {
+  if (promptOriginal) {
+    document.getElementById('prompt-editor').value = promptOriginal;
+  } else {
+    alert('Execute as etapas 1 e 2 primeiro para gerar o prompt automático.');
+  }
+}
+
+function regenerarConceito() {
+  if (confirm('Regenerar conceito visual com o prompt atual?')) {
+    executarEtapa3();
   }
 }
 
@@ -608,9 +635,9 @@ function verificarPreRequisitos() {
     document.getElementById('prerequisitos-3').classList.add('d-none');
     document.getElementById('prompt-section').classList.remove('d-none');
     
-    // Se ainda não tem prompt, gerar um padrão
+    // Deixar o campo vazio - será preenchido quando gerar
     if (!document.getElementById('prompt-editor').value) {
-      document.getElementById('prompt-editor').value = 'Prompt será gerado automaticamente com base nos dados...';
+      document.getElementById('prompt-editor').placeholder = "Clique em 'Gerar Imagem' para criar o prompt automaticamente...";
     }
   }
 }
@@ -635,12 +662,6 @@ function mostrarPreviewCores(cores) {
   });
   
   document.getElementById('cores-preview').classList.remove('d-none');
-}
-
-function regenerarConceito() {
-  if (confirm('Regenerar conceito visual?')) {
-    executarEtapa3();
-  }
 }
 
 // === Carregar Dados Salvos ===
@@ -719,7 +740,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
-/* Estilos customizados */
+/* Estilos customizados simplificados */
 .badge.rounded-circle {
   width: 28px;
   height: 28px;
@@ -730,25 +751,6 @@ document.addEventListener('DOMContentLoaded', function() {
   font-weight: bold;
 }
 
-.nav-tabs .nav-link {
-  color: #6c757d;
-  border: 1px solid transparent;
-  background: transparent;
-}
-
-.nav-tabs .nav-link.active {
-  color: #495057;
-  background-color: #fff;
-  border-color: #dee2e6 #dee2e6 #fff;
-}
-
-.tab-content {
-  border: 1px solid #dee2e6;
-  border-top: none;
-  padding: 1rem;
-  background: white;
-}
-
 #cores-container > div {
   cursor: pointer;
   transition: transform 0.2s;
@@ -756,6 +758,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
 #cores-container > div:hover {
   transform: scale(1.1);
+}
+
+#prompt-editor {
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+#prompt-usado-display {
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #495057;
+}
+
+.result-container img {
+  cursor: zoom-in;
 }
 </style>
 {% endblock %}
