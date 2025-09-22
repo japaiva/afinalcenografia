@@ -152,7 +152,6 @@ Perspectiva 3/4 fotorrealística."""
         "[EMPRESA]": empresa,
         "[OBJETIVO_ESTANDE]": objetivo,
         "[NOME_FEIRA]": feira,
-        "[LOCAL_EVENTO]": local_evento,
         
         # === DIMENSÕES (dados diretos) ===
         "[LARGURA]": largura,
