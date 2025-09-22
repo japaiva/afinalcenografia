@@ -45,5 +45,5 @@ EXPOSE 8000
 # Set entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
 
-# Default command
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "afinal_cenografia.wsgi:application"]
+# Default command com timeout aumentado para operações de geração de arquivos
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--timeout", "120", "--workers", "2", "afinal_cenografia.wsgi:application"]

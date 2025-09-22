@@ -1,5 +1,4 @@
 # gestor/views/conceito_visual.py
-# VERSÃO COMPLETA COM FUNÇÕES DE FORMATAÇÃO
 
 import json
 import logging
@@ -44,337 +43,192 @@ def _run_agent(nome_agente: str, payload: Dict[str, Any], imagens: Optional[List
         logger.error(f"Erro ao executar agente: {str(e)}")
         return {"erro": f"Sistema de agentes não disponível", "sucesso": False}
 
-# ========================== Funções de Formatação para Prompt ==========================
-
-def formatar_layout_areas(layout_json: Dict) -> str:
-    """
-    Formata o JSON do layout em descrição textual das áreas
-    Separa áreas visíveis de áreas internas
-    """
-    if not layout_json or 'areas' not in layout_json:
-        return "Área de exposição principal com balcão de atendimento"
-    
-    texto = []
-    areas = layout_json.get('areas', [])
-    acessos = layout_json.get('acessos', {})
-    
-    # Informar lados abertos
-    lados_abertos = [lado.capitalize() for lado, aberto in acessos.items() if aberto]
-    if lados_abertos:
-        texto.append(f"Estande aberto pelos lados: {', '.join(lados_abertos)}\n")
-    
-    # Separar áreas por categoria e posição
-    areas_apoio = []
-    areas_visiveis = []
-    
-    for area in areas:
-        nome = area.get('subtipo', 'área').replace('_', ' ')
-        m2 = area.get('m2_estimado', 0)
-        categoria = area.get('categoria', 'externa')
-        
-        # Determinar posição baseado em bbox_norm
-        bbox = area.get('bbox_norm', {})
-        y_pos = bbox.get('y', 0.5)
-        
-        if categoria == 'interna':
-            # Áreas internas (não aparecem na imagem)
-            posicao = "fundo" if y_pos < 0.3 else "lateral"
-            areas_apoio.append(f"• {nome} ({m2:.0f}m²) - {posicao} [área fechada]")
-        else:
-            # Áreas visíveis
-            areas_visiveis.append(f"• {nome} ({m2:.0f}m²)")
-    
-    # Montar texto final
-    if areas_visiveis:
-        texto.append("Áreas principais (visíveis na renderização):")
-        texto.extend(areas_visiveis)
-    
-    if areas_apoio:
-        texto.append("\nÁreas de apoio (internas/não visíveis):")
-        texto.extend(areas_apoio)
-    
-    # Adicionar insights de circulação se existirem
-    insights_circ = layout_json.get('insights', {}).get('circulacao', [])
-    if insights_circ and insights_circ[0]:
-        texto.append(f"\n{insights_circ[0].get('descricao', '')}")
-    
-    return "\n".join(texto)
-
-def formatar_cores_aplicadas(inspiracoes_json: Dict) -> str:
-    """
-    Formata cores com suas aplicações específicas
-    """
-    if not inspiracoes_json or 'cores_predominantes' not in inspiracoes_json:
-        return "• #FFFFFF - acabamentos\n• #0066CC - destaques\n• #333333 - estrutura"
-    
-    cores_texto = []
-    for cor in inspiracoes_json.get('cores_predominantes', [])[:5]:  # Máximo 5 cores
-        hex_cor = cor.get('hex', '')
-        uso = cor.get('uso', 'geral')
-        if hex_cor:
-            cores_texto.append(f"• {hex_cor} - {uso}")
-    
-    return "\n".join(cores_texto) if cores_texto else "• Paleta corporativa padrão"
-
-def formatar_materiais_detalhados(inspiracoes_json: Dict) -> str:
-    """
-    Formata materiais com onde serão aplicados
-    """
-    if not inspiracoes_json or 'materiais_sugeridos' not in inspiracoes_json:
-        return "• Madeira clara - estrutura e acabamentos\n• Vidro temperado - divisórias\n• Metal escovado - detalhes"
-    
-    materiais_texto = []
-    for mat in inspiracoes_json.get('materiais_sugeridos', []):
-        material = mat.get('material', '').replace('_', ' ')
-        aplicacao = mat.get('aplicacao', 'acabamento')
-        if material:
-            materiais_texto.append(f"• {material} - {aplicacao}")
-    
-    return "\n".join(materiais_texto) if materiais_texto else "• Materiais corporativos padrão"
-
-def formatar_elementos_destaque(inspiracoes_json: Dict) -> str:
-    """
-    Lista elementos visuais de destaque
-    """
-    if not inspiracoes_json or 'elementos_destaque' not in inspiracoes_json:
-        return "• Logo corporativo iluminado\n• Displays de produtos\n• Balcão de atendimento"
-    
-    elementos = inspiracoes_json.get('elementos_destaque', [])
-    if elementos:
-        return "\n".join([f"• {elem}" for elem in elementos[:6]])  # Máximo 6 elementos
-    
-    return "• Logo iluminado\n• Vitrines\n• Displays"
-
-def formatar_iluminacao(inspiracoes_json: Dict) -> str:
-    """
-    Especifica tipo e temperatura de iluminação
-    """
-    if not inspiracoes_json or 'iluminacao' not in inspiracoes_json:
-        return "LED profissional 4000K"
-    
-    ilum = inspiracoes_json.get('iluminacao', {})
-    tipos = ilum.get('tipos', ['LED geral'])
-    temperatura = ilum.get('temperatura', '4000K')
-    
-    tipos_texto = ", ".join(tipos) if tipos else "LED profissional"
-    return f"{tipos_texto} - {temperatura}"
-
-def determinar_lado_perspectiva(layout_json: Dict) -> str:
-    """
-    Determina qual lado mostrar na perspectiva baseado nos acessos
-    """
-    if not layout_json or 'acessos' not in layout_json:
-        return "direita"
-    
-    acessos = layout_json.get('acessos', {})
-    
-    # Prioridade: direita > esquerda > qualquer outro
-    if acessos.get('direita'):
-        return "direita"
-    elif acessos.get('esquerda'):
-        return "esquerda"
-    elif acessos.get('fundo'):
-        return "fundo"
-    
-    return "direita"
-
 # ========================== Função Principal: Gerar Prompt ==========================
 
-def gerar_prompt_completo(projeto: Projeto, template: Optional[str] = None) -> str:
+def gerar_prompt_completo(projeto: Projeto, prompt_customizado: Optional[str] = None) -> str:
     """
-    Gera o prompt final combinando template do agente com dados do projeto
-    Usa as funções de formatação para trabalhar com os JSONs
+    Gera prompt final para DALL-E usando:
+    - Template do task_instructions (NÃO usa system_prompt)
+    - Dados do briefing, layout e inspirações
+    - Formatadores com regras fixas no código
     """
-    # 1. Obter template
-    if not template:
-        try:
-            agente = Agente.objects.get(
-                nome="Agente de Imagem Principal", 
-                tipo="individual", 
-                ativo=True
-            )
-            system = agente.llm_system_prompt or ""
-            task = agente.task_instructions or ""
-            template = f"{system}\n\n{task}" if system or task else None
-            logger.info(f"Template carregado do banco: {len(template) if template else 0} chars")
-        except Agente.DoesNotExist:
-            logger.warning("Agente 'Agente de Imagem Principal' não encontrado no banco")
-            template = None
     
-    # Se não tem template, usar o template NOVO e SIMPLIFICADO
-    if not template:
-        template = """Crie uma renderização fotorrealística de estande para feira comercial seguindo estas especificações:
-
-DADOS DO PROJETO:
-Empresa: [EMPRESA]
-Dimensões: [LARGURA]m (frente) × [PROFUNDIDADE]m (fundo) × 3m (altura)
-Área total: [AREA_TOTAL]m²
-Tipo de stand: [TIPO_STAND]
-Objetivo: [OBJETIVO_ESTANDE]
-
-LAYOUT ESPACIAL (conforme esboço analisado):
-[LAYOUT_AREAS]
-
-DESIGN VISUAL (conforme referências analisadas):
-Paleta de cores:
-[CORES_APLICADAS]
-
-Estilo arquitetônico: [ESTILO_VISUAL]
-
-Materiais e acabamentos:
-[MATERIAIS_DETALHADOS]
-
-Elementos de destaque:
-[ELEMENTOS_DESTAQUE]
-
-ESPECIFICAÇÕES TÉCNICAS:
-- Estrutura: [TIPO_ESTRUTURA]
-- Piso: [PISO_ESPECIFICACAO]
-- Iluminação: [ILUMINACAO_TIPO]
-
-REQUISITOS DA IMAGEM:
-- Perspectiva 3/4 mostrando frente principal e lateral [LADO_PERSPECTIVA]
-- Respeitar fielmente o layout mapeado no esboço
-- Aplicar cores exatamente onde indicado na análise
-- Incluir apenas áreas visíveis (não mostrar interior de depósitos/copas)
-- Ambiente de feira comercial com visitantes interagindo
-- Iluminação profissional de centro de convenções
-- Qualidade fotorrealística em alta resolução
-- Acabamento premium e contemporâneo
-
-Gere uma imagem que represente fielmente este briefing técnico."""
+    # 1. Se forneceu prompt customizado, retornar ele
+    if prompt_customizado:
+        return prompt_customizado
     
-    # 2. Carregar dados do projeto
+    # 2. Buscar APENAS o template (task_instructions)
+    try:
+        agente = Agente.objects.get(
+            nome="Agente de Imagem Principal", 
+            tipo="individual", 
+            ativo=True
+        )
+        template = agente.task_instructions  # NÃO concatena com system_prompt
+        
+        if not template:
+            raise ValueError("Template vazio")
+            
+    except (Agente.DoesNotExist, ValueError) as e:
+        logger.error(f"Erro ao buscar template: {e}")
+        # Template fallback mínimo mas completo
+        template = """Estande [TIPO_STAND] para [EMPRESA], [LARGURA]×[PROFUNDIDADE]×3m.
+Layout: [LAYOUT_AREAS_DETALHADO]
+Design: [ESTILO_VISUAL]
+Cores: [CORES_APLICADAS]
+Materiais: [MATERIAIS_DETALHADOS]
+Perspectiva 3/4 fotorrealística."""
+    
+    # 3. Carregar os 3 conjuntos de dados
     briefing = projeto.briefings.first()
     layout = projeto.layout_identificado or {}
     inspiracoes = projeto.inspiracoes_visuais or {}
     
-    # 3. Preparar dados básicos
-    empresa_nome = "Empresa"
-    descricao_empresa = ""
-    if hasattr(projeto, 'empresa'):
-        empresa_nome = projeto.empresa.nome or "Empresa"
-        if hasattr(projeto.empresa, 'descricao'):
-            descricao_empresa = projeto.empresa.descricao or ""
+    # 4. Importar TODOS os formatadores do arquivo correto
+    try:
+        from gestor.services.prompt_formatters import (
+            interpretar_tipo_stand,
+            interpretar_estrutura,
+            interpretar_piso,
+            formatar_layout_areas_detalhado,
+            formatar_cores_aplicadas,
+            formatar_materiais_detalhados,
+            formatar_elementos_destaque,
+            formatar_iluminacao,
+            formatar_estilo,
+            extrair_areas_por_categoria,
+            determinar_lado_perspectiva,
+            formatar_lados_abertos,
+            formatar_mobiliario,
+            formatar_equipamentos
+        )
+    except ImportError as e:
+        logger.error(f"Erro ao importar formatadores: {e}")
+        # Se não conseguir importar, usar funções inline básicas
+        def interpretar_tipo_stand(t): return t
+        def interpretar_estrutura(e): return e
+        def interpretar_piso(p): return p
+        def formatar_layout_areas_detalhado(l): return "Layout padrão"
+        def formatar_cores_aplicadas(i): return "Cores padrão"
+        def formatar_materiais_detalhados(i): return "Materiais padrão"
+        def formatar_elementos_destaque(i): return "Elementos padrão"
+        def formatar_iluminacao(i): return "LED 4000K"
+        def formatar_estilo(i): return "moderno"
+        def extrair_areas_por_categoria(l, c): return "áreas padrão"
+        def determinar_lado_perspectiva(l): return "direita"
+        def formatar_lados_abertos(l): return "frente"
+        def formatar_mobiliario(b, l): return "mobiliário padrão"
+        def formatar_equipamentos(b): return "equipamentos padrão"
     
-    largura = "6"
-    profundidade = "8"
-    area_total = "48"
-    objetivo = "exposição de produtos e networking"
-    tipo_stand = "ilha"
-    tipo_estrutura = "mista"
-    piso_spec = "nivelado - carpete"
+    # 5. Processar dados básicos
+    empresa = projeto.empresa.nome if projeto.empresa else ""
+    feira = projeto.feira.nome if projeto.feira else ""
+    local_evento = ""
     
+    if projeto.feira:
+        local_evento = f"{projeto.feira.local}, {projeto.feira.cidade}/{projeto.feira.estado}"
+    
+    # Dados do briefing com defaults
     if briefing:
         largura = str(briefing.medida_frente or 6)
         profundidade = str(briefing.medida_fundo or 8)
-        area_total = str(briefing.area_estande or (float(largura) * float(profundidade)))
-        objetivo = briefing.objetivo_estande or briefing.objetivo_evento or objetivo
-        
-        # Tipo de stand
-        if hasattr(briefing, 'get_tipo_stand_display'):
-            tipo_stand = briefing.get_tipo_stand_display()
-        elif hasattr(briefing, 'tipo_stand'):
-            tipo_stand = briefing.tipo_stand or "ilha"
-        
-        # Tipo de estrutura/material
-        if hasattr(briefing, 'get_material_display'):
-            tipo_estrutura = briefing.get_material_display()
-        elif hasattr(briefing, 'material'):
-            tipo_estrutura = briefing.material or "mista"
-        
-        # Especificação do piso
-        piso_elevado = "nivelado"
-        if hasattr(briefing, 'get_piso_elevado_display'):
-            piso_elevado = briefing.get_piso_elevado_display()
-        elif hasattr(briefing, 'piso_elevado'):
-            piso_elevado = briefing.piso_elevado or "sem elevação"
-        
-        piso_spec = f"{piso_elevado}"
+        area_total = str(briefing.area_estande or 48)
+        objetivo = briefing.objetivo_estande or "exposição de produtos"
+        tipo_stand = briefing.tipo_stand or "ilha"
+        tipo_estrutura = briefing.material or "misto"
+        piso_elevado = briefing.piso_elevado or "sem_elevacao"
+    else:
+        largura = "6"
+        profundidade = "8"
+        area_total = "48"
+        objetivo = "exposição"
+        tipo_stand = "ilha"
+        tipo_estrutura = "misto"
+        piso_elevado = "sem_elevacao"
     
-    # Estilo visual das inspirações
-    estilo = "moderno e profissional"
-    if inspiracoes.get('estilo_identificado'):
-        estilo_data = inspiracoes['estilo_identificado']
-        if isinstance(estilo_data, dict):
-            principal = estilo_data.get('principal', '').replace('_', ' ')
-            secundario = estilo_data.get('secundario', '').replace('_', ' ')
-            if principal:
-                estilo = principal
-                if secundario:
-                    estilo += f" com toques {secundario}"
-    
-    # 4. Dicionário de substituições COMPLETO (para compatibilidade com template antigo)
+    # 6. Criar dicionário de substituições
     replacements = {
-        # Dados básicos do projeto
-        "[EMPRESA]": empresa_nome,
+        # === IDENTIFICAÇÃO ===
+        "[EMPRESA]": empresa,
+        "[OBJETIVO_ESTANDE]": objetivo,
+        "[NOME_FEIRA]": feira,
+        "[LOCAL_EVENTO]": local_evento,
+        
+        # === DIMENSÕES (dados diretos) ===
         "[LARGURA]": largura,
         "[PROFUNDIDADE]": profundidade,
         "[AREA_TOTAL]": area_total,
-        "[TIPO_STAND]": tipo_stand,
-        "[OBJETIVO_ESTANDE]": objetivo,
         
-        # Layout formatado do esboço
-        "[LAYOUT_AREAS]": formatar_layout_areas(layout),
+        # === TIPO STAND (interpretado) ===
+        "[TIPO_STAND]": interpretar_tipo_stand(tipo_stand),
         
-        # Design visual das referências
+        # === LAYOUT (formatado do JSON) ===
+        "[LAYOUT_AREAS_DETALHADO]": formatar_layout_areas_detalhado(layout),
+        "[LADOS_ABERTOS]": formatar_lados_abertos(layout),
+        "[AREAS_INTERNAS_LISTA]": extrair_areas_por_categoria(layout, 'interna'),
+        "[AREAS_EXTERNAS_LISTA]": extrair_areas_por_categoria(layout, 'externa'),
+        
+        # === DESIGN (formatado do JSON) ===
+        "[ESTILO_VISUAL]": formatar_estilo(inspiracoes),
         "[CORES_APLICADAS]": formatar_cores_aplicadas(inspiracoes),
-        "[ESTILO_VISUAL]": estilo,
         "[MATERIAIS_DETALHADOS]": formatar_materiais_detalhados(inspiracoes),
         "[ELEMENTOS_DESTAQUE]": formatar_elementos_destaque(inspiracoes),
-        
-        # Especificações técnicas
-        "[TIPO_ESTRUTURA]": tipo_estrutura,
-        "[PISO_ESPECIFICACAO]": piso_spec,
         "[ILUMINACAO_TIPO]": formatar_iluminacao(inspiracoes),
         
-        # Perspectiva da imagem
+        # === ESTRUTURA (interpretado) ===
+        "[TIPO_ESTRUTURA]": interpretar_estrutura(tipo_estrutura),
+        "[PISO_ESPECIFICACAO]": interpretar_piso(piso_elevado),
+        
+        # === PERSPECTIVA ===
         "[LADO_PERSPECTIVA]": determinar_lado_perspectiva(layout),
         
-        # PLACEHOLDERS DO TEMPLATE ANTIGO (para compatibilidade)
-        "[DESCRICAO_EMPRESA]": descricao_empresa[:200] if descricao_empresa else "",
-        "[SETOR]": "cosméticos" if "cosmético" in empresa_nome.lower() else "corporativo",
-        "[SETOR_EMPRESA]": "cosméticos" if "cosmético" in empresa_nome.lower() else "corporativo",
-        "[ALTURA]": "3",
-        "[TIPO]": tipo_stand,
-        "[TIPO_ESTANDE]": tipo_stand,
-        "[POSICIONAMENTO]": "posição estratégica com alta visibilidade",
-        "[AREAS_INTERNAS]": "depósito, workshop",
-        "[AREAS_EXTERNAS]": "área de exposição",
-        "[AREAS_FUNCIONAIS]": "área de exposição principal",
-        "[LISTA_AREAS_INTERNAS]": "depósito, workshop",
-        "[PISO_ELEVADO]": piso_elevado,
-        "[ALTURA_PISO]": "3" if "3cm" in piso_spec else "0",
-        "[MATERIAL_PISO]": "carpete",
-        "[TIPO_TESTEIRA]": "reta",
-        "[MATERIAL_TESTEIRA]": "acrílico iluminado com logo",
-        "[ALTURA_DIVISORIAS]": "2.5",
-        "[REFERENCIAS]": f"Estilo {estilo}",
-        "[CONCEITO_INTEGRADO]": f"Estande {estilo} para {empresa_nome}",
+        # === OUTROS CAMPOS DO TEMPLATE ===
         "[LARGURA_CIRCULACAO]": "1.5",
-        "[TIPO_PISO]": "elevado" if "elevado" in piso_elevado.lower() else "nivelado",
-        "[ELEVACAO_PISO]": piso_elevado,
-        "[TIPO_ILUMINACAO]": formatar_iluminacao(inspiracoes),
-        "[CORES_PRINCIPAIS]": formatar_cores_aplicadas(inspiracoes).replace("\n", ", ").replace("• ", ""),
-        "[MATERIAIS_PRINCIPAIS]": formatar_materiais_detalhados(inspiracoes).replace("\n", ", ").replace("• ", ""),
-        "[LISTA_MOBILIARIO]": "balcão recepção, expositores, mesas",
-        "[LISTA_EQUIPAMENTOS]": "TVs LED, tablets",
-        "[ELEMENTOS_DECORATIVOS]": formatar_elementos_destaque(inspiracoes).replace("\n", ", ").replace("• ", ""),
-        "[CARACTERISTICAS_ESPECIFICAS]": estilo,
+        "[CONCEITO_DESIGN]": formatar_estilo(inspiracoes),
+        "[TESTEIRA_SPEC]": "acrílico iluminado com logo",
+        "[MATERIAL_DIVISORIAS]": "MDF com pintura",
+        "[ALTURA_MAXIMA]": "3",
+        "[PONTOS_ELETRICOS]": "distribuídos conforme layout",
+        "[CLIMATIZACAO]": "ar condicionado central",
+        "[SISTEMA_SOM]": "",
+        "[LISTA_MOBILIARIO]": formatar_mobiliario(briefing, layout),
+        "[LISTA_EQUIPAMENTOS]": formatar_equipamentos(briefing),
+        "[DISPLAYS_ESPECIFICOS]": "displays de produtos",
+        "[POSICAO_LOGO]": "testeira frontal",
+        "[SINALIZACAO]": "placas direcionais",
+        "[MATERIAL_GRAFICO]": "banners informativos",
+        "[CAPACIDADES_AREAS]": "",
+        "[OBSERVACOES_ADICIONAIS]": ""
     }
     
-    # 5. Substituir todos os placeholders
+    # 7. Substituir todos os placeholders
     prompt_final = template
     for placeholder, valor in replacements.items():
-        if placeholder in prompt_final:
+        if valor:  # Só substitui se tem valor
             prompt_final = prompt_final.replace(placeholder, str(valor))
+        else:
+            prompt_final = prompt_final.replace(placeholder, "")
     
-    # 6. Verificar placeholders não substituídos (debug)
-    placeholders_restantes = re.findall(r'\[[A-Z_]+\]', prompt_final)
-    if placeholders_restantes:
-        logger.warning(f"Placeholders não substituídos: {set(placeholders_restantes)}")
+    # 8. Limpar linhas com placeholders não substituídos
+    linhas = prompt_final.split('\n')
+    linhas_limpas = []
     
-    logger.info(f"Prompt final gerado: {len(prompt_final)} caracteres")
+    for linha in linhas:
+        # Se a linha tem placeholder não substituído, pular
+        if re.search(r'\[[A-Z_]+\]', linha):
+            continue
+        # Manter linhas com conteúdo
+        if linha.strip():
+            linhas_limpas.append(linha)
+    
+    prompt_final = '\n'.join(linhas_limpas)
+    
+    # 9. Limpar espaçamentos múltiplos
+    prompt_final = re.sub(r'\n{3,}', '\n\n', prompt_final)
+    prompt_final = prompt_final.strip()
+    
+    # 10. Log final
+    logger.info(f"Prompt gerado: {len(prompt_final)} caracteres")
     
     return prompt_final
 
