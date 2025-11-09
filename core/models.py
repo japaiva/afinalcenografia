@@ -285,7 +285,26 @@ class Feira(models.Model):
     qa_progresso = models.IntegerField(default=0)
     qa_total = models.IntegerField(default=0)
     qa_mensagem_erro = models.TextField(blank=True, null=True)
-    
+
+    # Regras estruturadas para validação de Planta Baixa
+    regras_planta_baixa = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="Regras Estruturadas para Planta Baixa",
+        help_text="Dados extraídos do manual para validação automática de plantas"
+    )
+
+    regras_extraidas = models.BooleanField(
+        default=False,
+        verbose_name="Regras Extraídas",
+        help_text="Indica se as regras já foram processadas e estruturadas"
+    )
+
+    data_extracao_regras = models.DateTimeField(
+        blank=True, null=True,
+        verbose_name="Data de Extração das Regras"
+    )
+
     # Controle de alterações
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)

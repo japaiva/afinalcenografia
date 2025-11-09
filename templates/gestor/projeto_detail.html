@@ -554,6 +554,9 @@
         <div class="card-body">
           <div class="d-grid gap-2">
             {% if projeto.has_briefing %}
+              <a href="{% url 'gestor:planta_baixa_wizard' projeto_id=projeto.id %}" class="btn btn-primary">
+                <i class="fas fa-drafting-compass me-2"></i> Planta Baixa
+              </a>
               <a href="{% url 'gestor:conceito_visual' projeto_id=projeto.id %}" class="btn btn-primary">
                 <i class="fas fa-paint-brush me-2"></i> Conceito Visual
               </a>

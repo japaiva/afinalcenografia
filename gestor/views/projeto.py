@@ -27,7 +27,7 @@ def projeto_list(request):
     """
     Lista de todos os projetos para o gestor com filtros avançados
     """
-    projetos_list = Projeto.objects.all().order_by('-created_at')
+    projetos_list = Projeto.objects.select_related('empresa', 'feira').order_by('-created_at')
     
     # Filtros aprimorados
     status = request.GET.get('status')

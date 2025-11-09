@@ -27,6 +27,22 @@ from .conceito_visual import (
     conceito_etapa3_geracao
 ) # These are in conceito_visual.py
 
+# Imports da Planta Baixa
+from .planta_baixa import (
+    planta_baixa_wizard,
+    planta_etapa1_analisar,
+    planta_etapa2_estruturar,
+    planta_etapa3_validar,
+    planta_etapa4_gerar_svg,
+    planta_executar_todas
+) # These are in planta_baixa.py
+
+# Imports do Ajuste Conversacional da Planta Baixa
+from .planta_baixa_ajuste_view import (
+    AjusteConversacionalView,
+    AplicarAjustesView
+) # These are in planta_baixa_ajuste_view.py
+
 # Imports dos arquivos de feira
 from .feira import (
     feira_list, feira_create, feira_update, feira_toggle_status, feira_detail,
@@ -110,6 +126,18 @@ __all__ = [
     'conceito_etapa1_esboco',
     'conceito_etapa2_referencias',
     'conceito_etapa3_geracao',
+
+    # Planta Baixa
+    'planta_baixa_wizard',
+    'planta_etapa1_analisar',
+    'planta_etapa2_estruturar',
+    'planta_etapa3_validar',
+    'planta_etapa4_gerar_svg',
+    'planta_executar_todas',
+
+    # Planta Baixa - Ajuste Conversacional
+    'AjusteConversacionalView',
+    'AplicarAjustesView',
 
     # Mensagens
     'mensagens', 'nova_mensagem', 'mensagens_projeto', 'limpar_mensagens' # From mensagens.py

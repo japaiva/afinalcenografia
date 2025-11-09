@@ -45,7 +45,7 @@ def projeto_list(request):
     search = request.GET.get('search')
     
     # Base query
-    projetos_list = Projeto.objects.filter(empresa=empresa).order_by('-created_at')
+    projetos_list = Projeto.objects.filter(empresa=empresa).select_related('feira').order_by('-created_at')
     
     # Aplica filtros se fornecidos
     if status and status != 'todos':
@@ -372,7 +372,7 @@ class ProjetoListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         # Filtra projetos da empresa do usuário logado
-        queryset = Projeto.objects.filter(empresa=self.request.user.empresa).order_by('-created_at')
+        queryset = Projeto.objects.filter(empresa=self.request.user.empresa).select_related('feira').order_by('-created_at')
         
         # Aplica filtros adicionais
         status = self.request.GET.get('status')

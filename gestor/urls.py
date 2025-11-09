@@ -92,8 +92,20 @@ urlpatterns = [
     # Conceito Visual
     path('projeto/<int:projeto_id>/conceito-visual/', views.conceito_visual, name='conceito_visual'),
     path('projeto/<int:projeto_id>/conceito-visual/etapa1/', views.conceito_etapa1_esboco, name='conceito_etapa1'),
-    path('projeto/<int:projeto_id>/conceito-visual/etapa2/', views.conceito_etapa2_referencias, name='conceito_etapa2'),  
+    path('projeto/<int:projeto_id>/conceito-visual/etapa2/', views.conceito_etapa2_referencias, name='conceito_etapa2'),
     path('projeto/<int:projeto_id>/conceito-visual/etapa3/', views.conceito_etapa3_geracao, name='conceito_etapa3'),
+
+    # Planta Baixa
+    path('projeto/<int:projeto_id>/planta-baixa/', views.planta_baixa_wizard, name='planta_baixa_wizard'),
+    path('projeto/<int:projeto_id>/planta-baixa/etapa1/', views.planta_etapa1_analisar, name='planta_etapa1'),
+    path('projeto/<int:projeto_id>/planta-baixa/etapa2/', views.planta_etapa2_estruturar, name='planta_etapa2'),
+    path('projeto/<int:projeto_id>/planta-baixa/etapa3/', views.planta_etapa3_validar, name='planta_etapa3'),
+    path('projeto/<int:projeto_id>/planta-baixa/etapa4/', views.planta_etapa4_gerar_svg, name='planta_etapa4'),
+    path('projeto/<int:projeto_id>/planta-baixa/executar-todas/', views.planta_executar_todas, name='planta_executar_todas'),
+
+    # Ajuste Conversacional
+    path('projeto/<int:projeto_id>/planta-baixa/ajustar/', views.AjusteConversacionalView.as_view(), name='planta_ajustar'),
+    path('projeto/<int:projeto_id>/planta-baixa/aplicar-ajustes/', views.AplicarAjustesView.as_view(), name='planta_aplicar_ajustes'),
 
     # =================================================================
     # SISTEMA DE MENSAGENS

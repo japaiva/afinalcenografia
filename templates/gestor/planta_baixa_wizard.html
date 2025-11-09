@@ -1,0 +1,1019 @@
+<!-- templates/gestor/planta_baixa_wizard.html -->
+{% extends 'gestor/base_gestor.html' %}
+{% load formatadores %}
+
+{% block title %}Planta Baixa - {{ projeto.nome }} | Portal do Gestor{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+  <!-- CABEÇALHO -->
+  <div class="card shadow mb-4">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center">
+        <i class="fas fa-drafting-compass me-2"></i>
+        <h4 class="mb-0">Planta Baixa - {{ projeto.nome }}</h4>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-success" onclick="executarProcessoCompleto()" id="btn-executar-tudo">
+          <i class="fas fa-play-circle me-1"></i> Executar Tudo
+        </button>
+        <a href="{% url 'gestor:projeto_detail' pk=projeto.id %}" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-1"></i> Voltar
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- COLUNA ESQUERDA -->
+    <div class="col-md-8">
+
+      <!-- ETAPA 1: ANÁLISE DO ESBOÇO -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <span class="badge bg-white text-primary rounded-circle me-2">1</span>
+            Análise do Esboço
+          </h5>
+          <div class="d-flex gap-2 align-items-center">
+            <span class="badge bg-light text-dark" id="status-badge-1">
+              {% if tem_layout %}Concluído{% else %}Não Executado{% endif %}
+            </span>
+            <button class="btn btn-light btn-sm" onclick="executarEtapa1()" id="btn-etapa1">
+              <i class="fas fa-play text-primary me-1"></i> Executar
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <p class="text-muted">
+            <i class="fas fa-info-circle me-1"></i>
+            Analisa o esboço para identificar tipo de stand, áreas funcionais e layout.
+          </p>
+
+          {% if esbocos %}
+          <div class="mb-3">
+            <p class="fw-bold">{{ esbocos|length }} esboço(s) disponível(is)</p>
+            {% for esboco in esbocos %}
+            <div class="mb-2">
+              <img src="{{ esboco.arquivo.url }}" alt="{{ esboco.nome }}" class="img-thumbnail" style="max-height: 150px;">
+              <p class="small text-muted mb-0">{{ esboco.nome }}</p>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Nenhum esboço de planta disponível. Faça upload no briefing primeiro.
+          </div>
+          {% endif %}
+
+          <!-- Resultado -->
+          <div class="result-container {% if not tem_layout %}d-none{% endif %}" id="result-1">
+            <div class="alert alert-success">
+              <i class="fas fa-check-circle me-2"></i> Layout identificado com sucesso
+            </div>
+
+            <button class="btn btn-sm btn-outline-secondary mb-2" onclick="toggleJson('layout-json-container')">
+              <i class="fas fa-code me-1"></i> Ver Detalhes Técnicos
+            </button>
+
+            <div id="layout-json-container" class="d-none">
+              <h6 class="fw-bold">Layout Identificado:</h6>
+              <pre class="bg-light p-3 rounded small" id="layout-json" style="max-height: 400px; overflow-y: auto;">{% if projeto.layout_identificado %}{{ projeto.layout_identificado|safe }}{% endif %}</pre>
+            </div>
+          </div>
+
+          <!-- Loading -->
+          <div class="text-center d-none" id="loading-1">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Processando...</span>
+            </div>
+            <p class="mt-2 text-muted">Analisando esboço com IA... Isso pode levar alguns segundos.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ETAPA 2: ESTRUTURAÇÃO -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <span class="badge bg-white text-info rounded-circle me-2">2</span>
+            Estruturação da Planta
+          </h5>
+          <div class="d-flex gap-2 align-items-center">
+            <span class="badge bg-light text-dark" id="status-badge-2">
+              {% if tem_planta_json %}Concluído{% else %}Não Executado{% endif %}
+            </span>
+            <button class="btn btn-light btn-sm" onclick="executarEtapa2()" id="btn-etapa2">
+              <i class="fas fa-play text-info me-1"></i> Executar
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <p class="text-muted">
+            <i class="fas fa-info-circle me-1"></i>
+            Transforma o layout em planta técnica com coordenadas precisas.
+          </p>
+
+          <div class="alert alert-info" id="prerequisitos-2">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <strong>Pré-requisito:</strong> Execute a Etapa 1 primeiro.
+          </div>
+
+          <!-- Resultado -->
+          <div class="result-container {% if not tem_planta_json %}d-none{% endif %}" id="result-2">
+            <div class="alert alert-success">
+              <i class="fas fa-check-circle me-2"></i> Planta estruturada com sucesso
+            </div>
+
+            <button class="btn btn-sm btn-outline-secondary mb-2" onclick="toggleJson('planta-json-container')">
+              <i class="fas fa-code me-1"></i> Ver Detalhes Técnicos
+            </button>
+
+            <div id="planta-json-container" class="d-none">
+              <h6 class="fw-bold">Planta Estruturada:</h6>
+              <pre class="bg-light p-3 rounded small" id="planta-json" style="max-height: 400px; overflow-y: auto;">{% if projeto.planta_baixa_json %}{{ projeto.planta_baixa_json|safe }}{% endif %}</pre>
+            </div>
+          </div>
+
+          <!-- Loading -->
+          <div class="text-center d-none" id="loading-2">
+            <div class="spinner-border text-info" role="status">
+              <span class="visually-hidden">Processando...</span>
+            </div>
+            <p class="mt-2 text-muted">Estruturando planta com coordenadas...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ETAPA 3: VALIDAÇÃO -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <span class="badge bg-white text-warning rounded-circle me-2">3</span>
+            Validação de Conformidade
+          </h5>
+          <div class="d-flex gap-2 align-items-center">
+            <span class="badge bg-light text-dark" id="status-badge-3">Não Executado</span>
+            <button class="btn btn-light btn-sm" onclick="executarEtapa3()" id="btn-etapa3">
+              <i class="fas fa-play text-warning me-1"></i> Executar
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <p class="text-muted">
+            <i class="fas fa-info-circle me-1"></i>
+            Valida a planta contra regras da feira e normas de segurança.
+          </p>
+
+          <div class="alert alert-info" id="prerequisitos-3">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <strong>Pré-requisito:</strong> Execute a Etapa 2 primeiro.
+          </div>
+
+          <!-- Resultado -->
+          <div class="result-container d-none" id="result-3">
+            <div class="alert" id="validacao-status">
+              <i class="fas fa-check-circle me-2"></i> <span id="validacao-msg"></span>
+            </div>
+
+            <button class="btn btn-sm btn-outline-secondary mb-2" onclick="toggleJson('validacao-json-container')">
+              <i class="fas fa-code me-1"></i> Ver Detalhes Técnicos
+            </button>
+
+            <div id="validacao-json-container" class="d-none">
+              <h6 class="fw-bold">Resultado da Validação:</h6>
+              <pre class="bg-light p-3 rounded small" id="validacao-json" style="max-height: 400px; overflow-y: auto;"></pre>
+            </div>
+          </div>
+
+          <!-- Loading -->
+          <div class="text-center d-none" id="loading-3">
+            <div class="spinner-border text-warning" role="status">
+              <span class="visually-hidden">Processando...</span>
+            </div>
+            <p class="mt-2 text-muted">Validando conformidade com regras...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTÃO PARA AJUSTE FINO (ANTES DO SVG) -->
+      <div class="card shadow mb-4" id="btn-mostrar-ajuste-container" style="display:none;">
+        <div class="card-body text-center py-4 bg-light">
+          <h6 class="mb-2">
+            <i class="fas fa-info-circle text-info me-2"></i>
+            Planta estruturada e validada
+          </h6>
+          <p class="text-muted small mb-3">
+            Precisa fazer ajustes nas dimensões antes de gerar o SVG?
+          </p>
+          <button class="btn btn-outline-info" onclick="mostrarAjusteFino()">
+            <i class="fas fa-sliders-h me-1"></i> Ajustar Dimensões
+          </button>
+        </div>
+      </div>
+
+      <!-- MÓDULO DE AJUSTE CONVERSACIONAL -->
+      <div id="card-ajuste" class="card shadow mb-4" style="display:none;">
+        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">
+            <i class="fas fa-comments me-2"></i> Ajuste Fino das Dimensões
+          </h6>
+          <button class="btn btn-sm btn-light" onclick="fecharAjuste()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="card-body">
+          <!-- Chat -->
+          <div id="chat-ajustes" class="border rounded p-3 mb-3" style="max-height: 300px; overflow-y: auto; background: #f8f9fa;">
+            <!-- Mensagens do chat aparecerão aqui -->
+          </div>
+
+          <!-- Input -->
+          <div class="input-group mb-3">
+            <input type="text" class="form-control" id="input-ajuste"
+                   placeholder="Digite seu ajuste... (Enter para enviar)"
+                   onkeypress="if(event.key==='Enter') enviarAjuste()">
+            <button class="btn btn-primary" onclick="enviarAjuste()">
+              <i class="fas fa-paper-plane me-1"></i> Enviar
+            </button>
+          </div>
+
+          <!-- Botões -->
+          <div class="d-flex justify-content-between">
+            <button class="btn btn-outline-secondary" onclick="limparAjustes()">
+              <i class="fas fa-undo me-1"></i> Limpar Ajustes
+            </button>
+            <button class="btn btn-success" onclick="aplicarAjustesESalvar()" id="btn-aplicar-ajustes">
+              <i class="fas fa-check me-1"></i> Aplicar Ajustes e Continuar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ETAPA 4: GERAÇÃO SVG -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <span class="badge bg-white text-success rounded-circle me-2">4</span>
+            Geração do SVG
+          </h5>
+          <div class="d-flex gap-2 align-items-center">
+            <span class="badge bg-light text-dark" id="status-badge-4">
+              {% if tem_svg %}Concluído{% else %}Não Executado{% endif %}
+            </span>
+            <button class="btn btn-light btn-sm" onclick="executarEtapa4()" id="btn-etapa4">
+              <i class="fas fa-magic text-success me-1"></i> Gerar SVG
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <p class="text-muted">
+            <i class="fas fa-info-circle me-1"></i>
+            Gera a representação visual SVG da planta baixa.
+          </p>
+
+          <div class="alert alert-info" id="prerequisitos-4">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <strong>Pré-requisito:</strong> Execute a Etapa 2 primeiro (Etapa 3 é opcional).
+          </div>
+
+          <!-- Resultado SVG -->
+          <div class="result-container {% if not tem_svg %}d-none{% endif %}" id="result-4">
+            <div class="alert alert-success">
+              <i class="fas fa-check-circle me-2"></i> Planta baixa gerada com sucesso!
+            </div>
+
+            <div class="text-center mb-3">
+              <div id="svg-container" class="border rounded p-3 bg-white">
+                {% if projeto.planta_baixa_svg %}
+                  {{ projeto.planta_baixa_svg|safe }}
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-center gap-3">
+              <button class="btn btn-primary" onclick="baixarSVG()">
+                <i class="fas fa-download me-2"></i> Baixar SVG
+              </button>
+              <button class="btn btn-outline-primary" onclick="verCodigoSVG()">
+                <i class="fas fa-code me-2"></i> Ver Código SVG
+              </button>
+            </div>
+
+            <!-- Modal para código SVG -->
+            <div id="svg-code-container" class="d-none mt-3">
+              <div class="card border-secondary">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                  <span class="fw-bold">Código SVG</span>
+                  <button class="btn btn-sm btn-outline-secondary" onclick="copiarSVG()">
+                    <i class="fas fa-copy me-1"></i> Copiar
+                  </button>
+                </div>
+                <div class="card-body">
+                  <pre class="mb-0" id="svg-code-display" style="white-space: pre-wrap; max-height: 300px; overflow-y: auto;"></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Loading -->
+          <div class="text-center d-none" id="loading-4">
+            <div class="spinner-border text-success" role="status">
+              <span class="visually-hidden">Processando...</span>
+            </div>
+            <p class="mt-2 text-muted">Gerando representação SVG... Isso pode levar alguns segundos.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- COLUNA DIREITA -->
+    <div class="col-md-4">
+      <!-- Status Geral -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0"><i class="fas fa-tasks me-2"></i> Status do Processo</h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span><i class="fas fa-search me-1 text-primary"></i> Análise</span>
+              <span id="status-1" class="badge {% if tem_layout %}bg-success{% else %}bg-secondary{% endif %}">
+                {% if tem_layout %}Concluído{% else %}Pendente{% endif %}
+              </span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span><i class="fas fa-drafting-compass me-1 text-info"></i> Estruturação</span>
+              <span id="status-2" class="badge {% if tem_planta_json %}bg-success{% else %}bg-secondary{% endif %}">
+                {% if tem_planta_json %}Concluído{% else %}Pendente{% endif %}
+              </span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span><i class="fas fa-check-circle me-1 text-warning"></i> Validação</span>
+              <span id="status-3" class="badge bg-secondary">Pendente</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <span><i class="fas fa-image me-1 text-success"></i> SVG</span>
+              <span id="status-4" class="badge {% if tem_svg %}bg-success{% else %}bg-secondary{% endif %}">
+                {% if tem_svg %}Concluído{% else %}Pendente{% endif %}
+              </span>
+            </div>
+          </div>
+
+          <hr>
+
+          <div class="text-center">
+            {% if planta_processada %}
+            <small class="text-success d-block">
+              <i class="fas fa-check-circle me-1"></i> Planta baixa processada
+            </small>
+            <small class="text-muted d-block mt-1">
+              Processada em: {{ projeto.data_planta_baixa|date:"d/m/Y H:i" }}
+            </small>
+            {% else %}
+            <small class="text-muted d-block">
+              Processamento não iniciado
+            </small>
+            {% endif %}
+            <small class="text-muted d-block mt-2">
+              Última atualização: <span id="ultima-atualizacao">{{ projeto.updated_at|date:"H:i:s" }}</span>
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dados do Briefing -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i> Dados do Briefing</h5>
+        </div>
+        <div class="card-body">
+          {% if briefing %}
+          <dl class="row mb-0">
+            <dt class="col-5">Tipo Stand:</dt>
+            <dd class="col-7">{{ briefing.get_tipo_stand_display|default:"Não informado" }}</dd>
+
+            <dt class="col-5">Frente:</dt>
+            <dd class="col-7">
+              {% if briefing.medida_frente %}
+                {{ briefing.medida_frente }}m
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </dd>
+
+            <dt class="col-5">Lateral:</dt>
+            <dd class="col-7">
+              {% if briefing.medida_lateral_esquerda %}
+                {{ briefing.medida_lateral_esquerda }}m
+              {% elif briefing.medida_lateral_direita %}
+                {{ briefing.medida_lateral_direita }}m
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </dd>
+
+            <dt class="col-5">Área:</dt>
+            <dd class="col-7">
+              {% if briefing.area_estande %}
+                {{ briefing.area_estande }}m²
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </dd>
+          </dl>
+          {% else %}
+          <p class="text-muted mb-0">Nenhum briefing disponível</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Informações da Feira -->
+      {% if projeto.feira %}
+      <div class="card shadow">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0"><i class="fas fa-calendar-alt me-2"></i> Feira</h5>
+        </div>
+        <div class="card-body">
+          <h6 class="mb-2">{{ projeto.feira.nome }}</h6>
+          <p class="text-muted small mb-2">
+            {{ projeto.feira.local|default:"Local não informado" }}
+          </p>
+          {% if projeto.feira.data_inicio and projeto.feira.data_fim %}
+          <p class="text-muted small mb-2">
+            <i class="fas fa-clock me-1"></i>
+            {{ projeto.feira.data_inicio|date:"d/m/Y" }} a {{ projeto.feira.data_fim|date:"d/m/Y" }}
+          </p>
+          {% endif %}
+          {% if projeto.feira.manual %}
+          <a href="{{ projeto.feira.manual.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+            <i class="fas fa-file-pdf me-1"></i> Ver Manual
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+// === Estado Global ===
+let resultadoEtapa1 = null;
+let resultadoEtapa2 = null;
+let resultadoEtapa3 = null;
+let resultadoEtapa4 = null;
+let svgAtual = '';
+
+// === CSRF Token ===
+function getCookie(name) {
+  const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+  return match ? decodeURIComponent(match[1]) : '';
+}
+const CSRF_TOKEN = getCookie('csrftoken');
+
+// === Mostrar/Ocultar JSONs ===
+function toggleJson(containerId) {
+  const container = document.getElementById(containerId);
+  const button = event.target.closest('button');
+
+  if (container.classList.contains('d-none')) {
+    container.classList.remove('d-none');
+    button.innerHTML = '<i class="fas fa-eye-slash me-1"></i> Ocultar Detalhes';
+  } else {
+    container.classList.add('d-none');
+    button.innerHTML = '<i class="fas fa-code me-1"></i> Ver Detalhes Técnicos';
+  }
+}
+
+// === ETAPA 1: Análise do Esboço ===
+async function executarEtapa1() {
+  document.getElementById('btn-etapa1').disabled = true;
+  document.getElementById('loading-1').classList.remove('d-none');
+  document.getElementById('result-1').classList.add('d-none');
+  atualizarStatus(1, 'executando');
+
+  try {
+    const response = await fetch(`/gestor/projeto/{{ projeto.id }}/planta-baixa/etapa1/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': CSRF_TOKEN,
+        'Content-Type': 'application/json'
+      },
+      body: '{}'
+    });
+
+    const data = await response.json();
+
+    if (data.sucesso) {
+      resultadoEtapa1 = data;
+      document.getElementById('layout-json').textContent = JSON.stringify(data.layout, null, 2);
+      document.getElementById('result-1').classList.remove('d-none');
+      atualizarStatus(1, 'concluido');
+      verificarPreRequisitos();
+    } else {
+      alert(`Erro na Etapa 1: ${data.erro}`);
+      atualizarStatus(1, 'erro');
+    }
+  } catch (error) {
+    console.error('Erro:', error);
+    alert('Erro ao executar Etapa 1');
+    atualizarStatus(1, 'erro');
+  } finally {
+    document.getElementById('btn-etapa1').disabled = false;
+    document.getElementById('loading-1').classList.add('d-none');
+  }
+}
+
+// === ETAPA 2: Estruturação ===
+async function executarEtapa2() {
+  if (!resultadoEtapa1 && !{{ tem_layout|yesno:"true,false" }}) {
+    alert('Execute a Etapa 1 primeiro!');
+    return;
+  }
+
+  document.getElementById('btn-etapa2').disabled = true;
+  document.getElementById('loading-2').classList.remove('d-none');
+  document.getElementById('result-2').classList.add('d-none');
+  atualizarStatus(2, 'executando');
+
+  try {
+    const response = await fetch(`/gestor/projeto/{{ projeto.id }}/planta-baixa/etapa2/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': CSRF_TOKEN,
+        'Content-Type': 'application/json'
+      },
+      body: '{}'
+    });
+
+    const data = await response.json();
+
+    if (data.sucesso) {
+      resultadoEtapa2 = data;
+      document.getElementById('planta-json').textContent = JSON.stringify(data.planta_estruturada, null, 2);
+      document.getElementById('result-2').classList.remove('d-none');
+      atualizarStatus(2, 'concluido');
+      verificarPreRequisitos();
+
+      // Mostrar opção de ajuste fino antes da Etapa 4
+      document.getElementById('btn-mostrar-ajuste-container').style.display = 'block';
+    } else {
+      alert(`Erro na Etapa 2: ${data.erro}`);
+      atualizarStatus(2, 'erro');
+    }
+  } catch (error) {
+    console.error('Erro:', error);
+    alert('Erro ao executar Etapa 2');
+    atualizarStatus(2, 'erro');
+  } finally {
+    document.getElementById('btn-etapa2').disabled = false;
+    document.getElementById('loading-2').classList.add('d-none');
+  }
+}
+
+// === ETAPA 3: Validação ===
+async function executarEtapa3() {
+  if (!resultadoEtapa2 && !{{ tem_planta_json|yesno:"true,false" }}) {
+    alert('Execute a Etapa 2 primeiro!');
+    return;
+  }
+
+  document.getElementById('btn-etapa3').disabled = true;
+  document.getElementById('loading-3').classList.remove('d-none');
+  document.getElementById('result-3').classList.add('d-none');
+  atualizarStatus(3, 'executando');
+
+  try {
+    const response = await fetch(`/gestor/projeto/{{ projeto.id }}/planta-baixa/etapa3/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': CSRF_TOKEN,
+        'Content-Type': 'application/json'
+      },
+      body: '{}'
+    });
+
+    const data = await response.json();
+
+    if (data.sucesso) {
+      resultadoEtapa3 = data;
+
+      // Determinar status da validação
+      const validacao = data.validacao;
+      const statusElement = document.getElementById('validacao-status');
+      const msgElement = document.getElementById('validacao-msg');
+
+      if (validacao.validacao_geral && validacao.validacao_geral.aprovado) {
+        statusElement.className = 'alert alert-success';
+        msgElement.textContent = 'Planta aprovada!';
+      } else {
+        statusElement.className = 'alert alert-warning';
+        msgElement.textContent = 'Planta com avisos ou necessita ajustes';
+      }
+
+      document.getElementById('validacao-json').textContent = JSON.stringify(validacao, null, 2);
+      document.getElementById('result-3').classList.remove('d-none');
+      atualizarStatus(3, 'concluido');
+    } else {
+      alert(`Erro na Etapa 3: ${data.erro}`);
+      atualizarStatus(3, 'erro');
+    }
+  } catch (error) {
+    console.error('Erro:', error);
+    alert('Erro ao executar Etapa 3');
+    atualizarStatus(3, 'erro');
+  } finally {
+    document.getElementById('btn-etapa3').disabled = false;
+    document.getElementById('loading-3').classList.add('d-none');
+  }
+}
+
+// === ETAPA 4: Geração SVG ===
+async function executarEtapa4() {
+  if (!resultadoEtapa2 && !{{ tem_planta_json|yesno:"true,false" }}) {
+    alert('Execute a Etapa 2 primeiro!');
+    return;
+  }
+
+  document.getElementById('btn-etapa4').disabled = true;
+  document.getElementById('loading-4').classList.remove('d-none');
+  document.getElementById('result-4').classList.add('d-none');
+  atualizarStatus(4, 'executando');
+
+  try {
+    const body = resultadoEtapa3 ? JSON.stringify({ validacao: resultadoEtapa3.validacao }) : '{}';
+
+    const response = await fetch(`/gestor/projeto/{{ projeto.id }}/planta-baixa/etapa4/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': CSRF_TOKEN,
+        'Content-Type': 'application/json'
+      },
+      body: body
+    });
+
+    const data = await response.json();
+
+    if (data.sucesso) {
+      resultadoEtapa4 = data;
+      svgAtual = data.svg;
+
+      // Renderizar SVG
+      document.getElementById('svg-container').innerHTML = data.svg;
+      document.getElementById('svg-code-display').textContent = data.svg;
+
+      document.getElementById('result-4').classList.remove('d-none');
+      atualizarStatus(4, 'concluido');
+    } else {
+      alert(`Erro na Etapa 4: ${data.erro}`);
+      atualizarStatus(4, 'erro');
+    }
+  } catch (error) {
+    console.error('Erro:', error);
+    alert('Erro ao executar Etapa 4');
+    atualizarStatus(4, 'erro');
+  } finally {
+    document.getElementById('btn-etapa4').disabled = false;
+    document.getElementById('loading-4').classList.add('d-none');
+  }
+}
+
+// === Processo Completo ===
+async function executarProcessoCompleto() {
+  if (!confirm('Executar todas as etapas em sequência?')) return;
+
+  document.getElementById('btn-executar-tudo').disabled = true;
+
+  try {
+    // Etapa 1
+    if (!resultadoEtapa1 && !{{ tem_layout|yesno:"true,false" }}) {
+      await executarEtapa1();
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    // Etapa 2
+    if (!resultadoEtapa2 && !{{ tem_planta_json|yesno:"true,false" }}) {
+      await executarEtapa2();
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    // Etapa 3
+    if (resultadoEtapa2 || {{ tem_planta_json|yesno:"true,false" }}) {
+      await executarEtapa3();
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    // Etapa 4
+    if (resultadoEtapa2 || {{ tem_planta_json|yesno:"true,false" }}) {
+      await executarEtapa4();
+    }
+  } finally {
+    document.getElementById('btn-executar-tudo').disabled = false;
+  }
+}
+
+// === Funções Auxiliares ===
+function atualizarStatus(etapa, status) {
+  const badge = document.getElementById(`status-${etapa}`);
+  const statusBadge = document.getElementById(`status-badge-${etapa}`);
+
+  const configs = {
+    'pendente': { class: 'bg-secondary', text: 'Pendente' },
+    'executando': { class: 'bg-warning text-dark', text: 'Executando' },
+    'concluido': { class: 'bg-success', text: 'Concluído' },
+    'erro': { class: 'bg-danger', text: 'Erro' }
+  };
+
+  const config = configs[status] || configs['pendente'];
+
+  [badge, statusBadge].forEach(el => {
+    if (el) {
+      el.className = `badge ${config.class}`;
+      el.textContent = config.text;
+    }
+  });
+
+  // Atualizar timestamp
+  document.getElementById('ultima-atualizacao').textContent = new Date().toLocaleTimeString();
+}
+
+function verificarPreRequisitos() {
+  // Habilitar etapa 2 se etapa 1 concluída
+  if (resultadoEtapa1 || {{ tem_layout|yesno:"true,false" }}) {
+    document.getElementById('prerequisitos-2').classList.add('d-none');
+  }
+
+  // Habilitar etapas 3 e 4 se etapa 2 concluída
+  if (resultadoEtapa2 || {{ tem_planta_json|yesno:"true,false" }}) {
+    document.getElementById('prerequisitos-3').classList.add('d-none');
+    document.getElementById('prerequisitos-4').classList.add('d-none');
+  }
+}
+
+function baixarSVG() {
+  if (!svgAtual) {
+    alert('Nenhum SVG disponível para download');
+    return;
+  }
+
+  const blob = new Blob([svgAtual], { type: 'image/svg+xml' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `planta_baixa_${new Date().getTime()}.svg`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}
+
+function verCodigoSVG() {
+  const container = document.getElementById('svg-code-container');
+  container.classList.toggle('d-none');
+}
+
+function copiarSVG() {
+  const svg = document.getElementById('svg-code-display').textContent;
+  navigator.clipboard.writeText(svg).then(() => {
+    alert('Código SVG copiado para a área de transferência!');
+  });
+}
+
+// ========================================
+// AJUSTE CONVERSACIONAL
+// ========================================
+
+let ajustesPendentes = [];
+let layoutParaAjuste = null;
+
+function mostrarAjusteFino() {
+  // Guardar layout atual para ajuste (extrair planta_estruturada do resultado)
+  if (resultadoEtapa2 && resultadoEtapa2.planta_estruturada) {
+    layoutParaAjuste = resultadoEtapa2.planta_estruturada;
+  } else {
+    alert('Execute a Etapa 2 primeiro!');
+    return;
+  }
+
+  // Mostrar módulo de ajuste
+  document.getElementById('card-ajuste').style.display = 'block';
+  document.getElementById('btn-mostrar-ajuste-container').style.display = 'none';
+
+  // Focar input
+  document.getElementById('input-ajuste').focus();
+}
+
+function fecharAjuste() {
+  document.getElementById('card-ajuste').style.display = 'none';
+  document.getElementById('btn-mostrar-ajuste-container').style.display = 'block';
+}
+
+async function enviarAjuste() {
+  const input = document.getElementById('input-ajuste');
+  const comando = input.value.trim();
+
+  if (!comando) return;
+
+  // Adicionar mensagem do usuário
+  adicionarMensagemChat('user', comando);
+  input.value = '';
+  input.disabled = true;
+
+  try {
+    const response = await fetch(`/gestor/projeto/{{projeto.id}}/planta-baixa/ajustar/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({
+        comando: comando,
+        layout_atual: layoutParaAjuste
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.sucesso) {
+      // Mostrar resposta do bot
+      adicionarMensagemChat('bot', data.resposta);
+
+      // Armazenar ajuste
+      if (data.ajuste) {
+        ajustesPendentes.push(data.ajuste);
+      }
+    } else {
+      adicionarMensagemChat('bot', `❌ ${data.erro}`);
+    }
+  } catch (error) {
+    adicionarMensagemChat('bot', `❌ Erro: ${error.message}`);
+  } finally {
+    input.disabled = false;
+    input.focus();
+  }
+}
+
+function adicionarMensagemChat(tipo, mensagem) {
+  const chat = document.getElementById('chat-ajustes');
+
+  const div = document.createElement('div');
+  div.className = `mb-2 ${tipo === 'user' ? 'text-end' : ''}`;
+
+  const badge = tipo === 'user'
+    ? '<span class="badge bg-primary">Você</span>'
+    : '<span class="badge bg-info">🤖 Assistente</span>';
+
+  div.innerHTML = `
+    ${badge}
+    <div class="mt-1 p-2 rounded ${tipo === 'user' ? 'bg-primary text-white ms-auto' : 'bg-white border'}"
+         style="display: inline-block; max-width: 80%; text-align: left;">
+      ${mensagem.replace(/\n/g, '<br>')}
+    </div>
+  `;
+
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function limparAjustes() {
+  ajustesPendentes = [];
+  const chat = document.getElementById('chat-ajustes');
+  chat.innerHTML = '<!-- Mensagens do chat aparecerão aqui -->';
+}
+
+async function aplicarAjustesESalvar() {
+  if (ajustesPendentes.length === 0) {
+    alert('Nenhum ajuste pendente!');
+    return;
+  }
+
+  const btnAplicar = document.getElementById('btn-aplicar-ajustes');
+  btnAplicar.disabled = true;
+  btnAplicar.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Aplicando e salvando...';
+
+  try {
+    // Aplicar ajustes
+    const response = await fetch(`/gestor/projeto/{{projeto.id}}/planta-baixa/aplicar-ajustes/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({
+        ajustes: ajustesPendentes,
+        layout_atual: layoutParaAjuste
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.sucesso) {
+      // Atualizar layout com ajustes
+      layoutParaAjuste = data.layout_ajustado;
+
+      // Atualizar resultadoEtapa2 para que etapa 4 use o layout ajustado
+      if (resultadoEtapa2) {
+        resultadoEtapa2.planta_estruturada = data.layout_ajustado;
+      }
+
+      adicionarMensagemChat('bot', '✅ Ajustes aplicados e salvos! Continuando para geração do SVG...');
+
+      // Aguardar 1 segundo e continuar para Etapa 4
+      setTimeout(async () => {
+        // Esconder módulo de ajuste
+        document.getElementById('card-ajuste').style.display = 'none';
+        document.getElementById('btn-mostrar-ajuste-container').style.display = 'none';
+
+        // Limpar ajustes
+        limparAjustes();
+
+        // Executar Etapa 4
+        await executarEtapa4();
+
+        // Resetar botão
+        btnAplicar.disabled = false;
+        btnAplicar.innerHTML = '<i class="fas fa-check me-1"></i> Aplicar Ajustes e Continuar';
+      }, 1500);
+    } else {
+      adicionarMensagemChat('bot', `❌ ${data.erro}`);
+      btnAplicar.disabled = false;
+      btnAplicar.innerHTML = '<i class="fas fa-check me-1"></i> Aplicar Ajustes e Continuar';
+    }
+  } catch (error) {
+    adicionarMensagemChat('bot', `❌ Erro: ${error.message}`);
+    btnAplicar.disabled = false;
+    btnAplicar.innerHTML = '<i class="fas fa-check me-1"></i> Aplicar Ajustes e Continuar';
+  }
+}
+
+// Helper function para CSRF token
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+// === Inicialização ===
+document.addEventListener('DOMContentLoaded', function() {
+  verificarPreRequisitos();
+
+  // Verificar disponibilidade de esboços
+  {% if not esbocos %}
+    document.getElementById('btn-etapa1').disabled = true;
+    document.getElementById('btn-etapa1').innerHTML = '<i class="fas fa-times me-1"></i> Sem Esboços';
+    document.getElementById('btn-executar-tudo').disabled = true;
+  {% endif %}
+
+  // Se já tem dados salvos, marcar como carregados
+  {% if tem_layout %}
+    resultadoEtapa1 = { sucesso: true };
+  {% endif %}
+  {% if tem_planta_json %}
+    resultadoEtapa2 = { sucesso: true };
+  {% endif %}
+  {% if tem_svg %}
+    svgAtual = `{{ projeto.planta_baixa_svg|escapejs }}`;
+  {% endif %}
+});
+</script>
+
+<style>
+/* Estilos customizados */
+.badge.rounded-circle {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+#svg-container {
+  overflow: auto;
+  max-height: 600px;
+}
+
+#svg-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.result-container pre {
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+</style>
+{% endblock %}

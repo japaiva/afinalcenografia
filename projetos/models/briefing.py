@@ -276,10 +276,16 @@ class Briefing(models.Model):
     validado_por_ia = models.BooleanField(default=False, verbose_name="Validado por IA")
 
     class Meta:
+        db_table = 'briefings'
         unique_together = ('projeto', 'versao')
         ordering = ['projeto', '-versao']
         verbose_name = 'Briefing'
         verbose_name_plural = 'Briefings'
+        indexes = [
+            models.Index(fields=['projeto', '-updated_at'], name='idx_brief_proj_updated'),
+            models.Index(fields=['status'], name='idx_brief_status'),
+            models.Index(fields=['etapa_atual'], name='idx_brief_etapa'),
+        ]
 
     def save(self, *args, **kwargs):
         # Versão incremental

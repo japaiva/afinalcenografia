@@ -1,10 +1,5 @@
 from django.urls import path
 from cliente.views import briefing as briefing_views
-from projetos.views.briefing_views import (
-    limpar_conversas_briefing, perguntar_manual,
-    enviar_mensagem_ia
-)
-from cliente.views.briefing import validar_briefing
 from . import views
 
 app_name = 'cliente'
@@ -30,8 +25,6 @@ urlpatterns = [
     path('projetos/<int:pk>/', views.projeto_detail, name='projeto_detail'),
     path('projetos/<int:pk>/editar/', views.projeto_update, name='projeto_update'),
     path('projetos/<int:pk>/excluir/', views.projeto_delete, name='projeto_delete'),
-    path('projeto/<int:projeto_id>/briefing/limpar-conversas/', limpar_conversas_briefing, name='limpar_conversas_briefing'),
-
     # Briefing assistido por IA
     path('projeto/<int:projeto_id>/briefing/iniciar/', briefing_views.iniciar_briefing, name='iniciar_briefing'),
     path('projeto/<int:projeto_id>/briefing/etapa/<int:etapa>/', briefing_views.briefing_etapa, name='briefing_etapa'),
@@ -39,10 +32,10 @@ urlpatterns = [
     path('projeto/<int:projeto_id>/briefing/concluir/', briefing_views.concluir_briefing, name='concluir_briefing'),
     path('projeto/<int:projeto_id>/briefing/salvar-rascunho/', briefing_views.salvar_rascunho_briefing, name='salvar_rascunho_briefing'),
     path('arquivo/<int:arquivo_id>/excluir/', briefing_views.excluir_arquivo_referencia, name='excluir_arquivo_referencia'),
-    path('projeto/<int:projeto_id>/briefing/validar/', validar_briefing, name='validar_briefing'),
-    path('perguntar-manual/', perguntar_manual, name='perguntar_manual'),
-
-    path('projeto/<int:projeto_id>/briefing/mensagem/', enviar_mensagem_ia, name='enviar_mensagem_ia'),
+    path('projeto/<int:projeto_id>/briefing/validar/', briefing_views.validar_briefing, name='validar_briefing'),
+    path('projeto/<int:projeto_id>/briefing/limpar-conversas/', briefing_views.limpar_conversas_briefing, name='limpar_conversas_briefing'),
+    path('perguntar-manual/', briefing_views.perguntar_manual, name='perguntar_manual'),
+    path('projeto/<int:projeto_id>/briefing/mensagem/', briefing_views.enviar_mensagem_ia, name='enviar_mensagem_ia'),
 
     # Sistema de Mensagens
     path('mensagens/', views.mensagens, name='mensagens'),

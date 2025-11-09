@@ -32,14 +32,17 @@ class BriefingEtapa1Form(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
+
+        # Tornar endereco_estande obrigatório
+        self.fields['endereco_estande'].required = True
+
         # Verificar se o projeto é do tipo "outros" para mostrar campos adicionais
         if hasattr(self.instance, 'projeto') and self.instance.projeto and self.instance.projeto.tipo_projeto == 'outros' and not self.instance.feira:
             # Campos serão mostrados
             pass
         else:
             # Ocultar campos adicionais para projetos com feira
-            for field_name in ['nome_evento', 'local_evento', 'organizador_evento', 
+            for field_name in ['nome_evento', 'local_evento', 'organizador_evento',
                                'data_horario_evento', 'periodo_montagem_evento', 'periodo_desmontagem_evento']:
                 self.fields[field_name].widget = forms.HiddenInput()
                 self.fields[field_name].required = False

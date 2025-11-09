@@ -813,18 +813,22 @@ def run_agent(nome_agente: str, payload: Dict[str, Any], imagens: Optional[List[
     logger.info(f"[EXECUTOR] Imagens: {len(imagens) if imagens else 0} arquivos")
     
     try:
-        # Buscar agente no banco
-        agente = Agente.objects.get(nome=nome_agente, tipo="individual", ativo=True)
-        logger.info(f"[EXECUTOR] Agente encontrado: {agente.nome} (ID: {agente.id}, Modelo: {agente.llm_model})")
+        # Buscar agente no banco (aceita tanto 'individual' quanto 'crew_member')
+        agente = Agente.objects.get(nome=nome_agente, ativo=True)
+        logger.info(f"[EXECUTOR] Agente encontrado: {agente.nome} (ID: {agente.id}, Tipo: {agente.tipo}, Modelo: {agente.llm_model})")
         
         # Importar o serviço de agentes
-        from ..services.agente_service import AgenteService
+        from ..services.agente_executor import AgenteService
         
-        # O prompt deve vir no payload ou ser construído fora do executor
-        prompt_usuario = payload.get('prompt') or _build_default_prompt(payload)
-        
+        # O prompt deve vir no payload ou ser construído usando task_instructions do agente
+        if 'prompt' in payload and payload['prompt']:
+            prompt_usuario = payload['prompt']
+        else:
+            # Usar task_instructions do agente como template
+            prompt_usuario = _build_prompt_from_template(agente, payload)
+
         if not prompt_usuario:
-            raise ValueError("Payload deve conter 'prompt' ou dados suficientes para gerar prompt")
+            raise ValueError("Não foi possível gerar prompt para o agente")
         
         logger.info(f"[EXECUTOR] Prompt (primeiros 200 chars): {prompt_usuario[:200]}...")
         
@@ -861,29 +865,68 @@ def run_agent(nome_agente: str, payload: Dict[str, Any], imagens: Optional[List[
         logger.error(f"[EXECUTOR] Erro na execução: {str(e)}", exc_info=True)
         raise RuntimeError(f"Falha na execução do agente: {str(e)}")
 
-def _build_default_prompt(payload: Dict[str, Any]) -> str:
+def _build_prompt_from_template(agente: Agente, payload: Dict[str, Any]) -> str:
     """
-    Constrói um prompt básico se não foi fornecido explicitamente.
-    Esta função é apenas um fallback - o ideal é que o prompt venha no payload.
+    Constrói prompt usando as task_instructions do agente como template.
+    Substitui placeholders {campo} pelos valores do payload.
+
+    Args:
+        agente: Instância do agente
+        payload: Dados para substituir no template
+
+    Returns:
+        Prompt formatado com os dados do payload
     """
-    logger.warning("[EXECUTOR] Construindo prompt padrão - recomenda-se enviar prompt explícito")
-    
+    logger.info("[EXECUTOR] Construindo prompt a partir do template do agente")
+
+    # Usar task_instructions como base
+    template = agente.task_instructions or ""
+
+    if not template:
+        logger.warning("[EXECUTOR] Agente sem task_instructions, usando prompt básico")
+        return _build_fallback_prompt(payload)
+
+    # Construir dados de entrada formatados
+    prompt_final = template + "\n\n**DADOS DE ENTRADA:**\n\n"
+
+    # Adicionar dados do payload de forma estruturada
+    for key, value in payload.items():
+        if key == 'prompt':
+            continue  # Pular se já tem prompt
+
+        if isinstance(value, dict):
+            prompt_final += f"**{key.upper()}:**\n{json.dumps(value, indent=2, ensure_ascii=False)}\n\n"
+        elif isinstance(value, (list, tuple)):
+            prompt_final += f"**{key.upper()}:**\n{json.dumps(value, indent=2, ensure_ascii=False)}\n\n"
+        else:
+            prompt_final += f"**{key.upper()}:** {value}\n\n"
+
+    logger.info(f"[EXECUTOR] Prompt construído: {len(prompt_final)} chars")
+    return prompt_final
+
+
+def _build_fallback_prompt(payload: Dict[str, Any]) -> str:
+    """
+    Fallback: constrói um prompt básico se não foi fornecido explicitamente.
+    """
+    logger.warning("[EXECUTOR] Usando prompt de fallback")
+
     # Prompt genérico baseado no payload
     prompt_parts = []
-    
+
     if payload.get('projeto_id'):
         prompt_parts.append(f"Projeto ID: {payload['projeto_id']}")
-    
+
     if payload.get('instrucoes'):
         prompt_parts.append(f"Instruções: {payload['instrucoes']}")
-    
+
     if payload.get('dados'):
         prompt_parts.append(f"Dados para análise: {json.dumps(payload['dados'], indent=2)}")
-    
+
     if not prompt_parts:
         # Último recurso
         prompt_parts.append(f"Processar dados: {json.dumps(payload, indent=2)}")
-    
+
     return "\n\n".join(prompt_parts)
 
 

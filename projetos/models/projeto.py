@@ -132,6 +132,29 @@ class Projeto(models.Model):
         verbose_name="Data da Análise Visual"
     )
 
+    # Planta Baixa (gerada em 4 etapas)
+    planta_baixa_json = models.JSONField(
+        default=dict, blank=True,
+        verbose_name="Planta Baixa Estruturada",
+        help_text="Dados estruturados da planta baixa (layout, áreas, dimensões)"
+    )
+
+    planta_baixa_svg = models.TextField(
+        blank=True, null=True,
+        verbose_name="Representação SVG da Planta",
+        help_text="Desenho técnico em formato SVG para visualização"
+    )
+
+    planta_baixa_processada = models.BooleanField(
+        default=False,
+        verbose_name="Planta Baixa Processada"
+    )
+
+    data_planta_baixa = models.DateTimeField(
+        blank=True, null=True,
+        verbose_name="Data de Geração da Planta Baixa"
+    )
+
     # Campos para métricas
     tempo_projeto = models.DurationField(
         blank=True, null=True, verbose_name="Tempo de Projeto",
@@ -169,6 +192,12 @@ class Projeto(models.Model):
         verbose_name = 'Projeto'
         verbose_name_plural = 'Projetos'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['empresa', '-created_at'], name='idx_proj_emp_created'),
+            models.Index(fields=['status'], name='idx_proj_status'),
+            models.Index(fields=['feira'], name='idx_proj_feira'),
+            models.Index(fields=['tipo_projeto'], name='idx_proj_tipo'),
+        ]
 
     def definir_status_inicial(self):
         if self.tipo_projeto == 'feira_negocios':
