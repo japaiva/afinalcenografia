@@ -187,16 +187,22 @@
                 <i class="fas fa-info-circle me-1"></i>
                 Edite o prompt se desejar ajustar a geração da imagem
               </small>
-              <button class="btn btn-sm btn-outline-secondary" onclick="resetarPrompt()">
-                <i class="fas fa-undo me-1"></i> Resetar Prompt
-              </button>
+              <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-secondary" onclick="resetarPrompt()">
+                  <i class="fas fa-undo me-1"></i> Resetar Prompt
+                </button>
+                <!-- NOVO BOTÃO: Regenerar com prompt editado -->
+                <button class="btn btn-sm btn-warning d-none" id="btn-regenerar-prompt" onclick="regenerarComPromptEditado()">
+                  <i class="fas fa-sync me-1"></i> Regenerar com Este Prompt
+                </button>
+              </div>
             </div>
           </div>
 
           <!-- Resultado da Imagem -->
           <div class="result-container d-none" id="result-3">
             <div class="alert alert-success mb-3">
-              <i class="fas fa-check-circle me-2"></i> Conceito visual gerado com sucesso!
+              <i class="fas fa-check-circle me-2"></i> <span id="msg-sucesso-geracao">Conceito visual gerado com sucesso!</span>
             </div>
             
             <!-- Imagem Gerada -->
@@ -213,8 +219,8 @@
               <button class="btn btn-primary" onclick="mostrarPromptUsado()">
                 <i class="fas fa-code me-2"></i> Ver Prompt Usado
               </button>
-              <button class="btn btn-outline-warning" onclick="regenerarConceito()">
-                <i class="fas fa-redo me-2"></i> Regenerar
+              <button class="btn btn-outline-warning" onclick="editarPromptParaRegenerar()">
+                <i class="fas fa-edit me-2"></i> Editar Prompt
               </button>
             </div>
             
@@ -239,7 +245,7 @@
             <div class="spinner-border text-success" role="status">
               <span class="visually-hidden">Processando...</span>
             </div>
-            <p class="mt-2 text-muted">Gerando conceito visual... Isso pode levar alguns segundos.</p>
+            <p class="mt-2 text-muted" id="loading-3-msg">Gerando conceito visual... Isso pode levar alguns segundos.</p>
           </div>
         </div>
       </div>
@@ -297,8 +303,14 @@
             {% if briefing %}
               <dt class="col-5">Dimensões:</dt>
               <dd class="col-7">
-                {% if briefing.medida_frente and briefing.medida_fundo %}
-                  {{ briefing.medida_frente }}m × {{ briefing.medida_fundo }}m
+                {% if briefing.medida_frente %}
+                  {% if briefing.medida_lateral_esquerda %}
+                    {{ briefing.medida_frente }}m × {{ briefing.medida_lateral_esquerda }}m
+                  {% elif briefing.medida_lateral_direita %}
+                    {{ briefing.medida_frente }}m × {{ briefing.medida_lateral_direita }}m
+                  {% else %}
+                    {{ briefing.medida_frente }}m (frente)
+                  {% endif %}
                 {% else %}
                   <span class="text-muted">Não informado</span>
                 {% endif %}
@@ -377,6 +389,7 @@ let resultadoEtapa1 = null;
 let resultadoEtapa2 = null;
 let resultadoEtapa3 = null;
 let promptOriginal = '';  // Guarda o prompt gerado automaticamente
+let promptAtualUsado = ''; // Guarda o prompt que foi usado na última geração
 
 // === CSRF Token ===
 function getCookie(name) {
@@ -489,7 +502,7 @@ async function executarEtapa2() {
 }
 
 // === ETAPA 3: Geração do Conceito (SIMPLIFICADA) ===
-async function executarEtapa3() {
+async function executarEtapa3(usarPromptEditado = false) {
   // Verificar pré-requisitos
   if (!resultadoEtapa1 || !resultadoEtapa2) {
     alert('Execute as Etapas 1 e 2 primeiro!');
@@ -501,9 +514,20 @@ async function executarEtapa3() {
   
   // UI
   document.getElementById('btn-etapa3').disabled = true;
+  document.getElementById('btn-regenerar-prompt').disabled = true;
   document.getElementById('loading-3').classList.remove('d-none');
   document.getElementById('result-3').classList.add('d-none');
   document.getElementById('prompt-usado-container').classList.add('d-none');
+  
+  // Atualizar mensagem de loading baseado no contexto
+  if (usarPromptEditado && promptAtual) {
+    document.getElementById('loading-3-msg').textContent = 'Regenerando imagem com prompt editado...';
+    document.getElementById('msg-sucesso-geracao').textContent = 'Imagem regenerada com sucesso usando o prompt editado!';
+  } else {
+    document.getElementById('loading-3-msg').textContent = 'Gerando conceito visual... Isso pode levar alguns segundos.';
+    document.getElementById('msg-sucesso-geracao').textContent = 'Conceito visual gerado com sucesso!';
+  }
+  
   atualizarStatus(3, 'executando');
   
   try {
@@ -529,6 +553,7 @@ async function executarEtapa3() {
       document.getElementById('link-download').href = data.download_url || data.image_url;
       
       // Guardar o prompt usado
+      promptAtualUsado = data.prompt_usado;
       document.getElementById('prompt-usado-display').textContent = data.prompt_usado;
       
       // Se não tinha prompt no editor (foi gerado automaticamente), mostrar no editor
@@ -540,6 +565,9 @@ async function executarEtapa3() {
       document.getElementById('result-3').classList.remove('d-none');
       atualizarStatus(3, 'concluido');
       
+      // Detectar mudanças no prompt para mostrar botão de regenerar
+      monitorarMudancasPrompt();
+      
     } else {
       alert(`Erro na Etapa 3: ${data.erro || 'Erro desconhecido'}`);
       atualizarStatus(3, 'erro');
@@ -550,7 +578,49 @@ async function executarEtapa3() {
     atualizarStatus(3, 'erro');
   } finally {
     document.getElementById('btn-etapa3').disabled = false;
+    document.getElementById('btn-regenerar-prompt').disabled = false;
     document.getElementById('loading-3').classList.add('d-none');
+  }
+}
+
+// === Função para regenerar com prompt editado ===
+function regenerarComPromptEditado() {
+  const promptEditado = document.getElementById('prompt-editor').value.trim();
+  
+  if (!promptEditado) {
+    alert('O prompt não pode estar vazio!');
+    return;
+  }
+  
+  if (promptEditado === promptAtualUsado) {
+    alert('O prompt não foi modificado. Edite o prompt antes de regenerar.');
+    return;
+  }
+  
+  if (confirm('Regenerar a imagem com o prompt editado?')) {
+    executarEtapa3(true);
+  }
+}
+
+// === Monitorar mudanças no prompt ===
+function monitorarMudancasPrompt() {
+  const editor = document.getElementById('prompt-editor');
+  const btnRegenerar = document.getElementById('btn-regenerar-prompt');
+  
+  // Adicionar evento de input ao editor se ainda não tiver
+  if (!editor.dataset.listenerAdded) {
+    editor.addEventListener('input', function() {
+      const promptAtual = this.value.trim();
+      
+      // Mostrar botão de regenerar se o prompt foi modificado
+      if (promptAtual && promptAtual !== promptAtualUsado) {
+        btnRegenerar.classList.remove('d-none');
+        btnRegenerar.classList.add('pulse-animation'); // Adicionar animação para chamar atenção
+      } else {
+        btnRegenerar.classList.add('d-none');
+      }
+    });
+    editor.dataset.listenerAdded = 'true';
   }
 }
 
@@ -570,15 +640,28 @@ function copiarPrompt() {
 function resetarPrompt() {
   if (promptOriginal) {
     document.getElementById('prompt-editor').value = promptOriginal;
+    document.getElementById('btn-regenerar-prompt').classList.add('d-none');
   } else {
     alert('Execute as etapas 1 e 2 primeiro para gerar o prompt automático.');
   }
 }
 
-function regenerarConceito() {
-  if (confirm('Regenerar conceito visual com o prompt atual?')) {
-    executarEtapa3();
-  }
+function editarPromptParaRegenerar() {
+  // Rolar para o editor de prompt
+  document.getElementById('prompt-section').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  
+  // Focar no editor
+  setTimeout(() => {
+    const editor = document.getElementById('prompt-editor');
+    editor.focus();
+    editor.setSelectionRange(editor.value.length, editor.value.length);
+    
+    // Destacar o botão de regenerar se prompt foi modificado
+    const promptAtual = editor.value.trim();
+    if (promptAtual && promptAtual !== promptAtualUsado) {
+      document.getElementById('btn-regenerar-prompt').classList.remove('d-none');
+    }
+  }, 500);
 }
 
 // === Processo Completo ===
@@ -639,6 +722,9 @@ function verificarPreRequisitos() {
     if (!document.getElementById('prompt-editor').value) {
       document.getElementById('prompt-editor').placeholder = "Clique em 'Gerar Imagem' para criar o prompt automaticamente...";
     }
+    
+    // Adicionar monitor de mudanças
+    monitorarMudancasPrompt();
   }
 }
 
@@ -773,6 +859,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .result-container img {
   cursor: zoom-in;
+}
+
+/* Animação para chamar atenção ao botão de regenerar */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.pulse-animation {
+  animation: pulse 1s ease-in-out 2;
+}
+
+#btn-regenerar-prompt {
+  transition: all 0.3s ease;
+}
+
+#btn-regenerar-prompt:not(.d-none) {
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
 }
 </style>
 {% endblock %}

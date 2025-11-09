@@ -131,7 +131,9 @@ Perspectiva 3/4 fotorrealística."""
     # Dados do briefing com defaults
     if briefing:
         largura = str(briefing.medida_frente or 6)
-        profundidade = str(briefing.medida_fundo or 8)
+        # Usar lateral (priorizar esquerda, depois direita)
+        lateral = briefing.medida_lateral_esquerda or briefing.medida_lateral_direita or 8
+        profundidade = str(lateral)
         area_total = str(briefing.area_estande or 48)
         objetivo = briefing.objetivo_estande or "exposição de produtos"
         tipo_stand = briefing.tipo_stand or "ilha"
@@ -285,13 +287,16 @@ def conceito_etapa1_esboco(request: HttpRequest, projeto_id: int) -> JsonRespons
     esboco = esbocos.first()
     
     # Preparar payload para o agente
+    # Usar lateral (priorizar esquerda, depois direita)
+    lateral = brief.medida_lateral_esquerda or brief.medida_lateral_direita
+
     payload = {
         "projeto_id": projeto.id,
         "briefing_id": brief.id,
         "briefing": {
             "tipo_stand": brief.tipo_stand,
             "medida_frente_m": float(brief.medida_frente) if brief.medida_frente else None,
-            "medida_fundo_m": float(brief.medida_fundo) if brief.medida_fundo else None,
+            "medida_lateral_m": float(lateral) if lateral else None,
             "altura_m": 3.0,
         }
     }
