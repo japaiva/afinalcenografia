@@ -3,9 +3,11 @@ staticfiles/admin/
 staticfiles/rest_framework/
 
 # Virtual Environment
+.claude/
 .venv/
 venv/
 ENV/
+
 
 # Backlog
 z_backlog/
