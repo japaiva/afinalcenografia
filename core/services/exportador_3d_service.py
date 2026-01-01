@@ -168,36 +168,84 @@ class Exportador3DService:
         """Gera mobiliário baseado nos dados da renderização ou planta"""
         count = 0
 
-        # Primeiro, tentar mobiliário da renderização AI
-        if self.renderizacao and self.renderizacao.get('mobiliario'):
-            for movel in self.renderizacao.get('mobiliario', []):
+        # Gerar mobiliário padrão para cada área baseado no tipo
+        for area in self.planta.get('areas', []):
+            tipo_area = area.get('tipo', '').lower()
+            nome_area = area.get('nome', area.get('id', '')).lower()
+            geom = area.get('geometria', {})
+
+            x_base = geom.get('x', 0)
+            z_base = geom.get('y', 0)
+            largura_area = geom.get('largura', 2)
+            prof_area = geom.get('profundidade', 2)
+
+            # Determinar mobiliário baseado no tipo/nome da área
+            moveis_area = self._mobiliario_para_area(tipo_area, nome_area)
+
+            for i, movel_tipo in enumerate(moveis_area):
+                dims = self._dimensoes_padrao(movel_tipo)
+
+                # Posicionar móveis distribuídos na área
+                offset_x = 0.3 + (i % 2) * (largura_area / 2 - 0.5)
+                offset_z = 0.3 + (i // 2) * (prof_area / 2 - 0.5)
+
+                movel = {
+                    'tipo': movel_tipo,
+                    'nome': f'{movel_tipo}_{nome_area}_{i}',
+                    'posicao': {
+                        'x': x_base + offset_x,
+                        'y': 0,
+                        'z': z_base + offset_z
+                    },
+                    'dimensoes': dims
+                }
                 self._criar_movel(movel)
                 count += 1
-            return count
 
-        # Se não tem renderização, extrair mobiliário das áreas da planta
-        for area in self.planta.get('areas', []):
-            elementos = area.get('elementos', [])
-            for elem in elementos:
-                if elem.get('tipo') in ['mesa', 'balcao', 'cadeira', 'sofa', 'vitrine', 'prateleira']:
-                    geom = area.get('geometria', {})
-                    x_base = geom.get('x', 0)
-                    z_base = geom.get('y', 0)
-
-                    movel = {
-                        'tipo': elem.get('tipo'),
-                        'nome': elem.get('nome', elem.get('tipo')),
-                        'posicao': {
-                            'x': x_base + elem.get('posicao', {}).get('x', 0.5),
-                            'y': 0,
-                            'z': z_base + elem.get('posicao', {}).get('y', 0.5)
-                        },
-                        'dimensoes': elem.get('dimensoes', self._dimensoes_padrao(elem.get('tipo')))
-                    }
-                    self._criar_movel(movel)
-                    count += 1
+                logger.debug(f"[3D Export] Móvel gerado para {nome_area}: {movel_tipo}")
 
         return count
+
+    def _mobiliario_para_area(self, tipo: str, nome: str) -> List[str]:
+        """Retorna lista de móveis apropriados para o tipo de área"""
+
+        # Combinar tipo e nome para melhor detecção
+        identificador = f"{tipo} {nome}".lower()
+
+        # Mapear tipos de área para mobiliário
+        if any(x in identificador for x in ['recep', 'atendimento', 'entrada']):
+            return ['balcao', 'cadeira', 'cadeira']
+
+        elif any(x in identificador for x in ['reuniao', 'reunião', 'meeting']):
+            return ['mesa', 'cadeira', 'cadeira', 'cadeira', 'cadeira']
+
+        elif any(x in identificador for x in ['lounge', 'espera', 'estar', 'descanso']):
+            return ['sofa', 'mesa']  # mesa de centro
+
+        elif any(x in identificador for x in ['deposito', 'depósito', 'estoque', 'storage']):
+            return ['prateleira', 'prateleira']
+
+        elif any(x in identificador for x in ['demo', 'demonstr', 'exib', 'exposic', 'mostruario']):
+            return ['vitrine', 'balcao', 'totem']
+
+        elif any(x in identificador for x in ['venda', 'produto', 'comercial']):
+            return ['vitrine', 'balcao', 'prateleira']
+
+        elif any(x in identificador for x in ['cafe', 'café', 'copa', 'cozinha']):
+            return ['balcao', 'cadeira', 'cadeira']
+
+        elif any(x in identificador for x in ['escritorio', 'escritório', 'office', 'trabalho']):
+            return ['mesa', 'cadeira']
+
+        elif any(x in identificador for x in ['tecnologia', 'tech', 'interativ']):
+            return ['totem', 'tv', 'mesa']
+
+        elif any(x in identificador for x in ['palco', 'apresent', 'palestra']):
+            return ['tv']  # tela de apresentação
+
+        else:
+            # Área genérica - adicionar um balcão básico
+            return ['balcao']
 
     def _dimensoes_padrao(self, tipo: str) -> Dict[str, float]:
         """Retorna dimensões padrão para tipos de móveis"""
