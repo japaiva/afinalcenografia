@@ -19,6 +19,149 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 
+# =============================================================================
+# CATÁLOGO DE MOBILIÁRIO PARA STANDS DE FEIRA
+# =============================================================================
+
+CATALOGO_MOVEIS = {
+    # Móvel: {largura, profundidade, altura} em metros
+    'balcao_recepcao': {'largura': 2.0, 'profundidade': 0.6, 'altura': 1.1},
+    'balcao_atendimento': {'largura': 1.5, 'profundidade': 0.5, 'altura': 1.0},
+    'balcao_demonstracao': {'largura': 1.8, 'profundidade': 0.7, 'altura': 0.9},
+    'mesa_reuniao_4': {'largura': 1.4, 'profundidade': 1.4, 'altura': 0.75},
+    'mesa_reuniao_6': {'largura': 2.0, 'profundidade': 1.0, 'altura': 0.75},
+    'mesa_centro': {'largura': 0.8, 'profundidade': 0.8, 'altura': 0.45},
+    'mesa_alta': {'largura': 0.6, 'profundidade': 0.6, 'altura': 1.1},
+    'mesa_trabalho': {'largura': 1.2, 'profundidade': 0.6, 'altura': 0.75},
+    'cadeira': {'largura': 0.5, 'profundidade': 0.5, 'altura': 0.85},
+    'cadeira_alta': {'largura': 0.4, 'profundidade': 0.4, 'altura': 1.0},
+    'poltrona': {'largura': 0.8, 'profundidade': 0.8, 'altura': 0.8},
+    'sofa_2': {'largura': 1.5, 'profundidade': 0.8, 'altura': 0.8},
+    'sofa_3': {'largura': 2.2, 'profundidade': 0.9, 'altura': 0.8},
+    'vitrine': {'largura': 1.0, 'profundidade': 0.4, 'altura': 2.0},
+    'vitrine_baixa': {'largura': 1.2, 'profundidade': 0.5, 'altura': 1.0},
+    'prateleira': {'largura': 1.0, 'profundidade': 0.3, 'altura': 1.8},
+    'estante': {'largura': 1.2, 'profundidade': 0.4, 'altura': 2.0},
+    'totem': {'largura': 0.5, 'profundidade': 0.5, 'altura': 2.0},
+    'totem_touch': {'largura': 0.6, 'profundidade': 0.4, 'altura': 1.6},
+    'tv_parede': {'largura': 1.4, 'profundidade': 0.1, 'altura': 0.8},
+    'tv_pedestal': {'largura': 0.6, 'profundidade': 0.6, 'altura': 1.8},
+    'banner': {'largura': 0.8, 'profundidade': 0.3, 'altura': 2.0},
+    'expositor': {'largura': 0.8, 'profundidade': 0.8, 'altura': 1.2},
+    'frigobar': {'largura': 0.5, 'profundidade': 0.5, 'altura': 0.85},
+    'cafeteira_estrutura': {'largura': 0.8, 'profundidade': 0.5, 'altura': 0.9},
+    'lixeira': {'largura': 0.3, 'profundidade': 0.3, 'altura': 0.7},
+    'vaso_planta': {'largura': 0.4, 'profundidade': 0.4, 'altura': 1.2},
+}
+
+# Configuração de mobiliário por tipo de área
+# posicao: 'centro', 'frente', 'fundo', 'esquerda', 'direita', 'canto_XX'
+LAYOUT_AREAS = {
+    'recepcao': {
+        'moveis': [
+            {'tipo': 'balcao_recepcao', 'posicao': 'centro_frente', 'rotacao': 0},
+            {'tipo': 'cadeira_alta', 'posicao': 'atras_balcao', 'rotacao': 180},
+            {'tipo': 'totem_touch', 'posicao': 'canto_direita', 'rotacao': 0},
+        ]
+    },
+    'atendimento': {
+        'moveis': [
+            {'tipo': 'balcao_atendimento', 'posicao': 'centro', 'rotacao': 0},
+            {'tipo': 'cadeira', 'posicao': 'atras_balcao', 'rotacao': 180},
+            {'tipo': 'cadeira', 'posicao': 'frente_balcao', 'rotacao': 0},
+        ]
+    },
+    'reuniao': {
+        'moveis': [
+            {'tipo': 'mesa_reuniao_4', 'posicao': 'centro', 'rotacao': 0},
+            {'tipo': 'cadeira', 'posicao': 'norte_mesa', 'rotacao': 180},
+            {'tipo': 'cadeira', 'posicao': 'sul_mesa', 'rotacao': 0},
+            {'tipo': 'cadeira', 'posicao': 'leste_mesa', 'rotacao': 270},
+            {'tipo': 'cadeira', 'posicao': 'oeste_mesa', 'rotacao': 90},
+            {'tipo': 'tv_parede', 'posicao': 'parede_fundo', 'rotacao': 0, 'altura': 1.5},
+        ]
+    },
+    'lounge': {
+        'moveis': [
+            {'tipo': 'sofa_3', 'posicao': 'fundo', 'rotacao': 0},
+            {'tipo': 'poltrona', 'posicao': 'esquerda', 'rotacao': 90},
+            {'tipo': 'poltrona', 'posicao': 'direita', 'rotacao': 270},
+            {'tipo': 'mesa_centro', 'posicao': 'centro', 'rotacao': 0},
+            {'tipo': 'vaso_planta', 'posicao': 'canto_esquerda', 'rotacao': 0},
+        ]
+    },
+    'exposicao': {
+        'moveis': [
+            {'tipo': 'vitrine', 'posicao': 'esquerda', 'rotacao': 90},
+            {'tipo': 'vitrine', 'posicao': 'direita', 'rotacao': 270},
+            {'tipo': 'balcao_demonstracao', 'posicao': 'centro', 'rotacao': 0},
+            {'tipo': 'totem', 'posicao': 'frente_esquerda', 'rotacao': 0},
+        ]
+    },
+    'demonstracao': {
+        'moveis': [
+            {'tipo': 'balcao_demonstracao', 'posicao': 'centro', 'rotacao': 0},
+            {'tipo': 'tv_pedestal', 'posicao': 'fundo', 'rotacao': 0},
+            {'tipo': 'cadeira_alta', 'posicao': 'atras_balcao', 'rotacao': 180},
+            {'tipo': 'expositor', 'posicao': 'esquerda', 'rotacao': 0},
+        ]
+    },
+    'produtos': {
+        'moveis': [
+            {'tipo': 'vitrine', 'posicao': 'esquerda', 'rotacao': 90},
+            {'tipo': 'vitrine', 'posicao': 'direita', 'rotacao': 270},
+            {'tipo': 'vitrine_baixa', 'posicao': 'centro', 'rotacao': 0},
+            {'tipo': 'prateleira', 'posicao': 'fundo', 'rotacao': 0},
+        ]
+    },
+    'deposito': {
+        'moveis': [
+            {'tipo': 'estante', 'posicao': 'fundo', 'rotacao': 0},
+            {'tipo': 'prateleira', 'posicao': 'esquerda', 'rotacao': 90},
+            {'tipo': 'lixeira', 'posicao': 'canto_direita', 'rotacao': 0},
+        ]
+    },
+    'cafe': {
+        'moveis': [
+            {'tipo': 'cafeteira_estrutura', 'posicao': 'fundo', 'rotacao': 0},
+            {'tipo': 'mesa_alta', 'posicao': 'centro', 'rotacao': 0},
+            {'tipo': 'cadeira_alta', 'posicao': 'frente_mesa', 'rotacao': 0},
+            {'tipo': 'cadeira_alta', 'posicao': 'atras_mesa', 'rotacao': 180},
+            {'tipo': 'frigobar', 'posicao': 'canto_esquerda', 'rotacao': 0},
+            {'tipo': 'lixeira', 'posicao': 'canto_direita', 'rotacao': 0},
+        ]
+    },
+    'escritorio': {
+        'moveis': [
+            {'tipo': 'mesa_trabalho', 'posicao': 'fundo', 'rotacao': 0},
+            {'tipo': 'cadeira', 'posicao': 'frente_mesa', 'rotacao': 0},
+            {'tipo': 'estante', 'posicao': 'esquerda', 'rotacao': 90},
+        ]
+    },
+    'tecnologia': {
+        'moveis': [
+            {'tipo': 'totem_touch', 'posicao': 'centro', 'rotacao': 0},
+            {'tipo': 'tv_pedestal', 'posicao': 'esquerda', 'rotacao': 45},
+            {'tipo': 'tv_pedestal', 'posicao': 'direita', 'rotacao': 315},
+            {'tipo': 'balcao_demonstracao', 'posicao': 'fundo', 'rotacao': 0},
+        ]
+    },
+    'palco': {
+        'moveis': [
+            {'tipo': 'tv_parede', 'posicao': 'fundo_centro', 'rotacao': 0, 'altura': 1.8},
+            {'tipo': 'banner', 'posicao': 'fundo_esquerda', 'rotacao': 0},
+            {'tipo': 'banner', 'posicao': 'fundo_direita', 'rotacao': 0},
+        ]
+    },
+    # Área genérica (fallback)
+    'generico': {
+        'moveis': [
+            {'tipo': 'balcao_atendimento', 'posicao': 'centro', 'rotacao': 0},
+        ]
+    },
+}
+
+
 class Exportador3DService:
     """
     Serviço para gerar modelos 3D enriquecidos a partir de múltiplas fontes
@@ -165,10 +308,9 @@ class Exportador3DService:
         return fontes
 
     def _gerar_mobiliario(self) -> int:
-        """Gera mobiliário baseado nos dados da renderização ou planta"""
+        """Gera mobiliário baseado nos dicionários CATALOGO_MOVEIS e LAYOUT_AREAS"""
         count = 0
 
-        # Gerar mobiliário padrão para cada área baseado no tipo
         for area in self.planta.get('areas', []):
             tipo_area = area.get('tipo', '').lower()
             nome_area = area.get('nome', area.get('id', '')).lower()
@@ -179,73 +321,115 @@ class Exportador3DService:
             largura_area = geom.get('largura', 2)
             prof_area = geom.get('profundidade', 2)
 
-            # Determinar mobiliário baseado no tipo/nome da área
-            moveis_area = self._mobiliario_para_area(tipo_area, nome_area)
+            # Detectar tipo de layout baseado no nome/tipo da área
+            layout_key = self._detectar_tipo_area(tipo_area, nome_area)
+            layout_config = LAYOUT_AREAS.get(layout_key, LAYOUT_AREAS['generico'])
 
-            for i, movel_tipo in enumerate(moveis_area):
-                dims = self._dimensoes_padrao(movel_tipo)
+            logger.debug(f"[3D Export] Área '{nome_area}' -> layout '{layout_key}' com {len(layout_config['moveis'])} móveis")
 
-                # Posicionar móveis distribuídos na área
-                offset_x = 0.3 + (i % 2) * (largura_area / 2 - 0.5)
-                offset_z = 0.3 + (i // 2) * (prof_area / 2 - 0.5)
+            for movel_config in layout_config['moveis']:
+                tipo_movel = movel_config['tipo']
+                posicao_key = movel_config['posicao']
+                altura_base = movel_config.get('altura', 0)  # Para itens na parede
+
+                # Buscar dimensões do catálogo
+                dims = CATALOGO_MOVEIS.get(tipo_movel, {'largura': 1.0, 'profundidade': 1.0, 'altura': 1.0})
+
+                # Calcular posição real baseada na posição semântica
+                pos_x, pos_z = self._calcular_posicao(
+                    posicao_key, x_base, z_base, largura_area, prof_area, dims
+                )
 
                 movel = {
-                    'tipo': movel_tipo,
-                    'nome': f'{movel_tipo}_{nome_area}_{i}',
-                    'posicao': {
-                        'x': x_base + offset_x,
-                        'y': 0,
-                        'z': z_base + offset_z
-                    },
+                    'tipo': tipo_movel,
+                    'nome': f'{tipo_movel}_{nome_area}',
+                    'posicao': {'x': pos_x, 'y': altura_base, 'z': pos_z},
                     'dimensoes': dims
                 }
                 self._criar_movel(movel)
                 count += 1
 
-                logger.debug(f"[3D Export] Móvel gerado para {nome_area}: {movel_tipo}")
+            logger.info(f"[3D Export] Área '{nome_area}': {len(layout_config['moveis'])} móveis gerados")
 
         return count
 
-    def _mobiliario_para_area(self, tipo: str, nome: str) -> List[str]:
-        """Retorna lista de móveis apropriados para o tipo de área"""
-
-        # Combinar tipo e nome para melhor detecção
+    def _detectar_tipo_area(self, tipo: str, nome: str) -> str:
+        """Detecta o tipo de layout baseado no tipo/nome da área"""
         identificador = f"{tipo} {nome}".lower()
 
-        # Mapear tipos de área para mobiliário
-        if any(x in identificador for x in ['recep', 'atendimento', 'entrada']):
-            return ['balcao', 'cadeira', 'cadeira']
+        # Mapeamento de palavras-chave para tipos de layout
+        mapeamentos = [
+            (['recep', 'entrada', 'welcome'], 'recepcao'),
+            (['atend', 'balcao'], 'atendimento'),
+            (['reuniao', 'reunião', 'meeting', 'sala'], 'reuniao'),
+            (['lounge', 'espera', 'estar', 'descanso', 'vip'], 'lounge'),
+            (['expos', 'exib', 'mostr', 'show'], 'exposicao'),
+            (['demo', 'demonstr'], 'demonstracao'),
+            (['produto', 'venda', 'loja', 'comercial'], 'produtos'),
+            (['deposito', 'depósito', 'estoque', 'storage', 'almox'], 'deposito'),
+            (['cafe', 'café', 'copa', 'coffee', 'cozinha'], 'cafe'),
+            (['escritorio', 'escritório', 'office', 'trabalho', 'admin'], 'escritorio'),
+            (['tech', 'tecnologia', 'interativ', 'digital'], 'tecnologia'),
+            (['palco', 'stage', 'apresent', 'palestra', 'audit'], 'palco'),
+        ]
 
-        elif any(x in identificador for x in ['reuniao', 'reunião', 'meeting']):
-            return ['mesa', 'cadeira', 'cadeira', 'cadeira', 'cadeira']
+        for palavras, tipo_layout in mapeamentos:
+            if any(p in identificador for p in palavras):
+                return tipo_layout
 
-        elif any(x in identificador for x in ['lounge', 'espera', 'estar', 'descanso']):
-            return ['sofa', 'mesa']  # mesa de centro
+        return 'generico'
 
-        elif any(x in identificador for x in ['deposito', 'depósito', 'estoque', 'storage']):
-            return ['prateleira', 'prateleira']
+    def _calcular_posicao(self, posicao_key: str, x_base: float, z_base: float,
+                          largura: float, prof: float, dims: Dict) -> Tuple[float, float]:
+        """Calcula coordenadas X,Z baseado na posição semântica"""
 
-        elif any(x in identificador for x in ['demo', 'demonstr', 'exib', 'exposic', 'mostruario']):
-            return ['vitrine', 'balcao', 'totem']
+        # Margens de segurança
+        margem = 0.3
 
-        elif any(x in identificador for x in ['venda', 'produto', 'comercial']):
-            return ['vitrine', 'balcao', 'prateleira']
+        # Dimensões do móvel
+        larg_movel = dims.get('largura', 1.0)
+        prof_movel = dims.get('profundidade', 1.0)
 
-        elif any(x in identificador for x in ['cafe', 'café', 'copa', 'cozinha']):
-            return ['balcao', 'cadeira', 'cadeira']
+        # Centro da área
+        cx = x_base + largura / 2
+        cz = z_base + prof / 2
 
-        elif any(x in identificador for x in ['escritorio', 'escritório', 'office', 'trabalho']):
-            return ['mesa', 'cadeira']
+        # Mapeamento de posições semânticas para coordenadas
+        posicoes = {
+            # Posições básicas
+            'centro': (cx, cz),
+            'centro_frente': (cx, z_base + prof - margem - prof_movel/2),
+            'frente': (cx, z_base + prof - margem - prof_movel/2),
+            'fundo': (cx, z_base + margem + prof_movel/2),
+            'fundo_centro': (cx, z_base + margem + prof_movel/2),
+            'esquerda': (x_base + margem + larg_movel/2, cz),
+            'direita': (x_base + largura - margem - larg_movel/2, cz),
 
-        elif any(x in identificador for x in ['tecnologia', 'tech', 'interativ']):
-            return ['totem', 'tv', 'mesa']
+            # Cantos
+            'canto_esquerda': (x_base + margem + larg_movel/2, z_base + margem + prof_movel/2),
+            'canto_direita': (x_base + largura - margem - larg_movel/2, z_base + margem + prof_movel/2),
+            'frente_esquerda': (x_base + margem + larg_movel/2, z_base + prof - margem - prof_movel/2),
+            'frente_direita': (x_base + largura - margem - larg_movel/2, z_base + prof - margem - prof_movel/2),
+            'fundo_esquerda': (x_base + largura * 0.25, z_base + margem + prof_movel/2),
+            'fundo_direita': (x_base + largura * 0.75, z_base + margem + prof_movel/2),
 
-        elif any(x in identificador for x in ['palco', 'apresent', 'palestra']):
-            return ['tv']  # tela de apresentação
+            # Posições relativas a outros móveis (balcão/mesa no centro)
+            'atras_balcao': (cx, cz - 0.8),
+            'frente_balcao': (cx, cz + 0.8),
+            'atras_mesa': (cx, cz - 0.7),
+            'frente_mesa': (cx, cz + 0.7),
 
-        else:
-            # Área genérica - adicionar um balcão básico
-            return ['balcao']
+            # Posições cardeais ao redor da mesa
+            'norte_mesa': (cx, cz + 0.7),
+            'sul_mesa': (cx, cz - 0.7),
+            'leste_mesa': (cx + 0.7, cz),
+            'oeste_mesa': (cx - 0.7, cz),
+
+            # Parede
+            'parede_fundo': (cx, z_base + 0.1),
+        }
+
+        return posicoes.get(posicao_key, (cx, cz))
 
     def _dimensoes_padrao(self, tipo: str) -> Dict[str, float]:
         """Retorna dimensões padrão para tipos de móveis"""
