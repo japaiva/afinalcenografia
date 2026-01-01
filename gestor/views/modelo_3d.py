@@ -41,12 +41,25 @@ def modelo_3d_wizard(request, projeto_id):
     dims = projeto.planta_baixa_json.get('dimensoes_totais', {})
     areas = projeto.planta_baixa_json.get('areas', [])
 
+    # Verificar fontes de dados disponíveis
+    fontes_dados = ['Planta Baixa']
+    briefing = getattr(projeto, 'briefing', None)
+    if briefing:
+        fontes_dados.append('Briefing')
+
+    renderizacao_json = getattr(projeto, 'renderizacao_ai_json', None)
+    if renderizacao_json:
+        fontes_dados.append('Renderização AI')
+
     context = {
         'projeto': projeto,
         'modelo_3d_gerado': projeto.modelo_3d_processado,
         'dimensoes': dims,
         'areas': areas,
         'total_areas': len(areas),
+        'fontes_dados': fontes_dados,
+        'tem_briefing': briefing is not None,
+        'tem_renderizacao': renderizacao_json is not None,
     }
 
     return render(request, 'gestor/modelo_3d_wizard.html', context)
@@ -56,11 +69,11 @@ def modelo_3d_wizard(request, projeto_id):
 @require_POST
 def modelo_3d_gerar(request, projeto_id):
     """
-    Gera modelo 3D (.obj) a partir da planta baixa
+    Gera modelo 3D (.obj) a partir da planta baixa, briefing e renderização AI
     """
     projeto = get_object_or_404(Projeto, id=projeto_id)
 
-    logger.info(f"[Modelo 3D] Gerando modelo - Projeto {projeto.id}")
+    logger.info(f"[Modelo 3D] Gerando modelo enriquecido - Projeto {projeto.id}")
 
     try:
         if not projeto.planta_baixa_json:
@@ -69,8 +82,24 @@ def modelo_3d_gerar(request, projeto_id):
                 'erro': 'Planta baixa não encontrada. Gere a planta baixa primeiro.'
             })
 
-        # Criar exportador
-        exportador = Exportador3DService(projeto.planta_baixa_json)
+        # Buscar briefing do projeto
+        briefing = None
+        if hasattr(projeto, 'briefing'):
+            briefing = projeto.briefing
+            logger.info(f"[Modelo 3D] Briefing encontrado: {briefing.id if briefing else 'N/A'}")
+
+        # Buscar renderização AI JSON
+        renderizacao_json = None
+        if hasattr(projeto, 'renderizacao_ai_json') and projeto.renderizacao_ai_json:
+            renderizacao_json = projeto.renderizacao_ai_json
+            logger.info(f"[Modelo 3D] Renderização AI JSON encontrado")
+
+        # Criar exportador com todas as fontes de dados
+        exportador = Exportador3DService(
+            planta_baixa_json=projeto.planta_baixa_json,
+            briefing=briefing,
+            renderizacao_json=renderizacao_json
+        )
 
         # Gerar modelo
         obj_data, mtl_data, metadados = exportador.gerar_modelo_3d()
@@ -140,8 +169,16 @@ def modelo_3d_download_mtl(request, projeto_id):
             'erro': 'Planta baixa não encontrada.'
         }, status=404)
 
-    # Gerar MTL
-    exportador = Exportador3DService(projeto.planta_baixa_json)
+    # Buscar briefing e renderização
+    briefing = getattr(projeto, 'briefing', None)
+    renderizacao_json = getattr(projeto, 'renderizacao_ai_json', None)
+
+    # Gerar MTL com todas as fontes
+    exportador = Exportador3DService(
+        planta_baixa_json=projeto.planta_baixa_json,
+        briefing=briefing,
+        renderizacao_json=renderizacao_json
+    )
     _, mtl_data, _ = exportador.gerar_modelo_3d()
 
     response = HttpResponse(mtl_data, content_type='text/plain')

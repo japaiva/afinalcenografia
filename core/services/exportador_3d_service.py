@@ -1,14 +1,19 @@
 # core/services/exportador_3d_service.py
 """
-Serviço para exportação de modelo 3D a partir da planta baixa
+Serviço para exportação de modelo 3D enriquecido
 Gera arquivos OBJ compatíveis com 3ds Max, Blender, SketchUp, etc.
+
+Fontes de dados:
+- Planta Baixa JSON: geometria, áreas, dimensões
+- Briefing: materiais, estilo, cores da marca
+- Renderização AI JSON: mobiliário, iluminação, detalhes visuais
 """
 
 import trimesh
 import numpy as np
 import io
 import logging
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, List
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -16,31 +21,85 @@ logger = logging.getLogger(__name__)
 
 class Exportador3DService:
     """
-    Serviço para gerar modelos 3D a partir de planta baixa JSON
+    Serviço para gerar modelos 3D enriquecidos a partir de múltiplas fontes
     """
 
-    def __init__(self, planta_baixa_json: Dict[str, Any]):
+    def __init__(self, planta_baixa_json: Dict[str, Any],
+                 briefing: Any = None,
+                 renderizacao_json: Dict[str, Any] = None):
         """
         Args:
             planta_baixa_json: JSON da planta baixa com dimensões e áreas
+            briefing: Objeto Briefing com dados do cliente
+            renderizacao_json: JSON enriquecido da renderização AI
         """
         self.planta = planta_baixa_json
+        self.briefing = briefing
+        self.renderizacao = renderizacao_json or {}
+
         self.escala = 1.0  # 1 unidade = 1 metro
         self.altura_parede = 3.0  # metros
         self.espessura_parede = 0.1  # metros
         self.altura_piso = 0.05  # metros
 
+        # Extrair configurações do briefing
+        if briefing:
+            self._configurar_do_briefing()
+
+        # Extrair configurações da renderização
+        if renderizacao_json:
+            self._configurar_da_renderizacao()
+
         # Cena 3D (lista de meshes)
         self.meshes = []
+        self.materiais = {}
+        self.mobiliario = []
+
+    def _configurar_do_briefing(self):
+        """Extrai configurações do briefing"""
+        if not self.briefing:
+            return
+
+        # Altura das paredes baseada no tipo de stand
+        if hasattr(self.briefing, 'altura_maxima') and self.briefing.altura_maxima:
+            self.altura_parede = float(self.briefing.altura_maxima)
+
+        # Estilo influencia materiais
+        self.estilo = getattr(self.briefing, 'estilo_estande', 'moderno')
+
+        # Cores da marca
+        self.cores_marca = []
+        if hasattr(self.briefing, 'cores_marca') and self.briefing.cores_marca:
+            self.cores_marca = self.briefing.cores_marca
+
+        logger.info(f"[3D] Configurado do briefing: altura={self.altura_parede}m, estilo={self.estilo}")
+
+    def _configurar_da_renderizacao(self):
+        """Extrai configurações da renderização AI"""
+        if not self.renderizacao:
+            return
+
+        # Mobiliário detalhado
+        self.mobiliario = self.renderizacao.get('mobiliario', [])
+
+        # Materiais específicos
+        materiais_render = self.renderizacao.get('materiais', {})
+        if materiais_render:
+            self.materiais.update(materiais_render)
+
+        # Iluminação
+        self.iluminacao = self.renderizacao.get('iluminacao', {})
+
+        logger.info(f"[3D] Configurado da renderização: {len(self.mobiliario)} móveis")
 
     def gerar_modelo_3d(self) -> Tuple[bytes, bytes, Dict[str, Any]]:
         """
-        Gera modelo 3D completo a partir da planta baixa
+        Gera modelo 3D completo a partir de múltiplas fontes
 
         Returns:
             Tuple com (bytes_obj, bytes_mtl, metadados)
         """
-        logger.info("[3D Export] Iniciando geração de modelo 3D...")
+        logger.info("[3D Export] Iniciando geração de modelo 3D enriquecido...")
 
         # Extrair dimensões
         dims = self.planta.get('dimensoes_totais', {})
@@ -62,31 +121,145 @@ class Exportador3DService:
         for area in areas:
             self._gerar_area(area)
 
-        # 4. Combinar todos os meshes
+        # 4. Gerar mobiliário (se disponível na renderização)
+        mobiliario_gerado = self._gerar_mobiliario()
+
+        # 5. Gerar testeira (se configurado)
+        self._gerar_testeira(largura, profundidade, tipo_stand)
+
+        # 6. Combinar todos os meshes
         if self.meshes:
             cena_combinada = trimesh.util.concatenate(self.meshes)
         else:
             # Criar mesh vazio se não houver geometrias
             cena_combinada = trimesh.Trimesh()
 
-        # 5. Exportar para OBJ
+        # 7. Exportar para OBJ
         obj_data, mtl_data = self._exportar_obj(cena_combinada)
 
-        # 6. Metadados
+        # 8. Metadados enriquecidos
         metadados = {
             'formato': 'OBJ',
             'vertices': len(cena_combinada.vertices) if hasattr(cena_combinada, 'vertices') else 0,
             'faces': len(cena_combinada.faces) if hasattr(cena_combinada, 'faces') else 0,
             'dimensoes': {'largura': largura, 'profundidade': profundidade, 'altura': self.altura_parede},
             'areas_geradas': len(areas),
+            'mobiliario_gerado': mobiliario_gerado,
             'tipo_stand': tipo_stand,
+            'fontes_dados': self._listar_fontes_dados(),
             'gerado_em': datetime.now().isoformat(),
             'compativel_com': ['3ds Max', 'Blender', 'SketchUp', 'Maya', 'Cinema 4D']
         }
 
-        logger.info(f"[3D Export] Modelo gerado: {metadados['vertices']} vértices, {metadados['faces']} faces")
+        logger.info(f"[3D Export] Modelo gerado: {metadados['vertices']} vértices, {metadados['faces']} faces, {mobiliario_gerado} móveis")
 
         return obj_data, mtl_data, metadados
+
+    def _listar_fontes_dados(self) -> List[str]:
+        """Lista as fontes de dados utilizadas"""
+        fontes = ['Planta Baixa']
+        if self.briefing:
+            fontes.append('Briefing')
+        if self.renderizacao:
+            fontes.append('Renderização AI')
+        return fontes
+
+    def _gerar_mobiliario(self) -> int:
+        """Gera mobiliário baseado nos dados da renderização ou planta"""
+        count = 0
+
+        # Primeiro, tentar mobiliário da renderização AI
+        if self.renderizacao and self.renderizacao.get('mobiliario'):
+            for movel in self.renderizacao.get('mobiliario', []):
+                self._criar_movel(movel)
+                count += 1
+            return count
+
+        # Se não tem renderização, extrair mobiliário das áreas da planta
+        for area in self.planta.get('areas', []):
+            elementos = area.get('elementos', [])
+            for elem in elementos:
+                if elem.get('tipo') in ['mesa', 'balcao', 'cadeira', 'sofa', 'vitrine', 'prateleira']:
+                    geom = area.get('geometria', {})
+                    x_base = geom.get('x', 0)
+                    z_base = geom.get('y', 0)
+
+                    movel = {
+                        'tipo': elem.get('tipo'),
+                        'nome': elem.get('nome', elem.get('tipo')),
+                        'posicao': {
+                            'x': x_base + elem.get('posicao', {}).get('x', 0.5),
+                            'y': 0,
+                            'z': z_base + elem.get('posicao', {}).get('y', 0.5)
+                        },
+                        'dimensoes': elem.get('dimensoes', self._dimensoes_padrao(elem.get('tipo')))
+                    }
+                    self._criar_movel(movel)
+                    count += 1
+
+        return count
+
+    def _dimensoes_padrao(self, tipo: str) -> Dict[str, float]:
+        """Retorna dimensões padrão para tipos de móveis"""
+        dimensoes = {
+            'mesa': {'largura': 1.2, 'profundidade': 0.8, 'altura': 0.75},
+            'balcao': {'largura': 2.0, 'profundidade': 0.6, 'altura': 1.1},
+            'cadeira': {'largura': 0.5, 'profundidade': 0.5, 'altura': 0.9},
+            'sofa': {'largura': 2.0, 'profundidade': 0.9, 'altura': 0.8},
+            'vitrine': {'largura': 1.0, 'profundidade': 0.4, 'altura': 2.0},
+            'prateleira': {'largura': 1.0, 'profundidade': 0.3, 'altura': 1.8},
+            'tv': {'largura': 1.2, 'profundidade': 0.1, 'altura': 0.7},
+            'totem': {'largura': 0.4, 'profundidade': 0.4, 'altura': 2.0},
+        }
+        return dimensoes.get(tipo, {'largura': 1.0, 'profundidade': 1.0, 'altura': 1.0})
+
+    def _criar_movel(self, movel: Dict[str, Any]):
+        """Cria geometria 3D para um móvel"""
+        tipo = movel.get('tipo', 'generico')
+        pos = movel.get('posicao', {'x': 0, 'y': 0, 'z': 0})
+        dims = movel.get('dimensoes', self._dimensoes_padrao(tipo))
+
+        largura = dims.get('largura', 1.0)
+        profundidade = dims.get('profundidade', 1.0)
+        altura = dims.get('altura', 1.0)
+
+        # Criar box básico para o móvel
+        mesh_movel = trimesh.creation.box(
+            extents=[largura, altura, profundidade]
+        )
+
+        # Posicionar
+        mesh_movel.apply_translation([
+            pos.get('x', 0) + largura/2,
+            altura/2,  # Base no chão
+            pos.get('z', 0) + profundidade/2
+        ])
+
+        self.meshes.append(mesh_movel)
+        logger.debug(f"[3D Export] Móvel gerado: {tipo} em ({pos.get('x')}, {pos.get('z')})")
+
+    def _gerar_testeira(self, largura: float, profundidade: float, tipo_stand: str):
+        """Gera testeira do stand (placa com nome da empresa)"""
+        # Verificar se tem dados de testeira no briefing
+        if not self.briefing:
+            return
+
+        # Posição da testeira depende do tipo de stand
+        altura_testeira = 0.6  # 60cm de altura
+        profundidade_testeira = 0.1
+
+        if tipo_stand in ['ponta_ilha', 'esquina', 'corredor']:
+            # Testeira na parede de fundo
+            testeira = trimesh.creation.box(
+                extents=[largura * 0.8, altura_testeira, profundidade_testeira]
+            )
+            testeira.apply_translation([
+                largura/2,
+                self.altura_parede - altura_testeira/2 - 0.1,
+                profundidade_testeira/2
+            ])
+            self.meshes.append(testeira)
+            logger.debug(f"[3D Export] Testeira gerada: {largura * 0.8}m x {altura_testeira}m")
 
     def _gerar_piso(self, largura: float, profundidade: float):
         """Gera o piso principal do stand"""
@@ -348,7 +521,12 @@ Instruções para 3ds Max:
 
 def gerar_modelo_3d_projeto(projeto_id: int) -> Dict[str, Any]:
     """
-    Função helper para gerar modelo 3D de um projeto
+    Função helper para gerar modelo 3D enriquecido de um projeto.
+
+    Usa múltiplas fontes de dados:
+    - Planta Baixa JSON: geometria base e áreas
+    - Briefing: altura máxima, estilo, cores da marca
+    - Renderização AI JSON: mobiliário, materiais, iluminação
 
     Args:
         projeto_id: ID do projeto
@@ -369,8 +547,24 @@ def gerar_modelo_3d_projeto(projeto_id: int) -> Dict[str, Any]:
                 'erro': 'Projeto não possui planta baixa gerada'
             }
 
-        # Criar exportador
-        exportador = Exportador3DService(projeto.planta_baixa_json)
+        # Buscar briefing do projeto
+        briefing = None
+        if hasattr(projeto, 'briefing'):
+            briefing = projeto.briefing
+            logger.info(f"[3D Helper] Briefing encontrado: {briefing.id if briefing else 'N/A'}")
+
+        # Buscar renderização AI JSON
+        renderizacao_json = None
+        if hasattr(projeto, 'renderizacao_ai_json') and projeto.renderizacao_ai_json:
+            renderizacao_json = projeto.renderizacao_ai_json
+            logger.info(f"[3D Helper] Renderização AI JSON encontrado")
+
+        # Criar exportador com todas as fontes
+        exportador = Exportador3DService(
+            planta_baixa_json=projeto.planta_baixa_json,
+            briefing=briefing,
+            renderizacao_json=renderizacao_json
+        )
 
         # Gerar modelo
         obj_data, mtl_data, metadados = exportador.gerar_modelo_3d()

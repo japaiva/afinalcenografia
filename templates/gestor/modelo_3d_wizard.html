@@ -28,10 +28,21 @@
   <div class="alert alert-info shadow mb-4">
     <h5 class="mb-2">
       <i class="fas fa-cube me-2"></i>
-      Exportação de Modelo 3D
+      Exportação de Modelo 3D Enriquecido
     </h5>
+    <p class="mb-2">
+      Gere um modelo 3D (.OBJ) para usar no <strong>3ds Max</strong>, <strong>Blender</strong>, <strong>SketchUp</strong> ou outros softwares 3D.
+    </p>
     <p class="mb-0">
-      Gere um modelo 3D (.OBJ) a partir da planta baixa para usar no <strong>3ds Max</strong>, <strong>Blender</strong>, <strong>SketchUp</strong> ou outros softwares 3D.
+      <strong>Fontes de dados:</strong>
+      {% for fonte in fontes_dados %}
+        <span class="badge bg-light text-dark me-1">
+          {% if fonte == 'Planta Baixa' %}<i class="fas fa-layer-group me-1"></i>{% endif %}
+          {% if fonte == 'Briefing' %}<i class="fas fa-file-alt me-1"></i>{% endif %}
+          {% if fonte == 'Renderização AI' %}<i class="fas fa-palette me-1"></i>{% endif %}
+          {{ fonte }}
+        </span>
+      {% endfor %}
     </p>
   </div>
 
@@ -58,16 +69,37 @@
         <div class="card-body">
           <p class="text-muted">
             <i class="fas fa-info-circle me-1"></i>
-            Converte a planta baixa em modelo 3D compatível com 3ds Max, Blender, SketchUp.
+            Gera modelo 3D enriquecido combinando dados de planta baixa, briefing e renderização AI.
           </p>
 
           {% if dimensoes %}
-          <div class="alert alert-light border">
-            <strong>Dados da Planta Baixa:</strong>
+          <div class="alert alert-light border mb-3">
+            <strong><i class="fas fa-layer-group me-1"></i> Planta Baixa:</strong>
             <ul class="mb-0 mt-2">
               <li>Dimensões: {{ dimensoes.largura|default:"?" }}m × {{ dimensoes.profundidade|default:"?" }}m × {{ dimensoes.altura|default:3 }}m</li>
               <li>Área: {{ dimensoes.area_total|default:"?" }}m²</li>
               <li>Áreas internas: {{ total_areas }} ({% for area in areas %}{{ area.nome }}{% if not forloop.last %}, {% endif %}{% endfor %})</li>
+            </ul>
+          </div>
+          {% endif %}
+
+          {% if tem_briefing %}
+          <div class="alert alert-light border mb-3">
+            <strong><i class="fas fa-file-alt me-1"></i> Briefing:</strong>
+            <ul class="mb-0 mt-2">
+              <li>Altura máxima, estilo do stand</li>
+              <li>Cores da marca (aplicadas aos materiais)</li>
+            </ul>
+          </div>
+          {% endif %}
+
+          {% if tem_renderizacao %}
+          <div class="alert alert-light border mb-3">
+            <strong><i class="fas fa-palette me-1"></i> Renderização AI:</strong>
+            <ul class="mb-0 mt-2">
+              <li>Mobiliário detalhado (mesas, balcões, sofás, vitrines)</li>
+              <li>Especificação de materiais</li>
+              <li>Iluminação e detalhes visuais</li>
             </ul>
           </div>
           {% endif %}
@@ -103,36 +135,6 @@
         </div>
       </div>
 
-      <!-- ROADMAP -->
-      <div class="card shadow mb-4">
-        <div class="card-header bg-light">
-          <h5 class="mb-0">
-            <i class="fas fa-road me-2"></i>
-            Roadmap de Implementação
-          </h5>
-        </div>
-        <div class="card-body">
-          <ol class="mb-0">
-            <li class="mb-2"><strong>Pesquisar bibliotecas Python para SketchUp</strong>
-              <ul>
-                <li>IfcOpenShell (IFC → SketchUp)</li>
-                <li>py3dmol (visualização 3D)</li>
-                <li>Exportação via OBJ/FBX (intermediário)</li>
-              </ul>
-            </li>
-            <li class="mb-2"><strong>Criar service de conversão</strong>
-              <ul>
-                <li>Converter áreas do JSON em geometrias 3D</li>
-                <li>Aplicar materiais e texturas</li>
-                <li>Exportar para formato .skp</li>
-              </ul>
-            </li>
-            <li class="mb-2"><strong>Implementar interface de download</strong></li>
-            <li><strong>Testar compatibilidade com SketchUp</strong></li>
-          </ol>
-        </div>
-      </div>
-
     </div>
 
     <!-- COLUNA DIREITA (1/3) -->
@@ -164,7 +166,7 @@
             </small>
             {% else %}
             <small class="text-muted d-block">
-              Módulo em desenvolvimento
+              Clique em "Gerar Modelo 3D" para criar
             </small>
             {% endif %}
           </div>
@@ -258,13 +260,21 @@ function gerarModelo3D() {
         console.log('Modelo gerado:', meta);
       }
 
+      // Listar fontes de dados usadas
+      let fontesHtml = '';
+      if (data.metadados?.fontes_dados) {
+        fontesHtml = `<p><strong>Fontes utilizadas:</strong> ${data.metadados.fontes_dados.join(', ')}</p>`;
+      }
+
       Swal.fire({
         icon: 'success',
         title: 'Modelo 3D Gerado!',
         html: `
-          <p>Modelo gerado com sucesso.</p>
+          <p>Modelo 3D enriquecido gerado com sucesso.</p>
+          ${fontesHtml}
           <p><strong>Vértices:</strong> ${data.metadados?.vertices || '-'}</p>
           <p><strong>Faces:</strong> ${data.metadados?.faces || '-'}</p>
+          <p><strong>Mobiliário gerado:</strong> ${data.metadados?.mobiliario_gerado || 0} itens</p>
         `,
         confirmButtonText: 'OK'
       });
