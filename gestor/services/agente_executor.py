@@ -74,9 +74,14 @@ class AgenteService:
 
         # Executar baseado no provider
         try:
-            if agente.llm_provider == "openai":
-                return self._executar_openai(agente, prompt_usuario, imagens)
-            elif agente.llm_provider == "anthropic":
+            provider_lower = agente.llm_provider.lower()
+            if provider_lower == "openai":
+                # Verificar se é modelo de imagem (DALL-E)
+                if "dall-e" in agente.llm_model.lower() or "image" in agente.llm_model.lower():
+                    return self._gerar_imagem_openai(agente, prompt_usuario)
+                else:
+                    return self._executar_openai(agente, prompt_usuario, imagens)
+            elif provider_lower == "anthropic":
                 return self._executar_anthropic(agente, prompt_usuario, imagens)
             else:
                 raise ValueError(f"Provider '{agente.llm_provider}' não suportado")
@@ -307,3 +312,118 @@ class AgenteService:
         except Exception as e:
             logger.error(f"Erro ao processar imagem para Anthropic: {str(e)}")
             raise ValueError(f"Falha ao processar imagem: {str(e)}")
+
+    def _refinar_prompt_para_dalle(self, prompt: str) -> str:
+        """
+        Usa GPT-4 para refinar/otimizar o prompt antes de enviar ao DALL-E.
+        Isso simula o comportamento do ChatGPT que pré-processa prompts de imagem.
+
+        Args:
+            prompt: Prompt original
+
+        Returns:
+            Prompt refinado e otimizado para DALL-E
+        """
+        logger.info("[GPT-4] Refinando prompt para DALL-E...")
+
+        system_prompt = """Você é um especialista em criar prompts para DALL-E 3.
+Sua tarefa é transformar a descrição técnica de um stand de feira em um prompt visual otimizado.
+
+REGRAS IMPORTANTES:
+1. Mantenha TODAS as informações de layout e dimensões
+2. Adicione detalhes visuais específicos para cada área mencionada
+3. Inclua instruções para que cada área seja CLARAMENTE IDENTIFICÁVEL na imagem
+4. Peça labels/placas visíveis com os nomes das áreas (ex: "Workshop", "Depósito", "Área de Exposição")
+5. Especifique perspectiva 3/4 que mostre bem o layout interno
+6. Descreva materiais, cores e iluminação de forma visual
+7. O prompt final deve ter no máximo 3500 caracteres
+8. Seja direto e visual, não use linguagem técnica demais
+
+FORMATO DE SAÍDA:
+Retorne APENAS o prompt refinado, sem explicações ou comentários."""
+
+        try:
+            response = openai.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Transforme esta descrição técnica em um prompt visual para DALL-E:\n\n{prompt}"}
+                ],
+                max_tokens=1500,
+                temperature=0.7
+            )
+
+            prompt_refinado = response.choices[0].message.content.strip()
+            logger.info(f"[GPT-4] Prompt refinado: {len(prompt_refinado)} chars")
+            logger.info(f"[GPT-4] Preview: {prompt_refinado[:200]}...")
+
+            return prompt_refinado
+
+        except Exception as e:
+            logger.warning(f"[GPT-4] Erro ao refinar prompt, usando original: {str(e)}")
+            return prompt
+
+    def _gerar_imagem_openai(self, agente: Agente, prompt: str) -> str:
+        """
+        Gera imagem usando API de imagens da OpenAI (gpt-image-1, DALL-E 3, DALL-E 2).
+
+        Args:
+            agente: Instância do modelo Agente
+            prompt: Descrição da imagem a ser gerada
+
+        Returns:
+            URL da imagem gerada
+        """
+        logger.info(f"[OPENAI-IMAGE] Gerando imagem com modelo '{agente.llm_model}'")
+        logger.info(f"[OPENAI-IMAGE] Prompt original: {len(prompt)} chars")
+
+        # Usar o modelo exatamente como está cadastrado
+        modelo = agente.llm_model
+        logger.info(f"[OPENAI-IMAGE] Usando modelo: {modelo}")
+
+        # NOVO: Refinar prompt com GPT-4 (simula comportamento do ChatGPT)
+        prompt_refinado = self._refinar_prompt_para_dalle(prompt)
+
+        # Preparar system prompt se houver
+        prompt_final = prompt_refinado
+        if agente.llm_system_prompt:
+            prompt_final = f"{agente.llm_system_prompt}\n\n{prompt_refinado}"
+
+        # Truncar prompt se necessário (DALL-E 3 tem limite de 4000 caracteres)
+        if len(prompt_final) > 4000:
+            logger.warning(f"[DALL-E] Prompt muito longo ({len(prompt_final)} chars), truncando para 4000")
+            prompt_final = prompt_final[:4000]
+
+        try:
+            # Gerar imagem
+            # gpt-image-1 aceita quality: 'low', 'medium', 'high', 'auto'
+            # dall-e-3 aceita quality: 'standard', 'hd'
+            if modelo == 'gpt-image-1':
+                quality = "high"
+            else:
+                quality = "hd"  # Para dall-e-3 e dall-e-2
+
+            # Configurar parâmetros baseado no modelo
+            params = {
+                "model": modelo,
+                "prompt": prompt_final,
+                "size": "1792x1024" if modelo == "dall-e-3" else "1024x1024",
+                "quality": quality,
+                "n": 1
+            }
+
+            # DALL-E 3 suporta style (vivid = mais dramático, natural = mais realista)
+            if modelo == "dall-e-3":
+                params["style"] = "vivid"
+
+            response = openai.images.generate(**params)
+
+            # Extrair URL da imagem
+            imagem_url = response.data[0].url
+            logger.info(f"[DALL-E] Imagem gerada com sucesso: {imagem_url[:80]}...")
+
+            return imagem_url
+
+        except Exception as e:
+            logger.error(f"[DALL-E] Erro ao gerar imagem: {str(e)}", exc_info=True)
+            raise RuntimeError(f"Falha ao gerar imagem: {str(e)}")

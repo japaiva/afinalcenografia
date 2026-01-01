@@ -1,0 +1,519 @@
+<!-- templates/gestor/renderizacao_ai_wizard.html -->
+{% extends 'gestor/base_gestor.html' %}
+{% load formatadores %}
+
+{% block title %}Renderização AI - {{ projeto.nome }} | Portal do Gestor{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+  <!-- CABEÇALHO -->
+  <div class="card shadow mb-4">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center">
+        <i class="fas fa-image me-2"></i>
+        <div>
+          <h4 class="mb-0">Renderização AI</h4>
+          <small class="text-muted">{{ projeto.empresa.nome }} | {{ projeto.nome }}</small>
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-success" onclick="executarTudo()" id="btn-executar-tudo">
+          <i class="fas fa-play-circle me-1"></i> Executar Tudo
+        </button>
+        <a href="{% url 'gestor:projeto_detail' pk=projeto.id %}" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-1"></i> Voltar
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- COLUNA ESQUERDA (2/3) -->
+    <div class="col-md-8">
+
+      <!-- ETAPA 1: ENRIQUECIMENTO DO JSON -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <span class="badge bg-white text-primary rounded-circle me-2">1</span>
+            Enriquecimento do JSON
+          </h5>
+          <div class="d-flex gap-2 align-items-center">
+            <span class="badge bg-light text-dark" id="status-badge-1">
+              {% if etapa1_concluida %}Concluído{% else %}Não Executado{% endif %}
+            </span>
+            <button class="btn btn-light btn-sm" onclick="executarEtapa1()" id="btn-etapa1">
+              <i class="fas fa-play text-primary me-1"></i> Executar
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <p class="text-muted">
+            <i class="fas fa-info-circle me-1"></i>
+            Combina dados da planta baixa com briefing e inspirações visuais.
+          </p>
+
+          <!-- Resultado -->
+          <div class="result-container {% if not etapa1_concluida %}d-none{% endif %}" id="result-1">
+            <div class="alert alert-success">
+              <i class="fas fa-check-circle me-2"></i> JSON enriquecido com sucesso!
+            </div>
+
+            <button class="btn btn-sm btn-outline-secondary mb-2" onclick="toggleJson('json-etapa1-container')">
+              <i class="fas fa-code me-1"></i> Ver Detalhes Técnicos
+            </button>
+
+            <div id="json-etapa1-container" class="d-none">
+              <h6 class="fw-bold">JSON Enriquecido:</h6>
+              <pre class="bg-light p-3 rounded small" id="json-etapa1" style="max-height: 400px; overflow-y: auto;">{% if projeto.renderizacao_ai_json %}{{ projeto.renderizacao_ai_json|safe }}{% endif %}</pre>
+            </div>
+          </div>
+
+          <!-- Loading -->
+          <div class="text-center d-none" id="loading-1">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Processando...</span>
+            </div>
+            <p class="mt-2 text-muted">Enriquecendo JSON... Isso pode levar alguns segundos.</p>
+          </div>
+
+          <!-- Erro -->
+          <div class="d-none" id="erro-1">
+            <div class="alert alert-danger">
+              <i class="fas fa-exclamation-circle me-2"></i>
+              <strong>Erro:</strong> <span id="mensagem-erro-1"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ETAPA 2: GERAÇÃO DE IMAGEM -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <span class="badge bg-white text-info rounded-circle me-2">2</span>
+            Geração de Imagem DALL-E
+          </h5>
+          <div class="d-flex gap-2 align-items-center">
+            <span class="badge bg-light text-dark" id="status-badge-2">
+              {% if etapa2_concluida %}Concluído{% else %}Não Executado{% endif %}
+            </span>
+            <button class="btn btn-light btn-sm" onclick="executarEtapa2()" id="btn-etapa2" {% if not etapa1_concluida %}disabled{% endif %}>
+              <i class="fas fa-play text-info me-1"></i> Executar
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <p class="text-muted">
+            <i class="fas fa-info-circle me-1"></i>
+            Gera prompt estruturado e imagem DALL-E usando o Agente de Imagem Principal.
+          </p>
+
+          {% if not etapa1_concluida %}
+          <div class="alert alert-info">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <strong>Pré-requisito:</strong> Execute a Etapa 1 primeiro.
+          </div>
+          {% endif %}
+
+          <!-- Resultado -->
+          <div class="result-container {% if not etapa2_concluida %}d-none{% endif %}" id="result-2">
+            <div class="alert alert-success">
+              <i class="fas fa-check-circle me-2"></i> Imagem gerada com sucesso!
+            </div>
+
+            <!-- Prompt -->
+            <div class="mb-3">
+              <button class="btn btn-sm btn-outline-secondary mb-2" onclick="togglePrompt()">
+                <i class="fas fa-align-left me-1"></i> Ver Prompt
+              </button>
+
+              <div id="prompt-container-box" class="d-none">
+                <h6 class="fw-bold">Prompt Usado:</h6>
+                <div class="bg-light p-3 rounded small" id="prompt-dalle" style="white-space: pre-wrap; max-height: 400px; overflow-y: auto; font-family: 'Courier New', monospace;">{% if prompt_atual %}{{ prompt_atual }}{% endif %}</div>
+              </div>
+            </div>
+
+            <!-- Imagem -->
+            <div class="text-center mb-3">
+              <div class="border rounded p-3 bg-white">
+                <img id="imagem-conceito" src="{% if imagem_url %}{{ imagem_url }}{% endif %}" alt="Conceito Visual" class="img-fluid" style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-center gap-3">
+              <button class="btn btn-primary" onclick="baixarImagem()">
+                <i class="fas fa-download me-2"></i> Baixar Imagem
+              </button>
+            </div>
+          </div>
+
+          <!-- Loading -->
+          <div class="text-center d-none" id="loading-2">
+            <div class="spinner-border text-info" role="status">
+              <span class="visually-hidden">Processando...</span>
+            </div>
+            <p class="mt-2 text-muted">Gerando imagem... Isso pode levar até 1 minuto.</p>
+          </div>
+
+          <!-- Erro -->
+          <div class="d-none" id="erro-2">
+            <div class="alert alert-danger">
+              <i class="fas fa-exclamation-circle me-2"></i>
+              <strong>Erro:</strong> <span id="mensagem-erro-2"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- COLUNA DIREITA (1/3) -->
+    <div class="col-md-4">
+      <!-- Status Geral -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0"><i class="fas fa-tasks me-2"></i> Status do Processo</h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span><i class="fas fa-database me-1 text-primary"></i> Enriquecimento</span>
+              <span id="status-1" class="badge {% if etapa1_concluida %}bg-success{% else %}bg-secondary{% endif %}">
+                {% if etapa1_concluida %}Concluído{% else %}Pendente{% endif %}
+              </span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <span><i class="fas fa-image me-1 text-info"></i> Imagem DALL-E</span>
+              <span id="status-2" class="badge {% if etapa2_concluida %}bg-success{% else %}bg-secondary{% endif %}">
+                {% if etapa2_concluida %}Concluído{% else %}Pendente{% endif %}
+              </span>
+            </div>
+          </div>
+
+          <hr>
+
+          <div class="text-center">
+            {% if etapa2_concluida %}
+            <small class="text-success d-block">
+              <i class="fas fa-check-circle me-1"></i> Renderização AI processada
+            </small>
+            <small class="text-muted d-block mt-1">
+              Processada em: {{ projeto.data_renderizacao_ai|date:"d/m/Y H:i" }}
+            </small>
+            {% else %}
+            <small class="text-muted d-block">
+              Processamento não iniciado
+            </small>
+            {% endif %}
+            <small class="text-muted d-block mt-2">
+              Última atualização: <span id="ultima-atualizacao">{{ projeto.updated_at|date:"H:i:s" }}</span>
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dados do Briefing -->
+      <div class="card shadow mb-4">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i> Dados do Briefing</h5>
+        </div>
+        <div class="card-body">
+          {% with briefing=projeto.briefings.first %}
+          {% if briefing %}
+          <dl class="row mb-0">
+            <dt class="col-5">Objetivo:</dt>
+            <dd class="col-7 small">{{ briefing.objetivo_stand|default:"Não informado"|truncatewords:8 }}</dd>
+
+            <dt class="col-5">Público-alvo:</dt>
+            <dd class="col-7 small">{{ briefing.publico_alvo|default:"Não informado"|truncatewords:6 }}</dd>
+
+            <dt class="col-5">Tipo Stand:</dt>
+            <dd class="col-7">{{ briefing.get_tipo_stand_display|default:"Não informado" }}</dd>
+
+            <dt class="col-5">Área:</dt>
+            <dd class="col-7">
+              {% if briefing.area_estande %}
+                {{ briefing.area_estande }}m²
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </dd>
+          </dl>
+          {% else %}
+          <p class="text-muted mb-0">Nenhum briefing disponível</p>
+          {% endif %}
+          {% endwith %}
+        </div>
+      </div>
+
+      <!-- Informações da Feira -->
+      {% if projeto.feira %}
+      <div class="card shadow">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0"><i class="fas fa-calendar-alt me-2"></i> Feira</h5>
+        </div>
+        <div class="card-body">
+          <h6 class="mb-2">{{ projeto.feira.nome }}</h6>
+          <p class="text-muted small mb-2">
+            {{ projeto.feira.local|default:"Local não informado" }}
+          </p>
+          {% if projeto.feira.data_inicio and projeto.feira.data_fim %}
+          <p class="text-muted small mb-2">
+            <i class="fas fa-clock me-1"></i>
+            {{ projeto.feira.data_inicio|date:"d/m/Y" }} a {{ projeto.feira.data_fim|date:"d/m/Y" }}
+          </p>
+          {% endif %}
+          {% if projeto.feira.manual %}
+          <a href="{{ projeto.feira.manual.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+            <i class="fas fa-file-pdf me-1"></i> Ver Manual
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+// ========================================
+// CONTROLE DE ESTADO
+// ========================================
+let etapa1Concluida = {{ etapa1_concluida|yesno:"true,false" }};
+let etapa2Concluida = {{ etapa2_concluida|yesno:"true,false" }};
+
+// ========================================
+// EXECUTAR TUDO
+// ========================================
+function executarTudo() {
+  const btn = document.getElementById('btn-executar-tudo');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Processando...';
+
+  fetch("{% url 'gestor:renderizacao_executar_tudo' projeto.id %}", {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': '{{ csrf_token }}',
+      'Content-Type': 'application/json'
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.sucesso) {
+      // Etapa 1
+      mostrarResultadoEtapa1(data.etapa1.json_enriquecido);
+      etapa1Concluida = true;
+      document.getElementById('status-1').className = 'badge bg-success';
+      document.getElementById('status-1').textContent = 'Concluído';
+      document.getElementById('status-badge-1').textContent = 'Concluído';
+
+      // Etapa 2
+      mostrarResultadoEtapa2({
+        prompt: data.etapa2.prompt,
+        imagem_url: data.etapa2.imagem_url
+      });
+      etapa2Concluida = true;
+      document.getElementById('status-2').className = 'badge bg-success';
+      document.getElementById('status-2').textContent = 'Concluído';
+      document.getElementById('status-badge-2').textContent = 'Concluído';
+      document.getElementById('btn-etapa2').disabled = false;
+
+      // Atualizar hora
+      const agora = new Date();
+      document.getElementById('ultima-atualizacao').textContent = agora.toLocaleTimeString('pt-BR');
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Concluído!',
+        text: data.mensagem,
+        confirmButtonText: 'OK'
+      });
+    } else {
+      Swal.fire({
+        icon: 'error',
+        title: 'Erro',
+        text: data.erro,
+        confirmButtonText: 'OK'
+      });
+    }
+  })
+  .catch(error => {
+    console.error('Erro:', error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Erro',
+      text: 'Erro ao processar: ' + error.message,
+      confirmButtonText: 'OK'
+    });
+  })
+  .finally(() => {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-play-circle me-1"></i> Executar Tudo';
+  });
+}
+
+// ========================================
+// ETAPA 1: ENRIQUECIMENTO
+// ========================================
+function executarEtapa1() {
+  const btn = document.getElementById('btn-etapa1');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Processando...';
+
+  // Mostrar loading
+  document.getElementById('loading-1').classList.remove('d-none');
+  document.getElementById('result-1').classList.add('d-none');
+  document.getElementById('erro-1').classList.add('d-none');
+
+  fetch("{% url 'gestor:renderizacao_etapa1' projeto.id %}", {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': '{{ csrf_token }}',
+      'Content-Type': 'application/json'
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    document.getElementById('loading-1').classList.add('d-none');
+
+    if (data.sucesso) {
+      mostrarResultadoEtapa1(data.json_enriquecido);
+      etapa1Concluida = true;
+      document.getElementById('status-1').className = 'badge bg-success';
+      document.getElementById('status-1').textContent = 'Concluído';
+      document.getElementById('status-badge-1').textContent = 'Concluído';
+      document.getElementById('btn-etapa2').disabled = false;
+
+      // Atualizar hora
+      const agora = new Date();
+      document.getElementById('ultima-atualizacao').textContent = agora.toLocaleTimeString('pt-BR');
+    } else {
+      document.getElementById('mensagem-erro-1').textContent = data.erro;
+      document.getElementById('erro-1').classList.remove('d-none');
+    }
+  })
+  .catch(error => {
+    console.error('Erro:', error);
+    document.getElementById('loading-1').classList.add('d-none');
+    document.getElementById('mensagem-erro-1').textContent = 'Erro ao processar: ' + error.message;
+    document.getElementById('erro-1').classList.remove('d-none');
+  })
+  .finally(() => {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-play text-primary me-1"></i> Executar';
+  });
+}
+
+function mostrarResultadoEtapa1(jsonEnriquecido) {
+  document.getElementById('json-etapa1').textContent = JSON.stringify(jsonEnriquecido, null, 2);
+  document.getElementById('result-1').classList.remove('d-none');
+}
+
+// ========================================
+// ETAPA 2: GERAÇÃO DE IMAGEM
+// ========================================
+function executarEtapa2() {
+  const btn = document.getElementById('btn-etapa2');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Gerando...';
+
+  // Mostrar loading
+  document.getElementById('loading-2').classList.remove('d-none');
+  document.getElementById('result-2').classList.add('d-none');
+  document.getElementById('erro-2').classList.add('d-none');
+
+  fetch("{% url 'gestor:renderizacao_etapa2' projeto.id %}", {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': '{{ csrf_token }}',
+      'Content-Type': 'application/json'
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    document.getElementById('loading-2').classList.add('d-none');
+
+    if (data.sucesso) {
+      mostrarResultadoEtapa2({
+        prompt: data.prompt,
+        imagem_url: data.imagem_url
+      });
+      etapa2Concluida = true;
+      document.getElementById('status-2').className = 'badge bg-success';
+      document.getElementById('status-2').textContent = 'Concluído';
+      document.getElementById('status-badge-2').textContent = 'Concluído';
+
+      // Atualizar hora
+      const agora = new Date();
+      document.getElementById('ultima-atualizacao').textContent = agora.toLocaleTimeString('pt-BR');
+    } else {
+      document.getElementById('mensagem-erro-2').textContent = data.erro;
+      document.getElementById('erro-2').classList.remove('d-none');
+    }
+  })
+  .catch(error => {
+    console.error('Erro:', error);
+    document.getElementById('loading-2').classList.add('d-none');
+    document.getElementById('mensagem-erro-2').textContent = 'Erro ao gerar imagem: ' + error.message;
+    document.getElementById('erro-2').classList.remove('d-none');
+  })
+  .finally(() => {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-play text-info me-1"></i> Executar';
+  });
+}
+
+function mostrarResultadoEtapa2(data) {
+  // Mostrar prompt
+  document.getElementById('prompt-dalle').textContent = data.prompt;
+
+  // Mostrar imagem
+  document.getElementById('imagem-conceito').src = data.imagem_url;
+
+  document.getElementById('result-2').classList.remove('d-none');
+}
+
+// ========================================
+// FUNÇÕES AUXILIARES
+// ========================================
+function toggleJson(containerId) {
+  const container = document.getElementById(containerId);
+  const button = event.target.closest('button');
+
+  if (container.classList.contains('d-none')) {
+    container.classList.remove('d-none');
+    button.innerHTML = '<i class="fas fa-eye-slash me-1"></i> Ocultar Detalhes';
+  } else {
+    container.classList.add('d-none');
+    button.innerHTML = '<i class="fas fa-code me-1"></i> Ver Detalhes Técnicos';
+  }
+}
+
+function togglePrompt() {
+  const container = document.getElementById('prompt-container-box');
+  const button = event.target.closest('button');
+
+  if (container.classList.contains('d-none')) {
+    container.classList.remove('d-none');
+    button.innerHTML = '<i class="fas fa-eye-slash me-1"></i> Ocultar Prompt';
+  } else {
+    container.classList.add('d-none');
+    button.innerHTML = '<i class="fas fa-align-left me-1"></i> Ver Prompt';
+  }
+}
+
+function baixarImagem() {
+  const img = document.getElementById('imagem-conceito');
+  const url = img.src;
+
+  // Criar link temporário para download
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'conceito-visual-{{ projeto.id }}.png';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+</script>
+{% endblock %}

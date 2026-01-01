@@ -43,6 +43,22 @@ from .planta_baixa_ajuste_view import (
     AplicarAjustesView
 ) # These are in planta_baixa_ajuste_view.py
 
+# Imports da Renderização AI
+from .renderizacao_ai import (
+    renderizacao_ai_wizard,
+    renderizacao_etapa1_enriquecer,
+    renderizacao_etapa2_gerar,
+    renderizacao_executar_tudo
+) # These are in renderizacao_ai.py
+
+# Imports do Modelo 3D
+from .modelo_3d import (
+    modelo_3d_wizard,
+    modelo_3d_gerar,
+    modelo_3d_download,
+    modelo_3d_download_mtl
+) # These are in modelo_3d.py
+
 # Imports dos arquivos de feira
 from .feira import (
     feira_list, feira_create, feira_update, feira_toggle_status, feira_detail,
@@ -138,6 +154,18 @@ __all__ = [
     # Planta Baixa - Ajuste Conversacional
     'AjusteConversacionalView',
     'AplicarAjustesView',
+
+    # Renderização AI
+    'renderizacao_ai_wizard',
+    'renderizacao_etapa1_enriquecer',
+    'renderizacao_etapa2_gerar',
+    'renderizacao_executar_tudo',
+
+    # Modelo 3D
+    'modelo_3d_wizard',
+    'modelo_3d_gerar',
+    'modelo_3d_download',
+    'modelo_3d_download_mtl',
 
     # Mensagens
     'mensagens', 'nova_mensagem', 'mensagens_projeto', 'limpar_mensagens' # From mensagens.py

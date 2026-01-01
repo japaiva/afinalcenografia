@@ -223,10 +223,13 @@
               <button class="nav-link active" id="briefing-tab" data-bs-toggle="tab" data-bs-target="#briefing-content" type="button" role="tab" aria-controls="briefing-content" aria-selected="true">Briefing</button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link" id="conceito-tab" data-bs-toggle="tab" data-bs-target="#conceito-content" type="button" role="tab" aria-controls="conceito-content" aria-selected="false">Conceito</button>
+              <button class="nav-link" id="planta-tab" data-bs-toggle="tab" data-bs-target="#planta-content" type="button" role="tab" aria-controls="planta-content" aria-selected="false">Planta Baixa</button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link" id="3d-tab" data-bs-toggle="tab" data-bs-target="#3d-content" type="button" role="tab" aria-controls="3d-content" aria-selected="false">3D</button>
+              <button class="nav-link" id="renderizacao-tab" data-bs-toggle="tab" data-bs-target="#renderizacao-content" type="button" role="tab" aria-controls="renderizacao-content" aria-selected="false">Renderização AI</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="modelo3d-tab" data-bs-toggle="tab" data-bs-target="#modelo3d-content" type="button" role="tab" aria-controls="modelo3d-content" aria-selected="false">Modelo 3D</button>
             </li>
             <li class="nav-item" role="presentation">
               <button class="nav-link" id="projeto-tab" data-bs-toggle="tab" data-bs-target="#projeto-content" type="button" role="tab" aria-controls="projeto-content" aria-selected="false">Projeto</button>
@@ -290,72 +293,185 @@
               {% endif %}
             </div>
 
-            <!-- CONCEITO VISUAL TAB -->
-            <div class="tab-pane fade" id="conceito-content" role="tabpanel" aria-labelledby="conceito-tab">
-              {% if projeto.status_desenvolvimento == 'conceito_visual' or projeto.status_desenvolvimento == 'renderizacao_3d' or projeto.status_desenvolvimento == 'projeto_executivo' or projeto.status_desenvolvimento == 'calculo_custos' or projeto.status_desenvolvimento == 'detalhamento' or projeto.status_desenvolvimento == 'concluido' %}
+            <!-- PLANTA BAIXA TAB -->
+            <div class="tab-pane fade" id="planta-content" role="tabpanel" aria-labelledby="planta-tab">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">Planta Baixa</h6>
+                <span class="badge {% if projeto.planta_baixa_processada %}bg-success{% else %}bg-secondary{% endif %}">
+                  {% if projeto.planta_baixa_processada %}Processada{% else %}Não Processada{% endif %}
+                </span>
+              </div>
+
+              {% if not projeto.has_briefing %}
+              <div class="alert alert-warning mb-3">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Pré-requisito não atendido:</strong> É necessário ter um briefing criado primeiro.
+              </div>
+              {% endif %}
+
+              {% if projeto.planta_baixa_processada %}
+                <dl class="row mb-3">
+                  <dt class="col-sm-4">Data de Processamento:</dt>
+                  <dd class="col-sm-8">{{ projeto.data_planta_baixa|date:"d/m/Y H:i" }}</dd>
+
+                  <dt class="col-sm-4">Tipo de Stand:</dt>
+                  <dd class="col-sm-8">
+                    {% if projeto.planta_baixa_json.tipo_stand %}
+                      {{ projeto.planta_baixa_json.tipo_stand|title }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </dd>
+
+                  <dt class="col-sm-4">Área Total:</dt>
+                  <dd class="col-sm-8">
+                    {% if projeto.planta_baixa_json.dimensoes_totais.area_total %}
+                      {{ projeto.planta_baixa_json.dimensoes_totais.area_total }}m²
+                    {% else %}
+                      -
+                    {% endif %}
+                  </dd>
+
+                  <dt class="col-sm-4">Dimensões:</dt>
+                  <dd class="col-sm-8">
+                    {% if projeto.planta_baixa_json.dimensoes_totais %}
+                      {{ projeto.planta_baixa_json.dimensoes_totais.largura }}m x {{ projeto.planta_baixa_json.dimensoes_totais.profundidade }}m x {{ projeto.planta_baixa_json.dimensoes_totais.altura }}m
+                    {% else %}
+                      -
+                    {% endif %}
+                  </dd>
+                </dl>
+
+                {% if projeto.planta_baixa_svg %}
                 <div class="mb-3">
-                  <h6>Conceito Visual</h6>
-                  <div class="row">
-                    {% for conceito in projeto.conceitos.all %}
-                    <div class="col-md-6 mb-3">
-                      <div class="card">
-                        <img src="{{ conceito.imagem.url }}" class="card-img-top" alt="{{ conceito.descricao }}">
-                        <div class="card-body p-2">
-                          <p class="card-text small">{{ conceito.descricao }}</p>
-                          <div class="d-flex justify-content-end">
-                            <a href="{{ conceito.imagem.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
-                              <i class="fas fa-download"></i>
-                            </a>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    {% empty %}
-                    <div class="col-12 text-center text-muted py-3">
-                      Nenhum conceito visual disponível
-                    </div>
-                    {% endfor %}
+                  <h6>Visualização SVG:</h6>
+                  <div class="border rounded p-3 bg-white text-center">
+                    {{ projeto.planta_baixa_svg|safe }}
                   </div>
                 </div>
+                {% endif %}
               {% else %}
-                <div class="alert alert-info mb-0">
-                  <i class="fas fa-info-circle me-2"></i> O conceito visual ainda não foi desenvolvido.
+                <div class="alert alert-info mb-3">
+                  <i class="fas fa-info-circle me-2"></i> A planta baixa ainda não foi processada.
                 </div>
               {% endif %}
+
+              <a href="{% url 'gestor:planta_baixa_wizard' projeto_id=projeto.id %}"
+                 class="btn btn-primary btn-sm {% if not projeto.has_briefing %}disabled{% endif %}"
+                 {% if not projeto.has_briefing %}aria-disabled="true" title="Complete o briefing primeiro"{% endif %}>
+                <i class="fas fa-drafting-compass me-1"></i>
+                {% if projeto.planta_baixa_processada %}Ver Planta Baixa Completa{% else %}Processar Planta Baixa{% endif %}
+              </a>
             </div>
 
-            <!-- RENDERIZAÇÃO 3D TAB -->
-            <div class="tab-pane fade" id="3d-content" role="tabpanel" aria-labelledby="3d-tab">
-              {% if projeto.status_desenvolvimento == 'renderizacao_3d' or projeto.status_desenvolvimento == 'projeto_executivo' or projeto.status_desenvolvimento == 'calculo_custos' or projeto.status_desenvolvimento == 'detalhamento' or projeto.status_desenvolvimento == 'concluido' %}
+            <!-- RENDERIZAÇÃO AI TAB -->
+            <div class="tab-pane fade" id="renderizacao-content" role="tabpanel" aria-labelledby="renderizacao-tab">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">Renderização AI</h6>
+                <span class="badge {% if projeto.renderizacao_ai_processada %}bg-success{% else %}bg-secondary{% endif %}">
+                  {% if projeto.renderizacao_ai_processada %}Processada{% else %}Não Processada{% endif %}
+                </span>
+              </div>
+
+              {% if not projeto.planta_baixa_processada %}
+              <div class="alert alert-warning mb-3">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Pré-requisito não atendido:</strong> É necessário processar a planta baixa primeiro.
+              </div>
+              {% endif %}
+
+              {% if projeto.renderizacao_ai_processada %}
+                <dl class="row mb-3">
+                  <dt class="col-sm-4">Data de Processamento:</dt>
+                  <dd class="col-sm-8">{{ projeto.data_renderizacao_ai|date:"d/m/Y H:i" }}</dd>
+
+                  <dt class="col-sm-4">Imagem Gerada:</dt>
+                  <dd class="col-sm-8">
+                    {% if projeto.imagem_conceito_url %}
+                      <span class="badge bg-success">Sim</span>
+                    {% else %}
+                      <span class="badge bg-secondary">Não</span>
+                    {% endif %}
+                  </dd>
+                </dl>
+
+                {% if projeto.imagem_conceito_url %}
                 <div class="mb-3">
-                  <h6>Renderizações 3D</h6>
-                  <div class="row">
-                    {% for render in projeto.renders.all %}
-                    <div class="col-md-6 mb-3">
-                      <div class="card">
-                        <img src="{{ render.imagem.url }}" class="card-img-top" alt="{{ render.descricao }}">
-                        <div class="card-body p-2">
-                          <p class="card-text small">{{ render.descricao }}</p>
-                          <div class="d-flex justify-content-end">
-                            <a href="{{ render.imagem.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
-                              <i class="fas fa-download"></i>
-                            </a>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    {% empty %}
-                    <div class="col-12 text-center text-muted py-3">
-                      Nenhuma renderização 3D disponível
-                    </div>
-                    {% endfor %}
+                  <h6>Imagem DALL-E:</h6>
+                  <div class="text-center border rounded p-3 bg-white">
+                    <img src="{{ projeto.imagem_conceito_url }}" alt="Conceito Visual" class="img-fluid" style="max-width: 100%; max-height: 500px; border-radius: 8px;">
                   </div>
                 </div>
+                {% endif %}
               {% else %}
-                <div class="alert alert-info mb-0">
-                  <i class="fas fa-info-circle me-2"></i> As renderizações 3D ainda não foram desenvolvidas.
+                <div class="alert alert-info mb-3">
+                  <i class="fas fa-info-circle me-2"></i> A renderização AI ainda não foi processada.
                 </div>
               {% endif %}
+
+              <a href="{% url 'gestor:renderizacao_ai_wizard' projeto_id=projeto.id %}"
+                 class="btn btn-primary btn-sm {% if not projeto.planta_baixa_processada %}disabled{% endif %}"
+                 {% if not projeto.planta_baixa_processada %}aria-disabled="true" title="Processe a planta baixa primeiro"{% endif %}>
+                <i class="fas fa-image me-1"></i>
+                {% if projeto.renderizacao_ai_processada %}Ver Renderização Completa{% else %}Processar Renderização AI{% endif %}
+              </a>
+            </div>
+
+            <!-- MODELO 3D TAB -->
+            <div class="tab-pane fade" id="modelo3d-content" role="tabpanel" aria-labelledby="modelo3d-tab">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">Modelo 3D (SketchUp)</h6>
+                <span class="badge {% if projeto.modelo_3d_processado %}bg-success{% else %}bg-secondary{% endif %}">
+                  {% if projeto.modelo_3d_processado %}Processado{% else %}Não Processado{% endif %}
+                </span>
+              </div>
+
+              {% if not projeto.renderizacao_ai_processada %}
+              <div class="alert alert-warning mb-3">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Pré-requisito não atendido:</strong> É necessário processar a renderização AI primeiro.
+              </div>
+              {% endif %}
+
+              <div class="alert alert-info mb-3">
+                <i class="fas fa-wrench me-2"></i>
+                <strong>Módulo em desenvolvimento:</strong> A geração de modelos 3D será implementada em breve.
+              </div>
+
+              {% if projeto.modelo_3d_processado %}
+                <dl class="row mb-3">
+                  <dt class="col-sm-4">Data de Processamento:</dt>
+                  <dd class="col-sm-8">{{ projeto.data_modelo_3d|date:"d/m/Y H:i" }}</dd>
+
+                  <dt class="col-sm-4">Arquivo:</dt>
+                  <dd class="col-sm-8">
+                    {% if projeto.arquivo_3d %}
+                      <span class="badge bg-success">Disponível</span>
+                    {% else %}
+                      <span class="badge bg-secondary">Não disponível</span>
+                    {% endif %}
+                  </dd>
+                </dl>
+
+                {% if projeto.arquivo_3d %}
+                <div class="mb-3">
+                  <a href="{{ projeto.arquivo_3d.url }}" class="btn btn-success mb-2" download>
+                    <i class="fas fa-download me-1"></i> Baixar Modelo 3D (.skp)
+                  </a>
+                </div>
+                {% endif %}
+              {% else %}
+                <div class="alert alert-secondary mb-3">
+                  <i class="fas fa-info-circle me-2"></i> O modelo 3D ainda não foi processado.
+                </div>
+              {% endif %}
+
+              <a href="{% url 'gestor:modelo_3d_wizard' projeto_id=projeto.id %}"
+                 class="btn btn-primary btn-sm {% if not projeto.renderizacao_ai_processada %}disabled{% endif %}"
+                 {% if not projeto.renderizacao_ai_processada %}aria-disabled="true" title="Processe a renderização AI primeiro"{% endif %}>
+                <i class="fas fa-cube me-1"></i>
+                {% if projeto.modelo_3d_processado %}Ver Detalhes do Modelo 3D{% else %}Acessar Módulo de Modelo 3D{% endif %}
+              </a>
             </div>
             
             <!-- PROJETO TAB -->
@@ -553,14 +669,27 @@
         </div>
         <div class="card-body">
           <div class="d-grid gap-2">
-            {% if projeto.has_briefing %}
-              <a href="{% url 'gestor:planta_baixa_wizard' projeto_id=projeto.id %}" class="btn btn-primary">
-                <i class="fas fa-drafting-compass me-2"></i> Planta Baixa
-              </a>
-              <a href="{% url 'gestor:conceito_visual' projeto_id=projeto.id %}" class="btn btn-primary">
-                <i class="fas fa-paint-brush me-2"></i> Conceito Visual
-              </a>
-            {% endif %}
+            <!-- Planta Baixa - Sempre visível, desabilitado se não tiver briefing -->
+            <a href="{% url 'gestor:planta_baixa_wizard' projeto_id=projeto.id %}"
+               class="btn btn-primary {% if not projeto.has_briefing %}disabled{% endif %}"
+               {% if not projeto.has_briefing %}aria-disabled="true" title="É necessário ter um briefing criado primeiro"{% endif %}>
+              <i class="fas fa-drafting-compass me-2"></i> Planta Baixa
+            </a>
+
+            <!-- Renderização AI - Sempre visível, desabilitado se não tiver planta baixa processada -->
+            <a href="{% url 'gestor:renderizacao_ai_wizard' projeto_id=projeto.id %}"
+               class="btn btn-primary {% if not projeto.planta_baixa_processada %}disabled{% endif %}"
+               {% if not projeto.planta_baixa_processada %}aria-disabled="true" title="É necessário processar a planta baixa primeiro"{% endif %}>
+              <i class="fas fa-image me-2"></i> Renderização AI
+            </a>
+
+            <!-- Modelo 3D - Sempre visível, desabilitado se não tiver renderização AI processada -->
+            <a href="{% url 'gestor:modelo_3d_wizard' projeto_id=projeto.id %}"
+               class="btn btn-primary {% if not projeto.renderizacao_ai_processada %}disabled{% endif %}"
+               {% if not projeto.renderizacao_ai_processada %}aria-disabled="true" title="É necessário processar a renderização AI primeiro"{% endif %}>
+              <i class="fas fa-cube me-2"></i> Modelo 3D
+            </a>
+
             <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#atribuirProjetistaModal">
               <i class="fas fa-user-plus me-2"></i> Atribuir Projetista
             </button>
@@ -568,11 +697,11 @@
             <a href="{% url 'gestor:mensagens_projeto' projeto_id=projeto.id %}" class="btn btn-outline-primary">
               <i class="fas fa-comment me-2"></i> Enviar Mensagem
             </a>
-            
+
             <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#limparMensagensModal">
               <i class="fas fa-trash me-2"></i> Limpar Mensagens
             </button>
-            
+
             <!-- Alterar Status como última opção -->
             <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#alterarStatusModal">
               <i class="fas fa-tasks me-2"></i> Alterar Status

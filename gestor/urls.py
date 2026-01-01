@@ -89,11 +89,11 @@ urlpatterns = [
     path('projetos/<int:pk>/alterar-status/', views.projeto_alterar_status, name='projeto_alterar_status'),
     path('projetos/<int:projeto_id>/briefing/', views.ver_briefing, name='ver_briefing'), 
  
-    # Conceito Visual
-    path('projeto/<int:projeto_id>/conceito-visual/', views.conceito_visual, name='conceito_visual'),
-    path('projeto/<int:projeto_id>/conceito-visual/etapa1/', views.conceito_etapa1_esboco, name='conceito_etapa1'),
-    path('projeto/<int:projeto_id>/conceito-visual/etapa2/', views.conceito_etapa2_referencias, name='conceito_etapa2'),
-    path('projeto/<int:projeto_id>/conceito-visual/etapa3/', views.conceito_etapa3_geracao, name='conceito_etapa3'),
+    # Conceito Visual (REMOVIDO - substituído por Renderização AI)
+    # path('projeto/<int:projeto_id>/conceito-visual/', views.conceito_visual, name='conceito_visual'),
+    # path('projeto/<int:projeto_id>/conceito-visual/etapa1/', views.conceito_etapa1_esboco, name='conceito_etapa1'),
+    # path('projeto/<int:projeto_id>/conceito-visual/etapa2/', views.conceito_etapa2_referencias, name='conceito_etapa2'),
+    # path('projeto/<int:projeto_id>/conceito-visual/etapa3/', views.conceito_etapa3_geracao, name='conceito_etapa3'),
 
     # Planta Baixa
     path('projeto/<int:projeto_id>/planta-baixa/', views.planta_baixa_wizard, name='planta_baixa_wizard'),
@@ -106,6 +106,18 @@ urlpatterns = [
     # Ajuste Conversacional
     path('projeto/<int:projeto_id>/planta-baixa/ajustar/', views.AjusteConversacionalView.as_view(), name='planta_ajustar'),
     path('projeto/<int:projeto_id>/planta-baixa/aplicar-ajustes/', views.AplicarAjustesView.as_view(), name='planta_aplicar_ajustes'),
+
+    # Renderização AI
+    path('projeto/<int:projeto_id>/renderizacao-ai/', views.renderizacao_ai_wizard, name='renderizacao_ai_wizard'),
+    path('projeto/<int:projeto_id>/renderizacao-ai/etapa1/', views.renderizacao_etapa1_enriquecer, name='renderizacao_etapa1'),
+    path('projeto/<int:projeto_id>/renderizacao-ai/etapa2/', views.renderizacao_etapa2_gerar, name='renderizacao_etapa2'),
+    path('projeto/<int:projeto_id>/renderizacao-ai/executar-tudo/', views.renderizacao_executar_tudo, name='renderizacao_executar_tudo'),
+
+    # Modelo 3D
+    path('projeto/<int:projeto_id>/modelo-3d/', views.modelo_3d_wizard, name='modelo_3d_wizard'),
+    path('projeto/<int:projeto_id>/modelo-3d/gerar/', views.modelo_3d_gerar, name='modelo_3d_gerar'),
+    path('projeto/<int:projeto_id>/modelo-3d/download/', views.modelo_3d_download, name='modelo_3d_download'),
+    path('projeto/<int:projeto_id>/modelo-3d/download-mtl/', views.modelo_3d_download_mtl, name='modelo_3d_download_mtl'),
 
     # =================================================================
     # SISTEMA DE MENSAGENS

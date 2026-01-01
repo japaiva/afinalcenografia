@@ -305,8 +305,10 @@ class Briefing(models.Model):
 
             
         # Calcula área total se tiver dimensões
-        if self.medida_frente and self.medida_fundo:
-            self.area_estande = self.medida_frente * self.medida_fundo
+        # Usa medida_fundo se disponível, senão usa medida_lateral_esquerda
+        profundidade = self.medida_fundo or self.medida_lateral_esquerda
+        if self.medida_frente and profundidade:
+            self.area_estande = self.medida_frente * profundidade
             
         # Calcula progresso automático
         etapas_completas = 0

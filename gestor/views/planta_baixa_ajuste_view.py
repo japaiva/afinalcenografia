@@ -10,6 +10,37 @@ import json
 import re
 
 
+def validar_e_corrigir_areas(layout: dict) -> dict:
+    """
+    Valida e corrige cálculos de área no layout.
+    Garante que area_total = largura × profundidade (não largura²)
+    """
+    if not layout:
+        return layout
+
+    # Corrigir dimensões totais
+    dims = layout.get('dimensoes_totais', {})
+    if dims:
+        largura = dims.get('largura', 0)
+        profundidade = dims.get('profundidade', 0)
+        area_correta = largura * profundidade
+        if dims.get('area_total') != area_correta:
+            print(f"[VALIDAÇÃO] Corrigindo area_total: {dims.get('area_total')} → {area_correta}")
+            dims['area_total'] = area_correta
+            layout['dimensoes_totais'] = dims
+
+    # Corrigir áreas individuais
+    for area in layout.get('areas', []):
+        geom = area.get('geometria', {})
+        if 'largura' in geom and 'profundidade' in geom:
+            area_correta = round(geom['largura'] * geom['profundidade'], 2)
+            if geom.get('area') != area_correta:
+                print(f"[VALIDAÇÃO] Corrigindo {area.get('nome', 'área')}: {geom.get('area')} → {area_correta}")
+                geom['area'] = area_correta
+
+    return layout
+
+
 class AjusteConversacionalView(LoginRequiredMixin, View):
     """
     Processa comandos conversacionais para ajustar dimensões das áreas
@@ -179,6 +210,9 @@ class AplicarAjustesView(LoginRequiredMixin, View):
 
             # Recalcular coordenadas absolutas (m)
             layout = self._recalcular_metros(layout, projeto_id)
+
+            # Validar e corrigir cálculos de área
+            layout = validar_e_corrigir_areas(layout)
 
             # Salvar layout ajustado no banco
             from projetos.models import Projeto

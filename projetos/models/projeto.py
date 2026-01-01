@@ -155,6 +155,53 @@ class Projeto(models.Model):
         verbose_name="Data de Geração da Planta Baixa"
     )
 
+    # Renderização AI (Módulo 2)
+    renderizacao_ai_json = models.JSONField(
+        default=dict, blank=True,
+        verbose_name="Conceito Visual Enriquecido",
+        help_text="JSON enriquecido com planta + briefing + elementos visuais"
+    )
+
+    imagem_conceito_url = models.URLField(
+        max_length=500, blank=True, null=True,
+        verbose_name="URL da Imagem DALL-E",
+        help_text="Link da imagem conceitual gerada pela IA"
+    )
+
+    prompt_dalle_atual = models.TextField(
+        blank=True, null=True,
+        verbose_name="Prompt DALL-E Atual",
+        help_text="Último prompt usado para gerar a imagem"
+    )
+
+    renderizacao_ai_processada = models.BooleanField(
+        default=False,
+        verbose_name="Renderização AI Processada"
+    )
+
+    data_renderizacao_ai = models.DateTimeField(
+        blank=True, null=True,
+        verbose_name="Data da Renderização AI"
+    )
+
+    # Modelo 3D (Módulo 3)
+    arquivo_3d = models.FileField(
+        upload_to='modelos_3d/', blank=True, null=True,
+        storage=MinioStorage(),
+        verbose_name="Arquivo 3D (SketchUp)",
+        help_text="Modelo 3D exportado (.skp)"
+    )
+
+    modelo_3d_processado = models.BooleanField(
+        default=False,
+        verbose_name="Modelo 3D Processado"
+    )
+
+    data_modelo_3d = models.DateTimeField(
+        blank=True, null=True,
+        verbose_name="Data de Geração do Modelo 3D"
+    )
+
     # Campos para métricas
     tempo_projeto = models.DurationField(
         blank=True, null=True, verbose_name="Tempo de Projeto",
